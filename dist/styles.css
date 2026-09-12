@@ -6,3 +6,7 @@
 body.is-experiencing{overflow:hidden;overscroll-behavior:none}.is-experiencing .intro-layer{position:fixed;inset:0;width:100vw;height:100svh}.is-experiencing .controls{visibility:hidden;pointer-events:none}@media(max-width:759px){.is-experiencing .experience{height:100svh;min-height:100svh}.experience[data-state="profile"] .preset-shrink{position:absolute;height:100svh}}
 
 .experience[data-state="profile"] .preset-shrink{background:transparent;pointer-events:none}
+
+.preset-shrink .media-stage{clip-path:inset(0 round 0);transition:transform var(--transition-ms) cubic-bezier(.22,.74,.12,1),clip-path var(--transition-ms) cubic-bezier(.22,.74,.12,1),box-shadow var(--transition-ms) ease}.experience[data-state="transitioning"] .preset-shrink .media-stage,.experience[data-state="profile"] .preset-shrink .media-stage{transform:translate3d(var(--shrink-x,0),var(--shrink-y,0),0) scale(var(--shrink-scale,.3));transform-origin:center center;clip-path:circle(var(--shrink-radius,50%) at 50% 50%);border-radius:0;box-shadow:0 1rem 3rem rgba(0,0,0,.55)}
+
+.profile.measure-target{transform:none!important;transition:none!important}

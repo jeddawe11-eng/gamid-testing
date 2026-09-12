@@ -26,3 +26,13 @@ export function resolvePreset(name) {
 export const effectiveTransitionDuration = (duration, reducedMotion) => reducedMotion ? 180 : clampDuration(duration);
 
 export const isImmersiveState = state => state === "intro" || state === "transitioning";
+
+export function computeShrinkTarget(stageRect, targetRect) {
+  const scale = targetRect.width / stageRect.width;
+  return {
+    x: targetRect.left + targetRect.width / 2 - (stageRect.left + stageRect.width / 2),
+    y: targetRect.top + targetRect.height / 2 - (stageRect.top + stageRect.height / 2),
+    scale,
+    clipRadius: targetRect.width / (2 * scale),
+  };
+}

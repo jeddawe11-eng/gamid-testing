@@ -1,6 +1,6 @@
-import { PRESETS, clampDuration, effectiveTransitionDuration, isImmersiveState, nextExperienceState, resolvePreset } from "./transition-engine.js";
+import { PRESETS, clampDuration, computeShrinkTarget, effectiveTransitionDuration, isImmersiveState, nextExperienceState, resolvePreset } from "./transition-engine.js";
 
-const els = Object.fromEntries(["experience","profile","introLayer","mediaStage","introVideo","introImage","skipButton","panelSkipButton","replayButton","presetSelect","introDuration","transitionDuration","introOutput","transitionOutput","progressBar","mediaSelect","stateBadge"].map(id => [id, document.getElementById(id)]));
+const els = Object.fromEntries(["experience","profile","introLayer","mediaStage","avatarTarget","introVideo","introImage","skipButton","panelSkipButton","replayButton","presetSelect","introDuration","transitionDuration","introOutput","transitionOutput","progressBar","mediaSelect","stateBadge"].map(id => [id, document.getElementById(id)]));
 let state = "intro";
 let introTimer;
 let transitionTimer;
@@ -42,12 +42,24 @@ function showSelectedMedia() {
 function finishTransition(token) {
   if (token !== runToken) return;
   setState("TRANSITION_COMPLETE");
-  els.introLayer.style.visibility = els.presetSelect.value === "shrink" ? "visible" : "hidden";
+  els.introLayer.style.visibility = "hidden";
+}
+
+function positionShrinkOnAvatar() {
+  els.profile.classList.add("measure-target");
+  const targetRect = els.avatarTarget.getBoundingClientRect();
+  els.profile.classList.remove("measure-target");
+  const target = computeShrinkTarget(els.introLayer.getBoundingClientRect(), targetRect);
+  els.mediaStage.style.setProperty("--shrink-x", `${target.x}px`);
+  els.mediaStage.style.setProperty("--shrink-y", `${target.y}px`);
+  els.mediaStage.style.setProperty("--shrink-scale", target.scale);
+  els.mediaStage.style.setProperty("--shrink-radius", `${target.clipRadius}px`);
 }
 
 function beginTransition() {
   if (state !== "intro") return;
   const token = runToken;
+  if (els.presetSelect.value === "shrink") positionShrinkOnAvatar();
   setState("INTRO_COMPLETE");
   const duration = effectiveTransitionDuration(els.transitionDuration.value, reduceMotion.matches);
   els.experience.style.setProperty("--transition-ms", `${duration}ms`);

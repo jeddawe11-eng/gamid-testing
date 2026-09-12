@@ -13,6 +13,9 @@ for (const behavior of ["body.is-experiencing", ".is-experiencing .intro-layer",
 if (!css.includes('.experience[data-state="profile"] .preset-shrink{background:transparent')) {
   throw new Error("Shrink preset must keep the profile-state overlay transparent");
 }
+if (!html.includes('id="avatarTarget"') || !css.includes("--shrink-x")) {
+  throw new Error("Shrink preset must target the runtime avatar position");
+}
 await access(new URL("../dist/assets/gamid-intro.mp4", import.meta.url));
 await access(new URL("../dist/assets/gamid-intro-poster.webp", import.meta.url));
 console.log("Static prototype validation passed.");
