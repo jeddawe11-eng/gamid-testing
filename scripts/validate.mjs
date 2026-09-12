@@ -10,6 +10,9 @@ for (const preset of ["preset-fade","preset-blur","preset-shrink","preset-slide"
 for (const behavior of ["body.is-experiencing", ".is-experiencing .intro-layer", ".is-experiencing .controls"]) {
   if (!css.includes(behavior)) throw new Error(`Missing immersive behavior: ${behavior}`);
 }
+if (!css.includes('.experience[data-state="profile"] .preset-shrink{background:transparent')) {
+  throw new Error("Shrink preset must keep the profile-state overlay transparent");
+}
 await access(new URL("../dist/assets/gamid-intro.mp4", import.meta.url));
 await access(new URL("../dist/assets/gamid-intro-poster.webp", import.meta.url));
 console.log("Static prototype validation passed.");

@@ -4,3 +4,5 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:180ms!important}.experience[data-state="transitioning"] .preset-blur{filter:none}.experience[data-state="transitioning"] .preset-slide{transform:none;opacity:0}.experience[data-state="transitioning"] .preset-shrink{opacity:0}.experience[data-state="transitioning"] .preset-split{opacity:0}.split-panel{display:none!important}}
 
 body.is-experiencing{overflow:hidden;overscroll-behavior:none}.is-experiencing .intro-layer{position:fixed;inset:0;width:100vw;height:100svh}.is-experiencing .controls{visibility:hidden;pointer-events:none}@media(max-width:759px){.is-experiencing .experience{height:100svh;min-height:100svh}.experience[data-state="profile"] .preset-shrink{position:absolute;height:100svh}}
+
+.experience[data-state="profile"] .preset-shrink{background:transparent;pointer-events:none}
