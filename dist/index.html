@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#08070d" />
+  <meta name="description" content="GamID intro and transition engine prototype." />
+  <title>GamID — Intro Engine</title>
+  <link rel="preload" href="assets/gamid-intro-poster.webp" as="image" fetchpriority="high" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="prototype-shell">
+    <section class="experience" id="experience" aria-label="GamID profile preview">
+      <article class="profile" id="profile" aria-hidden="true">
+        <div class="profile-glow"></div>
+        <header class="profile-topbar">
+          <a class="brand" href="#" aria-label="GamID home">GAM<span>ID</span></a>
+          <button class="icon-button" aria-label="More profile options">•••</button>
+        </header>
+
+        <div class="hero-card">
+          <div class="status-pill"><i></i> ONLINE</div>
+          <div class="avatar-wrap">
+            <img src="assets/gamid-intro-poster.webp" alt="NovaRift avatar" width="112" height="112" />
+            <b>27</b>
+          </div>
+          <p class="eyebrow">PLAYER PROFILE</p>
+          <h1>Nova<span>Rift</span></h1>
+          <p class="handle">@novarift · GAMID/NR27</p>
+          <p class="bio">Clutch plays, late-night queues, and good energy. Competitive when it counts.</p>
+          <div class="socials" aria-label="Social links">
+            <button aria-label="Twitch">Tw</button><button aria-label="Discord">Ds</button><button aria-label="YouTube">Yt</button><button aria-label="Instagram">Ig</button>
+          </div>
+        </div>
+
+        <section class="now-playing">
+          <div><p class="eyebrow">CURRENTLY PLAYING</p><h2>Marvel Rivals</h2><p>Ranked · Diamond II</p></div>
+          <span class="pulse-ring">▶</span>
+        </section>
+
+        <section class="profile-section">
+          <div class="section-title"><p class="eyebrow">FAVORITE GAMES</p><span>4 TITLES</span></div>
+          <div class="game-row">
+            <div><b>MR</b><span>Marvel<br/>Rivals</span></div><div><b>VL</b><span>Valorant</span></div><div><b>OW</b><span>Overwatch<br/>2</span></div><div><b>FN</b><span>Fortnite</span></div>
+          </div>
+        </section>
+
+        <section class="duo-card">
+          <div class="mini-avatar">K</div><div><p class="eyebrow">DUO / TEAMMATE</p><h3>KairoZen</h3><p>142 wins together</p></div><button>VIEW</button>
+        </section>
+
+        <section class="team-card">
+          <span class="team-mark">V</span><div><p class="eyebrow">TEAM</p><h3>Velocity Esports</h3><p>Flex · Southeast Asia</p></div><span class="verified">✓</span>
+        </section>
+      </article>
+
+      <div class="intro-layer preset-fade" id="introLayer">
+        <div class="media-stage" id="mediaStage">
+          <video id="introVideo" muted playsinline preload="auto" poster="assets/gamid-intro-poster.webp">
+            <source src="assets/gamid-intro.mp4" type="video/mp4" />
+          </video>
+          <img id="introImage" src="assets/gamid-intro-poster.webp" alt="GamID intro visual" width="576" height="1024" hidden />
+          <div class="media-shade"></div>
+          <div class="split-panel split-left"></div><div class="split-panel split-right"></div>
+          <div class="intro-brand"><span>GAM</span><b>ID</b><small>YOUR GAME. YOUR ID.</small></div>
+        </div>
+        <button class="skip" id="skipButton">Skip intro <span>→</span></button>
+        <div class="intro-progress"><i id="progressBar"></i></div>
+      </div>
+    </section>
+
+    <aside class="controls" aria-label="Prototype controls">
+      <div class="controls-head"><div><p>GAMID LAB</p><h2>Intro Engine</h2></div><span id="stateBadge">PLAYING</span></div>
+      <label>Transition
+        <select id="presetSelect"></select>
+      </label>
+      <div class="control-grid">
+        <label>Intro <output id="introOutput">2.5s</output><input id="introDuration" type="range" min="800" max="6000" step="100" value="2500" /></label>
+        <label>Transition <output id="transitionOutput">1.4s</output><input id="transitionDuration" type="range" min="400" max="3000" step="100" value="1400" /></label>
+      </div>
+      <label>Media
+        <select id="mediaSelect"><option value="video">Video intro</option><option value="image">Static image intro</option></select>
+      </label>
+      <div class="actions"><button class="primary" id="replayButton">↻ Replay intro</button><button id="panelSkipButton">Skip</button></div>
+      <p class="hint">Prototype controls only — not part of the public profile.</p>
+    </aside>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
