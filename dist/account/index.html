@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#08070d" />
+  <meta name="description" content="Create and access your GamID Solo identity." />
+  <title>GamID — Account</title>
+  <link rel="stylesheet" href="account.css" />
+</head>
+<body>
+  <header class="site-head"><a href="../" class="brand" aria-label="GamID Intro Lab">GAM<span>ID</span></a><span class="test-badge">TESTING</span></header>
+  <main class="account-shell">
+    <section class="identity-art" aria-hidden="true">
+      <p>CREATE <i>→</i> WOW <i>→</i> SHARE</p>
+      <h1>Your gaming identity,<br/><span>claimed by you.</span></h1>
+      <div class="id-orbit"><div class="orbit-ring"></div><div class="id-core">G<span>ID</span></div></div>
+    </section>
+
+    <section class="account-card" aria-live="polite">
+      <div id="loadingView" class="view is-active"><div class="loader"></div><h2>Restoring your session</h2><p>Securely checking your GamID account…</p></div>
+
+      <div id="authView" class="view">
+        <p class="eyebrow">ACCOUNT FOUNDATION</p><h2>Enter GamID</h2><p class="lede">Create your account or return to your Solo identity.</p>
+        <div class="tabs" role="tablist"><button id="registerTab" class="active" role="tab">Create account</button><button id="signinTab" role="tab">Sign in</button></div>
+        <form id="registerForm" novalidate>
+          <label>Email<input name="email" type="email" autocomplete="email" inputmode="email" required /></label>
+          <label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" required /><small>At least 8 characters</small></label>
+          <label>Confirm password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /></label>
+          <button class="primary" type="submit">Create secure account</button>
+        </form>
+        <form id="signinForm" hidden novalidate>
+          <label>Email<input name="email" type="email" autocomplete="email" inputmode="email" required /></label>
+          <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
+          <button class="primary" type="submit">Sign in</button><button id="forgotButton" class="text-button" type="button">Forgot password?</button>
+        </form>
+      </div>
+
+      <div id="verifyView" class="view"><div class="success-icon">✉</div><p class="eyebrow">CHECK YOUR EMAIL</p><h2>Verify your account</h2><p>We sent a secure verification link to <strong id="verifyEmail"></strong>. Open it, then return here to sign in.</p><button id="backToSignIn" class="primary">Go to sign in</button></div>
+
+      <div id="forgotView" class="view"><p class="eyebrow">ACCOUNT RECOVERY</p><h2>Reset your password</h2><p class="lede">We’ll email you a secure recovery link.</p><form id="forgotForm"><label>Email<input name="email" type="email" autocomplete="email" required /></label><button class="primary">Send reset link</button><button id="cancelForgot" class="text-button" type="button">Back to sign in</button></form></div>
+
+      <div id="recoveryView" class="view"><p class="eyebrow">SECURE RECOVERY</p><h2>Choose a new password</h2><form id="recoveryForm"><label>New password<input name="password" type="password" autocomplete="new-password" minlength="8" required /></label><label>Confirm password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required /></label><button class="primary">Update password</button></form></div>
+
+      <div id="onboardingView" class="view">
+        <p class="eyebrow">CREATE YOUR SOLO IDENTITY</p><h2>Claim your GamID</h2><p class="lede">Your handle is permanent for now. Choose carefully.</p>
+        <form id="onboardingForm" novalidate>
+          <label class="handle-label">GamID handle<div class="handle-input"><span>@</span><input id="handleInput" name="handle" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="24" required /></div><small id="handleStatus">3–24 letters, numbers, or single underscores.</small></label>
+          <label>Display name<input name="displayName" maxlength="60" autocomplete="name" required /></label>
+          <label>Date of birth<input name="dateOfBirth" type="date" autocomplete="bday" required /><small>Private account data. Never added to your public profile automatically.</small></label>
+          <label>Preferred language<select name="language"><option value="en">English</option><option value="ar">العربية</option><option value="ms">Bahasa Melayu</option></select></label>
+          <label class="avatar-field">Profile image <span>Optional</span><input id="avatarInput" name="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /><small>JPG, PNG, WebP, or AVIF · max 5 MB</small></label>
+          <button id="createButton" class="primary" type="submit" disabled>CREATE MY GAMID</button>
+        </form>
+      </div>
+
+      <div id="identityView" class="view">
+        <div class="success-icon">✓</div><p class="eyebrow">SOLO IDENTITY CREATED</p><h2><span id="claimedHandle"></span> IS YOURS</h2>
+        <div class="identity-summary"><div class="avatar-placeholder" id="avatarSummary">G</div><div><strong id="displayNameSummary"></strong><span>Draft profile · Private</span></div></div>
+        <dl><div><dt>Profile</dt><dd>DRAFT</dd></div><div><dt>Permanent QR reference</dt><dd>Reserved securely</dd></div></dl>
+        <button id="profilePlaceholder" class="primary">CREATE MY PROFILE</button><p class="coming-next" id="comingNext" hidden>Profile Studio comes in a later approved slice.</p>
+        <hr/><p class="eyebrow">ACCOUNT SETTINGS</p><p class="account-email">Signed in as <strong id="accountEmail"></strong></p>
+        <form id="languageForm"><label>Preferred language<select name="language"><option value="en">English</option><option value="ar">العربية</option><option value="ms">Bahasa Melayu</option></select></label><button class="secondary">Save language</button></form>
+        <button id="signOutButton" class="text-button danger">Sign out</button>
+      </div>
+
+      <p id="formMessage" class="form-message" role="alert" hidden></p>
+    </section>
+  </main>
+  <script type="module" src="account.js"></script>
+</body>
+</html>
+
