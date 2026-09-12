@@ -1,4 +1,4 @@
-import { PRESETS, clampDuration, effectiveTransitionDuration, nextExperienceState, resolvePreset } from "./transition-engine.js";
+import { PRESETS, clampDuration, effectiveTransitionDuration, isImmersiveState, nextExperienceState, resolvePreset } from "./transition-engine.js";
 
 const els = Object.fromEntries(["experience","profile","introLayer","mediaStage","introVideo","introImage","skipButton","panelSkipButton","replayButton","presetSelect","introDuration","transitionDuration","introOutput","transitionOutput","progressBar","mediaSelect","stateBadge"].map(id => [id, document.getElementById(id)]));
 let state = "intro";
@@ -15,6 +15,7 @@ function setState(event) {
   els.experience.dataset.state = state;
   els.profile.setAttribute("aria-hidden", String(state === "intro"));
   els.stateBadge.textContent = state === "profile" ? "REVEALED" : state === "transitioning" ? "REVEALING" : "PLAYING";
+  document.body.classList.toggle("is-experiencing", isImmersiveState(state));
 }
 
 function clearRun() {
@@ -55,6 +56,7 @@ function beginTransition() {
 
 function replay() {
   clearRun();
+  window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   state = "profile"; setState("REPLAY");
   applyConfig(); showSelectedMedia();
   els.introLayer.style.visibility = "visible";

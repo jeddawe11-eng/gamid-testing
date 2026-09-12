@@ -24,3 +24,5 @@ export function resolvePreset(name) {
 }
 
 export const effectiveTransitionDuration = (duration, reducedMotion) => reducedMotion ? 180 : clampDuration(duration);
+
+export const isImmersiveState = state => state === "intro" || state === "transitioning";
