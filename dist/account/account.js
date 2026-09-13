@@ -149,8 +149,8 @@ document.getElementById("avatarInput").addEventListener("change", event => {
 });
 
 document.getElementById("languageForm").addEventListener("submit", async event => {
-  event.preventDefault(); const form = event.currentTarget; busy(form, true);
-  try { await api.updateLanguage(new FormData(form).get("language")); setMessage("Language preference saved.", true); }
+  event.preventDefault(); const form = event.currentTarget; const language = new FormData(form).get("language"); busy(form, true);
+  try { await api.updateLanguage(language); setMessage("Language preference saved.", true); }
   catch (error) { setMessage(error.message); }
   finally { busy(form, false); }
 });
