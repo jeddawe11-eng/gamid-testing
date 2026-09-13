@@ -85,6 +85,7 @@ The current database enum permits only `SOLO`. Future entity types require a lat
 - Sessions are stored in browser local storage under a TESTING-specific key and refreshed before expiry.
 - Password reset sends a recovery link; a recovery callback accepts the new password.
 - Sign-out requests server revocation and always clears the local session.
+- Account settings capture the selected preferred language before disabling the form, preventing a null RPC argument during save.
 - OAuth is not implemented; the boundary remains compatible with later providers.
 
 Before a future hosted Slice 2 preview, add its exact HTTPS `/account/` URL to Supabase Auth URL Configuration. This was not done in Slice 2 because Production deployment is out of scope and the available connector does not expose Auth URL settings.

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { authLanding, errorMessage, normalizeHandle, validateHandle } from "../dist/account/domain.js";
 
 test("handle normalization is case-insensitive and URL-safe", () => {
@@ -26,3 +27,10 @@ test("age and concurrency errors have safe user-facing messages", () => {
   assert.match(errorMessage("HANDLE_TAKEN"), /claimed moments ago/);
 });
 
+test("language preference is captured before the form is disabled", async () => {
+  const source = await readFile(new URL("../dist/account/account.js", import.meta.url), "utf8");
+  const capture = source.indexOf('const language = new FormData(form).get("language")');
+  const disable = source.indexOf("busy(form, true)", capture);
+  const update = source.indexOf("api.updateLanguage(language)", disable);
+  assert.ok(capture >= 0 && disable > capture && update > disable);
+});
