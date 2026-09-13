@@ -13,13 +13,15 @@ GamID is a customizable digital identity/profile platform for the gaming ecosyst
 - Scope: mobile-first Intro + Transition Engine prototype
 - Accepted transitions: Cross Fade, Blur Fade, Shrink to Avatar, Slide Away, Split Reveal
 - The accepted intro source files were not modified by Slice 2.
-- Existing private hosted preview remains the Slice 1 publication. Slice 2 was not deployed because Production deployment is explicitly out of scope.
+- Slice 1 remains the accepted behavior baseline. The current public TESTING GitHub Pages deployment also includes the completed non-video Slice 2 account surface; Production remains out of scope.
 
 ## Slice 2 implementation state
 
 - Preserved implementation checkpoint: `69f31760509c3632a7a581b8474e72b09dcc7b95`
 - Git tag: `slice-2-implementation` (pending Mazen acceptance)
 - TESTING non-video source publication: `jeddawe11-eng/gamid-testing` on branch `main`
+- TESTING GitHub Pages: `https://jeddawe11-eng.github.io/gamid-testing/`
+- TESTING Account route: `https://jeddawe11-eng.github.io/gamid-testing/account/`
 - Video publication is intentionally deferred. The original local video asset remains unchanged and must not be processed or re-uploaded without a separate approval.
 
 Slice 2 adds the Account + Solo Identity Foundation:
@@ -88,7 +90,7 @@ The current database enum permits only `SOLO`. Future entity types require a lat
 - Account settings capture the selected preferred language before disabling the form, preventing a null RPC argument during save.
 - OAuth is not implemented; the boundary remains compatible with later providers.
 
-Before a future hosted Slice 2 preview, add its exact HTTPS `/account/` URL to Supabase Auth URL Configuration. This was not done in Slice 2 because Production deployment is out of scope and the available connector does not expose Auth URL settings.
+The TESTING GitHub Pages root and exact HTTPS `/gamid-testing/account/` URL are the intended Supabase Auth redirect targets. The available connector does not expose Auth URL settings; dashboard configuration remains authoritative. Production Auth configuration remains out of scope.
 
 ## Handle rules and concurrency
 
@@ -146,14 +148,27 @@ npm run build
 
 The production-style build command runs validation, syntax checks, all account/schema tests, and all accepted Slice 1 regression tests.
 
+### Deferred-video validation architecture
+
+The former static validator called `fs.access()` on `dist/assets/gamid-intro.mp4`. Although it did not intentionally decode the media, resolving that large deferred workspace file was unnecessary and was the direct validation path associated with repeated stalls. Because `npm run build` invokes `npm run lint`, the access also prevented normal full builds.
+
+The permanent maintenance fix is checkpointed locally at `4d31d7f8c38decb1a0eccd85bef814b74a74b4f2`:
+
+- Static validation checks the required `<source src="assets/gamid-intro.mp4" type="video/mp4">` structure in `dist/index.html`; it does not open, stat, hash, copy, encode, or read the MP4.
+- The poster remains independently checked because it is part of the non-video deployment.
+- GitHub Pages stages a non-video site tree with an explicit `/assets/gamid-intro.mp4` exclusion before artifact upload. The Pages action no longer receives the unfiltered `dist` directory.
+- Regression tests fail if static validation reintroduces direct MP4 file access or if Pages returns to uploading `dist` unfiltered.
+
+After this fix, `lint`, `typecheck`, all 25 tests, and the full `build` complete normally without processing the MP4. This changes validation and packaging only; accepted Intro transitions and runtime behavior are unchanged. Actual video publication remains deferred and requires a separate decision.
+
 Database validation completed against the TESTING project with rollback-only temporary users. It verified atomic success, duplicate case-insensitive rejection, reserved rejection, age rejection, no partial rows on failure, same-owner reads, cross-user denial, and clean initial data after test cleanup.
 
 ## Known limitations
 
 - The original intro video is preserved locally but is not part of the approved GitHub TESTING publication. Publishing it remains a separate blocker.
-- Slice 2 is not deployed. The existing live URL continues to serve accepted Slice 1 only.
-- Supabase's built-in email sender returned HTTP 429 during a disposable-address live signup probe, so actual email delivery was not verified from this workspace. Signup is enabled and confirmation is required; the frontend lifecycle is covered by automated tests. Configure custom SMTP before production-scale use.
-- The managed workspace has no compatible visual browser preview for this plain static site. Responsive behavior is enforced by mobile-first CSS/static validation, but Mazen still needs a future authorized HTTPS TESTING preview for final phone acceptance.
+- Slice 2 non-video files are deployed to the TESTING GitHub Pages URLs above. Slice 2 remains pending formal Mazen acceptance.
+- Manual TESTING confirmed receipt of a real verification email, confirmation, sign-in, creation of the `@BLACK` Solo identity, and preferred-language saving. Supabase's built-in sender can still be rate-limited; custom SMTP remains a future production-scale concern.
+- The managed workspace has no compatible visual browser preview for this plain static site. Responsive behavior is enforced by mobile-first CSS/static validation and Mazen has performed phone testing on the HTTPS TESTING site.
 - The npm registry was unavailable, so the implementation intentionally uses no added dependency. This does not affect the HTTPS Auth/RPC architecture.
 - No public profile publication, profile editor, QR rendering, OAuth, handle change, parental consent, multi-entity UI, Team, Organization, or Company functionality exists.
 

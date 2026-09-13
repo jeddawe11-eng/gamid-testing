@@ -27,10 +27,15 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      - name: Stage non-video static site
+        run: |
+          mkdir -p "${RUNNER_TEMP}/gamid-pages"
+          rsync -a --exclude '/assets/gamid-intro.mp4' dist/ "${RUNNER_TEMP}/gamid-pages/"
+
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: ${{ runner.temp }}/gamid-pages
 
       - name: Deploy to GitHub Pages
         id: deployment
