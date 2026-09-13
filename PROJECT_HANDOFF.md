@@ -19,7 +19,8 @@ GamID is a customizable digital identity/profile platform for the gaming ecosyst
 
 - Preserved implementation checkpoint: `69f31760509c3632a7a581b8474e72b09dcc7b95`
 - Git tag: `slice-2-implementation` (pending Mazen acceptance)
-- TESTING source publication: `jeddawe11-eng/gamid-testing` on branch `main`
+- TESTING non-video source publication: `jeddawe11-eng/gamid-testing` on branch `main`
+- Video publication is intentionally deferred. The original local video asset remains unchanged and must not be processed or re-uploaded without a separate approval.
 
 Slice 2 adds the Account + Solo Identity Foundation:
 
@@ -148,6 +149,7 @@ Database validation completed against the TESTING project with rollback-only tem
 
 ## Known limitations
 
+- The original intro video is preserved locally but is not part of the approved GitHub TESTING publication. Publishing it remains a separate blocker.
 - Slice 2 is not deployed. The existing live URL continues to serve accepted Slice 1 only.
 - Supabase's built-in email sender returned HTTP 429 during a disposable-address live signup probe, so actual email delivery was not verified from this workspace. Signup is enabled and confirmation is required; the frontend lifecycle is covered by automated tests. Configure custom SMTP before production-scale use.
 - The managed workspace has no compatible visual browser preview for this plain static site. Responsive behavior is enforced by mobile-first CSS/static validation, but Mazen still needs a future authorized HTTPS TESTING preview for final phone acceptance.
