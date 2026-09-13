@@ -19,7 +19,9 @@ if (!css.includes('.experience[data-state="profile"] .preset-shrink{background:t
 if (!html.includes('id="avatarTarget"') || !css.includes("--shrink-x")) {
   throw new Error("Shrink preset must target the runtime avatar position");
 }
-await access(new URL("../dist/assets/gamid-intro.mp4", import.meta.url));
+if (!html.includes('<source src="assets/gamid-intro.mp4" type="video/mp4"')) {
+  throw new Error("Intro must retain the deferred MP4 source reference");
+}
 await access(new URL("../dist/assets/gamid-intro-poster.webp", import.meta.url));
 for (const required of ["registerForm","signinForm","forgotForm","recoveryForm","onboardingForm","identityView","signOutButton"]) {
   if (!accountHtml.includes(`id=\"${required}\"`)) throw new Error(`Missing Slice 2 control: ${required}`);
