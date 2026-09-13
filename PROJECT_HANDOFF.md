@@ -1,6 +1,6 @@
 # GamID Project Handoff
 
-Last updated: 2026-09-12 (UTC)
+Last updated: 2026-09-13 (UTC)
 
 ## Purpose and scope
 
@@ -17,7 +17,9 @@ GamID is a customizable digital identity/profile platform for the gaming ecosyst
 
 ## Slice 2 implementation state
 
-- Implementation checkpoint: Git tag `slice-2-implementation` (pending Mazen acceptance)
+- Preserved implementation checkpoint: `69f31760509c3632a7a581b8474e72b09dcc7b95`
+- Git tag: `slice-2-implementation` (pending Mazen acceptance)
+- TESTING source publication: `jeddawe11-eng/gamid-testing` on branch `main`
 
 Slice 2 adds the Account + Solo Identity Foundation:
 
