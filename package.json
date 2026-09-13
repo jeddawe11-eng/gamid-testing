@@ -1,0 +1,12 @@
+{
+  "name": "gamid-intro-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "node scripts/validate.mjs",
+    "typecheck": "node --check dist/app.js && node --check dist/transition-engine.js && node --check dist/account/account.js && node --check dist/account/domain.js && node --check dist/account/supabase-client.js",
+    "test": "node --test",
+    "build": "npm run lint && npm run typecheck && npm test"
+  }
+}
