@@ -1,6 +1,6 @@
 # GamID Project Handoff
 
-Last updated: 2026-09-13 (UTC)
+Last updated: 2026-09-14 (UTC)
 
 ## Purpose and scope
 
@@ -162,6 +162,43 @@ The permanent maintenance fix is checkpointed locally at `4d31d7f8c38decb1a0eccd
 After this fix, `lint`, `typecheck`, all 25 tests, and the full `build` complete normally without processing the MP4. This changes validation and packaging only; accepted Intro transitions and runtime behavior are unchanged. Actual video publication remains deferred and requires a separate decision.
 
 Database validation completed against the TESTING project with rollback-only temporary users. It verified atomic success, duplicate case-insensitive rejection, reserved rejection, age rejection, no partial rows on failure, same-owner reads, cross-user denial, and clean initial data after test cleanup.
+
+## Approved future video quality-tier policy (implementation not started)
+
+**Status: APPROVED product/compression policy.** This section records the quality targets for a future user-uploaded video processing system. It does not mean that subscription enforcement, upload/transcoding infrastructure, tier selection, browser fallback delivery, or publication has been implemented. All of those implementation items are **NOT STARTED**.
+
+### Free users — approved D3 target
+
+- Container/codec: WebM with VP9 (`libvpx-vp9`)
+- Quality target: CRF 40
+- Preserve the source resolution, frame rate, timing, and frame structure
+- Pixel format: `yuv420p`
+- Preserve audio as Opus using the approved GamID audio methodology
+- Do not normalize, remix, EQ, intentionally alter loudness, add effects, or otherwise modify the audio experience
+
+GamID D3 benchmark evidence: 1,073,060 bytes; 46.57% smaller than the current Master; approximately 379.8 kbps video, 32.4 kbps audio, and 415.7 kbps total; average SSIM 0.98171; average PSNR 42.77 dB.
+
+### Paid/Premium users — approved D2 target
+
+- Container/codec: WebM with VP9 (`libvpx-vp9`)
+- Quality target: CRF 36
+- Preserve the source resolution, frame rate, timing, and frame structure
+- Pixel format: `yuv420p`
+- Preserve audio as Opus using the same approved GamID audio methodology
+- Do not normalize, remix, EQ, intentionally alter loudness, add effects, or otherwise modify the audio experience
+
+GamID D2 benchmark evidence: 1,374,355 bytes; 31.57% smaller than the current Master; approximately 496.8 kbps video, 32.4 kbps audio, and 532.4 kbps total; average SSIM 0.98570; average PSNR 44.12 dB.
+
+### Master-source and future pipeline rules
+
+- The original uploaded/source video remains the immutable Master and source of truth for future re-encoding or codec/profile migration.
+- D2 and D3 must never overwrite the Master.
+- Free and Paid derivatives must each be generated directly from the Master. Never transcode D2 into D3 or D3 into D2.
+- Future automatic selection is: `FREE -> D3 / CRF 40`, `PAID -> D2 / CRF 36`, `MASTER -> retained original source`.
+- Browser compatibility and fallback delivery are a separate future architecture decision and must not silently change these approved quality-tier targets.
+- Subscription/payment integration: **NOT STARTED**.
+- Automatic upload/video-processing pipeline: **NOT STARTED**.
+- Replacement or publication of the current Intro: **NOT STARTED** and remains deferred.
 
 ## Known limitations
 
