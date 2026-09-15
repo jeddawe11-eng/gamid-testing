@@ -1,4 +1,5 @@
 import { authLanding, debounceAsync, errorMessage, hasProfileChanges, normalizeHandle, validateHandle, validateProfileDraft } from "./domain.js";
+import { AVATAR_PREVIEW_SIZE, AvatarCropState, createNormalizedAvatar, drawCropPreview, loadOrientedImage } from "./avatar-cropper.js";
 import * as api from "./supabase-client.js";
 
 const views = [...document.querySelectorAll(".view")];
@@ -16,6 +17,14 @@ let persistedAvatarUrl;
 let savedProfile = null;
 let pendingAvatar = null;
 let saveConfirmationTimer;
+let cropImage = null;
+let cropState = null;
+const cropPointers = new Map();
+
+const cropDialog = document.getElementById("avatarCropDialog");
+const cropCanvas = document.getElementById("avatarCropCanvas");
+const cropStage = document.getElementById("avatarCropStage");
+const cropZoom = document.getElementById("avatarZoom");
 
 function showView(name) {
   views.forEach(view => view.classList.toggle("is-active", view.id === `${name}View`));
@@ -72,6 +81,66 @@ async function setPersistedAvatar(path, fallbackLetter) {
     avatar.style.backgroundImage = `url("${persistedAvatarUrl}")`;
     avatar.textContent = "";
   } catch { /* Keep a safe initial fallback if private media cannot load. */ }
+}
+
+function cropPoint(event) {
+  const bounds = cropCanvas.getBoundingClientRect();
+  return {
+    x: (event.clientX - bounds.left) * AVATAR_PREVIEW_SIZE / bounds.width,
+    y: (event.clientY - bounds.top) * AVATAR_PREVIEW_SIZE / bounds.height,
+  };
+}
+
+function cropGesture(points = [...cropPointers.values()]) {
+  if (!points.length) return null;
+  const center = points.reduce((value, point) => ({ x:value.x + point.x / points.length, y:value.y + point.y / points.length }), { x:0, y:0 });
+  const distance = points.length > 1 ? Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y) : 0;
+  return { center, distance };
+}
+
+function renderCrop() {
+  if (!cropImage || !cropState) return;
+  drawCropPreview(cropCanvas.getContext("2d", { alpha:false }), cropImage, cropState);
+  cropZoom.value = String(cropState.zoom);
+}
+
+function releaseCropImage() {
+  cropPointers.clear();
+  if (typeof cropImage?.close === "function") cropImage.close();
+  cropImage = null;
+  cropState = null;
+}
+
+function cancelAvatarCrop() {
+  cropDialog.close();
+  releaseCropImage();
+  document.getElementById("profileAvatarInput").value = "";
+}
+
+async function openAvatarCrop(file) {
+  if (!file) return;
+  if (!["image/jpeg","image/png","image/webp","image/avif"].includes(file.type)) {
+    document.getElementById("profileAvatarInput").value = "";
+    return setMessage("Choose a JPG, PNG, WebP, or AVIF image.");
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    document.getElementById("profileAvatarInput").value = "";
+    return setMessage("Avatar must be 5 MB or smaller.");
+  }
+  try {
+    releaseCropImage();
+    cropImage = await loadOrientedImage(file);
+    cropState = new AvatarCropState(cropImage.width || cropImage.naturalWidth, cropImage.height || cropImage.naturalHeight);
+    cropZoom.min = "1";
+    cropZoom.max = String(cropState.maxZoom);
+    cropZoom.value = "1";
+    renderCrop();
+    cropDialog.showModal();
+  } catch {
+    releaseCropImage();
+    document.getElementById("profileAvatarInput").value = "";
+    setMessage("That image could not be opened. Choose another image.");
+  }
 }
 
 async function showIdentity(data) {
@@ -196,18 +265,54 @@ document.getElementById("avatarInput").addEventListener("change", event => {
 
 document.getElementById("profileDisplayName").addEventListener("input", updateProfilePreview);
 document.getElementById("profileBio").addEventListener("input", updateProfilePreview);
-document.getElementById("profileAvatarInput").addEventListener("change", event => {
-  if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
-  pendingAvatar = event.target.files[0] || null;
-  avatarPreviewUrl = pendingAvatar ? URL.createObjectURL(pendingAvatar) : null;
-  const avatar = document.getElementById("avatarSummary");
-  if (avatarPreviewUrl) {
+document.getElementById("profileAvatarInput").addEventListener("change", event => openAvatarCrop(event.target.files[0]));
+
+cropStage.addEventListener("pointerdown", event => {
+  cropStage.setPointerCapture(event.pointerId);
+  cropPointers.set(event.pointerId, cropPoint(event));
+});
+cropStage.addEventListener("pointermove", event => {
+  if (!cropPointers.has(event.pointerId) || !cropState) return;
+  const before = cropGesture();
+  cropPointers.set(event.pointerId, cropPoint(event));
+  const after = cropGesture();
+  cropState.pan(after.center.x - before.center.x, after.center.y - before.center.y);
+  if (before.distance > 0 && after.distance > 0) {
+    cropState.setZoom(cropState.zoom * after.distance / before.distance, after.center.x, after.center.y);
+  }
+  renderCrop();
+});
+const endCropPointer = event => cropPointers.delete(event.pointerId);
+cropStage.addEventListener("pointerup", endCropPointer);
+cropStage.addEventListener("pointercancel", endCropPointer);
+cropZoom.addEventListener("input", () => { cropState?.setZoom(Number(cropZoom.value)); renderCrop(); });
+cropStage.addEventListener("wheel", event => {
+  if (!cropState) return;
+  event.preventDefault();
+  const point = cropPoint(event);
+  cropState.setZoom(cropState.zoom * (event.deltaY < 0 ? 1.08 : .92), point.x, point.y);
+  renderCrop();
+}, { passive:false });
+document.getElementById("cancelAvatarCrop").addEventListener("click", cancelAvatarCrop);
+cropDialog.addEventListener("cancel", event => { event.preventDefault(); cancelAvatarCrop(); });
+document.getElementById("applyAvatarCrop").addEventListener("click", async event => {
+  if (!cropImage || !cropState) return;
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    const normalized = await createNormalizedAvatar(cropImage, cropState);
+    if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+    pendingAvatar = normalized.blob;
+    avatarPreviewUrl = URL.createObjectURL(pendingAvatar);
+    const avatar = document.getElementById("avatarSummary");
     avatar.style.backgroundImage = `url("${avatarPreviewUrl}")`;
     avatar.textContent = "";
-  } else {
-    setPersistedAvatar(identity?.avatar_media_reference, profileDraft().displayName?.trim()?.[0]?.toUpperCase() || "G");
-  }
-  updateProfilePreview();
+    cropDialog.close();
+    releaseCropImage();
+    document.getElementById("profileAvatarInput").value = "";
+    updateProfilePreview();
+  } catch { setMessage("The Avatar crop could not be prepared. Try again."); }
+  finally { button.disabled = false; }
 });
 
 document.getElementById("profileForm").addEventListener("submit", async event => {
