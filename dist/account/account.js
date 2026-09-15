@@ -1,4 +1,4 @@
-import { authLanding, debounceAsync, errorMessage, normalizeHandle, validateHandle } from "./domain.js";
+import { authLanding, debounceAsync, errorMessage, hasProfileChanges, normalizeHandle, validateHandle, validateProfileDraft } from "./domain.js";
 import * as api from "./supabase-client.js";
 
 const views = [...document.querySelectorAll(".view")];
@@ -12,6 +12,10 @@ const createButton = document.getElementById("createButton");
 let identity = null;
 let handleAvailable = false;
 let avatarPreviewUrl;
+let persistedAvatarUrl;
+let savedProfile = null;
+let pendingAvatar = null;
+let saveConfirmationTimer;
 
 function showView(name) {
   views.forEach(view => view.classList.toggle("is-active", view.id === `${name}View`));
@@ -26,29 +30,71 @@ function setMessage(text, success = false) {
 }
 
 function busy(form, active) {
-  form.querySelectorAll("button,input,select").forEach(control => control.disabled = active);
+  form.querySelectorAll("button,input,select,textarea").forEach(control => control.disabled = active);
   form.setAttribute("aria-busy", String(active));
 }
 
 function reasonFrom(error) {
   const source = `${error?.message || ""} ${error?.code || ""}`;
-  return ["HANDLE_TAKEN","SOLO_IDENTITY_EXISTS","EMAIL_NOT_VERIFIED","AGE_NOT_ELIGIBLE","INVALID_DATE_OF_BIRTH","INVALID_DISPLAY_NAME","INVALID_LANGUAGE","RESERVED","TAKEN"].find(code => source.includes(code));
+  return ["HANDLE_TAKEN","SOLO_IDENTITY_EXISTS","EMAIL_NOT_VERIFIED","AGE_NOT_ELIGIBLE","INVALID_DATE_OF_BIRTH","INVALID_DISPLAY_NAME","BIO_TOO_LONG","INVALID_LANGUAGE","RESERVED","TAKEN"].find(code => source.includes(code));
 }
 
-function showIdentity(data) {
-  identity = data;
-  document.getElementById("claimedHandle").textContent = `@${data.gamid_handle.toUpperCase()}`;
-  document.getElementById("displayNameSummary").textContent = data.display_name;
+function profileDraft() {
+  return {
+    displayName: document.getElementById("profileDisplayName").value,
+    bio: document.getElementById("profileBio").value,
+    avatarPath: identity?.avatar_media_reference,
+  };
+}
+
+function isProfileDirty() {
+  return Boolean(savedProfile && hasProfileChanges(savedProfile, profileDraft(), Boolean(pendingAvatar)));
+}
+
+function updateProfilePreview() {
+  const draft = profileDraft();
+  document.getElementById("displayNameSummary").textContent = draft.displayName.trim() || "Your display name";
+  document.getElementById("bioSummary").textContent = draft.bio || "Add a short bio to tell players who you are.";
+  document.getElementById("bioCount").textContent = String(draft.bio.length);
+  document.getElementById("saveProfileButton").disabled = !isProfileDirty() || !validateProfileDraft(draft).valid;
+  document.getElementById("saveConfirmation").hidden = true;
+}
+
+async function setPersistedAvatar(path, fallbackLetter) {
+  if (persistedAvatarUrl) URL.revokeObjectURL(persistedAvatarUrl);
+  persistedAvatarUrl = null;
+  const avatar = document.getElementById("avatarSummary");
+  avatar.style.backgroundImage = "";
+  avatar.textContent = fallbackLetter;
+  if (!path) return;
+  try {
+    persistedAvatarUrl = await api.loadAvatar(path);
+    avatar.style.backgroundImage = `url("${persistedAvatarUrl}")`;
+    avatar.textContent = "";
+  } catch { /* Keep a safe initial fallback if private media cannot load. */ }
+}
+
+async function showIdentity(data) {
+  const editor = await api.getIdentityProfile();
+  identity = { ...data, ...editor };
+  const handle = `@${identity.gamid_handle}`;
+  document.getElementById("claimedHandle").textContent = handle;
+  document.getElementById("handleField").textContent = handle;
   document.getElementById("accountEmail").textContent = data.account_email;
   document.querySelector("#languageForm select").value = data.preferred_language || "en";
-  document.getElementById("avatarSummary").textContent = data.display_name?.trim()?.[0]?.toUpperCase() || "G";
+  document.getElementById("profileDisplayName").value = identity.display_name;
+  document.getElementById("profileBio").value = identity.bio || "";
+  savedProfile = { displayName: identity.display_name, bio: identity.bio || "", avatarPath: identity.avatar_media_reference };
+  pendingAvatar = null;
+  await setPersistedAvatar(identity.avatar_media_reference, identity.display_name?.trim()?.[0]?.toUpperCase() || "G");
+  updateProfilePreview();
   showView("identity");
 }
 
 async function routeAuthenticated() {
   identity = await api.getIdentity();
   const landing = authLanding(api.currentSession(), identity);
-  if (landing === "identity") showIdentity(identity);
+  if (landing === "identity") await showIdentity(identity);
   else showView(landing);
 }
 
@@ -137,7 +183,7 @@ onboardingForm.addEventListener("submit", async event => {
       try { await api.uploadAvatar(avatar, api.userIdFromToken()); }
       catch { setMessage("Your GamID was created, but the optional avatar could not be saved. You can add it later."); }
     }
-    const created = await api.getIdentity(); showIdentity(created);
+    const created = await api.getIdentity(); await showIdentity(created);
   } catch (error) { setMessage(errorMessage(reasonFrom(error) || error.message)); }
   finally { busy(onboardingForm, false); createButton.disabled = !handleAvailable; }
 });
@@ -148,6 +194,56 @@ document.getElementById("avatarInput").addEventListener("change", event => {
   if (file) avatarPreviewUrl = URL.createObjectURL(file);
 });
 
+document.getElementById("profileDisplayName").addEventListener("input", updateProfilePreview);
+document.getElementById("profileBio").addEventListener("input", updateProfilePreview);
+document.getElementById("profileAvatarInput").addEventListener("change", event => {
+  if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+  pendingAvatar = event.target.files[0] || null;
+  avatarPreviewUrl = pendingAvatar ? URL.createObjectURL(pendingAvatar) : null;
+  const avatar = document.getElementById("avatarSummary");
+  if (avatarPreviewUrl) {
+    avatar.style.backgroundImage = `url("${avatarPreviewUrl}")`;
+    avatar.textContent = "";
+  } else {
+    setPersistedAvatar(identity?.avatar_media_reference, profileDraft().displayName?.trim()?.[0]?.toUpperCase() || "G");
+  }
+  updateProfilePreview();
+});
+
+document.getElementById("profileForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const draft = validateProfileDraft(profileDraft());
+  if (!draft.valid) return setMessage(errorMessage(draft.reason));
+  if (!isProfileDirty()) return;
+  let saved = false;
+  busy(form, true); setMessage("");
+  try {
+    let avatarPath = null;
+    if (pendingAvatar) avatarPath = await api.uploadAvatar(pendingAvatar, api.userIdFromToken(), { attach: false });
+    const updated = await api.updateIdentityProfile({ displayName: draft.displayName, bio: draft.bio, avatarPath });
+    identity = { ...identity, ...updated };
+    savedProfile = { displayName: updated.display_name, bio: updated.bio, avatarPath: updated.avatar_media_reference };
+    pendingAvatar = null;
+    document.getElementById("profileAvatarInput").value = "";
+    if (avatarPreviewUrl) { URL.revokeObjectURL(avatarPreviewUrl); avatarPreviewUrl = null; }
+    await setPersistedAvatar(updated.avatar_media_reference, updated.display_name?.[0]?.toUpperCase() || "G");
+    document.getElementById("profileDisplayName").value = updated.display_name;
+    document.getElementById("profileBio").value = updated.bio;
+    updateProfilePreview();
+    saved = true;
+  } catch (error) { setMessage(errorMessage(reasonFrom(error) || error.message)); }
+  finally {
+    busy(form, false); updateProfilePreview();
+    if (saved) {
+      const confirmation = document.getElementById("saveConfirmation");
+      confirmation.hidden = false;
+      clearTimeout(saveConfirmationTimer);
+      saveConfirmationTimer = setTimeout(() => { confirmation.hidden = true; }, 2400);
+    }
+  }
+});
+
 document.getElementById("languageForm").addEventListener("submit", async event => {
   event.preventDefault(); const form = event.currentTarget; const language = new FormData(form).get("language"); busy(form, true);
   try { await api.updateLanguage(language); setMessage("Language preference saved.", true); }
@@ -155,12 +251,20 @@ document.getElementById("languageForm").addEventListener("submit", async event =
   finally { busy(form, false); }
 });
 
-document.getElementById("profilePlaceholder").addEventListener("click", () => { document.getElementById("comingNext").hidden = false; });
 document.getElementById("signOutButton").addEventListener("click", async () => {
+  if (isProfileDirty() && !window.confirm("Discard your unsaved profile changes and sign out?")) return;
   try { await api.signOut(); }
-  finally { identity = null; showView("auth"); document.getElementById("signinTab").click(); }
+  finally { identity = null; savedProfile = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
 });
-window.addEventListener("pagehide", () => { if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl); }, { once: true });
+window.addEventListener("beforeunload", event => {
+  if (!isProfileDirty()) return;
+  event.preventDefault();
+  event.returnValue = "";
+});
+window.addEventListener("pagehide", () => {
+  if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+  if (persistedAvatarUrl) URL.revokeObjectURL(persistedAvatarUrl);
+}, { once: true });
 
 try {
   const redirected = api.consumeRedirectSession();

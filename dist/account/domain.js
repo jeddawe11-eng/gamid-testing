@@ -1,5 +1,6 @@
 export const HANDLE_MIN = 3;
 export const HANDLE_MAX = 24;
+export const BIO_MAX = 160;
 
 export function normalizeHandle(value = "") {
   return value.trim().toLowerCase().replace(/^@+/, "");
@@ -38,6 +39,25 @@ export function authLanding(session, identity) {
   return "onboarding";
 }
 
+export function normalizeProfileDraft({ displayName = "", bio = "", avatarPath = null } = {}) {
+  return { displayName: displayName.trim(), bio, avatarPath: avatarPath || null };
+}
+
+export function validateProfileDraft(draft) {
+  const normalized = normalizeProfileDraft(draft);
+  if (normalized.displayName.length < 1 || normalized.displayName.length > 60) {
+    return { valid: false, reason: "INVALID_DISPLAY_NAME", ...normalized };
+  }
+  if (normalized.bio.length > BIO_MAX) return { valid: false, reason: "BIO_TOO_LONG", ...normalized };
+  return { valid: true, reason: null, ...normalized };
+}
+
+export function hasProfileChanges(saved, draft, hasPendingAvatar = false) {
+  const before = normalizeProfileDraft(saved);
+  const after = normalizeProfileDraft(draft);
+  return hasPendingAvatar || before.displayName !== after.displayName || before.bio !== after.bio;
+}
+
 export const errorMessage = reason => ({
   TOO_SHORT: "Use at least 3 characters.",
   TOO_LONG: "Use no more than 24 characters.",
@@ -51,5 +71,5 @@ export const errorMessage = reason => ({
   INVALID_DATE_OF_BIRTH: "Enter a valid date of birth.",
   INVALID_DISPLAY_NAME: "Enter a display name between 1 and 60 characters.",
   INVALID_LANGUAGE: "Choose a supported language.",
+  BIO_TOO_LONG: `Keep your bio to ${BIO_MAX} characters or fewer.`,
 }[reason] || reason || "Something went wrong. Please try again.");
-

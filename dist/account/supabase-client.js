@@ -33,6 +33,16 @@ async function request(path, { method = "GET", body, token, headers = {} } = {})
   return payload;
 }
 
+async function requestBlob(path, token) {
+  const response = await fetch(`${SUPABASE_URL}${path}`, {
+    headers: { apikey: PUBLISHABLE_KEY, Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new ApiError(`Avatar could not be loaded (${response.status}).`, response.status, "AVATAR_READ_FAILED");
+  return response.blob();
+}
+
+const encodeStoragePath = path => path.split("/").map(encodeURIComponent).join("/");
+
 function persist(next) {
   session = next;
   if (next) localStorage.setItem(SESSION_KEY, JSON.stringify(next));
@@ -118,6 +128,11 @@ export async function getIdentity() {
   return rows?.[0] || null;
 }
 
+export async function getIdentityProfile() {
+  const rows = await rpc("get_my_identity_profile");
+  return rows?.[0] || null;
+}
+
 export async function checkHandle(candidate) {
   const rows = await rpc("check_handle_availability", { candidate }, { anonymous: true });
   return rows?.[0] || null;
@@ -137,7 +152,7 @@ export async function updateLanguage(language) {
   return rpc("update_preferred_language", { candidate_language: language });
 }
 
-export async function uploadAvatar(file, userId) {
+export async function uploadAvatar(file, userId, { attach = true } = {}) {
   const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" })[file.type];
   if (!extension) throw new ApiError("Choose a JPG, PNG, WebP, or AVIF image.", 400, "INVALID_FILE_TYPE");
   if (file.size > 5 * 1024 * 1024) throw new ApiError("Avatar must be 5 MB or smaller.", 400, "FILE_TOO_LARGE");
@@ -148,8 +163,23 @@ export async function uploadAvatar(file, userId) {
     body: file,
     headers: { "Content-Type": file.type, "x-upsert": "false" },
   });
-  await rpc("attach_avatar", { candidate_path: path });
+  if (attach) await rpc("attach_avatar", { candidate_path: path });
   return path;
+}
+
+export async function updateIdentityProfile({ displayName, bio, avatarPath = null }) {
+  const rows = await rpc("update_my_identity_profile", {
+    candidate_display_name: displayName,
+    candidate_bio: bio,
+    candidate_avatar_path: avatarPath,
+  });
+  return rows?.[0] || null;
+}
+
+export async function loadAvatar(path) {
+  if (!path) return null;
+  const blob = await requestBlob(`/storage/v1/object/authenticated/avatars/${encodeStoragePath(path)}`, session?.access_token);
+  return URL.createObjectURL(blob);
 }
 
 export function userIdFromToken() {

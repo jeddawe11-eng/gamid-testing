@@ -54,11 +54,27 @@
         </form>
       </div>
 
-      <div id="identityView" class="view">
-        <div class="success-icon">✓</div><p class="eyebrow">SOLO IDENTITY CREATED</p><h2><span id="claimedHandle"></span> IS YOURS</h2>
-        <div class="identity-summary"><div class="avatar-placeholder" id="avatarSummary">G</div><div><strong id="displayNameSummary"></strong><span>Draft profile · Private</span></div></div>
-        <dl><div><dt>Profile</dt><dd>DRAFT</dd></div><div><dt>Permanent QR reference</dt><dd>Reserved securely</dd></div></dl>
-        <button id="profilePlaceholder" class="primary">CREATE MY PROFILE</button><p class="coming-next" id="comingNext" hidden>Profile Studio comes in a later approved slice.</p>
+      <div id="identityView" class="view identity-editor">
+        <p class="eyebrow">GAMID IDENTITY FOUNDATION</p><h2>YOUR GAMID</h2><p class="lede">Shape your gaming identity. Your profile stays private until publishing is introduced in a future approved slice.</p>
+        <section class="identity-preview" aria-label="Live GamID identity preview">
+          <span class="preview-state">LIVE PREVIEW</span>
+          <div class="preview-avatar avatar-placeholder" id="avatarSummary">G</div>
+          <div class="preview-copy">
+            <strong id="displayNameSummary"></strong>
+            <span class="locked-handle"><span aria-hidden="true">🔒</span> <span id="claimedHandle"></span></span>
+            <p id="bioSummary">Add a short bio to tell players who you are.</p>
+          </div>
+          <span class="draft-chip">DRAFT · PRIVATE</span>
+        </section>
+        <form id="profileForm" class="profile-form" novalidate>
+          <label class="avatar-picker">Avatar <span>Private storage</span><input id="profileAvatarInput" name="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /><small>Tap to replace · JPG, PNG, WebP, or AVIF · max 5 MB</small></label>
+          <label>Display name<input id="profileDisplayName" name="displayName" maxlength="60" autocomplete="name" required /></label>
+          <label class="readonly-handle">Permanent GamID handle<div><span aria-hidden="true">🔒</span><strong id="handleField"></strong></div><small>Your handle is permanent and cannot be edited.</small></label>
+          <label>Bio<textarea id="profileBio" name="bio" maxlength="160" rows="4" placeholder="Your games, your energy, your identity."></textarea><small><span id="bioCount">0</span>/160</small></label>
+          <button id="saveProfileButton" class="primary" type="submit" disabled>SAVE PROFILE</button>
+          <p id="saveConfirmation" class="save-confirmation" role="status" hidden>Saved ✓</p>
+        </form>
+        <div class="future-board" aria-label="Future GamID identity areas"><p class="eyebrow">IDENTITY BOARD · FUTURE</p><div><span>Games</span><span>Stats</span><span>Connections</span><span>Socials</span></div></div>
         <hr/><p class="eyebrow">ACCOUNT SETTINGS</p><p class="account-email">Signed in as <strong id="accountEmail"></strong></p>
         <form id="languageForm"><label>Preferred language<select name="language"><option value="en">English</option><option value="ar">العربية</option><option value="ms">Bahasa Melayu</option></select></label><button class="secondary">Save language</button></form>
         <button id="signOutButton" class="text-button danger">Sign out</button>
@@ -70,4 +86,3 @@
   <script type="module" src="account.js"></script>
 </body>
 </html>
-
