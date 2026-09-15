@@ -1,6 +1,6 @@
 # GamID Project Handoff
 
-Last updated: 2026-09-14 (UTC)
+Last updated: 2026-09-15 (UTC)
 
 ## Purpose and scope
 
@@ -15,10 +15,12 @@ GamID is a customizable digital identity/profile platform for the gaming ecosyst
 - The accepted intro source files were not modified by Slice 2.
 - Slice 1 remains the accepted behavior baseline. The current public TESTING GitHub Pages deployment also includes the completed non-video Slice 2 account surface; Production remains out of scope.
 
-## Slice 2 implementation state
+## Formally accepted Slice 2 baseline
 
 - Preserved implementation checkpoint: `69f31760509c3632a7a581b8474e72b09dcc7b95`
-- Git tag: `slice-2-implementation` (pending Mazen acceptance)
+- Git tag: `slice-2-implementation`
+- Acceptance status: **FORMALLY ACCEPTED BY MAZEN**
+- Final acceptance date: 2026-09-15 (UTC)
 - TESTING non-video source publication: `jeddawe11-eng/gamid-testing` on branch `main`
 - TESTING GitHub Pages: `https://jeddawe11-eng.github.io/gamid-testing/`
 - TESTING Account route: `https://jeddawe11-eng.github.io/gamid-testing/account/`
@@ -34,6 +36,16 @@ Slice 2 adds the Account + Solo Identity Foundation:
 - Atomic creation of one Solo Entity, ownership membership, Draft Profile, and permanent opaque QR reference
 - Returning-session resolution to the existing identity without duplicate creation
 - Basic authenticated account settings and Slice 3 placeholder only
+
+Final acceptance validation baseline:
+
+- `npm run lint`: PASS
+- `npm run typecheck`: PASS
+- `npm test`: PASS (25/25)
+- `npm run build`: PASS
+- Existing TESTING `@BLACK` identity integrity: PASS
+- RLS, RPC, and least-privilege boundaries: PASS
+- Deferred-video-safe validation architecture: PASS
 
 The mobile account route is `dist/account/index.html` (served as `/account/`). It is a separate surface so the accepted Intro Engine remains unchanged.
 
@@ -121,7 +133,9 @@ The QR public token is generated from 18 random bytes and is not a raw entity/pr
 - DOB is not included in public tables or `get_my_gamid()` output.
 - Avatar bucket is private, 5 MB-limited, MIME-limited, and folder-scoped by authenticated user ID.
 - No service-role key or production credential is present in source.
-- Latest Supabase security advisor result: no WARN/ERROR findings; three INFO notices are expected because private tables intentionally have RLS with no policies.
+- Expected Supabase Security Advisor state while the TESTING project remains on the Free plan:
+  - WARN: `Leaked Password Protection Disabled`. Mazen accepts this as a known Free-plan limitation, not a Slice 2 implementation defect. The feature requires Supabase Pro or higher. Do not attempt a workaround or upgrade automatically; enable and revalidate it only if the TESTING project is later upgraded to a supporting plan.
+  - INFO: `private.account_private`, `private.age_policies`, and `private.reserved_handles` have RLS enabled with no client policies. These findings are intentional and are not regressions.
 
 ## Migrations
 
@@ -203,7 +217,7 @@ GamID D2 benchmark evidence: 1,374,355 bytes; 31.57% smaller than the current Ma
 ## Known limitations
 
 - The original intro video is preserved locally but is not part of the approved GitHub TESTING publication. Publishing it remains a separate blocker.
-- Slice 2 non-video files are deployed to the TESTING GitHub Pages URLs above. Slice 2 remains pending formal Mazen acceptance.
+- Slice 2 non-video files are deployed to the TESTING GitHub Pages URLs above. Slice 2 was formally accepted by Mazen on 2026-09-15.
 - Manual TESTING confirmed receipt of a real verification email, confirmation, sign-in, creation of the `@BLACK` Solo identity, and preferred-language saving. Supabase's built-in sender can still be rate-limited; custom SMTP remains a future production-scale concern.
 - The managed workspace has no compatible visual browser preview for this plain static site. Responsive behavior is enforced by mobile-first CSS/static validation and Mazen has performed phone testing on the HTTPS TESTING site.
 - The npm registry was unavailable, so the implementation intentionally uses no added dependency. This does not affect the HTTPS Auth/RPC architecture.
@@ -211,4 +225,4 @@ GamID D2 benchmark evidence: 1,374,355 bytes; 31.57% smaller than the current Ma
 
 ## Continuation boundary
 
-Stop after Slice 2. Do not begin Slice 3 until Mazen tests and explicitly accepts this Slice 2 checkpoint.
+Slice 2 is formally accepted. Production remains **NOT STARTED / NOT AUTHORIZED**. Slice 3 remains **NOT STARTED** and must not begin automatically; a new explicit approval and scope from Mazen are required before any Slice 3 work.
