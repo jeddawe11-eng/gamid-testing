@@ -41,6 +41,15 @@ test("auth client covers registration, persistence, refresh, reset, password upd
   assert.match(calls.at(-1).url, /recover\?redirect_to=/);
   await api.updatePassword("password-2");
   assert.equal(calls.at(-1).options.method, "PUT");
+  await api.updateIdentityProfile({ displayName:"Black", bio:"Player one" });
+  const profileCall = calls.at(-1);
+  assert.match(profileCall.url, /\/rest\/v1\/rpc\/update_my_identity_profile$/);
+  assert.deepEqual(JSON.parse(profileCall.options.body), {
+    candidate_display_name:"Black",
+    candidate_bio:"Player one",
+    candidate_avatar_path:null,
+  });
+  assert.match(profileCall.options.headers.Authorization, /^Bearer /);
   await api.signOut();
   assert.equal(store.has("gamid.testing.auth.session.v1"), false);
 
@@ -49,4 +58,3 @@ test("auth client covers registration, persistence, refresh, reset, password upd
   const restored = await restoringApi.restoreSession();
   assert.equal(restored.refresh_token, "refresh-2");
 });
-

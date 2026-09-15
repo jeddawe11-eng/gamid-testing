@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { authLanding, errorMessage, normalizeHandle, validateHandle } from "../dist/account/domain.js";
+import { BIO_MAX, authLanding, errorMessage, hasProfileChanges, normalizeHandle, validateHandle, validateProfileDraft } from "../dist/account/domain.js";
 
 test("handle normalization is case-insensitive and URL-safe", () => {
   assert.equal(normalizeHandle("  @Mazen_27 "), "mazen_27");
@@ -33,4 +33,18 @@ test("language preference is captured before the form is disabled", async () => 
   const disable = source.indexOf("busy(form, true)", capture);
   const update = source.indexOf("api.updateLanguage(language)", disable);
   assert.ok(capture >= 0 && disable > capture && update > disable);
+});
+
+test("Slice 3A profile drafts enforce display-name and 160-character bio boundaries", () => {
+  assert.equal(BIO_MAX, 160);
+  assert.equal(validateProfileDraft({ displayName:" Black ", bio:"x".repeat(160) }).valid, true);
+  assert.equal(validateProfileDraft({ displayName:"Black", bio:"x".repeat(161) }).reason, "BIO_TOO_LONG");
+  assert.equal(validateProfileDraft({ displayName:"   ", bio:"" }).reason, "INVALID_DISPLAY_NAME");
+});
+
+test("unsaved profile state includes display name, bio, and a pending avatar", () => {
+  const saved = { displayName:"Black", bio:"Player one", avatarPath:"user/avatar.webp" };
+  assert.equal(hasProfileChanges(saved, { ...saved }), false);
+  assert.equal(hasProfileChanges(saved, { ...saved, bio:"Player two" }), true);
+  assert.equal(hasProfileChanges(saved, { ...saved }, true), true);
 });

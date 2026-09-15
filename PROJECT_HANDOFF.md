@@ -49,6 +49,33 @@ Final acceptance validation baseline:
 
 The mobile account route is `dist/account/index.html` (served as `/account/`). It is a separate surface so the accepted Intro Engine remains unchanged.
 
+## Slice 3A — GamID Identity Foundation
+
+- Implementation status: **COMPLETE IN TESTING; AWAITING MAZEN'S ACCEPTANCE**
+- Acceptance status: **NOT YET ACCEPTED**
+- Scope: first CREATE-phase editor for an authenticated user's existing SOLO identity
+- TESTING review route: `https://jeddawe11-eng.github.io/gamid-testing/account/`
+
+Slice 3A turns the authenticated account identity surface into the mobile-first **YOUR GAMID** experience. Its GamID Identity Card is a live local preview of the existing private avatar, editable display name, permanent read-only `@handle`, and a short editable Bio. Display-name, Bio, and selected-avatar previews update before save. One `SAVE PROFILE` action persists the approved fields and shows a lightweight `Saved ✓` confirmation. Dirty-state tracking enables the browser's standard leave/reload warning and protects explicit sign-out from silently discarding edits. The profile remains `DRAFT`/private; no publish or public-profile behavior exists.
+
+The existing architecture is reused rather than duplicated:
+
+- `public.entities.display_name` remains the display-name source of truth.
+- `public.entities.gamid_handle` remains permanent; Slice 3A adds no handle mutation path or editable control.
+- `public.entities.avatar_media_reference` and the existing private `avatars` bucket remain the only avatar system. Selected images preview locally, upload through the existing authenticated Storage boundary, and are attached only through the profile RPC.
+- The existing Auth/session, SOLO Entity, OWNER membership, `public.profiles`, RLS, and RPC-wrapper/private-implementation pattern remain intact.
+
+The additive migration `20260915170000_slice_3a_identity_foundation.sql` makes the minimum schema change: `public.profiles.bio text not null default ''` with a database `char_length(bio) <= 160` check. Existing profiles, including `@BLACK`, receive an empty Bio without changing identity, membership, handle, visibility, status, account data, or QR reference.
+
+Two authenticated RPCs were added:
+
+- `get_my_identity_profile()` returns only the owner-scoped identity editor fields; it does not return DOB, account-private data, or the opaque QR token.
+- `update_my_identity_profile(display_name, bio, optional_avatar_path)` validates display name and Bio server-side, resolves the caller's SOLO/OWNER relationship, verifies any avatar belongs to the caller in the private `avatars` bucket, and updates only display name, Bio, and optional avatar reference. Its public security-invoker wrapper delegates to a private security-definer implementation with an empty search path. Anonymous execution and direct authenticated table mutation remain denied. Handle, DRAFT/private state, and QR data are not mutated.
+
+Focused Slice 3A regression coverage verifies the 160-character UI/domain/database boundary, authenticated RPC grants and anonymous denial, no direct profile mutation grant, permanent non-editable handle, unchanged DRAFT/private state, owner-scoped avatar validation, live-preview wiring, unsaved-change protection, no QR exposure, and inactive future Identity Board labels. The full baseline is now 32/32 tests with lint, typecheck, and build passing through the video-safe validation architecture.
+
+The Identity Board direction remains future-compatible but deliberately non-generic: no `profile_blocks` table or speculative block framework was added. Games, Stats, Connections, and Socials appear only as clearly inactive future labels. Slice 3B, the Gaming Connections Engine, subscriptions/payment, automatic D2/D3 video processing, public profiles, publishing, and Production are **NOT STARTED**. Slice 3A implementation completion is not acceptance; only Mazen can accept it after TESTING review.
+
 ## Architecture
 
 ### Frontend
@@ -144,8 +171,9 @@ Apply in filename order:
 1. `20260912143000_slice_2_account_solo_foundation.sql`
 2. `20260912170000_harden_rpc_boundaries.sql`
 3. `20260912173500_enforce_least_privilege.sql`
+4. `20260915170000_slice_3a_identity_foundation.sql`
 
-All three are applied to the isolated TESTING project and recorded in its migration history.
+All four are applied to the isolated TESTING project and recorded in its migration history.
 
 ## Development and validation
 
@@ -221,8 +249,8 @@ GamID D2 benchmark evidence: 1,374,355 bytes; 31.57% smaller than the current Ma
 - Manual TESTING confirmed receipt of a real verification email, confirmation, sign-in, creation of the `@BLACK` Solo identity, and preferred-language saving. Supabase's built-in sender can still be rate-limited; custom SMTP remains a future production-scale concern.
 - The managed workspace has no compatible visual browser preview for this plain static site. Responsive behavior is enforced by mobile-first CSS/static validation and Mazen has performed phone testing on the HTTPS TESTING site.
 - The npm registry was unavailable, so the implementation intentionally uses no added dependency. This does not affect the HTTPS Auth/RPC architecture.
-- No public profile publication, profile editor, QR rendering, OAuth, handle change, parental consent, multi-entity UI, Team, Organization, or Company functionality exists.
+- No public profile publication, QR rendering, OAuth, handle change, parental consent, multi-entity UI, Team, Organization, or Company functionality exists. Slice 3A includes only the authenticated private identity editor described above.
 
 ## Continuation boundary
 
-Slice 2 is formally accepted. Production remains **NOT STARTED / NOT AUTHORIZED**. Slice 3 remains **NOT STARTED** and must not begin automatically; a new explicit approval and scope from Mazen are required before any Slice 3 work.
+Slice 2 is formally accepted. Slice 3A implementation is complete in TESTING and **AWAITING MAZEN'S ACCEPTANCE**. Production remains **NOT STARTED / NOT AUTHORIZED**. Slice 3B and every later slice remain **NOT STARTED** and must not begin automatically. The Gaming Connections Engine remains FUTURE DIRECTION ONLY, and the approved video quality-tier implementation remains NOT STARTED.
