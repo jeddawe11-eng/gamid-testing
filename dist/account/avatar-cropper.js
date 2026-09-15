@@ -61,34 +61,38 @@ export class AvatarCropState {
 }
 
 const htmlImageUrls = new WeakMap();
+const errorKind = error => error?.name || "Error";
 
-async function loadHtmlImage(file) {
+async function loadHtmlImage(file, { report = () => {} } = {}) {
   const url = URL.createObjectURL(file);
+  report("fallback-url-created");
   try {
     const image = new Image();
     image.decoding = "async";
     await new Promise((resolve, reject) => {
-      image.onload = resolve;
-      image.onerror = () => reject(new Error("IMAGE_DECODE_FAILED"));
+      image.onload = () => { report("fallback-load-success"); resolve(); };
+      image.onerror = () => { report("fallback-load-failure"); reject(new Error("IMAGE_DECODE_FAILED")); };
       image.src = url;
     });
     // Keep the Blob URL alive for as long as the crop session can draw this
     // image. Android may discard a decoded <img> resource if its URL is
     // revoked immediately after onload.
-    htmlImageUrls.set(image, url);
+    htmlImageUrls.set(image, { url, report });
     return image;
   } catch (error) {
     URL.revokeObjectURL(url);
+    report("fallback-url-released-after-failure", errorKind(error));
     throw error;
   }
 }
 
 export function releaseOrientedImage(image) {
-  const url = image && htmlImageUrls.get(image);
-  if (url) {
+  const owned = image && htmlImageUrls.get(image);
+  if (owned) {
     htmlImageUrls.delete(image);
     image.removeAttribute?.("src");
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(owned.url);
+    owned.report("fallback-url-released");
   }
   if (typeof image?.close === "function") image.close();
 }
@@ -96,39 +100,58 @@ export function releaseOrientedImage(image) {
 export async function loadOrientedImage(file, {
   createBitmap = globalThis.createImageBitmap,
   fallback = loadHtmlImage,
+  report = () => {},
 } = {}) {
   if (typeof createBitmap === "function") {
     try {
-      return await createBitmap(file, { imageOrientation: "from-image" });
-    } catch { /* Some mobile decoders intermittently reject valid gallery Files; use the browser image path. */ }
+      report("bitmap-start");
+      const bitmap = await createBitmap(file, { imageOrientation: "from-image" });
+      report("bitmap-success");
+      return bitmap;
+    } catch (error) {
+      report("bitmap-failure", errorKind(error));
+      /* Some mobile decoders intermittently reject valid gallery Files; use the browser image path. */
+    }
   }
-  return fallback(file);
+  report("fallback-start");
+  return fallback(file, { report });
 }
 
 export class AvatarDecodeSession {
-  constructor({ loader = loadOrientedImage, releaser = releaseOrientedImage } = {}) {
+  constructor({ loader = loadOrientedImage, releaser = releaseOrientedImage, report = () => {} } = {}) {
     this.loader = loader;
     this.releaser = releaser;
+    this.report = report;
     this.generation = 0;
     this.activeImage = null;
   }
 
   async open(file) {
     const operation = ++this.generation;
-    if (this.activeImage) this.releaser(this.activeImage);
+    this.report("session-open", `g${operation}`);
+    if (this.activeImage) {
+      this.report("session-release-previous", `g${operation}`);
+      this.releaser(this.activeImage);
+    }
     this.activeImage = null;
     let image;
     try {
       image = await this.loader(file);
     } catch (error) {
-      if (operation !== this.generation) return { stale: true };
+      if (operation !== this.generation) {
+        this.report("session-stale-failure", `g${operation}`);
+        return { stale: true };
+      }
+      this.report("session-current-failure", `g${operation}:${errorKind(error)}`);
       throw error;
     }
     if (operation !== this.generation) {
+      this.report("session-stale-success", `g${operation}`);
       this.releaser(image);
       return { stale: true };
     }
     this.activeImage = image;
+    this.report("session-current-success", `g${operation}`);
     return { stale: false, image, operation };
   }
 
@@ -136,8 +159,9 @@ export class AvatarDecodeSession {
     return operation === this.generation && image === this.activeImage;
   }
 
-  reset() {
+  reset(reason = "reset") {
     ++this.generation;
+    this.report("session-reset", `g${this.generation}:${reason}`);
     if (this.activeImage) this.releaser(this.activeImage);
     this.activeImage = null;
   }

@@ -78,6 +78,12 @@
         <hr/><p class="eyebrow">ACCOUNT SETTINGS</p><p class="account-email">Signed in as <strong id="accountEmail"></strong></p>
         <form id="languageForm"><label>Preferred language<select name="language"><option value="en">English</option><option value="ar">العربية</option><option value="ms">Bahasa Melayu</option></select></label><button class="secondary">Save language</button></form>
         <button id="signOutButton" class="text-button danger">Sign out</button>
+        <details id="avatarDiagnostics" class="avatar-diagnostics" hidden>
+          <summary>Avatar test diagnostics</summary>
+          <p>Temporary TESTING-only event trace. It contains no image contents, filenames, URLs, account data, or tokens.</p>
+          <pre id="avatarDiagnosticOutput" tabindex="0"></pre>
+          <div><button id="copyAvatarDiagnostics" class="secondary" type="button">Copy diagnostics</button><button id="clearAvatarDiagnostics" class="text-button" type="button">Clear</button></div>
+        </details>
       </div>
 
       <dialog id="avatarCropDialog" class="avatar-crop-dialog" aria-labelledby="avatarCropTitle">

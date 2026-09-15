@@ -125,3 +125,40 @@ test("both documented dirty-state branches reopen a valid Avatar after reload", 
     assert.equal(reopened.image.name, "valid-after-reload.jpg");
   }
 });
+
+test("new and previously used Gallery representations always create independent operations", async () => {
+  let decodeId = 0;
+  const released = [];
+  const events = [];
+  const session = new AvatarDecodeSession({
+    loader: async file => ({ decodeId:++decodeId, source:file.label }),
+    releaser: image => released.push(image.decodeId),
+    report: (event, detail) => events.push(`${event}:${detail || ""}`),
+  });
+  for (const label of ["A","A","B","A","B","A"]) {
+    // Each object models a fresh File returned for the same or a different
+    // Samsung Gallery item; neither object identity nor metadata is a key.
+    const result = await session.open({ label, type:"image/jpeg", size:2048, lastModified:1 });
+    assert.equal(result.image.source, label);
+    session.reset(label === "B" ? "apply" : "cancel-or-reload");
+  }
+  assert.equal(decodeId, 6);
+  assert.deepEqual(released, [1,2,3,4,5,6]);
+  assert.equal(events.filter(entry => entry.startsWith("session-open:")).length, 6);
+});
+
+test("decode diagnostics distinguish bitmap failure and fallback success", async () => {
+  const events = [];
+  const result = await loadOrientedImage({ type:"image/jpeg" }, {
+    createBitmap: async () => { throw Object.assign(new Error("decoder rejected"), { name:"InvalidStateError" }); },
+    fallback: async (file, { report }) => { report("fallback-load-success"); return { decoded:file.type }; },
+    report: (event, detail) => events.push(`${event}:${detail || ""}`),
+  });
+  assert.equal(result.decoded, "image/jpeg");
+  assert.deepEqual(events, [
+    "bitmap-start:",
+    "bitmap-failure:InvalidStateError",
+    "fallback-start:",
+    "fallback-load-success:",
+  ]);
+});

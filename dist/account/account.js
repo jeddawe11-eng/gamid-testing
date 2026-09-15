@@ -1,5 +1,5 @@
 import { authLanding, debounceAsync, errorMessage, hasProfileChanges, normalizeHandle, validateHandle, validateProfileDraft } from "./domain.js";
-import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, drawCropPreview } from "./avatar-cropper.js";
+import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, drawCropPreview, loadOrientedImage } from "./avatar-cropper.js";
 import * as api from "./supabase-client.js";
 
 const views = [...document.querySelectorAll(".view")];
@@ -21,7 +21,28 @@ let cropImage = null;
 let cropState = null;
 let cropOperation = null;
 const cropPointers = new Map();
-const avatarDecoder = new AvatarDecodeSession();
+const avatarDiagnosticsEnabled = new URLSearchParams(location.search).get("avatarDebug") === "1";
+const avatarDiagnosticKey = "gamid-avatar-diagnostics-v1";
+let avatarDiagnosticLog = [];
+
+if (avatarDiagnosticsEnabled) {
+  try { avatarDiagnosticLog = JSON.parse(sessionStorage.getItem(avatarDiagnosticKey)) || []; }
+  catch { avatarDiagnosticLog = []; }
+}
+
+function avatarDiag(event, detail = "") {
+  if (!avatarDiagnosticsEnabled) return;
+  const entry = `${String(avatarDiagnosticLog.length + 1).padStart(2,"0")} ${event}${detail ? ` ${detail}` : ""}`;
+  avatarDiagnosticLog = [...avatarDiagnosticLog.slice(-59), entry];
+  try { sessionStorage.setItem(avatarDiagnosticKey, JSON.stringify(avatarDiagnosticLog)); } catch { /* Diagnostics remain in memory. */ }
+  const output = document.getElementById("avatarDiagnosticOutput");
+  if (output) output.textContent = avatarDiagnosticLog.join("\n");
+}
+
+const avatarDecoder = new AvatarDecodeSession({
+  loader: file => loadOrientedImage(file, { report:avatarDiag }),
+  report: avatarDiag,
+});
 
 const cropDialog = document.getElementById("avatarCropDialog");
 const cropCanvas = document.getElementById("avatarCropCanvas");
@@ -106,17 +127,18 @@ function renderCrop() {
   cropZoom.value = String(cropState.zoom);
 }
 
-function releaseCropImage() {
+function releaseCropImage(reason = "release") {
   cropPointers.clear();
-  avatarDecoder.reset();
+  avatarDecoder.reset(reason);
   cropImage = null;
   cropState = null;
   cropOperation = null;
 }
 
-function resetAvatarCropLifecycle() {
+function resetAvatarCropLifecycle(reason = "lifecycle-reset") {
+  avatarDiag("lifecycle-reset", reason);
   if (cropDialog.open) cropDialog.close();
-  releaseCropImage();
+  releaseCropImage(reason);
   if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
   avatarPreviewUrl = null;
   pendingAvatar = null;
@@ -124,13 +146,15 @@ function resetAvatarCropLifecycle() {
 }
 
 function cancelAvatarCrop() {
+  avatarDiag("crop-cancel");
   cropDialog.close();
-  releaseCropImage();
+  releaseCropImage("cancel");
   document.getElementById("profileAvatarInput").value = "";
 }
 
 async function openAvatarCrop(file) {
   if (!file) return;
+  avatarDiag("open-request", `type=${file.type || "empty"};size=${file.size};modified=${file.lastModified || 0}`);
   if (!["image/jpeg","image/png","image/webp","image/avif"].includes(file.type)) {
     document.getElementById("profileAvatarInput").value = "";
     return setMessage("Choose a JPG, PNG, WebP, or AVIF image.");
@@ -142,7 +166,7 @@ async function openAvatarCrop(file) {
   const expectedGeneration = avatarDecoder.generation + 1;
   try {
     const decoded = await avatarDecoder.open(file);
-    if (decoded.stale) return;
+    if (decoded.stale) { avatarDiag("open-stale"); return; }
     cropImage = decoded.image;
     cropOperation = decoded.operation;
     cropState = new AvatarCropState(cropImage.width || cropImage.naturalWidth, cropImage.height || cropImage.naturalHeight);
@@ -151,6 +175,7 @@ async function openAvatarCrop(file) {
     cropZoom.value = "1";
     renderCrop();
     cropDialog.showModal();
+    avatarDiag("crop-dialog-open", `g${cropOperation};${cropImage.width || cropImage.naturalWidth}x${cropImage.height || cropImage.naturalHeight}`);
   } catch {
     // A stale operation owns neither the current image nor its UI. Only the
     // current decoder generation is allowed to report or clean up a failure.
@@ -158,12 +183,13 @@ async function openAvatarCrop(file) {
     releaseCropImage();
     document.getElementById("profileAvatarInput").value = "";
     setMessage("That image could not be opened. Choose another image.");
+    avatarDiag("open-error-shown", `g${expectedGeneration}`);
   }
 }
 
 async function showIdentity(data) {
   const editor = await api.getIdentityProfile();
-  resetAvatarCropLifecycle();
+  resetAvatarCropLifecycle("profile-restored");
   identity = { ...data, ...editor };
   const handle = `@${identity.gamid_handle}`;
   document.getElementById("claimedHandle").textContent = handle;
@@ -285,6 +311,7 @@ document.getElementById("profileDisplayName").addEventListener("input", updatePr
 document.getElementById("profileBio").addEventListener("input", updateProfilePreview);
 document.getElementById("profileAvatarInput").addEventListener("change", event => {
   const file = event.target.files[0];
+  avatarDiag("input-change", `hasFile=${Boolean(file)}`);
   // Keep the native input as the owner of Android's gallery-backed File until
   // this decode/crop session finishes. Clearing it here can invalidate a
   // transient Samsung content URI before either decoder has consumed it.
@@ -326,9 +353,10 @@ document.getElementById("applyAvatarCrop").addEventListener("click", async event
   const applyingState = cropState;
   const applyingOperation = cropOperation;
   button.disabled = true;
+  avatarDiag("apply-start", `g${applyingOperation}`);
   try {
     const normalized = await createNormalizedAvatar(applyingImage, applyingState);
-    if (!avatarDecoder.isCurrent(applyingOperation, applyingImage)) return;
+    if (!avatarDecoder.isCurrent(applyingOperation, applyingImage)) { avatarDiag("apply-stale", `g${applyingOperation}`); return; }
     if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
     pendingAvatar = normalized.blob;
     avatarPreviewUrl = URL.createObjectURL(pendingAvatar);
@@ -336,10 +364,11 @@ document.getElementById("applyAvatarCrop").addEventListener("click", async event
     avatar.style.backgroundImage = `url("${avatarPreviewUrl}")`;
     avatar.textContent = "";
     cropDialog.close();
-    releaseCropImage();
+    releaseCropImage("apply-complete");
     document.getElementById("profileAvatarInput").value = "";
     updateProfilePreview();
-  } catch { setMessage("The Avatar crop could not be prepared. Try again."); }
+    avatarDiag("apply-success", `bytes=${pendingAvatar.size};type=${pendingAvatar.type}`);
+  } catch (error) { avatarDiag("apply-failure", error?.name || "Error"); setMessage("The Avatar crop could not be prepared. Try again."); }
   finally { button.disabled = false; }
 });
 
@@ -357,7 +386,7 @@ document.getElementById("profileForm").addEventListener("submit", async event =>
     const updated = await api.updateIdentityProfile({ displayName: draft.displayName, bio: draft.bio, avatarPath });
     identity = { ...identity, ...updated };
     savedProfile = { displayName: updated.display_name, bio: updated.bio, avatarPath: updated.avatar_media_reference };
-    resetAvatarCropLifecycle();
+    resetAvatarCropLifecycle("save-success");
     await setPersistedAvatar(updated.avatar_media_reference, updated.display_name?.[0]?.toUpperCase() || "G");
     document.getElementById("profileDisplayName").value = updated.display_name;
     document.getElementById("profileBio").value = updated.bio;
@@ -393,14 +422,32 @@ window.addEventListener("beforeunload", event => {
   event.returnValue = "";
 });
 window.addEventListener("pageshow", event => {
+  avatarDiag("pageshow", `persisted=${event.persisted}`);
   if (!event.persisted || !identity) return;
-  resetAvatarCropLifecycle();
+  resetAvatarCropLifecycle("pageshow-persisted");
   setPersistedAvatar(savedProfile?.avatarPath, identity.display_name?.trim()?.[0]?.toUpperCase() || "G").then(updateProfilePreview);
 });
 window.addEventListener("pagehide", () => {
+  avatarDiag("pagehide");
   if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
   if (persistedAvatarUrl) URL.revokeObjectURL(persistedAvatarUrl);
 }, { once: true });
+
+if (avatarDiagnosticsEnabled) {
+  const diagnostics = document.getElementById("avatarDiagnostics");
+  diagnostics.hidden = false;
+  avatarDiag("script-init", `navigation=${performance.getEntriesByType("navigation")[0]?.type || "unknown"}`);
+  document.getElementById("copyAvatarDiagnostics").addEventListener("click", async event => {
+    try { await navigator.clipboard.writeText(avatarDiagnosticLog.join("\n")); event.currentTarget.textContent = "Copied ✓"; }
+    catch { event.currentTarget.textContent = "Select the log above"; }
+  });
+  document.getElementById("clearAvatarDiagnostics").addEventListener("click", () => {
+    avatarDiagnosticLog = [];
+    try { sessionStorage.removeItem(avatarDiagnosticKey); } catch { /* Nothing else to clear. */ }
+    document.getElementById("avatarDiagnosticOutput").textContent = "";
+    avatarDiag("diagnostics-cleared");
+  });
+}
 
 try {
   const redirected = api.consumeRedirectSession();
