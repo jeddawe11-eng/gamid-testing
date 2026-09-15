@@ -63,7 +63,8 @@ test("Avatar selection opens positioning before creating an unsaved normalized A
   const selection = controller.match(/document\.getElementById\("profileAvatarInput"\)\.addEventListener\("change",[\s\S]*?\n\}\);/)?.[0] || "";
   assert.match(selection, /openAvatarCrop/);
   assert.doesNotMatch(selection, /pendingAvatar\s*=/);
-  assert.match(selection, /event\.target\.value = ""[\s\S]*openAvatarCrop\(file\)/);
+  assert.doesNotMatch(selection, /event\.target\.value = ""/);
+  assert.match(selection, /const file = event\.target\.files\[0\][\s\S]*openAvatarCrop\(file\)/);
   assert.match(controller, /pendingAvatar = normalized\.blob/);
   assert.match(controller, /updateProfilePreview\(\)/);
   assert.match(controller, /function cancelAvatarCrop\(\)[\s\S]*cropDialog\.close\(\)[\s\S]*releaseCropImage/);
@@ -88,4 +89,12 @@ test("Avatar decoder lifecycle prevents stale async cleanup from affecting a new
   assert.match(controller, /const avatarDecoder = new AvatarDecodeSession/);
   assert.match(controller, /const decoded = await avatarDecoder\.open\(file\)[\s\S]*if \(decoded\.stale\) return/);
   assert.match(controller, /avatarDecoder\.isCurrent\(applyingOperation, applyingImage\)/);
+});
+
+test("Android gallery File remains input-owned until decode/crop completion", () => {
+  const selection = controller.match(/document\.getElementById\("profileAvatarInput"\)\.addEventListener\("change",[\s\S]*?\n\}\);/)?.[0] || "";
+  assert.doesNotMatch(selection, /\.value\s*=\s*""/);
+  assert.match(controller, /function cancelAvatarCrop\(\)[\s\S]*profileAvatarInput"\)\.value = ""/);
+  assert.match(controller, /applyAvatarCrop[\s\S]*profileAvatarInput"\)\.value = ""/);
+  assert.match(controller, /catch \{[\s\S]*expectedGeneration[\s\S]*profileAvatarInput"\)\.value = ""/);
 });

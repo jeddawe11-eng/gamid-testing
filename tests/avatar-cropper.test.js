@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { AVATAR_MAX_OUTPUT, AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, coverScale, loadOrientedImage } from "../dist/account/avatar-cropper.js";
+import { hasProfileChanges } from "../dist/account/domain.js";
 
 test("portrait, landscape, square, very tall, and very wide images always cover the crop", () => {
   for (const [width, height] of [[900,1600],[1600,900],[1200,1200],[500,3000],[3000,500]]) {
@@ -106,4 +107,21 @@ test("cancel/reset invalidates an in-flight decoder and repeated selections rema
   assert.equal((await selectedAgain).image.name, "same.jpg");
   session.reset();
   assert.deepEqual(released, ["same.jpg", "same.jpg"]);
+});
+
+test("both documented dirty-state branches reopen a valid Avatar after reload", async () => {
+  const saved = { displayName:"Black", bio:"Player one", avatarPath:"saved.webp" };
+  for (const draft of [saved, { ...saved, bio:"Unsaved text edit" }]) {
+    assert.equal(hasProfileChanges(saved, draft, true), true, "APPLY marks either branch dirty");
+
+    // Reload restores the server snapshot and constructs a fresh decoder lifecycle.
+    assert.equal(hasProfileChanges(saved, saved, false), false);
+    const session = new AvatarDecodeSession({
+      loader: async file => ({ name:file.name, width:576, height:1024 }),
+      releaser: () => {},
+    });
+    const reopened = await session.open({ name:"valid-after-reload.jpg" });
+    assert.equal(reopened.stale, false);
+    assert.equal(reopened.image.name, "valid-after-reload.jpg");
+  }
 });

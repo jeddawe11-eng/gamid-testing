@@ -285,7 +285,9 @@ document.getElementById("profileDisplayName").addEventListener("input", updatePr
 document.getElementById("profileBio").addEventListener("input", updateProfilePreview);
 document.getElementById("profileAvatarInput").addEventListener("change", event => {
   const file = event.target.files[0];
-  event.target.value = "";
+  // Keep the native input as the owner of Android's gallery-backed File until
+  // this decode/crop session finishes. Clearing it here can invalidate a
+  // transient Samsung content URI before either decoder has consumed it.
   openAvatarCrop(file);
 });
 
