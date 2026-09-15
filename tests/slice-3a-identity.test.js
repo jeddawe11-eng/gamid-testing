@@ -6,6 +6,7 @@ const migration = await readFile(new URL("../supabase/migrations/20260915170000_
 const html = await readFile(new URL("../dist/account/index.html", import.meta.url), "utf8");
 const client = await readFile(new URL("../dist/account/supabase-client.js", import.meta.url), "utf8");
 const controller = await readFile(new URL("../dist/account/account.js", import.meta.url), "utf8");
+const cropper = await readFile(new URL("../dist/account/avatar-cropper.js", import.meta.url), "utf8");
 
 test("Slice 3A adds only a bounded bio field to the existing profile model", () => {
   assert.match(migration, /alter table public\.profiles[\s\S]*add column bio text not null default ''/);
@@ -51,4 +52,22 @@ test("Slice 3A remains DRAFT/private and does not expose QR or enable future are
   assert.doesNotMatch(html, /qr_public_token|public_token/);
   assert.doesNotMatch(migration, /qr_public_token|public\.qr_references/);
   assert.doesNotMatch(html, /href=[^>]*(games|stats|connections|socials)/i);
+});
+
+test("Avatar selection opens positioning before creating an unsaved normalized Avatar", () => {
+  assert.match(html, /id="avatarCropDialog"/);
+  assert.match(html, /id="avatarCropCanvas"/);
+  assert.match(html, /id="avatarZoom"[^>]*type="range"/);
+  assert.match(html, />APPLY</);
+  assert.match(html, />CANCEL</);
+  const selection = controller.match(/document\.getElementById\("profileAvatarInput"\)\.addEventListener\("change",[^\n]+/)?.[0] || "";
+  assert.match(selection, /openAvatarCrop/);
+  assert.doesNotMatch(selection, /pendingAvatar\s*=/);
+  assert.match(controller, /pendingAvatar = normalized\.blob/);
+  assert.match(controller, /updateProfilePreview\(\)/);
+  assert.match(controller, /function cancelAvatarCrop\(\)[\s\S]*cropDialog\.close\(\)[\s\S]*releaseCropImage/);
+  assert.match(cropper, /class AvatarCropState/);
+  assert.match(cropper, /pan\(deltaX, deltaY\)/);
+  assert.match(cropper, /setZoom\(nextZoom/);
+  assert.match(cropper, /createNormalizedAvatar/);
 });
