@@ -75,19 +75,19 @@ test("Avatar selection opens positioning before creating an unsaved normalized A
 });
 
 test("profile restore and mobile page restoration reset abandoned Avatar crop state", () => {
-  assert.match(controller, /function resetAvatarCropLifecycle\(\)[\s\S]*avatarPreviewUrl = null;[\s\S]*pendingAvatar = null;[\s\S]*profileAvatarInput/);
-  assert.match(controller, /async function showIdentity\(data\)[\s\S]*resetAvatarCropLifecycle\(\);[\s\S]*setPersistedAvatar/);
-  assert.match(controller, /addEventListener\("pageshow"[\s\S]*event\.persisted[\s\S]*resetAvatarCropLifecycle\(\)[\s\S]*setPersistedAvatar/);
-  assert.match(cropper, /catch \{[\s\S]*return fallback\(file\)/);
+  assert.match(controller, /function resetAvatarCropLifecycle\([^)]*\)[\s\S]*avatarPreviewUrl = null;[\s\S]*pendingAvatar = null;[\s\S]*profileAvatarInput/);
+  assert.match(controller, /async function showIdentity\(data\)[\s\S]*resetAvatarCropLifecycle\("profile-restored"\);[\s\S]*setPersistedAvatar/);
+  assert.match(controller, /addEventListener\("pageshow"[\s\S]*event\.persisted[\s\S]*resetAvatarCropLifecycle\("pageshow-persisted"\)[\s\S]*setPersistedAvatar/);
+  assert.match(cropper, /catch \(error\)[\s\S]*fallback-start[\s\S]*return fallback\(file, \{ report \}\)/);
 });
 
 test("Avatar decoder lifecycle prevents stale async cleanup from affecting a newer selection", () => {
   assert.match(cropper, /class AvatarDecodeSession/);
   assert.match(cropper, /operation !== this\.generation[\s\S]*this\.releaser\(image\)/);
-  assert.match(cropper, /htmlImageUrls\.set\(image, url\)/);
+  assert.match(cropper, /htmlImageUrls\.set\(image, \{ url, report \}\)/);
   assert.match(cropper, /releaseOrientedImage/);
   assert.match(controller, /const avatarDecoder = new AvatarDecodeSession/);
-  assert.match(controller, /const decoded = await avatarDecoder\.open\(file\)[\s\S]*if \(decoded\.stale\) return/);
+  assert.match(controller, /const decoded = await avatarDecoder\.open\(file\)[\s\S]*if \(decoded\.stale\)[^{]*\{[^}]*return;/);
   assert.match(controller, /avatarDecoder\.isCurrent\(applyingOperation, applyingImage\)/);
 });
 
@@ -97,4 +97,15 @@ test("Android gallery File remains input-owned until decode/crop completion", ()
   assert.match(controller, /function cancelAvatarCrop\(\)[\s\S]*profileAvatarInput"\)\.value = ""/);
   assert.match(controller, /applyAvatarCrop[\s\S]*profileAvatarInput"\)\.value = ""/);
   assert.match(controller, /catch \{[\s\S]*expectedGeneration[\s\S]*profileAvatarInput"\)\.value = ""/);
+});
+
+test("TESTING-only diagnostics identify decode stage without recording private image data", () => {
+  assert.match(html, /id="avatarDiagnostics"[^>]*hidden/);
+  assert.match(controller, /get\("avatarDebug"\) === "1"/);
+  assert.match(controller, /bitmap-start|loadOrientedImage\(file, \{ report:avatarDiag \}\)/);
+  assert.match(cropper, /bitmap-success/);
+  assert.match(cropper, /bitmap-failure/);
+  assert.match(cropper, /fallback-load-success/);
+  assert.match(cropper, /fallback-load-failure/);
+  assert.doesNotMatch(controller, /avatarDiag\([^\n]*(file\.name|objectURL|access_token|qr_public_token)/);
 });
