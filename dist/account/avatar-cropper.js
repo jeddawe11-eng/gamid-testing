@@ -60,10 +60,7 @@ export class AvatarCropState {
   }
 }
 
-export async function loadOrientedImage(file) {
-  if (typeof createImageBitmap === "function") {
-    return createImageBitmap(file, { imageOrientation: "from-image" });
-  }
+async function loadHtmlImage(file) {
   const url = URL.createObjectURL(file);
   try {
     const image = new Image();
@@ -77,6 +74,18 @@ export async function loadOrientedImage(file) {
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+export async function loadOrientedImage(file, {
+  createBitmap = globalThis.createImageBitmap,
+  fallback = loadHtmlImage,
+} = {}) {
+  if (typeof createBitmap === "function") {
+    try {
+      return await createBitmap(file, { imageOrientation: "from-image" });
+    } catch { /* Some mobile decoders intermittently reject valid gallery Files; use the browser image path. */ }
+  }
+  return fallback(file);
 }
 
 export function drawCropPreview(context, image, state) {

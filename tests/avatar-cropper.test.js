@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { AVATAR_MAX_OUTPUT, AVATAR_PREVIEW_SIZE, AvatarCropState, coverScale } from "../dist/account/avatar-cropper.js";
+import { AVATAR_MAX_OUTPUT, AVATAR_PREVIEW_SIZE, AvatarCropState, coverScale, loadOrientedImage } from "../dist/account/avatar-cropper.js";
 
 test("portrait, landscape, square, very tall, and very wide images always cover the crop", () => {
   for (const [width, height] of [[900,1600],[1600,900],[1200,1200],[500,3000],[3000,500]]) {
@@ -36,4 +36,20 @@ test("crop export architecture creates a square WebP-first Canvas derivative", a
   assert.match(source, /canvas\.width = outputSize;[\s\S]*canvas\.height = outputSize/);
   assert.match(source, /canvasBlob\(canvas, "image\/webp", \.9\)/);
   assert.match(source, /imageOrientation: "from-image"/);
+});
+
+test("valid image decoding remains reusable after an unsaved APPLY and page reinitialization", async () => {
+  const first = await loadOrientedImage({ name:"first.jpg" }, {
+    createBitmap: async file => ({ decoded:file.name }),
+    fallback: async () => { throw new Error("fallback should not run"); },
+  });
+  assert.equal(first.decoded, "first.jpg");
+
+  // A reload creates a fresh crop lifecycle. If Android's available bitmap decoder
+  // transiently rejects the next valid File, the HTML-image decoder must still open it.
+  const afterReload = await loadOrientedImage({ name:"second.jpg" }, {
+    createBitmap: async () => { throw new Error("transient bitmap decoder failure"); },
+    fallback: async file => ({ decoded:file.name, via:"fallback" }),
+  });
+  assert.deepEqual(afterReload, { decoded:"second.jpg", via:"fallback" });
 });

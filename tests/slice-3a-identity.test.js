@@ -60,9 +60,10 @@ test("Avatar selection opens positioning before creating an unsaved normalized A
   assert.match(html, /id="avatarZoom"[^>]*type="range"/);
   assert.match(html, />APPLY</);
   assert.match(html, />CANCEL</);
-  const selection = controller.match(/document\.getElementById\("profileAvatarInput"\)\.addEventListener\("change",[^\n]+/)?.[0] || "";
+  const selection = controller.match(/document\.getElementById\("profileAvatarInput"\)\.addEventListener\("change",[\s\S]*?\n\}\);/)?.[0] || "";
   assert.match(selection, /openAvatarCrop/);
   assert.doesNotMatch(selection, /pendingAvatar\s*=/);
+  assert.match(selection, /event\.target\.value = ""[\s\S]*openAvatarCrop\(file\)/);
   assert.match(controller, /pendingAvatar = normalized\.blob/);
   assert.match(controller, /updateProfilePreview\(\)/);
   assert.match(controller, /function cancelAvatarCrop\(\)[\s\S]*cropDialog\.close\(\)[\s\S]*releaseCropImage/);
@@ -70,4 +71,11 @@ test("Avatar selection opens positioning before creating an unsaved normalized A
   assert.match(cropper, /pan\(deltaX, deltaY\)/);
   assert.match(cropper, /setZoom\(nextZoom/);
   assert.match(cropper, /createNormalizedAvatar/);
+});
+
+test("profile restore and mobile page restoration reset abandoned Avatar crop state", () => {
+  assert.match(controller, /function resetAvatarCropLifecycle\(\)[\s\S]*avatarPreviewUrl = null;[\s\S]*pendingAvatar = null;[\s\S]*profileAvatarInput/);
+  assert.match(controller, /async function showIdentity\(data\)[\s\S]*resetAvatarCropLifecycle\(\);[\s\S]*setPersistedAvatar/);
+  assert.match(controller, /addEventListener\("pageshow"[\s\S]*event\.persisted[\s\S]*resetAvatarCropLifecycle\(\)[\s\S]*setPersistedAvatar/);
+  assert.match(cropper, /catch \{[\s\S]*return fallback\(file\)/);
 });
