@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { AVATAR_MAX_OUTPUT, AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, coverScale, loadOrientedImage } from "../dist/account/avatar-cropper.js";
+import { AVATAR_MAX_OUTPUT, AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, coverScale, createOwnedImageBlob, loadOrientedImage } from "../dist/account/avatar-cropper.js";
 import { hasProfileChanges } from "../dist/account/domain.js";
 
 test("portrait, landscape, square, very tall, and very wide images always cover the crop", () => {
@@ -161,4 +161,36 @@ test("decode diagnostics distinguish bitmap failure and fallback success", async
     "fallback-start:",
     "fallback-load-success:",
   ]);
+});
+
+test("each reused Gallery selection becomes a distinct application-owned Blob snapshot", async () => {
+  const sourceBytes = new Uint8Array([255,216,255,224,1,2,3,4]);
+  const galleryFile = {
+    type:"image/jpeg",
+    async arrayBuffer() { return sourceBytes.slice().buffer; },
+  };
+  const first = await createOwnedImageBlob(galleryFile);
+  const second = await createOwnedImageBlob(galleryFile);
+  assert.ok(first instanceof Blob && second instanceof Blob);
+  assert.notEqual(first, second);
+  assert.notEqual(first, galleryFile);
+  assert.equal(first.type, "image/jpeg");
+  assert.deepEqual(new Uint8Array(await first.arrayBuffer()), sourceBytes);
+  assert.deepEqual(new Uint8Array(await second.arrayBuffer()), sourceBytes);
+});
+
+test("snapshot diagnostics isolate Android source-read failure from decoder failure", async () => {
+  const events = [];
+  const owned = await createOwnedImageBlob({
+    type:"image/jpeg",
+    async arrayBuffer() { return new Uint8Array([1,2,3]).buffer; },
+  }, { report:(event, detail) => events.push(`${event}:${detail || ""}`) });
+  assert.equal(owned.size, 3);
+  assert.deepEqual(events, ["snapshot-start:", "snapshot-success:bytes=3;type=image/jpeg"]);
+
+  await assert.rejects(() => createOwnedImageBlob({
+    type:"image/jpeg",
+    async arrayBuffer() { throw Object.assign(new Error("source unavailable"), { name:"NotReadableError" }); },
+  }, { report:(event, detail) => events.push(`${event}:${detail || ""}`) }), /source unavailable/);
+  assert.equal(events.at(-1), "snapshot-failure:NotReadableError");
 });
