@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { AVATAR_MAX_OUTPUT, AVATAR_PREVIEW_SIZE, AvatarCropState, coverScale, loadOrientedImage } from "../dist/account/avatar-cropper.js";
+import { AVATAR_MAX_OUTPUT, AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, coverScale, loadOrientedImage } from "../dist/account/avatar-cropper.js";
 
 test("portrait, landscape, square, very tall, and very wide images always cover the crop", () => {
   for (const [width, height] of [[900,1600],[1600,900],[1200,1200],[500,3000],[3000,500]]) {
@@ -52,4 +52,58 @@ test("valid image decoding remains reusable after an unsaved APPLY and page rein
     fallback: async file => ({ decoded:file.name, via:"fallback" }),
   });
   assert.deepEqual(afterReload, { decoded:"second.jpg", via:"fallback" });
+});
+
+test("stale decoder completion cannot replace or release the current selection", async () => {
+  const pending = new Map();
+  const released = [];
+  const session = new AvatarDecodeSession({
+    loader: file => new Promise((resolve, reject) => pending.set(file.name, { resolve, reject })),
+    releaser: image => released.push(image.name),
+  });
+  const first = session.open({ name:"first.jpg" });
+  const second = session.open({ name:"second.jpg" });
+  pending.get("second.jpg").resolve({ name:"second-image" });
+  const current = await second;
+  pending.get("first.jpg").resolve({ name:"first-image" });
+  const stale = await first;
+  assert.equal(current.stale, false);
+  assert.equal(stale.stale, true);
+  assert.equal(session.activeImage.name, "second-image");
+  assert.deepEqual(released, ["first-image"]);
+});
+
+test("stale decoder errors are ignored and cannot clean a newer selection", async () => {
+  const pending = new Map();
+  const session = new AvatarDecodeSession({
+    loader: file => new Promise((resolve, reject) => pending.set(file.name, { resolve, reject })),
+    releaser: () => assert.fail("the current image must not be released"),
+  });
+  const first = session.open({ name:"first.jpg" });
+  const second = session.open({ name:"second.jpg" });
+  pending.get("second.jpg").resolve({ name:"second-image" });
+  await second;
+  pending.get("first.jpg").reject(new Error("late failure"));
+  assert.deepEqual(await first, { stale:true });
+  assert.equal(session.activeImage.name, "second-image");
+});
+
+test("cancel/reset invalidates an in-flight decoder and repeated selections remain reusable", async () => {
+  const completions = [];
+  const released = [];
+  const session = new AvatarDecodeSession({
+    loader: file => new Promise(resolve => completions.push(() => resolve({ name:file.name }))),
+    releaser: image => released.push(image.name),
+  });
+  const cancelled = session.open({ name:"same.jpg" });
+  session.reset();
+  completions.shift()();
+  assert.equal((await cancelled).stale, true);
+  assert.deepEqual(released, ["same.jpg"]);
+
+  const selectedAgain = session.open({ name:"same.jpg" });
+  completions.shift()();
+  assert.equal((await selectedAgain).image.name, "same.jpg");
+  session.reset();
+  assert.deepEqual(released, ["same.jpg", "same.jpg"]);
 });

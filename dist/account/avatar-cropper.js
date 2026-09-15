@@ -60,6 +60,8 @@ export class AvatarCropState {
   }
 }
 
+const htmlImageUrls = new WeakMap();
+
 async function loadHtmlImage(file) {
   const url = URL.createObjectURL(file);
   try {
@@ -70,10 +72,25 @@ async function loadHtmlImage(file) {
       image.onerror = () => reject(new Error("IMAGE_DECODE_FAILED"));
       image.src = url;
     });
+    // Keep the Blob URL alive for as long as the crop session can draw this
+    // image. Android may discard a decoded <img> resource if its URL is
+    // revoked immediately after onload.
+    htmlImageUrls.set(image, url);
     return image;
-  } finally {
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    throw error;
+  }
+}
+
+export function releaseOrientedImage(image) {
+  const url = image && htmlImageUrls.get(image);
+  if (url) {
+    htmlImageUrls.delete(image);
+    image.removeAttribute?.("src");
     URL.revokeObjectURL(url);
   }
+  if (typeof image?.close === "function") image.close();
 }
 
 export async function loadOrientedImage(file, {
@@ -86,6 +103,44 @@ export async function loadOrientedImage(file, {
     } catch { /* Some mobile decoders intermittently reject valid gallery Files; use the browser image path. */ }
   }
   return fallback(file);
+}
+
+export class AvatarDecodeSession {
+  constructor({ loader = loadOrientedImage, releaser = releaseOrientedImage } = {}) {
+    this.loader = loader;
+    this.releaser = releaser;
+    this.generation = 0;
+    this.activeImage = null;
+  }
+
+  async open(file) {
+    const operation = ++this.generation;
+    if (this.activeImage) this.releaser(this.activeImage);
+    this.activeImage = null;
+    let image;
+    try {
+      image = await this.loader(file);
+    } catch (error) {
+      if (operation !== this.generation) return { stale: true };
+      throw error;
+    }
+    if (operation !== this.generation) {
+      this.releaser(image);
+      return { stale: true };
+    }
+    this.activeImage = image;
+    return { stale: false, image, operation };
+  }
+
+  isCurrent(operation, image = this.activeImage) {
+    return operation === this.generation && image === this.activeImage;
+  }
+
+  reset() {
+    ++this.generation;
+    if (this.activeImage) this.releaser(this.activeImage);
+    this.activeImage = null;
+  }
 }
 
 export function drawCropPreview(context, image, state) {
