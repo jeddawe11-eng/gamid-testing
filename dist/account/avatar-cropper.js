@@ -63,6 +63,19 @@ export class AvatarCropState {
 const htmlImageUrls = new WeakMap();
 const errorKind = error => error?.name || "Error";
 
+export async function createOwnedImageBlob(file, { report = () => {} } = {}) {
+  report("snapshot-start");
+  try {
+    const bytes = await file.arrayBuffer();
+    const blob = new Blob([bytes], { type:file.type });
+    report("snapshot-success", `bytes=${blob.size};type=${blob.type || "empty"}`);
+    return blob;
+  } catch (error) {
+    report("snapshot-failure", errorKind(error));
+    throw error;
+  }
+}
+
 async function loadHtmlImage(file, { report = () => {} } = {}) {
   const url = URL.createObjectURL(file);
   report("fallback-url-created");

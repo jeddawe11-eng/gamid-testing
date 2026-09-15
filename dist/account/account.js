@@ -1,5 +1,5 @@
 import { authLanding, debounceAsync, errorMessage, hasProfileChanges, normalizeHandle, validateHandle, validateProfileDraft } from "./domain.js";
-import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, drawCropPreview, loadOrientedImage } from "./avatar-cropper.js";
+import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, createOwnedImageBlob, drawCropPreview, loadOrientedImage } from "./avatar-cropper.js";
 import * as api from "./supabase-client.js";
 
 const views = [...document.querySelectorAll(".view")];
@@ -40,7 +40,10 @@ function avatarDiag(event, detail = "") {
 }
 
 const avatarDecoder = new AvatarDecodeSession({
-  loader: file => loadOrientedImage(file, { report:avatarDiag }),
+  loader: async file => {
+    const ownedBlob = await createOwnedImageBlob(file, { report:avatarDiag });
+    return loadOrientedImage(ownedBlob, { report:avatarDiag });
+  },
   report: avatarDiag,
 });
 

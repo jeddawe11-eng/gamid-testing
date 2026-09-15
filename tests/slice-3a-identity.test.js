@@ -102,10 +102,21 @@ test("Android gallery File remains input-owned until decode/crop completion", ()
 test("TESTING-only diagnostics identify decode stage without recording private image data", () => {
   assert.match(html, /id="avatarDiagnostics"[^>]*hidden/);
   assert.match(controller, /get\("avatarDebug"\) === "1"/);
-  assert.match(controller, /bitmap-start|loadOrientedImage\(file, \{ report:avatarDiag \}\)/);
+  assert.match(controller, /loadOrientedImage\(ownedBlob, \{ report:avatarDiag \}\)/);
   assert.match(cropper, /bitmap-success/);
   assert.match(cropper, /bitmap-failure/);
   assert.match(cropper, /fallback-load-success/);
   assert.match(cropper, /fallback-load-failure/);
+  assert.match(cropper, /snapshot-start/);
+  assert.match(cropper, /snapshot-success/);
+  assert.match(cropper, /snapshot-failure/);
   assert.doesNotMatch(controller, /avatarDiag\([^\n]*(file\.name|objectURL|access_token|qr_public_token)/);
+});
+
+test("Avatar decode uses an application-owned Blob rather than the Gallery File", () => {
+  assert.match(cropper, /async function createOwnedImageBlob/);
+  assert.match(cropper, /await file\.arrayBuffer\(\)/);
+  assert.match(cropper, /new Blob\(\[bytes\], \{ type:file\.type \}\)/);
+  assert.match(controller, /const ownedBlob = await createOwnedImageBlob\(file, \{ report:avatarDiag \}\)[\s\S]*loadOrientedImage\(ownedBlob/);
+  assert.doesNotMatch(controller, /loadOrientedImage\(file, \{ report:avatarDiag \}\)/);
 });
