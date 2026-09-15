@@ -79,3 +79,13 @@ test("profile restore and mobile page restoration reset abandoned Avatar crop st
   assert.match(controller, /addEventListener\("pageshow"[\s\S]*event\.persisted[\s\S]*resetAvatarCropLifecycle\(\)[\s\S]*setPersistedAvatar/);
   assert.match(cropper, /catch \{[\s\S]*return fallback\(file\)/);
 });
+
+test("Avatar decoder lifecycle prevents stale async cleanup from affecting a newer selection", () => {
+  assert.match(cropper, /class AvatarDecodeSession/);
+  assert.match(cropper, /operation !== this\.generation[\s\S]*this\.releaser\(image\)/);
+  assert.match(cropper, /htmlImageUrls\.set\(image, url\)/);
+  assert.match(cropper, /releaseOrientedImage/);
+  assert.match(controller, /const avatarDecoder = new AvatarDecodeSession/);
+  assert.match(controller, /const decoded = await avatarDecoder\.open\(file\)[\s\S]*if \(decoded\.stale\) return/);
+  assert.match(controller, /avatarDecoder\.isCurrent\(applyingOperation, applyingImage\)/);
+});

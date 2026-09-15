@@ -1,5 +1,5 @@
 import { authLanding, debounceAsync, errorMessage, hasProfileChanges, normalizeHandle, validateHandle, validateProfileDraft } from "./domain.js";
-import { AVATAR_PREVIEW_SIZE, AvatarCropState, createNormalizedAvatar, drawCropPreview, loadOrientedImage } from "./avatar-cropper.js";
+import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, drawCropPreview } from "./avatar-cropper.js";
 import * as api from "./supabase-client.js";
 
 const views = [...document.querySelectorAll(".view")];
@@ -19,7 +19,9 @@ let pendingAvatar = null;
 let saveConfirmationTimer;
 let cropImage = null;
 let cropState = null;
+let cropOperation = null;
 const cropPointers = new Map();
+const avatarDecoder = new AvatarDecodeSession();
 
 const cropDialog = document.getElementById("avatarCropDialog");
 const cropCanvas = document.getElementById("avatarCropCanvas");
@@ -106,9 +108,10 @@ function renderCrop() {
 
 function releaseCropImage() {
   cropPointers.clear();
-  if (typeof cropImage?.close === "function") cropImage.close();
+  avatarDecoder.reset();
   cropImage = null;
   cropState = null;
+  cropOperation = null;
 }
 
 function resetAvatarCropLifecycle() {
@@ -136,9 +139,12 @@ async function openAvatarCrop(file) {
     document.getElementById("profileAvatarInput").value = "";
     return setMessage("Avatar must be 5 MB or smaller.");
   }
+  const expectedGeneration = avatarDecoder.generation + 1;
   try {
-    releaseCropImage();
-    cropImage = await loadOrientedImage(file);
+    const decoded = await avatarDecoder.open(file);
+    if (decoded.stale) return;
+    cropImage = decoded.image;
+    cropOperation = decoded.operation;
     cropState = new AvatarCropState(cropImage.width || cropImage.naturalWidth, cropImage.height || cropImage.naturalHeight);
     cropZoom.min = "1";
     cropZoom.max = String(cropState.maxZoom);
@@ -146,6 +152,9 @@ async function openAvatarCrop(file) {
     renderCrop();
     cropDialog.showModal();
   } catch {
+    // A stale operation owns neither the current image nor its UI. Only the
+    // current decoder generation is allowed to report or clean up a failure.
+    if (expectedGeneration !== avatarDecoder.generation) return;
     releaseCropImage();
     document.getElementById("profileAvatarInput").value = "";
     setMessage("That image could not be opened. Choose another image.");
@@ -311,9 +320,13 @@ cropDialog.addEventListener("cancel", event => { event.preventDefault(); cancelA
 document.getElementById("applyAvatarCrop").addEventListener("click", async event => {
   if (!cropImage || !cropState) return;
   const button = event.currentTarget;
+  const applyingImage = cropImage;
+  const applyingState = cropState;
+  const applyingOperation = cropOperation;
   button.disabled = true;
   try {
-    const normalized = await createNormalizedAvatar(cropImage, cropState);
+    const normalized = await createNormalizedAvatar(applyingImage, applyingState);
+    if (!avatarDecoder.isCurrent(applyingOperation, applyingImage)) return;
     if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
     pendingAvatar = normalized.blob;
     avatarPreviewUrl = URL.createObjectURL(pendingAvatar);
