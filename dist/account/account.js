@@ -111,6 +111,15 @@ function releaseCropImage() {
   cropState = null;
 }
 
+function resetAvatarCropLifecycle() {
+  if (cropDialog.open) cropDialog.close();
+  releaseCropImage();
+  if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+  avatarPreviewUrl = null;
+  pendingAvatar = null;
+  document.getElementById("profileAvatarInput").value = "";
+}
+
 function cancelAvatarCrop() {
   cropDialog.close();
   releaseCropImage();
@@ -145,6 +154,7 @@ async function openAvatarCrop(file) {
 
 async function showIdentity(data) {
   const editor = await api.getIdentityProfile();
+  resetAvatarCropLifecycle();
   identity = { ...data, ...editor };
   const handle = `@${identity.gamid_handle}`;
   document.getElementById("claimedHandle").textContent = handle;
@@ -154,7 +164,6 @@ async function showIdentity(data) {
   document.getElementById("profileDisplayName").value = identity.display_name;
   document.getElementById("profileBio").value = identity.bio || "";
   savedProfile = { displayName: identity.display_name, bio: identity.bio || "", avatarPath: identity.avatar_media_reference };
-  pendingAvatar = null;
   await setPersistedAvatar(identity.avatar_media_reference, identity.display_name?.trim()?.[0]?.toUpperCase() || "G");
   updateProfilePreview();
   showView("identity");
@@ -265,7 +274,11 @@ document.getElementById("avatarInput").addEventListener("change", event => {
 
 document.getElementById("profileDisplayName").addEventListener("input", updateProfilePreview);
 document.getElementById("profileBio").addEventListener("input", updateProfilePreview);
-document.getElementById("profileAvatarInput").addEventListener("change", event => openAvatarCrop(event.target.files[0]));
+document.getElementById("profileAvatarInput").addEventListener("change", event => {
+  const file = event.target.files[0];
+  event.target.value = "";
+  openAvatarCrop(file);
+});
 
 cropStage.addEventListener("pointerdown", event => {
   cropStage.setPointerCapture(event.pointerId);
@@ -329,9 +342,7 @@ document.getElementById("profileForm").addEventListener("submit", async event =>
     const updated = await api.updateIdentityProfile({ displayName: draft.displayName, bio: draft.bio, avatarPath });
     identity = { ...identity, ...updated };
     savedProfile = { displayName: updated.display_name, bio: updated.bio, avatarPath: updated.avatar_media_reference };
-    pendingAvatar = null;
-    document.getElementById("profileAvatarInput").value = "";
-    if (avatarPreviewUrl) { URL.revokeObjectURL(avatarPreviewUrl); avatarPreviewUrl = null; }
+    resetAvatarCropLifecycle();
     await setPersistedAvatar(updated.avatar_media_reference, updated.display_name?.[0]?.toUpperCase() || "G");
     document.getElementById("profileDisplayName").value = updated.display_name;
     document.getElementById("profileBio").value = updated.bio;
@@ -365,6 +376,11 @@ window.addEventListener("beforeunload", event => {
   if (!isProfileDirty()) return;
   event.preventDefault();
   event.returnValue = "";
+});
+window.addEventListener("pageshow", event => {
+  if (!event.persisted || !identity) return;
+  resetAvatarCropLifecycle();
+  setPersistedAvatar(savedProfile?.avatarPath, identity.display_name?.trim()?.[0]?.toUpperCase() || "G").then(updateProfilePreview);
 });
 window.addEventListener("pagehide", () => {
   if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
