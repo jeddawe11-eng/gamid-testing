@@ -48,3 +48,18 @@ test("unsaved profile state includes display name, bio, and a pending avatar", (
   assert.equal(hasProfileChanges(saved, { ...saved, bio:"Player two" }), true);
   assert.equal(hasProfileChanges(saved, { ...saved }, true), true);
 });
+
+test("Avatar-only and Avatar-plus-text dirty branches restore to the same clean saved state", () => {
+  const saved = { displayName:"Black", bio:"Player one", avatarPath:"user/avatar.webp" };
+  const avatarOnly = { draft:{ ...saved }, pendingAvatar:true };
+  const avatarAndText = { draft:{ ...saved, bio:"Unsaved text" }, pendingAvatar:true };
+  assert.equal(hasProfileChanges(saved, avatarOnly.draft, avatarOnly.pendingAvatar), true);
+  assert.equal(hasProfileChanges(saved, avatarAndText.draft, avatarAndText.pendingAvatar), true);
+
+  // A real reload rebuilds both branches from the persisted server snapshot.
+  const restoredAvatarOnly = { draft:{ ...saved }, pendingAvatar:false };
+  const restoredAvatarAndText = { draft:{ ...saved }, pendingAvatar:false };
+  assert.equal(hasProfileChanges(saved, restoredAvatarOnly.draft, restoredAvatarOnly.pendingAvatar), false);
+  assert.equal(hasProfileChanges(saved, restoredAvatarAndText.draft, restoredAvatarAndText.pendingAvatar), false);
+  assert.deepEqual(restoredAvatarOnly, restoredAvatarAndText);
+});
