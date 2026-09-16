@@ -1,4 +1,4 @@
-import { authLanding, debounceAsync, errorMessage, hasProfileChanges, normalizeHandle, validateHandle, validateProfileDraft } from "./domain.js";
+import { authErrorMessage, authLanding, debounceAsync, errorMessage, hasProfileChanges, normalizeHandle, validateHandle, validateProfileDraft } from "./domain.js";
 import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, createOwnedImageBlob, drawCropPreview, loadOrientedImage } from "./avatar-cropper.js";
 import * as api from "./supabase-client.js";
 
@@ -241,7 +241,7 @@ signinForm.addEventListener("submit", async event => {
   event.preventDefault(); setMessage(""); busy(signinForm, true);
   const values = Object.fromEntries(new FormData(signinForm));
   try { await api.signIn(values.email.trim(), values.password); await routeAuthenticated(); }
-  catch { setMessage("Email or password is incorrect, or the account is not verified yet."); }
+  catch (error) { setMessage(authErrorMessage(error, "signin")); }
   finally { busy(signinForm, false); }
 });
 
@@ -252,7 +252,7 @@ document.getElementById("cancelForgot").addEventListener("click", () => { showVi
 document.getElementById("forgotForm").addEventListener("submit", async event => {
   event.preventDefault(); const form = event.currentTarget; busy(form, true); setMessage("");
   try { await api.sendPasswordReset(new FormData(form).get("email").trim()); setMessage("If that account exists, a reset link has been sent.", true); }
-  catch { setMessage("If that account exists, a reset link will be sent when available.", true); }
+  catch (error) { setMessage(authErrorMessage(error, "recovery")); }
   finally { busy(form, false); }
 });
 

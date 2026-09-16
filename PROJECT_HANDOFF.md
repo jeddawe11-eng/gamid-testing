@@ -156,9 +156,10 @@ The current database enum permits only `SOLO`. Future entity types require a lat
 - Registration calls Supabase email/password signup.
 - Hosted Supabase configuration has signup enabled, email provider enabled, and email auto-confirm disabled.
 - Unverified registrations are directed to check their email.
-- Sign-in uses indistinguishable invalid-credential messaging.
+- Sign-in preserves enumeration-safe credential messaging while distinguishing verified safe failure classes such as unconfirmed email and network/service failure.
 - Sessions are stored in browser local storage under a TESTING-specific key and refreshed before expiry.
 - Password reset sends a recovery link; a recovery callback accepts the new password.
+- September 16 TESTING Auth verification proved that the existing `@BLACK` email/password is accepted directly by the same Supabase Auth project and that recovery email delivery, the GitHub Pages recovery callback, and password update all complete against the preserved Auth user. The previously deployed UI discarded every sign-in and recovery exception behind generic copy, making a rate limit/network/service failure indistinguishable from invalid credentials and falsely presenting a failed recovery request as eventual success. The client now preserves enumeration-safe behavior while reporting stable safe categories: invalid credentials, unconfirmed email, network failure, recovery rate limit, or a sanitized Supabase error code. A successful recovery notice is shown only after Supabase returns success. No credential is recorded in source, tests, commits, or this handoff.
 - Sign-out requests server revocation and always clears the local session.
 - Account settings capture the selected preferred language before disabling the form, preventing a null RPC argument during save.
 - OAuth is not implemented; the boundary remains compatible with later providers.

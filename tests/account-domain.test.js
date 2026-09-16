@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { BIO_MAX, authLanding, errorMessage, hasProfileChanges, normalizeHandle, validateHandle, validateProfileDraft } from "../dist/account/domain.js";
+import { BIO_MAX, authErrorMessage, authLanding, errorMessage, hasProfileChanges, normalizeHandle, validateHandle, validateProfileDraft } from "../dist/account/domain.js";
 
 test("handle normalization is case-insensitive and URL-safe", () => {
   assert.equal(normalizeHandle("  @Mazen_27 "), "mazen_27");
@@ -25,6 +25,14 @@ test("authenticated return flow resolves an existing identity without creating o
 test("age and concurrency errors have safe user-facing messages", () => {
   assert.match(errorMessage("AGE_NOT_ELIGIBLE"), /minimum-age/);
   assert.match(errorMessage("HANDLE_TAKEN"), /claimed moments ago/);
+});
+
+test("Auth failures stay safe while distinguishing credentials, rate limits, and network errors", () => {
+  assert.equal(authErrorMessage({ code:"invalid_credentials", status:400 }, "signin"), "Email or password is incorrect.");
+  assert.equal(authErrorMessage({ code:"email_not_confirmed", status:400 }, "signin"), "Verify your email before signing in.");
+  assert.match(authErrorMessage({ code:"NETWORK_ERROR", status:0 }, "signin"), /could not reach authentication/);
+  assert.match(authErrorMessage({ code:"over_email_send_rate_limit", status:429 }, "recovery"), /Too many recovery requests/);
+  assert.match(authErrorMessage({ code:"smtp_failure", status:500 }, "recovery"), /SMTP_FAILURE/);
 });
 
 test("language preference is captured before the form is disabled", async () => {
