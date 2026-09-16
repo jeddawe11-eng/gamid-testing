@@ -371,6 +371,24 @@ GamID D2 benchmark evidence: 1,374,355 bytes; 31.57% smaller than the current Ma
 - Automatic upload/video-processing pipeline: **DEPLOYED AND E2E VALIDATED IN TESTING** (job/storage/RPC contract, secure Dispatcher, Cloud Run Job, D3 processing, validation, and cleanup).
 - Replacement/publication of the original static Intro asset remains deferred and is separate from per-user Slice 3C media.
 
+## Slice 3C post-publication manual validation fix (local; not yet published)
+
+Real Samsung Android testing of GitHub Pages checkpoint `697f56c226b0a78db709c9a5ba9949d7240bbcd7` loaded the authenticated `@BLACK` profile and selected `1000332454.mp4`, but `SAVE GAMID` failed before queue creation with the misleading message `Authentication service could not be reached.` The selected source remained pending locally and no Storage object or processing job was created.
+
+Evidence established that Auth/session restoration was already working. The client had one generic `fetch` catch that labeled every transport exception—including a Storage video upload interruption—as an Auth outage. The Intro source uploader also used one non-resumable request for sources up to 100 MiB. Current Supabase guidance recommends TUS resumable uploads for files larger than 6 MiB or when network stability is a concern.
+
+The minimum local fix:
+
+- moves Intro source upload to the direct Supabase Storage TUS endpoint;
+- uses fixed 6 MiB chunks and server-confirmed offsets with bounded retry/resume;
+- preserves the same private bucket, owner path, JWT, publishable key, RPC queue, Worker, Dispatcher, IAM, and cleanup architecture;
+- reports Intro upload interruption separately from Auth/session expiry;
+- adds focused regression coverage for chunking, resume, credentials, and safe error classification.
+
+Quality investigation used the real 576×1024, 30 fps, 20.619-second local Master. A fresh current D3 produced 1,061,753 bytes at approximately 374.3 kbps video / 411.3 kbps total, with aligned average SSIM 0.981997 and PSNR 42.860 dB. A CRF 36 comparison produced 1,355,625 bytes at approximately 488.2 kbps video / 525.2 kbps total, SSIM 0.985950 and PSNR 44.213 dB. The reported desktop degradation is therefore primarily display scaling: `object-fit: cover` expands a 576-pixel portrait width to 1920 pixels (3.33×) and heavily crops it on a 1920×1080 landscape display. Full Preview now uses `contain` only in landscape viewports; mobile portrait behavior remains unchanged. The approved D3 encoding policy remains unchanged because CRF 36 costs about 27.7% more bytes while not solving the dominant scaling issue.
+
+Fresh local validation after the fix: lint PASS; typecheck PASS; 82/82 tests PASS; build PASS; `git diff --check` PASS. Read-only TESTING verification found one protected `@BLACK` identity and zero Intro jobs, settings, and Storage objects. No cloud resource, database migration, secret, protected identity, or Production resource was changed. This fix is local only and requires Mazen review before publication and a fresh real-device SAVE → upload → queue → processing → ready confirmation after publication.
+
 ## Known limitations
 
 - The original intro video is preserved locally but is not part of the approved GitHub TESTING publication. Publishing it remains a separate blocker.
@@ -384,4 +402,4 @@ GamID D2 benchmark evidence: 1,374,355 bytes; 31.57% smaller than the current Ma
 
 ## Continuation boundary
 
-Slice 2 and Slice 3B are formally accepted. Slice 3A remains deployed and awaiting Mazen's acceptance. Slice 3C's TESTING database, client, secure Supabase dispatch, Cloud Run Worker Job, and scale-to-zero Dispatcher are implemented, deployed, and controlled-E2E validated. Temporary E2E artifacts are removed and final counts are zero. The remaining boundary is final validation/checkpoint, safe non-force TESTING publication across the known unrelated histories, GitHub Pages verification, and Mazen's explicit acceptance. Production remains **NOT STARTED / NOT AUTHORIZED**. Slice 3D and every later portion remain **NOT STARTED** and must not begin automatically. The Gaming Connections Engine remains future direction only. The approved D3 processing profile is implemented in the Worker boundary; PAID/D2 selection, subscription/payment integration, and Production media architecture remain **NOT STARTED**.
+Slice 2 and Slice 3B are formally accepted. Slice 3A remains deployed and awaiting Mazen's acceptance. Slice 3C's TESTING database, secure Supabase dispatch, Cloud Run Worker Job, and scale-to-zero Dispatcher remain implemented and controlled-E2E validated. GitHub checkpoint `697f56c226b0a78db709c9a5ba9949d7240bbcd7` and its Pages deployment completed, after which manual Samsung testing exposed the upload transport/error-classification blocker documented above. Its minimum fix and the landscape Preview correction are validated locally but are not published. The remaining boundary is Mazen review, explicit publication approval, real-device SAVE → upload → queue → processing → ready confirmation, and Mazen's explicit Slice 3C acceptance. Production remains **NOT STARTED / NOT AUTHORIZED**. Slice 3D and every later portion remain **NOT STARTED** and must not begin automatically. The Gaming Connections Engine remains future direction only. The approved D3 processing profile is unchanged; PAID/D2 selection, subscription/payment integration, and Production media architecture remain **NOT STARTED**.

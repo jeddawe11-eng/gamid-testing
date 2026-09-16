@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "lint": "node scripts/validate.mjs",
-    "typecheck": "node --check dist/app.js && node --check dist/transition-engine.js && node --check dist/account/account.js && node --check dist/account/avatar-cropper.js && node --check dist/account/domain.js && node --check dist/account/supabase-client.js && node --check dist/account/intro-preview.js && node --check worker/intro-worker.mjs && node --check worker/intro-dispatcher.mjs",
+    "typecheck": "node --check dist/app.js && node --check dist/transition-engine.js && node --check dist/account/account.js && node --check dist/account/avatar-cropper.js && node --check dist/account/domain.js && node --check dist/account/resumable-upload.js && node --check dist/account/supabase-client.js && node --check dist/account/intro-preview.js && node --check worker/intro-worker.mjs && node --check worker/intro-dispatcher.mjs",
     "test": "node --test",
     "build": "npm run lint && npm run typecheck && npm test"
   }

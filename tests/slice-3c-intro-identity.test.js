@@ -8,6 +8,7 @@ const html = await readFile(new URL("../dist/account/index.html", import.meta.ur
 const controller = await readFile(new URL("../dist/account/account.js", import.meta.url), "utf8");
 const client = await readFile(new URL("../dist/account/supabase-client.js", import.meta.url), "utf8");
 const preview = await readFile(new URL("../dist/account/intro-preview.js", import.meta.url), "utf8");
+const previewCss = await readFile(new URL("../dist/account/intro-preview.css", import.meta.url), "utf8");
 const worker = await readFile(new URL("../worker/intro-worker.mjs", import.meta.url), "utf8");
 
 test("Slice 3C source limits and canonical Intro dirty state are enforced", () => {
@@ -37,6 +38,7 @@ test("Intro Preview uses the accepted Transition Engine and current local identi
   assert.match(controller,/avatarUrl:avatarPreviewUrl \|\| persistedAvatarUrl/);
   assert.match(controller,/displayName:draft\.displayName/);
   assert.match(controller,/secondaryRoles:secondary/);
+  assert.match(previewCss,/@media \(min-aspect-ratio:1\/1\)[\s\S]*\.media-stage video\{object-fit:contain/);
 });
 
 test("private storage and RPC boundaries preserve per-user ownership", () => {
@@ -72,6 +74,7 @@ test("provider-neutral worker applies and validates the approved D3 profile", ()
 
 test("browser uploads source and queues work but never transcodes", () => {
   assert.match(client,/uploadIntroSource/);
+  assert.match(client,/storage\.supabase\.co\/storage\/v1\/upload\/resumable/);
   assert.match(client,/queue_my_intro/);
   assert.doesNotMatch(`${client}\n${controller}`,/import[^\n]*(ffmpeg|libvpx)|WebAssembly|new Worker\s*\(/i);
 });

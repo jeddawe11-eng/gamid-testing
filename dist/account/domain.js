@@ -141,4 +141,7 @@ export const errorMessage = reason => ({
   INTRO_DURATION_INVALID: "Intro video must be between 0.5 and 30 seconds.",
   INTRO_PROCESSING_IN_PROGRESS: "Your previous Intro is still processing.",
   INVALID_INTRO_TRANSITION: "Choose an available Intro transition.",
+  INTRO_UPLOAD_NETWORK_ERROR: "Intro upload was interrupted. Check your connection and try SAVE GAMID again.",
+  INTRO_UPLOAD_FAILED: "Intro upload could not be completed. Try SAVE GAMID again.",
+  AUTH_REQUIRED: "Your session expired. Sign in again before saving your Intro.",
 }[reason] || reason || "Something went wrong. Please try again.");

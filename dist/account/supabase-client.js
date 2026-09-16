@@ -1,4 +1,8 @@
-const SUPABASE_URL = "https://upvtrczefcvigxdyuylw.supabase.co";
+import { uploadResumable } from "./resumable-upload.js";
+
+const SUPABASE_PROJECT_ID = "upvtrczefcvigxdyuylw";
+const SUPABASE_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co`;
+const STORAGE_UPLOAD_URL = `https://${SUPABASE_PROJECT_ID}.storage.supabase.co/storage/v1/upload/resumable`;
 const PUBLISHABLE_KEY = "sb_publishable_ovl-uegBzJlWPJcTF_dviw_6uf1aVYg";
 const SESSION_KEY = "gamid.testing.auth.session.v1";
 
@@ -206,10 +210,11 @@ export async function uploadIntroSource(file, userId, jobId) {
   const extension = ({ "video/mp4":"mp4", "video/quicktime":"mov", "video/webm":"webm" })[file.type];
   if (!extension) throw new ApiError("Choose an MP4, MOV, or WebM video.", 400, "INVALID_INTRO_TYPE");
   if (file.size > 100 * 1024 * 1024) throw new ApiError("Intro video must be 100 MB or smaller.", 400, "INTRO_SOURCE_TOO_LARGE");
+  if (!session?.access_token) throw new ApiError("Sign in again before uploading your Intro.", 401, "AUTH_REQUIRED");
   const path = `${userId}/${jobId}/source.${extension}`;
-  await request(`/storage/v1/object/intro-sources/${path}`, {
-    method:"POST", token:session?.access_token, body:file,
-    headers:{ "Content-Type":file.type, "x-upsert":"false" },
+  await uploadResumable({
+    endpoint:STORAGE_UPLOAD_URL, bucketName:"intro-sources", objectName:path,
+    contentType:file.type, file, token:session.access_token, apikey:PUBLISHABLE_KEY,
   });
   return path;
 }
