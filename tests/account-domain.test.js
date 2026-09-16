@@ -35,6 +35,12 @@ test("Auth failures stay safe while distinguishing credentials, rate limits, and
   assert.match(authErrorMessage({ code:"smtp_failure", status:500 }, "recovery"), /SMTP_FAILURE/);
 });
 
+test("sign-in authentication errors are separated from post-auth account loading", async () => {
+  const source = await readFile(new URL("../dist/account/account.js", import.meta.url), "utf8");
+  assert.match(source, /await api\.signIn[\s\S]*catch \(error\)[\s\S]*return;[\s\S]*await routeAuthenticated/);
+  assert.match(source, /Signed in, but the account could not be loaded/);
+});
+
 test("language preference is captured before the form is disabled", async () => {
   const source = await readFile(new URL("../dist/account/account.js", import.meta.url), "utf8");
   const capture = source.indexOf('const language = new FormData(form).get("language")');

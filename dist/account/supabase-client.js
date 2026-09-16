@@ -50,8 +50,13 @@ const encodeStoragePath = path => path.split("/").map(encodeURIComponent).join("
 
 function persist(next) {
   session = next;
-  if (next) localStorage.setItem(SESSION_KEY, JSON.stringify(next));
-  else localStorage.removeItem(SESSION_KEY);
+  try {
+    if (next) localStorage.setItem(SESSION_KEY, JSON.stringify(next));
+    else localStorage.removeItem(SESSION_KEY);
+  } catch {
+    // Authentication has already succeeded. Keep the in-memory session usable
+    // when a browser temporarily denies or cannot write persistent storage.
+  }
   return next;
 }
 
