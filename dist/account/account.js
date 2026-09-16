@@ -240,8 +240,15 @@ registerForm.addEventListener("submit", async event => {
 signinForm.addEventListener("submit", async event => {
   event.preventDefault(); setMessage(""); busy(signinForm, true);
   const values = Object.fromEntries(new FormData(signinForm));
-  try { await api.signIn(values.email.trim(), values.password); await routeAuthenticated(); }
-  catch (error) { setMessage(authErrorMessage(error, "signin")); }
+  try {
+    await api.signIn(values.email.trim(), values.password);
+  } catch (error) {
+    setMessage(authErrorMessage(error, "signin"));
+    busy(signinForm, false);
+    return;
+  }
+  try { await routeAuthenticated(); }
+  catch (error) { setMessage(`Signed in, but the account could not be loaded (${String(error?.code || "ACCOUNT_LOAD_ERROR").toUpperCase().replace(/[^A-Z0-9_]/g, "_").slice(0, 64)}). Refresh to try again.`); }
   finally { busy(signinForm, false); }
 });
 

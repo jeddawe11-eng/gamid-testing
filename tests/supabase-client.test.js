@@ -68,3 +68,13 @@ test("Auth transport failures become a stable safe NETWORK_ERROR", async () => {
     error => error instanceof api.ApiError && error.code === "NETWORK_ERROR" && error.status === 0,
   );
 });
+
+test("successful Auth remains usable in memory when browser storage is unavailable", async () => {
+  browserHarness();
+  globalThis.localStorage.setItem = () => { throw new DOMException("Storage unavailable", "SecurityError"); };
+  globalThis.fetch = async () => json({ access_token:"a.b.c", refresh_token:"refresh-1", expires_in:3600 });
+  const api = await import(`../dist/account/supabase-client.js?storage=${Date.now()}`);
+  const signedIn = await api.signIn("returning@example.test", "not-a-real-secret");
+  assert.equal(api.currentSession(), signedIn);
+  assert.equal(api.currentSession().access_token, "a.b.c");
+});
