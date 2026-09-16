@@ -48,6 +48,11 @@ test("auth client covers registration, persistence, refresh, reset, password upd
     candidate_display_name:"Black",
     candidate_bio:"Player one",
     candidate_avatar_path:null,
+    candidate_role_keys:[],
+    candidate_primary_role_key:null,
+    candidate_education_work_status:null,
+    candidate_institution:null,
+    candidate_field_of_study:null,
   });
   assert.match(profileCall.options.headers.Authorization, /^Bearer /);
   await api.signOut();

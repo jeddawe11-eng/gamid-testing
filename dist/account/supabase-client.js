@@ -177,11 +177,16 @@ export async function uploadAvatar(file, userId, { attach = true } = {}) {
   return path;
 }
 
-export async function updateIdentityProfile({ displayName, bio, avatarPath = null }) {
+export async function updateIdentityProfile({ displayName, bio, avatarPath = null, roleKeys = [], primaryRoleKey = null, educationWorkStatus = null, institution = null, fieldOfStudy = null }) {
   const rows = await rpc("update_my_identity_profile", {
     candidate_display_name: displayName,
     candidate_bio: bio,
     candidate_avatar_path: avatarPath,
+    candidate_role_keys: roleKeys,
+    candidate_primary_role_key: primaryRoleKey,
+    candidate_education_work_status: educationWorkStatus,
+    candidate_institution: institution,
+    candidate_field_of_study: fieldOfStudy,
   });
   return rows?.[0] || null;
 }

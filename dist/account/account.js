@@ -17,6 +17,8 @@ let persistedAvatarUrl;
 let savedProfile = null;
 let pendingAvatar = null;
 let saveConfirmationTimer;
+let roleCatalog = [];
+let educationWorkCatalog = [];
 let cropImage = null;
 let cropState = null;
 let cropOperation = null;
@@ -71,15 +73,54 @@ function busy(form, active) {
 
 function reasonFrom(error) {
   const source = `${error?.message || ""} ${error?.code || ""}`;
-  return ["HANDLE_TAKEN","SOLO_IDENTITY_EXISTS","EMAIL_NOT_VERIFIED","AGE_NOT_ELIGIBLE","INVALID_DATE_OF_BIRTH","INVALID_DISPLAY_NAME","BIO_TOO_LONG","INVALID_LANGUAGE","RESERVED","TAKEN"].find(code => source.includes(code));
+  return ["HANDLE_TAKEN","SOLO_IDENTITY_EXISTS","EMAIL_NOT_VERIFIED","AGE_NOT_ELIGIBLE","INVALID_DATE_OF_BIRTH","INVALID_DISPLAY_NAME","BIO_TOO_LONG","INVALID_LANGUAGE","DUPLICATE_GAMING_ROLE","PRIMARY_ROLE_WITHOUT_ROLES","INVALID_PRIMARY_ROLE","INVALID_GAMING_ROLE","INVALID_EDUCATION_WORK_STATUS","INSTITUTION_TOO_LONG","FIELD_OF_STUDY_TOO_LONG","RESERVED","TAKEN"].find(code => source.includes(code));
 }
 
 function profileDraft() {
+  const educationWorkStatus = document.getElementById("educationWorkStatus").value || null;
+  const includesStudyContext = ["student","university_student"].includes(educationWorkStatus);
   return {
     displayName: document.getElementById("profileDisplayName").value,
     bio: document.getElementById("profileBio").value,
     avatarPath: identity?.avatar_media_reference,
+    roleKeys: [...document.querySelectorAll('input[name="gamingRole"]:checked')].map(input => input.value),
+    primaryRoleKey: document.getElementById("primaryRoleSelect").value || null,
+    educationWorkStatus,
+    institution: includesStudyContext ? document.getElementById("profileInstitution").value : "",
+    fieldOfStudy: includesStudyContext ? document.getElementById("profileFieldOfStudy").value : "",
   };
+}
+
+const profileCatalogs = () => ({ roleKeys:roleCatalog.map(role => role.key), educationStatuses:educationWorkCatalog.map(status => status.key) });
+const catalogLabel = (catalog, key) => catalog.find(item => item.key === key)?.label || key || "";
+
+function renderIdentityCatalogs() {
+  const choices = document.getElementById("gamingRoleChoices");
+  choices.replaceChildren(...roleCatalog.map(role => {
+    const label = document.createElement("label");
+    label.className = "role-choice";
+    const input = document.createElement("input");
+    input.type = "checkbox"; input.name = "gamingRole"; input.value = role.key;
+    const text = document.createElement("span"); text.textContent = role.label;
+    label.append(input, text);
+    return label;
+  }));
+  const education = document.getElementById("educationWorkStatus");
+  education.replaceChildren(new Option("Prefer not to add", ""), ...educationWorkCatalog.map(status => new Option(status.label, status.key)));
+}
+
+function syncPrimaryRole() {
+  const selected = profileDraft().roleKeys;
+  const primary = document.getElementById("primaryRoleSelect");
+  const previous = selected.includes(primary.value) ? primary.value : selected[0] || "";
+  primary.replaceChildren(...(selected.length ? selected.map(key => new Option(catalogLabel(roleCatalog, key), key)) : [new Option("Select roles first", "")]));
+  primary.value = previous;
+  primary.disabled = !selected.length;
+}
+
+function syncEducationContext() {
+  const status = document.getElementById("educationWorkStatus").value;
+  document.getElementById("educationContextFields").hidden = !["student","university_student"].includes(status);
 }
 
 function isProfileDirty() {
@@ -91,7 +132,23 @@ function updateProfilePreview() {
   document.getElementById("displayNameSummary").textContent = draft.displayName.trim() || "Your display name";
   document.getElementById("bioSummary").textContent = draft.bio || "Add a short bio to tell players who you are.";
   document.getElementById("bioCount").textContent = String(draft.bio.length);
-  document.getElementById("saveProfileButton").disabled = !isProfileDirty() || !validateProfileDraft(draft).valid;
+  const selectedRoles = draft.roleKeys;
+  const primaryLabel = catalogLabel(roleCatalog, draft.primaryRoleKey);
+  const secondaryLabels = selectedRoles.filter(key => key !== draft.primaryRoleKey).map(key => catalogLabel(roleCatalog, key));
+  const rolesPreview = document.getElementById("rolesPreview");
+  rolesPreview.hidden = !selectedRoles.length;
+  document.getElementById("primaryRoleSummary").textContent = primaryLabel;
+  const secondary = document.getElementById("secondaryRolesSummary");
+  secondary.replaceChildren(...secondaryLabels.slice(0, 2).map(label => { const chip = document.createElement("span"); chip.textContent = label; return chip; }));
+  if (secondaryLabels.length > 2) { const more = document.createElement("span"); more.textContent = `+${secondaryLabels.length - 2}`; secondary.append(more); }
+  const educationLabel = catalogLabel(educationWorkCatalog, draft.educationWorkStatus);
+  const educationContext = [educationLabel, draft.institution, draft.fieldOfStudy].filter(Boolean).join(" · ");
+  const educationSummary = document.getElementById("educationWorkSummary");
+  educationSummary.textContent = educationContext;
+  educationSummary.hidden = !educationContext;
+  document.getElementById("rolesSectionSummary").textContent = primaryLabel ? `${primaryLabel}${secondaryLabels.length ? ` +${secondaryLabels.length}` : ""}` : "Add your gaming roles";
+  document.getElementById("educationSectionSummary").textContent = educationLabel || "Optional";
+  document.getElementById("saveProfileButton").disabled = !isProfileDirty() || !validateProfileDraft(draft, profileCatalogs()).valid;
   document.getElementById("saveConfirmation").hidden = true;
 }
 
@@ -194,6 +251,9 @@ async function showIdentity(data) {
   const editor = await api.getIdentityProfile();
   resetAvatarCropLifecycle("profile-restored");
   identity = { ...data, ...editor };
+  roleCatalog = editor.role_catalog || [];
+  educationWorkCatalog = editor.education_work_catalog || [];
+  renderIdentityCatalogs();
   const handle = `@${identity.gamid_handle}`;
   document.getElementById("claimedHandle").textContent = handle;
   document.getElementById("handleField").textContent = handle;
@@ -201,7 +261,18 @@ async function showIdentity(data) {
   document.querySelector("#languageForm select").value = data.preferred_language || "en";
   document.getElementById("profileDisplayName").value = identity.display_name;
   document.getElementById("profileBio").value = identity.bio || "";
-  savedProfile = { displayName: identity.display_name, bio: identity.bio || "", avatarPath: identity.avatar_media_reference };
+  [...document.querySelectorAll('input[name="gamingRole"]')].forEach(input => { input.checked = (identity.role_keys || []).includes(input.value); });
+  syncPrimaryRole();
+  document.getElementById("primaryRoleSelect").value = identity.primary_role_key || "";
+  document.getElementById("educationWorkStatus").value = identity.education_work_status || "";
+  document.getElementById("profileInstitution").value = identity.institution || "";
+  document.getElementById("profileFieldOfStudy").value = identity.field_of_study || "";
+  syncEducationContext();
+  savedProfile = {
+    displayName:identity.display_name, bio:identity.bio || "", avatarPath:identity.avatar_media_reference,
+    roleKeys:identity.role_keys || [], primaryRoleKey:identity.primary_role_key,
+    educationWorkStatus:identity.education_work_status, institution:identity.institution || "", fieldOfStudy:identity.field_of_study || "",
+  };
   await setPersistedAvatar(identity.avatar_media_reference, identity.display_name?.trim()?.[0]?.toUpperCase() || "G");
   updateProfilePreview();
   showView("identity");
@@ -320,6 +391,23 @@ document.getElementById("avatarInput").addEventListener("change", event => {
 
 document.getElementById("profileDisplayName").addEventListener("input", updateProfilePreview);
 document.getElementById("profileBio").addEventListener("input", updateProfilePreview);
+document.getElementById("gamingRoleChoices").addEventListener("change", () => { syncPrimaryRole(); updateProfilePreview(); });
+document.getElementById("primaryRoleSelect").addEventListener("change", updateProfilePreview);
+document.getElementById("educationWorkStatus").addEventListener("change", () => { syncEducationContext(); updateProfilePreview(); });
+document.getElementById("profileInstitution").addEventListener("input", updateProfilePreview);
+document.getElementById("profileFieldOfStudy").addEventListener("input", updateProfilePreview);
+
+for (const toggle of document.querySelectorAll(".section-toggle")) {
+  toggle.addEventListener("click", () => {
+    const opening = toggle.getAttribute("aria-expanded") !== "true";
+    for (const other of document.querySelectorAll(".section-toggle")) {
+      const panel = document.getElementById(other.getAttribute("aria-controls"));
+      const expanded = other === toggle && opening;
+      other.setAttribute("aria-expanded", String(expanded));
+      panel.hidden = !expanded;
+    }
+  });
+}
 document.getElementById("profileAvatarInput").addEventListener("change", event => {
   const file = event.target.files[0];
   avatarDiag("input-change", `hasFile=${Boolean(file)}`);
@@ -386,7 +474,7 @@ document.getElementById("applyAvatarCrop").addEventListener("click", async event
 document.getElementById("profileForm").addEventListener("submit", async event => {
   event.preventDefault();
   const form = event.currentTarget;
-  const draft = validateProfileDraft(profileDraft());
+  const draft = validateProfileDraft(profileDraft(), profileCatalogs());
   if (!draft.valid) return setMessage(errorMessage(draft.reason));
   if (!isProfileDirty()) return;
   let saved = false;
@@ -394,13 +482,24 @@ document.getElementById("profileForm").addEventListener("submit", async event =>
   try {
     let avatarPath = null;
     if (pendingAvatar) avatarPath = await api.uploadAvatar(pendingAvatar, api.userIdFromToken(), { attach: false });
-    const updated = await api.updateIdentityProfile({ displayName: draft.displayName, bio: draft.bio, avatarPath });
+    const updated = await api.updateIdentityProfile({ ...draft, avatarPath });
     identity = { ...identity, ...updated };
-    savedProfile = { displayName: updated.display_name, bio: updated.bio, avatarPath: updated.avatar_media_reference };
+    savedProfile = {
+      displayName:updated.display_name, bio:updated.bio, avatarPath:updated.avatar_media_reference,
+      roleKeys:updated.role_keys || [], primaryRoleKey:updated.primary_role_key,
+      educationWorkStatus:updated.education_work_status, institution:updated.institution || "", fieldOfStudy:updated.field_of_study || "",
+    };
     resetAvatarCropLifecycle("save-success");
     await setPersistedAvatar(updated.avatar_media_reference, updated.display_name?.[0]?.toUpperCase() || "G");
     document.getElementById("profileDisplayName").value = updated.display_name;
     document.getElementById("profileBio").value = updated.bio;
+    [...document.querySelectorAll('input[name="gamingRole"]')].forEach(input => { input.checked = savedProfile.roleKeys.includes(input.value); });
+    syncPrimaryRole();
+    document.getElementById("primaryRoleSelect").value = savedProfile.primaryRoleKey || "";
+    document.getElementById("educationWorkStatus").value = savedProfile.educationWorkStatus || "";
+    document.getElementById("profileInstitution").value = savedProfile.institution;
+    document.getElementById("profileFieldOfStudy").value = savedProfile.fieldOfStudy;
+    syncEducationContext();
     updateProfilePreview();
     saved = true;
   } catch (error) { setMessage(errorMessage(reasonFrom(error) || error.message)); }
