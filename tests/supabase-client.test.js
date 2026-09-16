@@ -58,3 +58,13 @@ test("auth client covers registration, persistence, refresh, reset, password upd
   const restored = await restoringApi.restoreSession();
   assert.equal(restored.refresh_token, "refresh-2");
 });
+
+test("Auth transport failures become a stable safe NETWORK_ERROR", async () => {
+  browserHarness();
+  globalThis.fetch = async () => { throw new TypeError("Failed to fetch"); };
+  const api = await import(`../dist/account/supabase-client.js?network=${Date.now()}`);
+  await assert.rejects(
+    () => api.signIn("returning@example.test", "not-a-real-secret"),
+    error => error instanceof api.ApiError && error.code === "NETWORK_ERROR" && error.status === 0,
+  );
+});

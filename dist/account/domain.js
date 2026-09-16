@@ -39,6 +39,25 @@ export function authLanding(session, identity) {
   return "onboarding";
 }
 
+function authErrorCode(error) {
+  return String(error?.code || "AUTH_ERROR").toUpperCase().replace(/[^A-Z0-9_]/g, "_").slice(0, 64);
+}
+
+export function authErrorMessage(error, flow) {
+  const code = authErrorCode(error);
+  if (flow === "signin") {
+    if (code === "INVALID_CREDENTIALS") return "Email or password is incorrect.";
+    if (code === "EMAIL_NOT_CONFIRMED") return "Verify your email before signing in.";
+    if (code === "NETWORK_ERROR") return "GamID could not reach authentication. Check your connection and try again.";
+    return `Sign in failed (${code}). Try again.`;
+  }
+  if (["OVER_EMAIL_SEND_RATE_LIMIT","EMAIL_RATE_LIMIT_EXCEEDED","TOO_MANY_REQUESTS"].includes(code) || error?.status === 429) {
+    return "Too many recovery requests. Wait a minute, then try again.";
+  }
+  if (code === "NETWORK_ERROR") return "GamID could not reach email recovery. Check your connection and try again.";
+  return `The recovery email could not be sent (${code}). Try again.`;
+}
+
 export function normalizeProfileDraft({ displayName = "", bio = "", avatarPath = null } = {}) {
   return { displayName: displayName.trim(), bio, avatarPath: avatarPath || null };
 }

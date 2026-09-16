@@ -14,16 +14,21 @@ export class ApiError extends Error {
 }
 
 async function request(path, { method = "GET", body, token, headers = {} } = {}) {
-  const response = await fetch(`${SUPABASE_URL}${path}`, {
-    method,
-    headers: {
-      apikey: PUBLISHABLE_KEY,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(body !== undefined && !(body instanceof Blob) ? { "Content-Type": "application/json" } : {}),
-      ...headers,
-    },
-    body: body === undefined ? undefined : body instanceof Blob ? body : JSON.stringify(body),
-  });
+  let response;
+  try {
+    response = await fetch(`${SUPABASE_URL}${path}`, {
+      method,
+      headers: {
+        apikey: PUBLISHABLE_KEY,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(body !== undefined && !(body instanceof Blob) ? { "Content-Type": "application/json" } : {}),
+        ...headers,
+      },
+      body: body === undefined ? undefined : body instanceof Blob ? body : JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError("Authentication service could not be reached.", 0, "NETWORK_ERROR");
+  }
   const contentType = response.headers.get("content-type") || "";
   const payload = contentType.includes("json") ? await response.json() : await response.text();
   if (!response.ok) {
