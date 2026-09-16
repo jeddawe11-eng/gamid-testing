@@ -37,8 +37,16 @@ function environment() {
   if (!url || !key) throw new Error("Worker requires GAMID_SUPABASE_URL and GAMID_SUPABASE_SERVICE_ROLE_KEY");
   return { url:url.replace(/\/$/,""), key };
 }
+export function backendAuthHeaders(key) {
+  return key.startsWith("sb_secret_")
+    ? { apikey:key }
+    : { apikey:key,Authorization:`Bearer ${key}` };
+}
+export function backendRequestHeaders(key, body, contentType="application/json") {
+  return { ...backendAuthHeaders(key),...(body !== undefined && contentType?{"Content-Type":contentType}:{}) };
+}
 async function api(path, { method="POST", body, contentType="application/json", raw=false } = {}) {
-  const { url,key } = environment(); const response = await fetch(`${url}${path}`, { method, headers:{ apikey:key,Authorization:`Bearer ${key}`,...(contentType?{"Content-Type":contentType}:{}) }, body:body === undefined ? undefined : contentType === "application/json" ? JSON.stringify(body) : body });
+  const { url,key } = environment(); const response = await fetch(`${url}${path}`, { method, headers:backendRequestHeaders(key,body,contentType), body:body === undefined ? undefined : contentType === "application/json" ? JSON.stringify(body) : body });
   if (raw) { if (!response.ok) throw new Error(`WORKER_API_${response.status}`); return response; }
   const payload = (response.headers.get("content-type") || "").includes("json") ? await response.json() : await response.text();
   if (!response.ok) throw new Error(`WORKER_API_${response.status}:${typeof payload === "string" ? payload : payload.message || payload.code || "ERROR"}`); return payload;

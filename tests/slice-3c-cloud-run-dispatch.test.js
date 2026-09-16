@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { authorizeWebhook, createDispatcherServer, validateWebhookPayload } from "../worker/intro-dispatcher.mjs";
+import { backendAuthHeaders, backendRequestHeaders } from "../worker/intro-worker.mjs";
 
 const validPayload={ type:"INSERT",schema:"public",table:"intro_processing_jobs",record:{ job_id:"job-1",state:"pending",owner_user_id:"ignored" } };
 
@@ -9,6 +10,16 @@ test("dispatcher accepts only the exact secret without exposing it", () => {
   assert.equal(authorizeWebhook({ "x-gamid-dispatch-secret":"correct" },"correct"),true);
   assert.equal(authorizeWebhook({ "x-gamid-dispatch-secret":"wrong" },"correct"),false);
   assert.equal(authorizeWebhook({},"correct"),false);
+});
+
+test("worker sends modern Supabase secret keys only through apikey", () => {
+  assert.deepEqual(backendAuthHeaders("sb_secret_example"),{ apikey:"sb_secret_example" });
+  assert.deepEqual(backendAuthHeaders("legacy-jwt"),{ apikey:"legacy-jwt",Authorization:"Bearer legacy-jwt" });
+});
+
+test("worker does not label empty DELETE requests as JSON", () => {
+  assert.deepEqual(backendRequestHeaders("sb_secret_example",undefined),{ apikey:"sb_secret_example" });
+  assert.deepEqual(backendRequestHeaders("sb_secret_example",{}),{ apikey:"sb_secret_example","Content-Type":"application/json" });
 });
 
 test("dispatcher accepts only pending Intro insert webhooks", () => {
