@@ -238,8 +238,9 @@ registerForm.addEventListener("submit", async event => {
 });
 
 signinForm.addEventListener("submit", async event => {
-  event.preventDefault(); setMessage(""); busy(signinForm, true);
+  event.preventDefault(); setMessage("");
   const values = Object.fromEntries(new FormData(signinForm));
+  busy(signinForm, true);
   try {
     await api.signIn(values.email.trim(), values.password);
   } catch (error) {
@@ -257,8 +258,8 @@ document.getElementById("forgotButton").addEventListener("click", () => showView
 document.getElementById("cancelForgot").addEventListener("click", () => { showView("auth"); document.getElementById("signinTab").click(); });
 
 document.getElementById("forgotForm").addEventListener("submit", async event => {
-  event.preventDefault(); const form = event.currentTarget; busy(form, true); setMessage("");
-  try { await api.sendPasswordReset(new FormData(form).get("email").trim()); setMessage("If that account exists, a reset link has been sent.", true); }
+  event.preventDefault(); const form = event.currentTarget; const email = new FormData(form).get("email").trim(); busy(form, true); setMessage("");
+  try { await api.sendPasswordReset(email); setMessage("If that account exists, a reset link has been sent.", true); }
   catch (error) { setMessage(authErrorMessage(error, "recovery")); }
   finally { busy(form, false); }
 });
