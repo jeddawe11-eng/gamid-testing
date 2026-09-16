@@ -1,10 +1,24 @@
 # GamID Project Handoff
 
-Last updated: 2026-09-15 (UTC)
+Last updated: 2026-09-16 (UTC)
 
 ## Purpose and scope
 
 GamID is a customizable digital identity/profile platform for the gaming ecosystem, guided by **CREATE → WOW → SHARE**. Work is deliberately divided into approved slices. Do not start a later slice without Mazen's explicit approval.
+
+## Approved Slice 3 roadmap
+
+Mazen formally defined the remaining Slice 3 sequence on 2026-09-16. The sequence is authoritative, but approval to implement is still granted one portion at a time:
+
+- **3A — Identity Foundation:** implemented in TESTING; awaiting Mazen's acceptance.
+- **3B — Roles, Education & Occupation:** implemented in TESTING; awaiting Mazen's acceptance.
+- **3C — Games Identity:** NOT STARTED and NOT APPROVED for implementation.
+- **3D — Verified Gaming Data:** NOT STARTED and NOT APPROVED for implementation.
+- **3E — Connections & Socials:** NOT STARTED and NOT APPROVED for implementation.
+- **3F — Identity Board / WOW Composition:** NOT STARTED and NOT APPROVED for implementation.
+- **3G — Stabilization, Bugs & Cleanup:** NOT STARTED. The specifically deferred Avatar compatibility and existing-email signup UX issues belong here.
+
+Do not begin 3C or any later portion automatically. This roadmap does not authorize Games catalogs/search, player IDs, ranks/stats, provider verification, Discord/Steam/Xbox/PlayStation integrations, social integrations, public profiles, publishing, QR sharing, Teams/Organizations/Companies, jobs/marketplace, subscriptions/payment, or Production work.
 
 ## Accepted Slice 1 baseline
 
@@ -110,6 +124,36 @@ The evidence-backed fix snapshots every accepted Gallery `File` exactly once wit
 
 The Identity Board direction remains future-compatible but deliberately non-generic: no `profile_blocks` table or speculative block framework was added. Games, Stats, Connections, and Socials appear only as clearly inactive future labels. Slice 3B, the Gaming Connections Engine, subscriptions/payment, automatic D2/D3 video processing, public profiles, publishing, and Production are **NOT STARTED**. Slice 3A implementation completion is not acceptance; only Mazen can accept it after TESTING review.
 
+## Slice 3B — Roles, Education & Occupation
+
+- Implementation status: **COMPLETE IN TESTING; AWAITING MAZEN'S ACCEPTANCE**
+- Acceptance status: **NOT YET ACCEPTED**
+- Scope: expand the existing private YOUR GAMID editor with structured Gaming Roles and separate optional Education & Work context.
+- TESTING review route: `https://jeddawe11-eng.github.io/gamid-testing/account/`
+
+Slice 3B reuses the existing Auth user, SOLO Entity, OWNER membership, Profile, live preview, dirty-state tracking, `SAVE PROFILE`, private Avatar architecture, and public-wrapper/private-implementation RPC model. It does not create another profile system or a generic block system.
+
+The controlled Gaming Role catalog contains exactly: Gamer, Streamer, Content Creator, Esports Player, Coach, Designer, Developer, Tournament Organizer, Team Manager, Community Manager, Video Editor, and Photographer. A Profile may select multiple roles. When at least one is selected, exactly one selected role is required as Primary; all remaining roles are Secondary. Duplicate, unknown, inactive, or unselected Primary roles are rejected server-side.
+
+Education & Work is optional and separate from Gaming Roles. Its concise controlled statuses are Student, University Student, Freelancer, Professional, and Self-employed. Student statuses may optionally include Institution / University and Field of Study, each bounded to 120 characters. Employer/company membership and unnecessary personal data were not added.
+
+YOUR GAMID now uses a reusable mobile-first accordion pattern. Gaming Roles and Education & Work edit inline; opening one collapses the other. Games, Stats & Verification, Connections, and Socials remain future inactive areas with no functionality. Role/status changes update the Identity Card locally and participate in the same canonical dirty state and unsaved-change protection as Display Name, Bio, and Avatar. The card gives the Primary role stronger treatment, shows at most two Secondary chips plus a compact overflow count, and presents Education & Work as supporting context.
+
+Schema changes are additive except for replacing the existing profile RPC signatures with their expanded equivalents:
+
+- `public.gaming_role_catalog`: controlled extensible 12-role catalog.
+- `public.education_work_status_catalog`: controlled extensible five-status catalog.
+- `public.profile_gaming_roles`: Profile-to-role assignments with ordering, a partial unique Primary index, and owner-scoped read RLS.
+- `public.profiles`: nullable `education_work_status`, `institution`, and `field_of_study` columns.
+- `get_my_identity_profile()` now returns assigned roles, Primary role, optional education/work context, and both controlled catalogs.
+- `update_my_identity_profile(...)` atomically validates and persists Slice 3A + 3B fields for the caller's owned SOLO identity.
+
+All new tables have RLS enabled. Browser roles have no direct catalog/assignment table privileges; authenticated writes remain RPC-only. Public wrappers are security invoker, private implementations are security definer with an empty search path, anonymous execution is denied, and direct authenticated Profile mutation remains revoked. Handle, Profile status, Entity visibility, account-private data, and opaque QR data are neither returned nor mutated by the new fields.
+
+Rollback-only TESTING validation exercised multiple roles, Primary selection, Education context, RPC persistence, and preservation of `DRAFT`/private state without leaving changes on `@BLACK`. Catalog counts, function modes, grants, and account integrity passed. Security Advisor introduced no unexpected WARN/ERROR finding: the accepted Free-plan leaked-password warning remains, while default-deny/no-policy catalog INFO findings are intentional. The complete automated baseline is 66/66 tests with lint, typecheck, build, and `git diff --check` passing.
+
+Slice 3B must not be marked accepted until Mazen completes the mobile TESTING review. Slice 3C remains **NOT STARTED**.
+
 ## Architecture
 
 ### Frontend
@@ -210,8 +254,10 @@ Apply in filename order:
 2. `20260912170000_harden_rpc_boundaries.sql`
 3. `20260912173500_enforce_least_privilege.sql`
 4. `20260915170000_slice_3a_identity_foundation.sql`
+5. `20260916130000_slice_3b_roles_education_occupation.sql`
+6. `20260916134000_slice_3b_catalog_indexes.sql`
 
-All four are applied to the isolated TESTING project and recorded in its migration history.
+All six are applied to the isolated TESTING project and recorded in its migration history.
 
 ## Development and validation
 
@@ -288,7 +334,9 @@ GamID D2 benchmark evidence: 1,374,355 bytes; 31.57% smaller than the current Ma
 - The managed workspace has no compatible visual browser preview for this plain static site. Responsive behavior is enforced by mobile-first CSS/static validation and Mazen has performed phone testing on the HTTPS TESTING site.
 - The npm registry was unavailable, so the implementation intentionally uses no added dependency. This does not affect the HTTPS Auth/RPC architecture.
 - No public profile publication, QR rendering, OAuth, handle change, parental consent, multi-entity UI, Team, Organization, or Company functionality exists. Slice 3A includes only the authenticated private identity editor described above.
+- **Deferred to Slice 3G — Samsung/Android Gallery:** the first device produced a Gallery/File readability failure; the evidence-backed application-owned Blob compatibility path and TESTING diagnostics remain preserved. A second phone completed Avatar select/crop/APPLY 10 consecutive times with 10/10 PASS. Do not remove diagnostics or resume investigation before explicit 3G approval.
+- **Deferred to Slice 3G — existing-email Create Account UX:** attempting Create Account with an email already registered can continue into the enumeration-safe verification presentation rather than clearly guiding the returning user. Do not change Auth behavior as part of 3B.
 
 ## Continuation boundary
 
-Slice 2 is formally accepted. Slice 3A implementation is complete in TESTING and **AWAITING MAZEN'S ACCEPTANCE**. Production remains **NOT STARTED / NOT AUTHORIZED**. Slice 3B and every later slice remain **NOT STARTED** and must not begin automatically. The Gaming Connections Engine remains FUTURE DIRECTION ONLY, and the approved video quality-tier implementation remains NOT STARTED.
+Slice 2 is formally accepted. Slice 3A and Slice 3B implementations are complete in TESTING and **AWAITING MAZEN'S ACCEPTANCE**. Production remains **NOT STARTED / NOT AUTHORIZED**. Slice 3C and every later portion remain **NOT STARTED** and must not begin automatically. The Gaming Connections Engine direction is represented by the approved roadmap but no provider integration has started. The approved video quality-tier implementation remains NOT STARTED.

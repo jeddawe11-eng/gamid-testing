@@ -1,0 +1,2 @@
+create index profile_gaming_roles_role_key_idx on public.profile_gaming_roles(role_key);
+create index profiles_education_work_status_idx on public.profiles(education_work_status);

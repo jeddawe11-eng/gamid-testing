@@ -62,6 +62,8 @@
           <div class="preview-copy">
             <strong id="displayNameSummary"></strong>
             <span class="locked-handle"><span aria-hidden="true">🔒</span> <span id="claimedHandle"></span></span>
+            <div id="rolesPreview" class="roles-preview" hidden><strong id="primaryRoleSummary"></strong><div id="secondaryRolesSummary"></div></div>
+            <p id="educationWorkSummary" class="education-work-summary" hidden></p>
             <p id="bioSummary">Add a short bio to tell players who you are.</p>
           </div>
           <span class="draft-chip">DRAFT · PRIVATE</span>
@@ -71,6 +73,16 @@
           <label>Display name<input id="profileDisplayName" name="displayName" maxlength="60" autocomplete="name" required /></label>
           <label class="readonly-handle">Permanent GamID handle<div><span aria-hidden="true">🔒</span><strong id="handleField"></strong></div><small>Your handle is permanent and cannot be edited.</small></label>
           <label>Bio<textarea id="profileBio" name="bio" maxlength="160" rows="4" placeholder="Your games, your energy, your identity."></textarea><small><span id="bioCount">0</span>/160</small></label>
+          <div class="identity-sections" data-accordion>
+            <section class="identity-section">
+              <button id="rolesSectionToggle" class="section-toggle" type="button" aria-expanded="false" aria-controls="rolesSectionPanel"><span class="section-icon" aria-hidden="true">🎮</span><span><strong>Gaming Roles</strong><small id="rolesSectionSummary">Add your gaming roles</small></span><span class="section-chevron" aria-hidden="true">›</span></button>
+              <div id="rolesSectionPanel" class="section-panel" hidden><p>Who are you in gaming?</p><div id="gamingRoleChoices" class="role-choices"></div><label>Primary role<select id="primaryRoleSelect" name="primaryRole" disabled><option value="">Select roles first</option></select><small>Your primary role leads your identity.</small></label></div>
+            </section>
+            <section class="identity-section">
+              <button id="educationSectionToggle" class="section-toggle" type="button" aria-expanded="false" aria-controls="educationSectionPanel"><span class="section-icon" aria-hidden="true">🎓</span><span><strong>Education &amp; Work</strong><small id="educationSectionSummary">Optional</small></span><span class="section-chevron" aria-hidden="true">›</span></button>
+              <div id="educationSectionPanel" class="section-panel" hidden><label>Current status<select id="educationWorkStatus" name="educationWorkStatus"><option value="">Prefer not to add</option></select></label><div id="educationContextFields" hidden><label>Institution / University <span>Optional</span><input id="profileInstitution" name="institution" maxlength="120" autocomplete="organization" /></label><label>Field of Study <span>Optional</span><input id="profileFieldOfStudy" name="fieldOfStudy" maxlength="120" /></label></div></div>
+            </section>
+          </div>
           <button id="saveProfileButton" class="primary" type="submit" disabled>SAVE PROFILE</button>
           <p id="saveConfirmation" class="save-confirmation" role="status" hidden>Saved ✓</p>
         </form>

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { BIO_MAX, authErrorMessage, authLanding, errorMessage, hasProfileChanges, normalizeHandle, validateHandle, validateProfileDraft } from "../dist/account/domain.js";
+import { BIO_MAX, PROFILE_CONTEXT_MAX, authErrorMessage, authLanding, errorMessage, hasProfileChanges, normalizeHandle, validateHandle, validateProfileDraft } from "../dist/account/domain.js";
 
 test("handle normalization is case-insensitive and URL-safe", () => {
   assert.equal(normalizeHandle("  @Mazen_27 "), "mazen_27");
@@ -70,6 +70,25 @@ test("unsaved profile state includes display name, bio, and a pending avatar", (
   assert.equal(hasProfileChanges(saved, { ...saved }), false);
   assert.equal(hasProfileChanges(saved, { ...saved, bio:"Player two" }), true);
   assert.equal(hasProfileChanges(saved, { ...saved }, true), true);
+});
+
+test("Slice 3B profile drafts enforce structured role and optional context rules", () => {
+  const catalogs = { roleKeys:["gamer","streamer","designer"], educationStatuses:["student","freelancer"] };
+  assert.equal(validateProfileDraft({ displayName:"Black", roleKeys:["gamer","designer"], primaryRoleKey:"gamer" }, catalogs).valid, true);
+  assert.equal(validateProfileDraft({ displayName:"Black", roleKeys:["gamer","gamer"], primaryRoleKey:"gamer" }, catalogs).reason, "DUPLICATE_GAMING_ROLE");
+  assert.equal(validateProfileDraft({ displayName:"Black", roleKeys:["gamer"], primaryRoleKey:"designer" }, catalogs).reason, "INVALID_PRIMARY_ROLE");
+  assert.equal(validateProfileDraft({ displayName:"Black", roleKeys:["unknown"], primaryRoleKey:"unknown" }, catalogs).reason, "INVALID_GAMING_ROLE");
+  assert.equal(validateProfileDraft({ displayName:"Black", educationWorkStatus:"other" }, catalogs).reason, "INVALID_EDUCATION_WORK_STATUS");
+  assert.equal(PROFILE_CONTEXT_MAX, 120);
+  assert.equal(validateProfileDraft({ displayName:"Black", institution:"x".repeat(121) }, catalogs).reason, "INSTITUTION_TOO_LONG");
+});
+
+test("Slice 3B roles and education participate in canonical dirty state", () => {
+  const saved = { displayName:"Black", bio:"", roleKeys:["gamer"], primaryRoleKey:"gamer", educationWorkStatus:null, institution:"", fieldOfStudy:"" };
+  assert.equal(hasProfileChanges(saved, { ...saved }), false);
+  assert.equal(hasProfileChanges(saved, { ...saved, roleKeys:["gamer","streamer"] }), true);
+  assert.equal(hasProfileChanges(saved, { ...saved, educationWorkStatus:"student" }), true);
+  assert.equal(hasProfileChanges(saved, { ...saved, institution:"GamID University" }), true);
 });
 
 test("Avatar-only and Avatar-plus-text dirty branches restore to the same clean saved state", () => {
