@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>GamID Intro Preview</title>
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="stylesheet" href="intro-preview.css" />
+</head>
+<body class="is-experiencing preview-only">
+  <main class="prototype-shell"><section class="experience" id="experience">
+    <article class="profile" id="profile" aria-hidden="true">
+      <div class="profile-glow"></div><header class="profile-topbar"><span class="brand">GAM<span>ID</span></span><span class="preview-badge">PREVIEW</span></header>
+      <div class="hero-card">
+        <div class="avatar-wrap" id="avatarTarget"><img id="previewAvatar" alt="Current GamID Avatar" /></div>
+        <p class="eyebrow">YOUR GAMID</p><h1 id="previewName">Gamer</h1><p class="handle" id="previewHandle">@handle</p>
+        <div class="preview-roles"><strong id="previewPrimaryRole"></strong><span id="previewSecondaryRoles"></span></div>
+        <p class="preview-education" id="previewEducation"></p><p class="bio" id="previewBio"></p>
+        <span class="preview-private">DRAFT · PRIVATE</span>
+      </div>
+    </article>
+    <div class="intro-layer preset-fade" id="introLayer"><div class="media-stage" id="mediaStage">
+      <video id="introVideo" playsinline preload="metadata"></video><div class="media-shade"></div>
+      <div class="split-panel split-left"></div><div class="split-panel split-right"></div>
+    </div><button class="preview-start" id="previewStart" type="button" hidden>Tap to play</button><button class="skip" id="skipButton">Skip intro <span>→</span></button><div class="intro-progress"><i id="progressBar"></i></div></div>
+  </section></main>
+  <script type="module" src="intro-preview.js"></script>
+</body>
+</html>

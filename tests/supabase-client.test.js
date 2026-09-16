@@ -55,6 +55,8 @@ test("auth client covers registration, persistence, refresh, reset, password upd
     candidate_field_of_study:null,
   });
   assert.match(profileCall.options.headers.Authorization, /^Bearer /);
+  await api.getMyIntro();
+  assert.match(calls.at(-1).url, /\/rest\/v1\/rpc\/get_my_intro$/);
   await api.signOut();
   assert.equal(store.has("gamid.testing.auth.session.v1"), false);
 

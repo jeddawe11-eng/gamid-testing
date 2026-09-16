@@ -1,5 +1,6 @@
-import { authErrorMessage, authLanding, debounceAsync, errorMessage, hasProfileChanges, normalizeHandle, validateHandle, validateProfileDraft } from "./domain.js";
+import { INTRO_TRANSITIONS, authErrorMessage, authLanding, debounceAsync, errorMessage, hasIntroChanges, hasProfileChanges, normalizeHandle, validateHandle, validateIntroSource, validateProfileDraft } from "./domain.js";
 import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, createOwnedImageBlob, drawCropPreview, loadOrientedImage } from "./avatar-cropper.js";
+import { PRESETS } from "../transition-engine.js";
 import * as api from "./supabase-client.js";
 
 const views = [...document.querySelectorAll(".view")];
@@ -19,6 +20,11 @@ let pendingAvatar = null;
 let saveConfirmationTimer;
 let roleCatalog = [];
 let educationWorkCatalog = [];
+let savedIntro = null;
+let pendingIntroSource = null;
+let activeIntroUrl = null;
+let introAction = "keep";
+let pendingPreviewConfig = null;
 let cropImage = null;
 let cropState = null;
 let cropOperation = null;
@@ -53,6 +59,8 @@ const cropDialog = document.getElementById("avatarCropDialog");
 const cropCanvas = document.getElementById("avatarCropCanvas");
 const cropStage = document.getElementById("avatarCropStage");
 const cropZoom = document.getElementById("avatarZoom");
+const introTransition = document.getElementById("introTransition");
+for (const key of INTRO_TRANSITIONS) introTransition.add(new Option(PRESETS[key].label, key));
 
 function showView(name) {
   views.forEach(view => view.classList.toggle("is-active", view.id === `${name}View`));
@@ -73,7 +81,7 @@ function busy(form, active) {
 
 function reasonFrom(error) {
   const source = `${error?.message || ""} ${error?.code || ""}`;
-  return ["HANDLE_TAKEN","SOLO_IDENTITY_EXISTS","EMAIL_NOT_VERIFIED","AGE_NOT_ELIGIBLE","INVALID_DATE_OF_BIRTH","INVALID_DISPLAY_NAME","BIO_TOO_LONG","INVALID_LANGUAGE","DUPLICATE_GAMING_ROLE","PRIMARY_ROLE_WITHOUT_ROLES","INVALID_PRIMARY_ROLE","INVALID_GAMING_ROLE","INVALID_EDUCATION_WORK_STATUS","INSTITUTION_TOO_LONG","FIELD_OF_STUDY_TOO_LONG","RESERVED","TAKEN"].find(code => source.includes(code));
+  return ["HANDLE_TAKEN","SOLO_IDENTITY_EXISTS","EMAIL_NOT_VERIFIED","AGE_NOT_ELIGIBLE","INVALID_DATE_OF_BIRTH","INVALID_DISPLAY_NAME","BIO_TOO_LONG","INVALID_LANGUAGE","DUPLICATE_GAMING_ROLE","PRIMARY_ROLE_WITHOUT_ROLES","INVALID_PRIMARY_ROLE","INVALID_GAMING_ROLE","INVALID_EDUCATION_WORK_STATUS","INSTITUTION_TOO_LONG","FIELD_OF_STUDY_TOO_LONG","INVALID_INTRO_TYPE","INTRO_SOURCE_TOO_LARGE","INTRO_DURATION_INVALID","INTRO_PROCESSING_IN_PROGRESS","INVALID_INTRO_TRANSITION","RESERVED","TAKEN"].find(code => source.includes(code));
 }
 
 function profileDraft() {
@@ -89,6 +97,10 @@ function profileDraft() {
     institution: includesStudyContext ? document.getElementById("profileInstitution").value : "",
     fieldOfStudy: includesStudyContext ? document.getElementById("profileFieldOfStudy").value : "",
   };
+}
+
+function introDraft() {
+  return { transitionKey:document.getElementById("introTransition").value || "fade", action:introAction, pendingJobId:pendingIntroSource?.jobId || null };
 }
 
 const profileCatalogs = () => ({ roleKeys:roleCatalog.map(role => role.key), educationStatuses:educationWorkCatalog.map(status => status.key) });
@@ -124,7 +136,31 @@ function syncEducationContext() {
 }
 
 function isProfileDirty() {
-  return Boolean(savedProfile && hasProfileChanges(savedProfile, profileDraft(), Boolean(pendingAvatar)));
+  return Boolean(savedProfile && (hasProfileChanges(savedProfile, profileDraft(), Boolean(pendingAvatar))
+    || hasIntroChanges(savedIntro, introDraft(), Boolean(pendingIntroSource))));
+}
+
+function renderIntroState() {
+  const status = document.getElementById("introFileStatus");
+  const summary = document.getElementById("introSectionSummary");
+  status.className = "intro-file-status";
+  if (pendingIntroSource) {
+    status.textContent = `${pendingIntroSource.file.name} · ready to upload on SAVE GAMID`;
+    status.classList.add("ready"); summary.textContent = `New video · ${PRESETS[introDraft().transitionKey]?.label || "Transition"}`;
+  } else if (introAction === "remove") {
+    status.textContent = "Intro will be removed when you save."; summary.textContent = "Remove on save";
+  } else if (["pending","processing"].includes(savedIntro?.latestJobState)) {
+    status.textContent = savedIntro.latestJobState === "processing" ? "Preparing approved D3 Intro…" : "Waiting for the FFmpeg processor…";
+    status.classList.add("processing"); summary.textContent = `Processing · ${PRESETS[introDraft().transitionKey]?.label || "Transition"}`;
+  } else if (savedIntro?.latestJobState === "failed" && !savedIntro?.activeJobId) {
+    status.textContent = `Processing failed${savedIntro.latestFailureCode ? ` (${savedIntro.latestFailureCode})` : ""}. Your source remains protected.`;
+    status.classList.add("failed"); summary.textContent = "Processing failed";
+  } else if (savedIntro?.activeJobId) {
+    status.textContent = "Optimized D3 Intro is active."; status.classList.add("ready");
+    summary.textContent = `Intro ready · ${PRESETS[introDraft().transitionKey]?.label || "Transition"}`;
+  } else { status.textContent = "No video selected."; summary.textContent = "No intro yet"; }
+  document.getElementById("previewIntroButton").disabled = introAction === "remove" || !(pendingIntroSource?.url || activeIntroUrl);
+  document.getElementById("removeIntroButton").disabled = !(pendingIntroSource || savedIntro?.activeJobId || ["pending","processing"].includes(savedIntro?.latestJobState));
 }
 
 function updateProfilePreview() {
@@ -150,6 +186,30 @@ function updateProfilePreview() {
   document.getElementById("educationSectionSummary").textContent = educationLabel || "Optional";
   document.getElementById("saveProfileButton").disabled = !isProfileDirty() || !validateProfileDraft(draft, profileCatalogs()).valid;
   document.getElementById("saveConfirmation").hidden = true;
+  renderIntroState();
+}
+
+function releasePendingIntro() {
+  if (pendingIntroSource?.url) URL.revokeObjectURL(pendingIntroSource.url);
+  pendingIntroSource = null;
+  document.getElementById("introVideoInput").value = "";
+}
+
+async function restoreIntroState(intro) {
+  releasePendingIntro(); introAction = "keep";
+  if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl);
+  activeIntroUrl = null;
+  savedIntro = {
+    transitionKey:intro?.transition_key || "fade", action:"keep", activeJobId:intro?.active_job_id || null,
+    latestJobId:intro?.latest_job_id || null, latestJobState:intro?.latest_job_state || null,
+    latestFailureCode:intro?.latest_failure_code || null,
+  };
+  document.getElementById("introTransition").value = savedIntro.transitionKey;
+  if (intro?.active_derivative_path) {
+    try { activeIntroUrl = await api.loadIntroMedia(intro.active_derivative_path); }
+    catch { /* Keep editor usable if private media is temporarily unavailable. */ }
+  }
+  renderIntroState();
 }
 
 async function setPersistedAvatar(path, fallbackLetter) {
@@ -248,7 +308,7 @@ async function openAvatarCrop(file) {
 }
 
 async function showIdentity(data) {
-  const editor = await api.getIdentityProfile();
+  const [editor, intro] = await Promise.all([api.getIdentityProfile(), api.getMyIntro()]);
   resetAvatarCropLifecycle("profile-restored");
   identity = { ...data, ...editor };
   roleCatalog = editor.role_catalog || [];
@@ -274,6 +334,7 @@ async function showIdentity(data) {
     educationWorkStatus:identity.education_work_status, institution:identity.institution || "", fieldOfStudy:identity.field_of_study || "",
   };
   await setPersistedAvatar(identity.avatar_media_reference, identity.display_name?.trim()?.[0]?.toUpperCase() || "G");
+  await restoreIntroState(intro);
   updateProfilePreview();
   showView("identity");
 }
@@ -397,6 +458,76 @@ document.getElementById("educationWorkStatus").addEventListener("change", () => 
 document.getElementById("profileInstitution").addEventListener("input", updateProfilePreview);
 document.getElementById("profileFieldOfStudy").addEventListener("input", updateProfilePreview);
 
+function inspectIntroFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      const durationMs = Math.round(video.duration * 1000);
+      video.removeAttribute("src"); video.load();
+      const validation = validateIntroSource(file, durationMs);
+      if (!validation.valid) { URL.revokeObjectURL(url); reject(Object.assign(new Error(validation.reason), { code:validation.reason })); }
+      else resolve({ file, url, durationMs, jobId:crypto.randomUUID() });
+    };
+    video.onerror = () => { URL.revokeObjectURL(url); reject(Object.assign(new Error("INVALID_INTRO_TYPE"), { code:"INVALID_INTRO_TYPE" })); };
+    video.src = url;
+  });
+}
+
+document.getElementById("introVideoInput").addEventListener("change", async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const inspected = await inspectIntroFile(file);
+    releasePendingIntro();
+    pendingIntroSource = inspected;
+    introAction = "replace";
+    updateProfilePreview();
+  } catch (error) {
+    event.target.value = "";
+    setMessage(errorMessage(reasonFrom(error) || error.code || error.message));
+  }
+});
+
+introTransition.addEventListener("change", updateProfilePreview);
+document.getElementById("removeIntroButton").addEventListener("click", () => {
+  releasePendingIntro(); introAction = "remove"; updateProfilePreview();
+});
+
+function currentPreviewConfig() {
+  const draft = profileDraft();
+  const primary = catalogLabel(roleCatalog, draft.primaryRoleKey);
+  const secondary = draft.roleKeys.filter(key => key !== draft.primaryRoleKey).map(key => catalogLabel(roleCatalog,key));
+  const education = [catalogLabel(educationWorkCatalog,draft.educationWorkStatus),draft.institution,draft.fieldOfStudy].filter(Boolean).join(" · ");
+  return {
+    videoUrl:pendingIntroSource?.url || activeIntroUrl, transitionKey:introDraft().transitionKey,
+    avatarUrl:avatarPreviewUrl || persistedAvatarUrl || "", displayName:draft.displayName.trim(),
+    handle:`@${identity.gamid_handle}`, primaryRole:primary, secondaryRoles:secondary, education, bio:draft.bio,
+  };
+}
+
+function sendPreviewConfig() {
+  if (!pendingPreviewConfig) return;
+  document.getElementById("introPreviewFrame").contentWindow?.postMessage({ type:"gamid-intro-preview", config:pendingPreviewConfig }, location.origin);
+}
+
+document.getElementById("previewIntroButton").addEventListener("click", () => {
+  pendingPreviewConfig = currentPreviewConfig();
+  if (!pendingPreviewConfig.videoUrl) return;
+  document.getElementById("introPreviewDialog").showModal();
+  sendPreviewConfig();
+});
+document.getElementById("closeIntroPreview").addEventListener("click", () => {
+  document.getElementById("introPreviewDialog").close(); pendingPreviewConfig = null;
+});
+document.getElementById("introPreviewFrame").addEventListener("load", sendPreviewConfig);
+window.addEventListener("message", event => {
+  if (event.origin !== location.origin) return;
+  if (event.data?.type === "gamid-intro-preview-ready") sendPreviewConfig();
+  if (event.data?.type === "gamid-intro-preview-error") setMessage("The selected Intro could not be previewed.");
+});
+
 for (const toggle of document.querySelectorAll(".section-toggle")) {
   toggle.addEventListener("click", () => {
     const opening = toggle.getAttribute("aria-expanded") !== "true";
@@ -478,11 +609,27 @@ document.getElementById("profileForm").addEventListener("submit", async event =>
   if (!draft.valid) return setMessage(errorMessage(draft.reason));
   if (!isProfileDirty()) return;
   let saved = false;
+  const introChange = introDraft();
+  const introSource = pendingIntroSource;
   busy(form, true); setMessage("");
   try {
     let avatarPath = null;
     if (pendingAvatar) avatarPath = await api.uploadAvatar(pendingAvatar, api.userIdFromToken(), { attach: false });
     const updated = await api.updateIdentityProfile({ ...draft, avatarPath });
+    if (introSource) {
+      let sourcePath;
+      try {
+        sourcePath = await api.uploadIntroSource(introSource.file, api.userIdFromToken(), introSource.jobId);
+        await api.queueIntro({
+          jobId:introSource.jobId, sourcePath, transitionKey:introChange.transitionKey,
+          sourceMime:introSource.file.type, sourceSize:introSource.file.size, durationMs:introSource.durationMs,
+        });
+      } catch (error) {
+        if (sourcePath) { try { await api.deleteIntroSource(sourcePath); } catch { /* Server cleanup remains possible for an orphan. */ } }
+        throw error;
+      }
+    } else if (introChange.action === "remove") await api.removeIntro();
+    else if (savedIntro?.transitionKey !== introChange.transitionKey) await api.setIntroTransition(introChange.transitionKey);
     identity = { ...identity, ...updated };
     savedProfile = {
       displayName:updated.display_name, bio:updated.bio, avatarPath:updated.avatar_media_reference,
@@ -500,6 +647,7 @@ document.getElementById("profileForm").addEventListener("submit", async event =>
     document.getElementById("profileInstitution").value = savedProfile.institution;
     document.getElementById("profileFieldOfStudy").value = savedProfile.fieldOfStudy;
     syncEducationContext();
+    await restoreIntroState(await api.getMyIntro());
     updateProfilePreview();
     saved = true;
   } catch (error) { setMessage(errorMessage(reasonFrom(error) || error.message)); }
@@ -524,7 +672,7 @@ document.getElementById("languageForm").addEventListener("submit", async event =
 document.getElementById("signOutButton").addEventListener("click", async () => {
   if (isProfileDirty() && !window.confirm("Discard your unsaved profile changes and sign out?")) return;
   try { await api.signOut(); }
-  finally { identity = null; savedProfile = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
+  finally { releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
 });
 window.addEventListener("beforeunload", event => {
   if (!isProfileDirty()) return;
@@ -541,6 +689,8 @@ window.addEventListener("pagehide", () => {
   avatarDiag("pagehide");
   if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
   if (persistedAvatarUrl) URL.revokeObjectURL(persistedAvatarUrl);
+  if (pendingIntroSource?.url) URL.revokeObjectURL(pendingIntroSource.url);
+  if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl);
 }, { once: true });
 
 if (avatarDiagnosticsEnabled) {

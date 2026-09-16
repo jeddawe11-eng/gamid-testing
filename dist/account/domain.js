@@ -2,6 +2,10 @@ export const HANDLE_MIN = 3;
 export const HANDLE_MAX = 24;
 export const BIO_MAX = 160;
 export const PROFILE_CONTEXT_MAX = 120;
+export const INTRO_SOURCE_MAX_BYTES = 100 * 1024 * 1024;
+export const INTRO_MAX_DURATION_MS = 30_000;
+export const INTRO_TRANSITIONS = Object.freeze(["fade", "blur", "shrink", "slide", "split"]);
+export const INTRO_SOURCE_TYPES = Object.freeze(["video/mp4", "video/quicktime", "video/webm"]);
 
 export function normalizeHandle(value = "") {
   return value.trim().toLowerCase().replace(/^@+/, "");
@@ -94,6 +98,23 @@ export function hasProfileChanges(saved, draft, hasPendingAvatar = false) {
     || before.institution !== after.institution || before.fieldOfStudy !== after.fieldOfStudy;
 }
 
+export function normalizeIntroDraft({ transitionKey = "fade", action = "keep", pendingJobId = null } = {}) {
+  return { transitionKey: INTRO_TRANSITIONS.includes(transitionKey) ? transitionKey : "fade", action, pendingJobId };
+}
+
+export function validateIntroSource(file, durationMs) {
+  if (!file || !INTRO_SOURCE_TYPES.includes(file.type)) return { valid:false, reason:"INVALID_INTRO_TYPE" };
+  if (file.size < 1 || file.size > INTRO_SOURCE_MAX_BYTES) return { valid:false, reason:"INTRO_SOURCE_TOO_LARGE" };
+  if (!Number.isFinite(durationMs) || durationMs < 500 || durationMs > INTRO_MAX_DURATION_MS) return { valid:false, reason:"INTRO_DURATION_INVALID" };
+  return { valid:true, reason:null };
+}
+
+export function hasIntroChanges(saved, draft, hasPendingSource = false) {
+  const before = normalizeIntroDraft(saved);
+  const after = normalizeIntroDraft(draft);
+  return hasPendingSource || before.transitionKey !== after.transitionKey || after.action !== "keep";
+}
+
 export const errorMessage = reason => ({
   TOO_SHORT: "Use at least 3 characters.",
   TOO_LONG: "Use no more than 24 characters.",
@@ -115,4 +136,9 @@ export const errorMessage = reason => ({
   INVALID_EDUCATION_WORK_STATUS: "Choose a valid education or work status.",
   INSTITUTION_TOO_LONG: `Keep institution to ${PROFILE_CONTEXT_MAX} characters or fewer.`,
   FIELD_OF_STUDY_TOO_LONG: `Keep field of study to ${PROFILE_CONTEXT_MAX} characters or fewer.`,
+  INVALID_INTRO_TYPE: "Choose an MP4, MOV, or WebM video.",
+  INTRO_SOURCE_TOO_LARGE: "Intro video must be 100 MB or smaller.",
+  INTRO_DURATION_INVALID: "Intro video must be between 0.5 and 30 seconds.",
+  INTRO_PROCESSING_IN_PROGRESS: "Your previous Intro is still processing.",
+  INVALID_INTRO_TRANSITION: "Choose an available Intro transition.",
 }[reason] || reason || "Something went wrong. Please try again.");

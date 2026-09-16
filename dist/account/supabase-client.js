@@ -38,11 +38,11 @@ async function request(path, { method = "GET", body, token, headers = {} } = {})
   return payload;
 }
 
-async function requestBlob(path, token) {
+async function requestBlob(path, token, code = "PRIVATE_MEDIA_READ_FAILED") {
   const response = await fetch(`${SUPABASE_URL}${path}`, {
     headers: { apikey: PUBLISHABLE_KEY, Authorization: `Bearer ${token}` },
   });
-  if (!response.ok) throw new ApiError(`Avatar could not be loaded (${response.status}).`, response.status, "AVATAR_READ_FAILED");
+  if (!response.ok) throw new ApiError(`Private media could not be loaded (${response.status}).`, response.status, code);
   return response.blob();
 }
 
@@ -193,7 +193,46 @@ export async function updateIdentityProfile({ displayName, bio, avatarPath = nul
 
 export async function loadAvatar(path) {
   if (!path) return null;
-  const blob = await requestBlob(`/storage/v1/object/authenticated/avatars/${encodeStoragePath(path)}`, session?.access_token);
+  const blob = await requestBlob(`/storage/v1/object/authenticated/avatars/${encodeStoragePath(path)}`, session?.access_token, "AVATAR_READ_FAILED");
+  return URL.createObjectURL(blob);
+}
+
+export async function getMyIntro() {
+  const rows = await rpc("get_my_intro");
+  return rows?.[0] || null;
+}
+
+export async function uploadIntroSource(file, userId, jobId) {
+  const extension = ({ "video/mp4":"mp4", "video/quicktime":"mov", "video/webm":"webm" })[file.type];
+  if (!extension) throw new ApiError("Choose an MP4, MOV, or WebM video.", 400, "INVALID_INTRO_TYPE");
+  if (file.size > 100 * 1024 * 1024) throw new ApiError("Intro video must be 100 MB or smaller.", 400, "INTRO_SOURCE_TOO_LARGE");
+  const path = `${userId}/${jobId}/source.${extension}`;
+  await request(`/storage/v1/object/intro-sources/${path}`, {
+    method:"POST", token:session?.access_token, body:file,
+    headers:{ "Content-Type":file.type, "x-upsert":"false" },
+  });
+  return path;
+}
+
+export async function deleteIntroSource(path) {
+  if (!path) return;
+  return request(`/storage/v1/object/intro-sources/${encodeStoragePath(path)}`, { method:"DELETE", token:session?.access_token });
+}
+
+export async function queueIntro({ jobId, sourcePath, transitionKey, sourceMime, sourceSize, durationMs }) {
+  const rows = await rpc("queue_my_intro", {
+    candidate_job_id:jobId, candidate_source_path:sourcePath, candidate_transition:transitionKey,
+    candidate_source_mime:sourceMime, candidate_source_size:sourceSize, candidate_duration_ms:durationMs,
+  });
+  return rows?.[0] || null;
+}
+
+export const setIntroTransition = transitionKey => rpc("set_my_intro_transition", { candidate_transition:transitionKey });
+export const removeIntro = () => rpc("remove_my_intro");
+
+export async function loadIntroMedia(path) {
+  if (!path) return null;
+  const blob = await requestBlob(`/storage/v1/object/authenticated/intro-media/${encodeStoragePath(path)}`, session?.access_token, "INTRO_READ_FAILED");
   return URL.createObjectURL(blob);
 }
 

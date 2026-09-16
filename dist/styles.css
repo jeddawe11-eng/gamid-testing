@@ -10,3 +10,6 @@ body.is-experiencing{overflow:hidden;overscroll-behavior:none}.is-experiencing .
 .preset-shrink .media-stage{clip-path:inset(0 round 0);transition:transform var(--transition-ms) cubic-bezier(.22,.74,.12,1),clip-path var(--transition-ms) cubic-bezier(.22,.74,.12,1),box-shadow var(--transition-ms) ease}.experience[data-state="transitioning"] .preset-shrink .media-stage,.experience[data-state="profile"] .preset-shrink .media-stage{transform:translate3d(var(--shrink-x,0),var(--shrink-y,0),0) scale(var(--shrink-scale,.3));transform-origin:center center;clip-path:circle(var(--shrink-radius,50%) at 50% 50%);border-radius:0;box-shadow:0 1rem 3rem rgba(0,0,0,.55)}
 
 .profile.measure-target{transform:none!important;transition:none!important}
+
+/* Slice 3C can provide the current user-video frame while preserving the accepted poster fallback. */
+.split-panel{background-image:linear-gradient(180deg,rgba(4,3,9,.05),rgba(4,3,9,.25)),var(--split-frame,url('assets/gamid-intro-poster.webp'))}

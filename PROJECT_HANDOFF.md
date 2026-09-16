@@ -11,14 +11,15 @@ GamID is a customizable digital identity/profile platform for the gaming ecosyst
 Mazen formally defined the remaining Slice 3 sequence on 2026-09-16. The sequence is authoritative, but approval to implement is still granted one portion at a time:
 
 - **3A — Identity Foundation:** implemented in TESTING; awaiting Mazen's acceptance.
-- **3B — Roles, Education & Occupation:** implemented in TESTING; awaiting Mazen's acceptance.
-- **3C — Games Identity:** NOT STARTED and NOT APPROVED for implementation.
+- **3B — Roles, Education & Occupation:** **FORMALLY ACCEPTED BY MAZEN**.
+- **3C — Intro Identity Integration:** foundation implemented and locally validated; external worker hosting is **NOT SELECTED / NOT DEPLOYED** and Slice 3C is not accepted.
 - **3D — Verified Gaming Data:** NOT STARTED and NOT APPROVED for implementation.
 - **3E — Connections & Socials:** NOT STARTED and NOT APPROVED for implementation.
 - **3F — Identity Board / WOW Composition:** NOT STARTED and NOT APPROVED for implementation.
-- **3G — Stabilization, Bugs & Cleanup:** NOT STARTED. The specifically deferred Avatar compatibility and existing-email signup UX issues belong here.
+- **3G:** not started and not approved; scope is not redefined by the 3C work.
+- **3H — Stabilization, Bugs & Cleanup:** NOT STARTED. The specifically deferred Avatar compatibility and existing-email signup UX issues belong here per Mazen's latest boundary.
 
-Do not begin 3C or any later portion automatically. This roadmap does not authorize Games catalogs/search, player IDs, ranks/stats, provider verification, Discord/Steam/Xbox/PlayStation integrations, social integrations, public profiles, publishing, QR sharing, Teams/Organizations/Companies, jobs/marketplace, subscriptions/payment, or Production work.
+Do not begin 3D or any later portion automatically. Slice 3C does not authorize Games catalogs/search, player IDs, ranks/stats, provider verification, Discord/Steam/Xbox/PlayStation integrations, social integrations, public profiles, publishing, QR sharing, Teams/Organizations/Companies, jobs/marketplace, subscriptions/payment, or Production work.
 
 ## Accepted Slice 1 baseline
 
@@ -126,8 +127,8 @@ The Identity Board direction remains future-compatible but deliberately non-gene
 
 ## Slice 3B — Roles, Education & Occupation
 
-- Implementation status: **COMPLETE IN TESTING; AWAITING MAZEN'S ACCEPTANCE**
-- Acceptance status: **NOT YET ACCEPTED**
+- Implementation status: **COMPLETE IN TESTING**
+- Acceptance status: **FORMALLY ACCEPTED BY MAZEN**
 - Scope: expand the existing private YOUR GAMID editor with structured Gaming Roles and separate optional Education & Work context.
 - TESTING review route: `https://jeddawe11-eng.github.io/gamid-testing/account/`
 
@@ -152,7 +153,36 @@ All new tables have RLS enabled. Browser roles have no direct catalog/assignment
 
 Rollback-only TESTING validation exercised multiple roles, Primary selection, Education context, RPC persistence, and preservation of `DRAFT`/private state without leaving changes on `@BLACK`. Catalog counts, function modes, grants, and account integrity passed. Security Advisor introduced no unexpected WARN/ERROR finding: the accepted Free-plan leaked-password warning remains, while default-deny/no-policy catalog INFO findings are intentional. The complete automated baseline is 66/66 tests with lint, typecheck, build, and `git diff --check` passing.
 
-Slice 3B must not be marked accepted until Mazen completes the mobile TESTING review. Slice 3C remains **NOT STARTED**.
+Mazen formally accepted Slice 3B before authorizing Slice 3C. Its accepted implementation checkpoint remains local `bb345a754e822027ac1fc1d1edec7b34360a122e`, with authoritative TESTING remote `23d4b70a3744068a42f6ffa7964ffba6dd52255b`; the documented histories must not be force-reset or rewritten.
+
+## Slice 3C — Intro Identity Integration
+
+- Implementation status: **FOUNDATION IMPLEMENTED AND VALIDATED; EXTERNAL WORKER HOSTING NOT APPROVED**
+- Acceptance status: **NOT YET ACCEPTED**
+- Deployment status: **NOT PUSHED / NOT DEPLOYED**, because exposing uploads before a worker exists would leave user jobs pending indefinitely.
+- Production status: **NOT AUTHORIZED**
+
+Slice 3C reuses the completed Slice 1 Intro Engine, Transition Engine, accepted transitions (Cross Fade, Blur Fade, Shrink to Avatar, Slide Away, Split Reveal), and the approved D3 profile. Those components and the D2/D3 research/benchmarks were not redesigned or repeated. Inspection proved that an automatic user-upload processing pipeline did not previously exist.
+
+The private YOUR GAMID editor now has a mobile accordion **YOUR INTRO** beside the Avatar workflow. It supports Add/Replace, Remove, the five existing transition choices, and a full-screen Preview that runs the existing transition engine from the selected/current Intro into the user's current local Identity Card. Shrink to Avatar targets the current real Avatar, including an unsaved local Avatar preview. Display name, Bio, roles, and Education context also reflect local unsaved edits. The primary action is now **SAVE GAMID**; Intro files and configuration share the existing canonical dirty state and leave/reload protection instead of introducing a second save flow.
+
+The additive migrations are:
+
+- `20260916170000_slice_3c_intro_identity.sql`
+- `20260916173000_slice_3c_intro_indexes.sql`
+- `20260916174500_slice_3c_worker_permissions.sql`
+
+They add private `intro-sources` (100 MiB) and `intro-media` (15 MiB) buckets, `intro_processing_jobs`, `profile_intro_settings`, owner-readable RLS, owner-folder Storage policies, authenticated owner RPCs, and service-role-only worker RPCs. Source MIME is restricted to MP4, QuickTime, or WebM; duration is 0.5–30 seconds. Browser code has no service-role credential and cannot mutate job/settings tables directly. The server resolves SOLO/OWNER ownership and assigns all worker paths; the worker never trusts client-supplied owner, Profile, or output identifiers.
+
+Jobs use narrowly scoped `pending`, `processing`, `ready`, `failed`, and `cancelled` states. A replacement never displaces the existing active Intro until its D3 derivative has been successfully encoded, validated, uploaded, and atomically committed. Failure leaves the previous Intro active. Remove participates in SAVE GAMID, clears only the active Intro, and marks only the relevant media for cleanup. A source is never cleanup-eligible before successful processing; obsolete derivatives become eligible only after successful replacement/removal. Cleanup is confirmed back to the database after Storage deletion.
+
+`worker/intro-worker.mjs` and `worker/Dockerfile` define a replaceable container boundary rather than a hosting-provider integration. The worker claims server-authorized jobs, downloads the private source, encodes directly to the approved D3 profile (`libvpx-vp9`, CRF 40, quality-oriented settings, yuv420p, Opus 32 kbps when audio exists), validates with ffprobe, uploads, and completes/fails the job through worker-only RPCs. Its service-role secret is runtime-only and never enters the static client. No paid service, external worker, scheduler, or billing resource has been provisioned.
+
+Local integration proof used a generated 20-second 576×1024/30fps H.264/AAC source—not any GamID media. The provider-neutral worker produced and validated a 576×1024/30fps VP9/Opus WebM in 22,487 ms of encoding time (22,693 ms end-to-end locally). A prior 3-second proof also passed. These prove SOURCE → D3 → validation without changing or re-benchmarking the approved profile. Temporary proof files were not committed.
+
+Rollback-only TESTING database exercises covered owner queueing and the full queue → claim → derivative → complete → active → remove lifecycle without persisting jobs or changing `@BLACK`. Applied TESTING migrations are `20260916101711`, `20260916101805`, and `20260916102030`. Security Advisor has no unexpected WARN/ERROR; only the accepted Free-plan leaked-password warning and intentional default-deny INFO findings remain. Performance Advisor reports only new/unused-index INFO expected before production traffic. The automated baseline is 73/73 tests with lint, typecheck, build, and `git diff --check` passing.
+
+The remaining approved-scope blocker is external FFmpeg worker hosting. Do not deploy the current editor or provision a host until Mazen approves a provider/trigger plan; otherwise queued uploads would have no processor. Slice 3D is **NOT STARTED**.
 
 ## Architecture
 
@@ -323,8 +353,8 @@ GamID D2 benchmark evidence: 1,374,355 bytes; 31.57% smaller than the current Ma
 - Future automatic selection is: `FREE -> D3 / CRF 40`, `PAID -> D2 / CRF 36`, `MASTER -> retained original source`.
 - Browser compatibility and fallback delivery are a separate future architecture decision and must not silently change these approved quality-tier targets.
 - Subscription/payment integration: **NOT STARTED**.
-- Automatic upload/video-processing pipeline: **NOT STARTED**.
-- Replacement or publication of the current Intro: **NOT STARTED** and remains deferred.
+- Automatic upload/video-processing pipeline: **FOUNDATION IMPLEMENTED** (job/storage/RPC contract and provider-neutral worker); external execution/hosting is **NOT DEPLOYED**.
+- Replacement/publication of the original static Intro asset remains deferred and is separate from per-user Slice 3C media.
 
 ## Known limitations
 
@@ -334,9 +364,9 @@ GamID D2 benchmark evidence: 1,374,355 bytes; 31.57% smaller than the current Ma
 - The managed workspace has no compatible visual browser preview for this plain static site. Responsive behavior is enforced by mobile-first CSS/static validation and Mazen has performed phone testing on the HTTPS TESTING site.
 - The npm registry was unavailable, so the implementation intentionally uses no added dependency. This does not affect the HTTPS Auth/RPC architecture.
 - No public profile publication, QR rendering, OAuth, handle change, parental consent, multi-entity UI, Team, Organization, or Company functionality exists. Slice 3A includes only the authenticated private identity editor described above.
-- **Deferred to Slice 3G — Samsung/Android Gallery:** the first device produced a Gallery/File readability failure; the evidence-backed application-owned Blob compatibility path and TESTING diagnostics remain preserved. A second phone completed Avatar select/crop/APPLY 10 consecutive times with 10/10 PASS. Do not remove diagnostics or resume investigation before explicit 3G approval.
-- **Deferred to Slice 3G — existing-email Create Account UX:** attempting Create Account with an email already registered can continue into the enumeration-safe verification presentation rather than clearly guiding the returning user. Do not change Auth behavior as part of 3B.
+- **Deferred to Slice 3H — Samsung/Android Gallery:** the first device produced a Gallery/File readability failure; the evidence-backed application-owned Blob compatibility path and TESTING diagnostics remain preserved. A second phone completed Avatar select/crop/APPLY 10 consecutive times with 10/10 PASS. Do not remove diagnostics or resume investigation before explicit 3H approval.
+- **Deferred to Slice 3H — existing-email Create Account UX:** attempting Create Account with an email already registered can continue into the enumeration-safe verification presentation rather than clearly guiding the returning user. Do not change Auth behavior as part of 3C.
 
 ## Continuation boundary
 
-Slice 2 is formally accepted. Slice 3A and Slice 3B implementations are complete in TESTING and **AWAITING MAZEN'S ACCEPTANCE**. Production remains **NOT STARTED / NOT AUTHORIZED**. Slice 3C and every later portion remain **NOT STARTED** and must not begin automatically. The Gaming Connections Engine direction is represented by the approved roadmap but no provider integration has started. The approved video quality-tier implementation remains NOT STARTED.
+Slice 2 and Slice 3B are formally accepted. Slice 3A remains deployed and awaiting Mazen's acceptance. Slice 3C's TESTING database/client/worker foundation is implemented locally and validated, but no external worker host has been selected or provisioned and the incomplete user-facing integration has not been pushed/deployed. Production remains **NOT STARTED / NOT AUTHORIZED**. Slice 3D and every later portion remain **NOT STARTED** and must not begin automatically. The Gaming Connections Engine remains future direction only. The approved D3 processing profile is now implemented in the provider-neutral worker boundary; PAID/D2 selection, subscription/payment integration, and Production media architecture remain **NOT STARTED**.
