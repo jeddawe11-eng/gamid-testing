@@ -56,8 +56,10 @@ safer concurrency/headroom), and at least 512 MiB ephemeral `/tmp` storage.
 Source uploads are capped at 100 MiB and 30 seconds; derivatives are capped at
 15 MiB. Run with concurrency 1 and scale by starting more isolated tasks.
 
-## Hosting status
+## Google Cloud Run approval and hosting status
 
-No external host, billing account, scheduler, webhook, or continuous worker has
-been provisioned. The image is deliberately portable. Hosting approval is a
-separate Mazen decision.
+Mazen approved Google Cloud Run Jobs in `asia-southeast1`. The scale-to-zero
+dispatcher, exact resource plan, least-privilege IAM, and unapplied Supabase
+Vault/pg_net trigger template are documented in `cloud-run/README.md`. No Google
+project, billing resource, API, service account, secret, image, Job, service, or
+webhook has been provisioned because account authorization is still required.

@@ -12,7 +12,7 @@ Mazen formally defined the remaining Slice 3 sequence on 2026-09-16. The sequenc
 
 - **3A — Identity Foundation:** implemented in TESTING; awaiting Mazen's acceptance.
 - **3B — Roles, Education & Occupation:** **FORMALLY ACCEPTED BY MAZEN**.
-- **3C — Intro Identity Integration:** foundation implemented and locally validated; external worker hosting is **NOT SELECTED / NOT DEPLOYED** and Slice 3C is not accepted.
+- **3C — Intro Identity Integration:** foundation implemented and locally validated; Google Cloud Run Jobs in Singapore is **APPROVED**, but account/billing authorization and deployment are still pending. Slice 3C is not accepted.
 - **3D — Verified Gaming Data:** NOT STARTED and NOT APPROVED for implementation.
 - **3E — Connections & Socials:** NOT STARTED and NOT APPROVED for implementation.
 - **3F — Identity Board / WOW Composition:** NOT STARTED and NOT APPROVED for implementation.
@@ -157,7 +157,7 @@ Mazen formally accepted Slice 3B before authorizing Slice 3C. Its accepted imple
 
 ## Slice 3C — Intro Identity Integration
 
-- Implementation status: **FOUNDATION IMPLEMENTED AND VALIDATED; EXTERNAL WORKER HOSTING NOT APPROVED**
+- Implementation status: **FOUNDATION IMPLEMENTED AND VALIDATED; CLOUD RUN JOBS APPROVED; GOOGLE AUTHORIZATION REQUIRED**
 - Acceptance status: **NOT YET ACCEPTED**
 - Deployment status: **NOT PUSHED / NOT DEPLOYED**, because exposing uploads before a worker exists would leave user jobs pending indefinitely.
 - Production status: **NOT AUTHORIZED**
@@ -176,13 +176,15 @@ They add private `intro-sources` (100 MiB) and `intro-media` (15 MiB) buckets, `
 
 Jobs use narrowly scoped `pending`, `processing`, `ready`, `failed`, and `cancelled` states. A replacement never displaces the existing active Intro until its D3 derivative has been successfully encoded, validated, uploaded, and atomically committed. Failure leaves the previous Intro active. Remove participates in SAVE GAMID, clears only the active Intro, and marks only the relevant media for cleanup. A source is never cleanup-eligible before successful processing; obsolete derivatives become eligible only after successful replacement/removal. Cleanup is confirmed back to the database after Storage deletion.
 
-`worker/intro-worker.mjs` and `worker/Dockerfile` define a replaceable container boundary rather than a hosting-provider integration. The worker claims server-authorized jobs, downloads the private source, encodes directly to the approved D3 profile (`libvpx-vp9`, CRF 40, quality-oriented settings, yuv420p, Opus 32 kbps when audio exists), validates with ffprobe, uploads, and completes/fails the job through worker-only RPCs. Its service-role secret is runtime-only and never enters the static client. No paid service, external worker, scheduler, or billing resource has been provisioned.
+`worker/intro-worker.mjs` and `worker/Dockerfile` define the container worker. The worker claims server-authorized jobs, downloads the private source, encodes directly to the approved D3 profile (`libvpx-vp9`, CRF 40, quality-oriented settings, yuv420p, Opus 32 kbps when audio exists), validates with ffprobe, uploads, and completes/fails the job through worker-only RPCs. Its Supabase backend secret is runtime-only and never enters the static client.
+
+Mazen approved Google Cloud Run Jobs in `asia-southeast1` on 2026-09-16. `worker/intro-dispatcher.mjs` adds the minimal scale-to-zero trigger boundary: it accepts only a secret-authenticated pending INSERT webhook for `intro_processing_jobs`, ignores client ownership/path values, and invokes the fixed Cloud Run Job using its attached short-lived Google service-account identity. No Google private key is created. The Job still claims the actual row and paths server-side. `worker/cloud-run/README.md` records the exact Artifact Registry, two runtime service accounts, two Secret Manager secrets, Cloud Run Job/service, least-privilege IAM, resources, and activation sequence. The Supabase Vault/pg_net trigger is prepared separately and intentionally unapplied until the dispatcher URL and shared secret exist.
 
 Local integration proof used a generated 20-second 576×1024/30fps H.264/AAC source—not any GamID media. The provider-neutral worker produced and validated a 576×1024/30fps VP9/Opus WebM in 22,487 ms of encoding time (22,693 ms end-to-end locally). A prior 3-second proof also passed. These prove SOURCE → D3 → validation without changing or re-benchmarking the approved profile. Temporary proof files were not committed.
 
-Rollback-only TESTING database exercises covered owner queueing and the full queue → claim → derivative → complete → active → remove lifecycle without persisting jobs or changing `@BLACK`. Applied TESTING migrations are `20260916101711`, `20260916101805`, and `20260916102030`. Security Advisor has no unexpected WARN/ERROR; only the accepted Free-plan leaked-password warning and intentional default-deny INFO findings remain. Performance Advisor reports only new/unused-index INFO expected before production traffic. The automated baseline is 73/73 tests with lint, typecheck, build, and `git diff --check` passing.
+Rollback-only TESTING database exercises covered owner queueing and the full queue → claim → derivative → complete → active → remove lifecycle without persisting jobs or changing `@BLACK`. Applied TESTING migrations are `20260916101711`, `20260916101805`, and `20260916102030`. Security Advisor has no unexpected WARN/ERROR; only the accepted Free-plan leaked-password warning and intentional default-deny INFO findings remain. Performance Advisor reports only new/unused-index INFO expected before production traffic. The automated baseline is 77/77 tests with lint, typecheck, build, and `git diff --check` passing. New trigger tests cover exact-secret comparison, payload/table/state validation, successful Job invocation, and prevention of paid execution for an invalid secret or stale webhook.
 
-The remaining approved-scope blocker is external FFmpeg worker hosting. Do not deploy the current editor or provision a host until Mazen approves a provider/trigger plan; otherwise queued uploads would have no processor. Slice 3D is **NOT STARTED**.
+The provider decision is complete, but provisioning is blocked at the explicit authorization boundary: the environment has neither Google Cloud CLI nor an authenticated Google Cloud project/billing context. Mazen must select/create a dedicated project, link Billing, provide only its project ID, and authorize the Google Cloud setup flow. No API, IAM binding, secret, image, Job, dispatcher service, webhook, or billing resource has been created. Do not deploy the current editor until the worker path passes a controlled end-to-end TESTING upload. Slice 3D is **NOT STARTED**.
 
 ## Architecture
 
@@ -369,4 +371,4 @@ GamID D2 benchmark evidence: 1,374,355 bytes; 31.57% smaller than the current Ma
 
 ## Continuation boundary
 
-Slice 2 and Slice 3B are formally accepted. Slice 3A remains deployed and awaiting Mazen's acceptance. Slice 3C's TESTING database/client/worker foundation is implemented locally and validated, but no external worker host has been selected or provisioned and the incomplete user-facing integration has not been pushed/deployed. Production remains **NOT STARTED / NOT AUTHORIZED**. Slice 3D and every later portion remain **NOT STARTED** and must not begin automatically. The Gaming Connections Engine remains future direction only. The approved D3 processing profile is now implemented in the provider-neutral worker boundary; PAID/D2 selection, subscription/payment integration, and Production media architecture remain **NOT STARTED**.
+Slice 2 and Slice 3B are formally accepted. Slice 3A remains deployed and awaiting Mazen's acceptance. Slice 3C's TESTING database/client/worker/Cloud Run dispatcher foundation is implemented locally and validated. Cloud Run Jobs Singapore is approved, but no Google resources have been provisioned because Google project, Billing, and account authorization are required; the incomplete user-facing integration remains unpushed/undeployed. Production remains **NOT STARTED / NOT AUTHORIZED**. Slice 3D and every later portion remain **NOT STARTED** and must not begin automatically. The Gaming Connections Engine remains future direction only. The approved D3 processing profile is implemented in the worker boundary; PAID/D2 selection, subscription/payment integration, and Production media architecture remain **NOT STARTED**.
