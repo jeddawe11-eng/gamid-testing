@@ -76,5 +76,6 @@ test("browser uploads source and queues work but never transcodes", () => {
   assert.match(client,/uploadIntroSource/);
   assert.match(client,/storage\.supabase\.co\/storage\/v1\/upload\/resumable/);
   assert.match(client,/queue_my_intro/);
+  assert.match(controller,/createOwnedUploadBlob\(file\)/);
   assert.doesNotMatch(`${client}\n${controller}`,/import[^\n]*(ffmpeg|libvpx)|WebAssembly|new Worker\s*\(/i);
 });

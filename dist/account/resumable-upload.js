@@ -5,6 +5,16 @@ const RETRY_DELAYS = [0, 3000, 5000, 10000, 20000];
 const encodeMetadata = value => btoa(unescape(encodeURIComponent(String(value))));
 const wait = delay => new Promise(resolve => setTimeout(resolve, delay));
 
+export async function createOwnedUploadBlob(file) {
+  const bytes = await file.arrayBuffer();
+  const owned = new Blob([bytes], { type:file.type });
+  Object.defineProperties(owned, {
+    name:{ value:file.name || "intro", enumerable:true },
+    lastModified:{ value:Number(file.lastModified || Date.now()), enumerable:true },
+  });
+  return owned;
+}
+
 export class ResumableUploadError extends Error {
   constructor(message, status = 0, code = "INTRO_UPLOAD_FAILED") {
     super(message);

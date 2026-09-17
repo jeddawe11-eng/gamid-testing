@@ -2,6 +2,7 @@ import { INTRO_TRANSITIONS, authErrorMessage, authLanding, debounceAsync, errorM
 import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, createOwnedImageBlob, drawCropPreview, loadOrientedImage } from "./avatar-cropper.js";
 import { PRESETS } from "../transition-engine.js";
 import * as api from "./supabase-client.js";
+import { createOwnedUploadBlob } from "./resumable-upload.js";
 
 const views = [...document.querySelectorAll(".view")];
 const message = document.getElementById("formMessage");
@@ -479,7 +480,11 @@ document.getElementById("introVideoInput").addEventListener("change", async even
   const file = event.target.files[0];
   if (!file) return;
   try {
-    const inspected = await inspectIntroFile(file);
+    // Snapshot Samsung/Android Gallery-backed content while the selection event
+    // still owns a readable handle. Later TUS PATCH retries must read from an
+    // application-owned Blob, not a transient content URI.
+    const ownedFile = await createOwnedUploadBlob(file);
+    const inspected = await inspectIntroFile(ownedFile);
     releasePendingIntro();
     pendingIntroSource = inspected;
     introAction = "replace";

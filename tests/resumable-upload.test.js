@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { TUS_CHUNK_BYTES, ResumableUploadError, uploadResumable } from "../dist/account/resumable-upload.js";
+import { TUS_CHUNK_BYTES, ResumableUploadError, createOwnedUploadBlob, uploadResumable } from "../dist/account/resumable-upload.js";
 
 const response = (status, headers = {}) => new Response(null, { status, headers });
 const input = overrides => ({
@@ -47,4 +47,24 @@ test("Intro upload transport failures are not misreported as Auth outages", asyn
     () => uploadResumable(input({ file:new Blob([new Uint8Array(12)]), fetcher })),
     error => error instanceof ResumableUploadError && error.code === "INTRO_UPLOAD_NETWORK_ERROR" && !/Authentication service/.test(error.message),
   );
+});
+
+test("Samsung Gallery selections are snapshotted into an application-owned upload Blob", async () => {
+  const sourceBytes = new Uint8Array([1,2,3,4,5]);
+  let reads = 0;
+  const galleryFile = {
+    name:"1000332454.mp4", type:"video/mp4", size:sourceBytes.byteLength, lastModified:123,
+    async arrayBuffer() {
+      reads += 1;
+      if (reads > 1) throw new DOMException("Gallery handle expired", "NotReadableError");
+      return sourceBytes.slice().buffer;
+    },
+  };
+  const owned = await createOwnedUploadBlob(galleryFile);
+  assert.equal(owned.name,"1000332454.mp4");
+  assert.equal(owned.type,"video/mp4");
+  assert.equal(owned.lastModified,123);
+  assert.deepEqual(new Uint8Array(await owned.arrayBuffer()),sourceBytes);
+  assert.deepEqual(new Uint8Array(await owned.arrayBuffer()),sourceBytes);
+  assert.equal(reads,1);
 });
