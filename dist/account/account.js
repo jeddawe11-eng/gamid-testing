@@ -3,6 +3,7 @@ import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormal
 import { PRESETS } from "../transition-engine.js";
 import * as api from "./supabase-client.js";
 import { createOwnedUploadBlob } from "./resumable-upload.js";
+import { IntroStatusPoller, isProcessingIntroState } from "./intro-status-poller.js";
 
 const views = [...document.querySelectorAll(".view")];
 const message = document.getElementById("formMessage");
@@ -33,6 +34,31 @@ const cropPointers = new Map();
 const avatarDiagnosticsEnabled = new URLSearchParams(location.search).get("avatarDebug") === "1";
 const avatarDiagnosticKey = "gamid-avatar-diagnostics-v1";
 let avatarDiagnosticLog = [];
+
+const introStatusPoller = new IntroStatusPoller({
+  load:() => api.getMyIntro(),
+  onState:async intro => {
+    if (!identity || pendingIntroSource || introAction !== "keep") return;
+    await restoreIntroState(intro);
+    updateProfilePreview();
+  },
+});
+
+async function refreshIntroOnForeground() {
+  if (document.visibilityState !== "visible" || !identity || pendingIntroSource || introAction !== "keep") return;
+  try {
+    const intro=await introStatusPoller.refreshNow();
+    if (isProcessingIntroState(intro)) introStatusPoller.start();
+  } catch { /* Keep the current UI; the next foreground event can retry. */ }
+}
+
+function cleanupIntroStatusRefresh() {
+  introStatusPoller.stop();
+  document.removeEventListener("visibilitychange",refreshIntroOnForeground);
+}
+
+document.addEventListener("visibilitychange",refreshIntroOnForeground);
+window.addEventListener("pagehide",cleanupIntroStatusRefresh,{ once:true });
 
 if (avatarDiagnosticsEnabled) {
   try { avatarDiagnosticLog = JSON.parse(sessionStorage.getItem(avatarDiagnosticKey)) || []; }
@@ -336,6 +362,7 @@ async function showIdentity(data) {
   };
   await setPersistedAvatar(identity.avatar_media_reference, identity.display_name?.trim()?.[0]?.toUpperCase() || "G");
   await restoreIntroState(intro);
+  if (isProcessingIntroState(intro)) introStatusPoller.start();
   updateProfilePreview();
   showView("identity");
 }
@@ -652,7 +679,9 @@ document.getElementById("profileForm").addEventListener("submit", async event =>
     document.getElementById("profileInstitution").value = savedProfile.institution;
     document.getElementById("profileFieldOfStudy").value = savedProfile.fieldOfStudy;
     syncEducationContext();
-    await restoreIntroState(await api.getMyIntro());
+    const intro=await api.getMyIntro();
+    await restoreIntroState(intro);
+    if (isProcessingIntroState(intro)) introStatusPoller.start();
     updateProfilePreview();
     saved = true;
   } catch (error) { setMessage(errorMessage(reasonFrom(error) || error.message)); }
@@ -677,7 +706,7 @@ document.getElementById("languageForm").addEventListener("submit", async event =
 document.getElementById("signOutButton").addEventListener("click", async () => {
   if (isProfileDirty() && !window.confirm("Discard your unsaved profile changes and sign out?")) return;
   try { await api.signOut(); }
-  finally { releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
+  finally { introStatusPoller.stop(); releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
 });
 window.addEventListener("beforeunload", event => {
   if (!isProfileDirty()) return;
