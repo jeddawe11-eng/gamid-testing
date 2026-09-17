@@ -67,3 +67,29 @@ test("foreground refresh shares an in-flight backend read", async () => {
   await Promise.all([first,second]);
   assert.deepEqual(rendered,["ready"]);
 });
+
+test("default browser timers retain the Window receiver and avoid Illegal invocation", () => {
+  const nativeSetTimeout=globalThis.setTimeout;
+  const nativeClearTimeout=globalThis.clearTimeout;
+  const timer=Symbol("browser-timer");
+  let scheduledCallback;
+  globalThis.setTimeout=function (callback,delay) {
+    if (this !== globalThis) throw new TypeError("Illegal invocation");
+    scheduledCallback=callback;
+    assert.equal(delay,INTRO_STATUS_POLL_INTERVAL_MS);
+    return timer;
+  };
+  globalThis.clearTimeout=function (receivedTimer) {
+    if (this !== globalThis) throw new TypeError("Illegal invocation");
+    assert.equal(receivedTimer,timer);
+  };
+  try {
+    const poller=new IntroStatusPoller({ load:async () => null,onState:async () => {},now:() => 0 });
+    assert.doesNotThrow(() => poller.start());
+    assert.equal(typeof scheduledCallback,"function");
+    assert.doesNotThrow(() => poller.stop());
+  } finally {
+    globalThis.setTimeout=nativeSetTimeout;
+    globalThis.clearTimeout=nativeClearTimeout;
+  }
+});

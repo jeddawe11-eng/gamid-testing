@@ -1,12 +1,14 @@
 export const INTRO_STATUS_POLL_INTERVAL_MS = 3000;
 export const INTRO_STATUS_POLL_MAX_MS = 5 * 60 * 1000;
 const TERMINAL_STATES = new Set(["ready","failed","cancelled"]);
+const scheduleBrowserTimer = (callback,delay) => globalThis.setTimeout(callback,delay);
+const clearBrowserTimer = timer => globalThis.clearTimeout(timer);
 
 export const isTerminalIntroState = intro => TERMINAL_STATES.has(intro?.latest_job_state);
 export const isProcessingIntroState = intro => ["pending","processing"].includes(intro?.latest_job_state);
 
 export class IntroStatusPoller {
-  constructor({ load, onState, intervalMs=INTRO_STATUS_POLL_INTERVAL_MS, maxDurationMs=INTRO_STATUS_POLL_MAX_MS, now=Date.now, setTimer=setTimeout, clearTimer=clearTimeout }) {
+  constructor({ load, onState, intervalMs=INTRO_STATUS_POLL_INTERVAL_MS, maxDurationMs=INTRO_STATUS_POLL_MAX_MS, now=Date.now, setTimer=scheduleBrowserTimer, clearTimer=clearBrowserTimer }) {
     this.load=load; this.onState=onState; this.intervalMs=intervalMs; this.maxDurationMs=maxDurationMs;
     this.now=now; this.setTimer=setTimer; this.clearTimer=clearTimer;
     this.timer=null; this.deadline=0; this.generation=0; this.inFlight=null; this.active=false;
