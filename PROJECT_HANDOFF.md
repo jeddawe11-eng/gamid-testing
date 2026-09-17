@@ -1,12 +1,12 @@
 # GamID — Authoritative Technical Continuation Handoff
 
-Last updated: 2026-09-17
+Last updated: 2026-09-18
 
 Repository: `jeddawe11-eng/gamid-testing`
 
 Branch: `main`
 
-Authoritative implementation checkpoint: `2fbfe3197f0f409a9c4247760740c61ad4618f43`
+Authoritative implementation checkpoint: `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (Split Reveal Intro-visibility fix, TESTING-deployed and manually accepted by Mazen; applied on top of the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`, which remains the latest substantive Slice 3C backend/timer checkpoint — see section 7a)
 
 This is the authoritative continuation record for Claude Code or any other coding agent. It records what exists, what Mazen accepted, what remains unverified, and what is only future direction. It does not authorize deferred testing, another slice, redesign, deployment, migration, cloud changes, or Production access.
 
@@ -45,7 +45,7 @@ Mazen intentionally deferred further Slice 3C manual testing and fixes. Do not r
 
 - GitHub: `https://github.com/jeddawe11-eng/gamid-testing`
 - Branch: `main`
-- Implementation checkpoint: `2fbfe3197f0f409a9c4247760740c61ad4618f43`
+- Implementation checkpoint: `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43` plus the accepted Split Reveal Intro-visibility fix; see section 7a)
 - Node.js: 20 or newer.
 - Frontend: dependency-free static HTML, CSS, and native ES modules under `dist/`.
 - Validation: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, and `git diff --check`.
@@ -223,6 +223,29 @@ Recorded validation at `2fbfe3197f0f409a9c4247760740c61ad4618f43`:
 
 These are historical results for that checkpoint, not a fresh run after later changes.
 
+## 7a. Split Reveal Intro-visibility fix — ACCEPTED
+
+**IMPLEMENTED AND ACCEPTED (scoped).** Mazen manually accepted this specific fix on real-device testing on 2026-09-18. This acceptance covers only the Split Reveal defect described below; it does not close the broader Slice 3C deferred verification items in section 9.
+
+**Symptom:** in the real account Preview flow (`/account/` → YOUR INTRO → PREVIEW INTRO), selecting the Split Reveal transition showed a static image for the entire time the Intro was playing, and the same static image kept appearing after the user's Intro video was replaced (Video 1 → Video 2 → Video 3), even though Cross Fade, Blur Fade, Shrink to Avatar, and Slide Away all correctly showed the current video.
+
+**Root cause:** `.split-panel` (Split Reveal's left/right halves, in `dist/styles.css`) becomes `display:block` as soon as the Split Reveal preset is selected — not gated to the transitioning state — and carries an explicit `z-index:4`, while `#introVideo` has no z-index (default/auto stacking tier). The panel's own `background-image` is the hardcoded build-time `assets/gamid-intro-poster.webp`, never derived from the user's actual video. As a result the panel visually covered the real, currently-playing Intro video for the entire pre-transition "intro" phase, every time Split Reveal was selected, regardless of which video was loaded — which is exactly why the same static image appeared to persist across every video replacement.
+
+Two earlier attempts were made and superseded before this root cause was isolated:
+- An initial fix (commit `9b41324`) made the intro layer's background transparent during the transition, fixing a separate stuck-black-overlay defect, but the transition itself still used a one-time canvas snapshot (`--split-frame`), which was frozen by design.
+- A second fix (commit `f4327d9`) replaced the canvas snapshot with live cloned `<video>` elements synced to the source video, fixing the transition's own motion — but this did not fix what users actually saw, because it only changes content during the `transitioning` state; the poster-covering-video defect above happens entirely during the earlier `intro` state, before any clone exists.
+- A speculative change (deriving the clone's source from `config.videoUrl` instead of `introVideo.currentSrc`) was investigated as a possible cause of a reported stale-video-reference symptom, but was not reproducible under rigorous testing and was reverted. It is **not** part of the accepted fix.
+
+**Accepted fix (commit `d7466f99e6f5398c5c0e83c029f1d09715c1321f`):** in `dist/account/intro-preview.css` (loaded only by the real Preview flow; the separately-accepted Slice 1 lab prototype at `dist/index.html` does not load this file and is unaffected):
+
+```css
+.preview-only .experience[data-state="intro"] .preset-split .split-panel{opacity:0;pointer-events:none}
+```
+
+This hides the panel (and its poster) with `opacity` only while `state="intro"`, so the real video is the top visible content during playback. It does not touch `display`, so the existing `transform` transition still animates smoothly once `state` flips to `transitioning`, at which point the panel reverts to its default `opacity:1` automatically, coinciding with when the live-clone-video mechanism (from `f4327d9`) takes over.
+
+**Validation:** lint PASS, typecheck PASS, tests 88/88 PASS. Verified across three distinct videos in one continuous session: each video's own content (not the poster) is visibly playing during the `intro` state, and each correctly carries into the Split Reveal transition with a clean completion to the `profile` state. Cross Fade, Blur Fade, Shrink to Avatar, and Slide Away reconfirmed unchanged.
+
 ## 8. Real Samsung / real E2E evidence
 
 A protected Samsung/@BLACK job proved the backend path:
@@ -251,7 +274,7 @@ Mazen chose not to spend more time on manual Slice 3C testing/fixes now. Slice 3
 These are **DEFERRED VERIFICATION**, not active authorization:
 
 - Preview Intro visual review.
-- Transition visual review.
+- Transition visual review — the Split Reveal preset specifically is now **FIXED AND ACCEPTED** (section 7a, checkpoint `d7466f99e6f5398c5c0e83c029f1d09715c1321f`); Cross Fade, Blur Fade, Shrink to Avatar, and Slide Away were reconfirmed unaffected during that fix, but have not been separately reviewed by Mazen.
 - Replace Intro manual regression.
 - Remove Intro manual regression.
 - Automatic Processing → Ready without refresh after the final timer fix.
@@ -263,6 +286,7 @@ Do not ask for another upload or resume these automatically. Discuss the next pr
 
 | Observation | Status | Meaning |
 |---|---|---|
+| Split Reveal showed a static poster instead of the playing Intro video, unaffected by video replacement | **FIXED AND ACCEPTED** | `.split-panel` was visible with `z-index:4` above `#introVideo` during the `intro` state; see section 7a, checkpoint `d7466f99e6f5398c5c0e83c029f1d09715c1321f` |
 | Samsung Avatar Gallery read/decode failures | **FIXED IMPLEMENTATION; 3A UNACCEPTED** | Stable Blob path exists; broader acceptance deferred |
 | Misleading Auth error during Intro upload | **FIXED** | Correct classification and TUS transport exist |
 | Samsung Intro source lifetime | **FIXED** | Stable Blob captured during selection |
@@ -388,8 +412,8 @@ Claude Code or another agent must:
 
 ## 16. START HERE
 
-Current exact implementation checkpoint: `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
+Current exact implementation checkpoint: `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43` plus the accepted Split Reveal Intro-visibility fix in section 7a).
 
-Slice 3C exists. Do not restart it. Its backend E2E succeeded and latest automated validation passed, but formal acceptance was not given. Mazen intentionally deferred further manual Slice 3C testing/fixes. Do not automatically continue them.
+Slice 3C exists. Do not restart it. Its backend E2E succeeded and latest automated validation passed. The Split Reveal transition defect within Slice 3C's Full Preview feature is now fixed and manually accepted by Mazen (section 7a), but this does not close Slice 3C as a whole — formal acceptance of the rest of Slice 3C was not given, and Mazen intentionally deferred the remaining manual Slice 3C testing/fixes listed in section 9. Do not automatically continue them.
 
 Do not start the next implementation slice. First inspect the repository read-only, then discuss the roadmap and next priority with Mazen. Proceed only after he explicitly chooses and authorizes the next work.

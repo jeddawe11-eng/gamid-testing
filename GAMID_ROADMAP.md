@@ -24,7 +24,7 @@ The current entity is **SOLO**. Team, Organization, and Company are future direc
 | Gaming Roles + Education & Work | **Implemented and accepted** |
 | Intro Identity Integration | **Implemented, not formally accepted** |
 
-Current implementation checkpoint: `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
+Current implementation checkpoint: `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43` plus the accepted Split Reveal Intro-visibility fix; see `PROJECT_HANDOFF.md` section 7a).
 
 ## Ordered roadmap
 
