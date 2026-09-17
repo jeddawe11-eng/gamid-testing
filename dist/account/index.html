@@ -55,7 +55,7 @@
       </div>
 
       <div id="identityView" class="view identity-editor">
-        <p class="eyebrow">GAMID IDENTITY FOUNDATION</p><h2>YOUR GAMID</h2><p class="lede">Shape your gaming identity. Your profile stays private until publishing is introduced in a future approved slice.</p>
+        <p class="eyebrow">GAMID IDENTITY FOUNDATION</p><h2>YOUR GAMID</h2><p class="lede">Shape your gaming identity. Your profile stays private until you explicitly publish it.</p>
         <section class="identity-preview" aria-label="Live GamID identity preview">
           <span class="preview-state">LIVE PREVIEW</span>
           <div class="preview-avatar avatar-placeholder" id="avatarSummary">G</div>
@@ -66,7 +66,10 @@
             <p id="educationWorkSummary" class="education-work-summary" hidden></p>
             <p id="bioSummary">Add a short bio to tell players who you are.</p>
           </div>
-          <span class="draft-chip">DRAFT · PRIVATE</span>
+          <div class="visibility-row">
+            <span class="draft-chip" id="visibilityChip">DRAFT · PRIVATE</span>
+            <button id="visibilityToggle" class="text-button" type="button" disabled>Publish</button>
+          </div>
         </section>
         <form id="profileForm" class="profile-form" novalidate>
           <label class="avatar-picker">Avatar <span>Private storage</span><input id="profileAvatarInput" name="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /><small>Tap to replace · JPG, PNG, WebP, or AVIF · max 5 MB</small></label>

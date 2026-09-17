@@ -190,6 +190,16 @@ function renderIntroState() {
   document.getElementById("removeIntroButton").disabled = !(pendingIntroSource || savedIntro?.activeJobId || ["pending","processing"].includes(savedIntro?.latestJobState));
 }
 
+function renderVisibility() {
+  const chip = document.getElementById("visibilityChip");
+  const toggle = document.getElementById("visibilityToggle");
+  const isPublic = identity?.visibility === "PUBLIC";
+  chip.textContent = isPublic ? "PUBLIC" : "DRAFT · PRIVATE";
+  chip.classList.toggle("is-public", isPublic);
+  toggle.textContent = isPublic ? "Unpublish" : "Publish";
+  toggle.disabled = !identity;
+}
+
 function updateProfilePreview() {
   const draft = profileDraft();
   document.getElementById("displayNameSummary").textContent = draft.displayName.trim() || "Your display name";
@@ -214,6 +224,7 @@ function updateProfilePreview() {
   document.getElementById("saveProfileButton").disabled = !isProfileDirty() || !validateProfileDraft(draft, profileCatalogs()).valid;
   document.getElementById("saveConfirmation").hidden = true;
   renderIntroState();
+  renderVisibility();
 }
 
 function releasePendingIntro() {
@@ -525,6 +536,21 @@ document.getElementById("introVideoInput").addEventListener("change", async even
 introTransition.addEventListener("change", updateProfilePreview);
 document.getElementById("removeIntroButton").addEventListener("click", () => {
   releasePendingIntro(); introAction = "remove"; updateProfilePreview();
+});
+
+document.getElementById("visibilityToggle").addEventListener("click", async event => {
+  const button = event.currentTarget;
+  const goingPublic = identity?.visibility !== "PUBLIC";
+  button.disabled = true;
+  try {
+    const result = await api.setMyIdentityVisibility(goingPublic);
+    identity = { ...identity, visibility: result?.visibility || (goingPublic ? "PUBLIC" : "PRIVATE") };
+    setMessage(goingPublic ? "Your GamID is now public." : "Your GamID is private again.", true);
+  } catch (error) {
+    setMessage(errorMessage(reasonFrom(error) || error.message));
+  } finally {
+    renderVisibility();
+  }
 });
 
 function currentPreviewConfig() {

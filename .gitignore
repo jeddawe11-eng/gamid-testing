@@ -1,2 +1,4 @@
 .sites-runtime/
+.claude/
+supabase/.temp/
 

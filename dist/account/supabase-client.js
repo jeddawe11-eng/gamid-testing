@@ -235,6 +235,25 @@ export async function queueIntro({ jobId, sourcePath, transitionKey, sourceMime,
 export const setIntroTransition = transitionKey => rpc("set_my_intro_transition", { candidate_transition:transitionKey });
 export const removeIntro = () => rpc("remove_my_intro");
 
+export async function setMyIdentityVisibility(candidatePublic) {
+  const rows = await rpc("set_my_identity_visibility", { candidate_public: candidatePublic });
+  return rows?.[0] || null;
+}
+
+export async function getPublicIdentity(handle) {
+  const rows = await rpc("get_public_identity", { candidate_handle: handle }, { anonymous: true });
+  return rows?.[0] || null;
+}
+
+export async function loadPublicAvatar(path) {
+  if (!path) return null;
+  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/avatars/${encodeStoragePath(path)}`, {
+    headers: { apikey: PUBLISHABLE_KEY },
+  });
+  if (!response.ok) return null;
+  return URL.createObjectURL(await response.blob());
+}
+
 export async function loadIntroMedia(path) {
   if (!path) return null;
   const blob = await requestBlob(`/storage/v1/object/authenticated/intro-media/${encodeStoragePath(path)}`, session?.access_token, "INTRO_READ_FAILED");

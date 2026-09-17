@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#08070d" />
+  <meta name="robots" content="noindex" />
+  <meta name="description" content="A GamID public identity." />
+  <title>GamID</title>
+  <link rel="stylesheet" href="public.css" />
+</head>
+<body>
+  <header class="site-head"><a href="../" class="brand" aria-label="GamID">GAM<span>ID</span></a><span class="test-badge">TESTING · TEMPORARY ROUTE</span></header>
+  <main class="public-shell">
+    <div id="loadingState" class="state"><div class="loader"></div><p>Loading GamID…</p></div>
+    <div id="notFoundState" class="state" hidden><h1>This GamID isn't public.</h1><p>The identity you're looking for doesn't exist, or its owner hasn't published it.</p></div>
+    <section id="profileView" class="public-card" hidden>
+      <div class="public-avatar avatar-placeholder" id="publicAvatar">G</div>
+      <h1 id="publicDisplayName"></h1>
+      <p class="handle" id="publicHandle"></p>
+      <div id="publicRoles" class="roles-preview" hidden><strong id="publicPrimaryRole"></strong><div id="publicSecondaryRoles"></div></div>
+      <p id="publicEducation" class="education-work-summary" hidden></p>
+      <p id="publicBio" class="bio" hidden></p>
+    </section>
+  </main>
+  <script type="module" src="public.js"></script>
+</body>
+</html>
