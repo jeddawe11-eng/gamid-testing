@@ -14,14 +14,10 @@
   <main class="public-shell">
     <div id="loadingState" class="state"><div class="loader"></div><p>Loading GamID…</p></div>
     <div id="notFoundState" class="state" hidden><h1>This GamID isn't public.</h1><p>The identity you're looking for doesn't exist, or its owner hasn't published it.</p></div>
-    <section id="profileView" class="public-card" hidden>
-      <div class="public-avatar avatar-placeholder" id="publicAvatar">G</div>
-      <h1 id="publicDisplayName"></h1>
-      <p class="handle" id="publicHandle"></p>
-      <div id="publicRoles" class="roles-preview" hidden><strong id="publicPrimaryRole"></strong><div id="publicSecondaryRoles"></div></div>
-      <p id="publicEducation" class="education-work-summary" hidden></p>
-      <p id="publicBio" class="bio" hidden></p>
-    </section>
+    <div id="experienceWrap" class="experience-wrap" hidden>
+      <iframe id="experienceFrame" title="GamID public identity" src="../account/intro-preview.html" allow="autoplay"></iframe>
+      <button id="replayIntroButton" class="replay-button" type="button" hidden>↻ Replay Intro</button>
+    </div>
   </main>
   <script type="module" src="public.js"></script>
 </body>

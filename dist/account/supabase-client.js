@@ -254,6 +254,15 @@ export async function loadPublicAvatar(path) {
   return URL.createObjectURL(await response.blob());
 }
 
+export async function loadPublicIntroMedia(path) {
+  if (!path) return null;
+  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/intro-media/${encodeStoragePath(path)}`, {
+    headers: { apikey: PUBLISHABLE_KEY },
+  });
+  if (!response.ok) return null;
+  return URL.createObjectURL(await response.blob());
+}
+
 export async function loadIntroMedia(path) {
   if (!path) return null;
   const blob = await requestBlob(`/storage/v1/object/authenticated/intro-media/${encodeStoragePath(path)}`, session?.access_token, "INTRO_READ_FAILED");

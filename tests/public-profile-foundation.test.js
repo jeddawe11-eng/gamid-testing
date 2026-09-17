@@ -76,10 +76,10 @@ test("The public route is read-only: no forms, no file inputs, no auth-only cont
   assert.match(publicHtml, /<meta name="robots" content="noindex"/);
 });
 
-test("The public page never sends an auth token and renders only public-safe fields", () => {
+test("The public page never sends an auth token and builds its config from only public-safe fields", () => {
   assert.match(publicController, /getPublicIdentity\(handle\)/);
   assert.doesNotMatch(publicController, /access_token|Authorization/);
-  for (const field of ["publicDisplayName", "publicHandle", "publicRoles", "publicEducation", "publicBio", "publicAvatar"]) {
-    assert.match(publicController, new RegExp(field));
+  for (const field of ["display_name", "gamid_handle", "role_catalog", "education_work_catalog", "bio", "avatar_media_reference"]) {
+    assert.match(publicController, new RegExp(field.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
 });
