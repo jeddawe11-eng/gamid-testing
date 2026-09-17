@@ -97,6 +97,7 @@ Repository migrations:
 13. `20260918121000_public_profile_avatar_read.sql`
 14. `20260918121500_public_profile_education_catalog.sql`
 15. `20260918122000_public_profile_avatar_policy_fix.sql`
+16. `20260918123000_fix_check_handle_availability_anon_grant.sql`
 
 Equivalent applied Slice 3C remote records are `20260916101711`, `20260916101805`, `20260916102030`, and dispatch activation record `20260916150139`. Do not rerun or duplicate them. Migrations 1–10 above were originally applied out-of-band under those different remote version identifiers; on 2026-09-18 their tracking history was reconciled via `supabase migration repair` (metadata-only — no schema or data was touched, verified by direct schema/RLS/function introspection beforehand) so that `supabase db push` could resume normal operation. Migrations 11–15 were applied by `supabase db push` directly and their remote version identifiers match their filenames exactly.
 
@@ -287,7 +288,7 @@ No existing table, RLS policy, or function was altered or weakened. `entities`/`
 
 ### A pre-existing bug found (not fixed — out of this slice's scope)
 
-While testing real sign-up against TESTING, handle-availability checking failed for a brand-new account with `permission denied for function check_handle_availability_impl`. Inspection showed `private.check_handle_availability_impl`'s live grant is missing `anon` (`{postgres=X,service_role=X,authenticated=X}`), even though its own migration (`20260912170000_harden_rpc_boundaries.sql`, already applied, unchanged) explicitly grants `anon, authenticated`. No later migration touches this function. This is a genuine drift between the migration file's intent and the live database, unrelated to Public Profile — **it currently blocks brand-new user sign-up in TESTING** (existing users signing in are unaffected). Not fixed here per the approved scope boundary; flagged for Mazen's decision.
+While testing real sign-up against TESTING, handle-availability checking failed for a brand-new account with `permission denied for function check_handle_availability_impl`. Inspection showed `private.check_handle_availability_impl`'s live grant is missing `anon` (`{postgres=X,service_role=X,authenticated=X}`), even though its own migration (`20260912170000_harden_rpc_boundaries.sql`, already applied, unchanged) explicitly grants `anon, authenticated`. No later migration touches this function. This is a genuine drift between the migration file's intent and the live database, unrelated to Public Profile — **it currently blocks brand-new user sign-up in TESTING** (existing users signing in are unaffected). Not fixed in this slice per its approved scope boundary; flagged for Mazen's decision. **Fixed separately afterward — see section 7c.**
 
 ### Validation
 
@@ -299,6 +300,30 @@ While testing real sign-up against TESTING, handle-availability checking failed 
   - Clicking Unpublish → anonymous identity call and anonymous avatar fetch both fail/empty immediately (no caching lag observed).
   - The temporary `/public/?handle=` page correctly renders both the "not public" state and the fully published state, entirely signed out.
   - Existing `/account/` sign-in, profile editing, Gaming Roles, Education/Work, and the Intro accordion (all five accepted transitions still listed) reconfirmed working, unaffected by these changes.
+
+## 7c. Sign-up permission drift fix — `check_handle_availability_impl` anon grant
+
+**FIXED.** Mazen authorized fixing exactly the drift identified in section 7b, and only that drift.
+
+**Verification before fixing:** re-confirmed read-only against live GamID TESTING that `private.check_handle_availability_impl`'s ACL was still exactly `{postgres=X,service_role=X,authenticated=X}` (missing `anon`), that the public wrapper `public.check_handle_availability` correctly still had `anon`, that no migration newer than `20260912170000_harden_rpc_boundaries.sql` touches this function, and that an anonymous call still failed with the exact same `permission denied for function check_handle_availability_impl` (HTTP 401) error as originally reported. The observed state matched the previously confirmed issue exactly, so the fix proceeded.
+
+**Fix (commit and migration `20260918123000_fix_check_handle_availability_anon_grant.sql`, applied only to GamID TESTING):**
+
+```sql
+grant execute on function private.check_handle_availability_impl(text) to anon;
+```
+
+A single-statement forward migration restoring exactly the grant the original, unmodified, already-applied migration already specifies — nothing else. No historical migration was rewritten. No other grant, RLS policy, or table was touched. `authenticated`'s existing correct grant was left alone (only `anon` was missing and only `anon` was added).
+
+**Live validation after the fix**, using a second disposable test account created and fully deleted afterward:
+
+- Handle-availability now succeeds anonymously (`{"available":true}` for a fresh handle) both via a direct HTTPS call and through the real sign-up UI (`@handle is available` now renders live, with no workaround needed).
+- A brand-new TESTING user completed sign-up → email confirmation → Solo identity creation entirely through the normal UI flow.
+- Existing sign-in continued to work for the pre-existing accounts used earlier in this session.
+- YOUR GAMID editing (Bio/Roles/Education) unaffected.
+- Public GamID Profile Slice 1/2 Publish/Unpublish re-verified end-to-end: publish exposes exactly the approved public-safe fields anonymously; unpublish immediately removes anonymous access again; no private/internal field appeared in any response.
+- The Intro accordion and all five accepted transitions (Cross Fade, Blur Fade, Shrink to Avatar, Slide Away, Split Reveal) confirmed still listed and functioning, unaffected.
+- lint PASS, typecheck PASS, tests **101/101 PASS** (99 existing + 2 new, asserting the fix migration is a single minimal grant with no revoke/drop/create/alter statements).
 
 ## 8. Real Samsung / real E2E evidence
 
@@ -341,6 +366,7 @@ Do not ask for another upload or resume these automatically. Discuss the next pr
 | Observation | Status | Meaning |
 |---|---|---|
 | Split Reveal showed a static poster instead of the playing Intro video, unaffected by video replacement | **FIXED AND ACCEPTED** | `.split-panel` was visible with `z-index:4` above `#introVideo` during the `intro` state; see section 7a, checkpoint `d7466f99e6f5398c5c0e83c029f1d09715c1321f` |
+| Brand-new user sign-up blocked in TESTING (`check_handle_availability_impl` missing its `anon` grant) | **FIXED** | Live grant had drifted from the already-applied, unmodified migration's intent; see section 7c, checkpoint `6bad4d583735d1e8c589642911f3decd52d7eff2` |
 | Samsung Avatar Gallery read/decode failures | **FIXED IMPLEMENTATION; 3A UNACCEPTED** | Stable Blob path exists; broader acceptance deferred |
 | Misleading Auth error during Intro upload | **FIXED** | Correct classification and TUS transport exist |
 | Samsung Intro source lifetime | **FIXED** | Stable Blob captured during selection |
@@ -466,12 +492,12 @@ Claude Code or another agent must:
 
 ## 16. START HERE
 
-Current exact implementation checkpoint: `697b6e3773233d4b403becb63a6857893dbe0ea2` — Public GamID Profile Slice 1/2 (Foundation + Public-Safe Data), TESTING-deployed and validated but **not yet formally accepted by Mazen** (section 7b). Built on top of the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a) and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
+Current exact implementation checkpoint: `6bad4d583735d1e8c589642911f3decd52d7eff2` — fixes the `check_handle_availability_impl` sign-up permission drift (section 7c). Built on top of Public GamID Profile Slice 1/2 (Foundation + Public-Safe Data) `697b6e3773233d4b403becb63a6857893dbe0ea2`, TESTING-deployed and validated but **not yet formally accepted by Mazen** (section 7b), the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a), and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
 Slice 3C exists. Do not restart it. Its backend E2E succeeded and latest automated validation passed. The Split Reveal transition defect within Slice 3C's Full Preview feature is fixed and manually accepted by Mazen (section 7a), but this does not close Slice 3C as a whole — formal acceptance of the rest of Slice 3C was not given, and Mazen intentionally deferred the remaining manual Slice 3C testing/fixes listed in section 9. Do not automatically continue them.
 
 Public GamID Profile Slice 1/2 exists and is deployed to TESTING (section 7b). It has not been formally accepted. **Public GamID Profile Slice 2/2 (the public Intro → Transition → Identity experience) has NOT been started and must not begin without Mazen's explicit authorization** — do not infer authorization from Slice 1/2's existence or from its position in the roadmap.
 
-A pre-existing, unrelated bug was found during Slice 1/2 testing and intentionally left unfixed: `private.check_handle_availability_impl` is missing its live `anon` grant, currently blocking brand-new user sign-up in TESTING (section 7b). This needs Mazen's decision before anyone fixes it.
+A pre-existing, unrelated bug was found during Slice 1/2 testing (`private.check_handle_availability_impl` missing its live `anon` grant, blocking brand-new user sign-up in TESTING) and has since been fixed under separate authorization — see section 7c.
 
 Do not start the next implementation slice. First inspect the repository read-only, then discuss the roadmap and next priority with Mazen. Proceed only after he explicitly chooses and authorizes the next work.
