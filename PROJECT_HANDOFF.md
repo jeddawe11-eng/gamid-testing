@@ -6,7 +6,7 @@ Repository: `jeddawe11-eng/gamid-testing`
 
 Branch: `main`
 
-Authoritative implementation checkpoint: `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (Split Reveal Intro-visibility fix, TESTING-deployed and manually accepted by Mazen; applied on top of the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`, which remains the latest substantive Slice 3C backend/timer checkpoint — see section 7a)
+Authoritative implementation checkpoint: see section 16 for the exact current commit. Public GamID Profile Slice 1/2 (Foundation + Public-Safe Data) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7b. It is applied on top of the accepted Split Reveal Intro-visibility fix (section 7a) and the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
 This is the authoritative continuation record for Claude Code or any other coding agent. It records what exists, what Mazen accepted, what remains unverified, and what is only future direction. It does not authorize deferred testing, another slice, redesign, deployment, migration, cloud changes, or Production access.
 
@@ -37,6 +37,8 @@ The current entity is **SOLO**. **Team**, **Organization**, and **Company** are 
 | Slice 3A — YOUR GAMID Identity Editor | **IMPLEMENTED, NOT FORMALLY ACCEPTED** | Deployed implementation; preserve it |
 | Slice 3B — Gaming Roles + Education & Work | **IMPLEMENTED AND ACCEPTED** | Deployed and accepted by Mazen |
 | Slice 3C — Intro Identity Integration | **IMPLEMENTED, NOT FORMALLY ACCEPTED** | Latest implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43` |
+| Public GamID Profile — Slice 1/2 (Foundation + Public-Safe Data) | **IMPLEMENTED, NOT FORMALLY ACCEPTED** | TESTING-deployed and validated; see section 7b |
+| Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions) | **NOT STARTED** | Explicitly deferred; do not begin without Mazen's authorization |
 | Post-3C phases | **APPROVED DIRECTION / IDEA ONLY** | See `GAMID_ROADMAP.md`; none is authorized to start |
 
 Mazen intentionally deferred further Slice 3C manual testing and fixes. Do not resume them automatically and do not infer acceptance from technical completion.
@@ -90,8 +92,13 @@ Repository migrations:
 8. `20260916173000_slice_3c_intro_indexes.sql`
 9. `20260916174500_slice_3c_worker_permissions.sql`
 10. `20260916180000_slice_3c_dispatch_activation.sql`
+11. `20260918120000_public_profile_foundation.sql`
+12. `20260918120500_public_profile_rpcs.sql`
+13. `20260918121000_public_profile_avatar_read.sql`
+14. `20260918121500_public_profile_education_catalog.sql`
+15. `20260918122000_public_profile_avatar_policy_fix.sql`
 
-Equivalent applied Slice 3C remote records are `20260916101711`, `20260916101805`, `20260916102030`, and dispatch activation record `20260916150139`. Do not rerun or duplicate them.
+Equivalent applied Slice 3C remote records are `20260916101711`, `20260916101805`, `20260916102030`, and dispatch activation record `20260916150139`. Do not rerun or duplicate them. Migrations 1–10 above were originally applied out-of-band under those different remote version identifiers; on 2026-09-18 their tracking history was reconciled via `supabase migration repair` (metadata-only — no schema or data was touched, verified by direct schema/RLS/function introspection beforehand) so that `supabase db push` could resume normal operation. Migrations 11–15 were applied by `supabase db push` directly and their remote version identifiers match their filenames exactly.
 
 Dispatch boundary:
 
@@ -245,6 +252,53 @@ Two earlier attempts were made and superseded before this root cause was isolate
 This hides the panel (and its poster) with `opacity` only while `state="intro"`, so the real video is the top visible content during playback. It does not touch `display`, so the existing `transform` transition still animates smoothly once `state` flips to `transitioning`, at which point the panel reverts to its default `opacity:1` automatically, coinciding with when the live-clone-video mechanism (from `f4327d9`) takes over.
 
 **Validation:** lint PASS, typecheck PASS, tests 88/88 PASS. Verified across three distinct videos in one continuous session: each video's own content (not the poster) is visibly playing during the `intro` state, and each correctly carries into the Split Reveal transition with a clean completion to the `profile` state. Cross Fade, Blur Fade, Shrink to Avatar, and Slide Away reconfirmed unchanged.
+
+## 7b. Public GamID Profile — Slice 1/2 (Foundation + Public-Safe Data)
+
+**IMPLEMENTED, DEPLOYED TO TESTING, VALIDATED — NOT FORMALLY ACCEPTED.** This is the first of exactly two approved implementation slices for the Public GamID Profile roadmap item. **Slice 2/2 (the actual public Intro → Transition → Identity experience) is explicitly deferred and not started.** Do not begin it without Mazen's authorization.
+
+### Goal
+
+Let a SOLO owner explicitly publish/unpublish a read-only public identity, and let an anonymous visitor retrieve only the fields the owner has made public — without ever weakening RLS, without `/account/` becoming the public route, and without building the final public experience or full granular privacy controls (both remain future roadmap items).
+
+### Database changes (5 forward migrations, all applied only to GamID TESTING `upvtrczefcvigxdyuylw`)
+
+| Migration | Purpose |
+|---|---|
+| `20260918120000_public_profile_foundation.sql` | Adds `'PUBLIC'` as a new value to the existing `public.entity_visibility` enum (previously `DRAFT`/`PRIVATE`, already present but unused by any frontend code). Isolated in its own migration/transaction because Postgres forbids using a freshly added enum value in the same transaction that adds it. |
+| `20260918120500_public_profile_rpcs.sql` | Adds `set_my_identity_visibility(candidate_public boolean)` (authenticated-only publish/unpublish, `private`-impl + `public`-invoker pattern, same as every other mutation in this codebase) and `get_public_identity(candidate_handle text)` (anonymous-safe read, gated on `visibility = 'PUBLIC'`). |
+| `20260918121000_public_profile_avatar_read.sql` | Adds a `storage.objects` SELECT policy for the `avatars` bucket, initially written as a direct `exists (select 1 from public.entities …)` subquery. |
+| `20260918121500_public_profile_education_catalog.sql` | Extends `get_public_identity`'s return columns to also include `education_work_catalog jsonb`, matching the same catalog-label pattern already used for Gaming Roles, so Education/Work renders proper labels instead of raw catalog keys. |
+| `20260918122000_public_profile_avatar_policy_fix.sql` | **Fixes a real bug found during live E2E testing**: the storage policy from `20260918121000` failed with `permission denied for table entities` when evaluated as `anon`, because RLS policy subqueries run with the querying role's own table privileges, and `anon` correctly has no direct grant on `public.entities`. Fixed by moving the check into a new `security definer` function `private.avatar_is_public(candidate_path text)`, granted to `anon, authenticated`, and referencing that function from the policy instead of querying `entities` directly. |
+
+No existing table, RLS policy, or function was altered or weakened. `entities`/`profiles`/`profile_gaming_roles` still have **zero** direct `anon` grants — the two new functions plus the one new storage policy are the *only* anonymous-safe boundary, both `security definer` internally and both explicitly scoped to `visibility = 'PUBLIC'`.
+
+**Public-safe fields exposed:** `gamid_handle`, `display_name`, `avatar_media_reference` (path only; actual bytes gated by the storage policy above), `bio`, `role_keys`/`primary_role_key`/`role_catalog` (Gaming Roles), `education_work_status`/`institution`/`field_of_study`/`education_work_catalog` (Education & Work).
+
+**Explicitly never exposed:** email, date of birth, any `auth.*` data, internal `entity_id`/`profile_id`, the raw QR `public_token`, draft/unpublished state, or any Storage/processing internals. Confirmed both by static test assertions (below) and by inspecting the actual live anonymous HTTP response during E2E testing.
+
+### Frontend changes
+
+- `dist/account/supabase-client.js`: added `setMyIdentityVisibility(candidatePublic)`, `getPublicIdentity(handle)` (anonymous RPC call), and `loadPublicAvatar(path)` (avatar fetch with no Authorization header, relying solely on the new anon-safe storage policy).
+- `dist/account/index.html` / `account.js` / `account.css`: added a Publish/Unpublish control integrated into the existing YOUR GAMID live-preview card (`#visibilityChip` / `#visibilityToggle`) — no unrelated UI redesigned. The lede copy was updated from "publishing is introduced in a future approved slice" to reflect that it now exists.
+- `dist/public/` (new, page-specific, loads only its own two small files): a temporary, reversible TESTING route — `dist/public/index.html?handle=<handle>` — that is read-only, requires no authentication, sends no auth token of any kind, and renders only the public-safe fields above. Handles not-found/unpublished identically (an empty RPC result either way, so the page cannot distinguish "doesn't exist" from "exists but private," which is intentional). **This route/URL is explicitly temporary** — the final permanent share-URL syntax (`GAMID_ROADMAP.md` item 3) and persistent QR resolution (item 4) are separate, unstarted roadmap items and were not decided here.
+- `package.json`: added `dist/public/public.js` to the `typecheck` script.
+- `tests/public-profile-foundation.test.js` (new, 11 tests, following this repo's existing static-assertion pattern for migrations/HTML): asserts the enum change is isolated, the private/public function split and grants are correct, the public RPC's return columns never include a forbidden field, the storage policy is scoped correctly, and the public route has no forms/file inputs/auth-only controls.
+
+### A pre-existing bug found (not fixed — out of this slice's scope)
+
+While testing real sign-up against TESTING, handle-availability checking failed for a brand-new account with `permission denied for function check_handle_availability_impl`. Inspection showed `private.check_handle_availability_impl`'s live grant is missing `anon` (`{postgres=X,service_role=X,authenticated=X}`), even though its own migration (`20260912170000_harden_rpc_boundaries.sql`, already applied, unchanged) explicitly grants `anon, authenticated`. No later migration touches this function. This is a genuine drift between the migration file's intent and the live database, unrelated to Public Profile — **it currently blocks brand-new user sign-up in TESTING** (existing users signing in are unaffected). Not fixed here per the approved scope boundary; flagged for Mazen's decision.
+
+### Validation
+
+- lint PASS, typecheck PASS, tests **99/99 PASS** (88 existing + 11 new).
+- Genuine live E2E against GamID TESTING (real anonymous HTTPS calls, not mocked), using a disposable test account created and fully deleted afterward (entity/profile/roles/QR/auth user cascaded via `DELETE FROM public.entities`, then `DELETE FROM auth.users`; the one associated private avatar Storage object could not be deleted via SQL — Supabase blocks direct storage-table deletion — and was left as a harmless orphan with no owning entity, so the new policy can never match it):
+  - New account defaults to `DRAFT`/private; anonymous `get_public_identity` returns `[]`.
+  - Owner fills Bio, Gaming Roles (primary + secondary), Education/Work, and an Avatar; saves successfully; existing editor/Slice 3A/3B behavior unaffected.
+  - Clicking Publish → anonymous call returns exactly the approved fields with correct catalog labels, and the avatar loads anonymously; response contains no email/DOB/internal IDs/QR token.
+  - Clicking Unpublish → anonymous identity call and anonymous avatar fetch both fail/empty immediately (no caching lag observed).
+  - The temporary `/public/?handle=` page correctly renders both the "not public" state and the fully published state, entirely signed out.
+  - Existing `/account/` sign-in, profile editing, Gaming Roles, Education/Work, and the Intro accordion (all five accepted transitions still listed) reconfirmed working, unaffected by these changes.
 
 ## 8. Real Samsung / real E2E evidence
 
@@ -412,8 +466,12 @@ Claude Code or another agent must:
 
 ## 16. START HERE
 
-Current exact implementation checkpoint: `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43` plus the accepted Split Reveal Intro-visibility fix in section 7a).
+Current exact implementation checkpoint: `697b6e3773233d4b403becb63a6857893dbe0ea2` — Public GamID Profile Slice 1/2 (Foundation + Public-Safe Data), TESTING-deployed and validated but **not yet formally accepted by Mazen** (section 7b). Built on top of the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a) and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
-Slice 3C exists. Do not restart it. Its backend E2E succeeded and latest automated validation passed. The Split Reveal transition defect within Slice 3C's Full Preview feature is now fixed and manually accepted by Mazen (section 7a), but this does not close Slice 3C as a whole — formal acceptance of the rest of Slice 3C was not given, and Mazen intentionally deferred the remaining manual Slice 3C testing/fixes listed in section 9. Do not automatically continue them.
+Slice 3C exists. Do not restart it. Its backend E2E succeeded and latest automated validation passed. The Split Reveal transition defect within Slice 3C's Full Preview feature is fixed and manually accepted by Mazen (section 7a), but this does not close Slice 3C as a whole — formal acceptance of the rest of Slice 3C was not given, and Mazen intentionally deferred the remaining manual Slice 3C testing/fixes listed in section 9. Do not automatically continue them.
+
+Public GamID Profile Slice 1/2 exists and is deployed to TESTING (section 7b). It has not been formally accepted. **Public GamID Profile Slice 2/2 (the public Intro → Transition → Identity experience) has NOT been started and must not begin without Mazen's explicit authorization** — do not infer authorization from Slice 1/2's existence or from its position in the roadmap.
+
+A pre-existing, unrelated bug was found during Slice 1/2 testing and intentionally left unfixed: `private.check_handle_availability_impl` is missing its live `anon` grant, currently blocking brand-new user sign-up in TESTING (section 7b). This needs Mazen's decision before anyone fixes it.
 
 Do not start the next implementation slice. First inspect the repository read-only, then discuss the roadmap and next priority with Mazen. Proceed only after he explicitly chooses and authorizes the next work.

@@ -23,8 +23,10 @@ The current entity is **SOLO**. Team, Organization, and Company are future direc
 | YOUR GAMID editor | **Implemented, not formally accepted** |
 | Gaming Roles + Education & Work | **Implemented and accepted** |
 | Intro Identity Integration | **Implemented, not formally accepted** |
+| Public GamID Profile — Slice 1/2 (Foundation + Public-Safe Data) | **Implemented, not formally accepted** |
+| Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions) | **Not started** |
 
-Current implementation checkpoint: `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43` plus the accepted Split Reveal Intro-visibility fix; see `PROJECT_HANDOFF.md` section 7a).
+Current implementation checkpoint: `697b6e3773233d4b403becb63a6857893dbe0ea2` — Public GamID Profile Slice 1/2 (Foundation + Public-Safe Data), built on top of the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`; see `PROJECT_HANDOFF.md` section 7b.
 
 ## Ordered roadmap
 
@@ -36,9 +38,13 @@ Deferred: Intro/transition visual review, Replace and Remove regressions, final 
 
 ### 2. Public GamID Profile
 
-**Approved direction — Requires Mazen approval**
+Split into exactly two implementation slices. Do not treat either as authorization for anything beyond its own stated scope.
 
-Build a viewer experience separate from owner/editor `/account/`. It may present Intro → transition → public Identity; Avatar, Display Name, handle, Bio, roles; optionally exposed Education/Work; chosen Games, Stats, Connections, and Socials; verification indicators; QR/share. Privacy controls come first.
+**Slice 1/2 — Foundation + Public-Safe Data.** **Implemented, TESTING-validated, not yet formally accepted by Mazen** (see `PROJECT_HANDOFF.md` section 7b). Owner-controlled Publish/Unpublish (existing accounts stay private by default), a public-safe anonymous RPC/data boundary exposing only Avatar, Display Name, Permanent Handle, Bio, Gaming Roles, and Education/Work, and a temporary reversible TESTING route (`/public/?handle=`) that renders that data with no editing controls. Explicitly excludes the Intro → Transition experience, the final share-URL scheme, and QR resolution.
+
+**Slice 2/2 — Public Experience + Intro/Transitions.** **Not started.** Requires Mazen's explicit authorization before beginning. Would build the actual Intro → transition → public Identity viewing experience on top of Slice 1/2's data boundary, using the accepted Transition Engine.
+
+Chosen Games, Stats, Connections, Socials, verification indicators, the final permanent share URL, and QR sharing remain separate, unstarted roadmap items (3–9 below) and are not part of either Public Profile slice.
 
 ### 3. Permanent share link
 
