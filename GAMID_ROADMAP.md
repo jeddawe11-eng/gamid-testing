@@ -24,9 +24,9 @@ The current entity is **SOLO**. Team, Organization, and Company are future direc
 | Gaming Roles + Education & Work | **Implemented and accepted** |
 | Intro Identity Integration | **Implemented, not formally accepted** |
 | Public GamID Profile — Slice 1/2 (Foundation + Public-Safe Data) | **Implemented, not formally accepted** |
-| Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions) | **Not started** |
+| Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions) | **Implemented, not formally accepted** |
 
-Current implementation checkpoint: `697b6e3773233d4b403becb63a6857893dbe0ea2` — Public GamID Profile Slice 1/2 (Foundation + Public-Safe Data), built on top of the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`; see `PROJECT_HANDOFF.md` section 7b.
+Current implementation checkpoint: `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` — Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions), built on top of Slice 1/2 `697b6e3773233d4b403becb63a6857893dbe0ea2`, the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f`, and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`; see `PROJECT_HANDOFF.md` section 7d.
 
 ## Ordered roadmap
 
@@ -42,9 +42,9 @@ Split into exactly two implementation slices. Do not treat either as authorizati
 
 **Slice 1/2 — Foundation + Public-Safe Data.** **Implemented, TESTING-validated, not yet formally accepted by Mazen** (see `PROJECT_HANDOFF.md` section 7b). Owner-controlled Publish/Unpublish (existing accounts stay private by default), a public-safe anonymous RPC/data boundary exposing only Avatar, Display Name, Permanent Handle, Bio, Gaming Roles, and Education/Work, and a temporary reversible TESTING route (`/public/?handle=`) that renders that data with no editing controls. Explicitly excludes the Intro → Transition experience, the final share-URL scheme, and QR resolution.
 
-**Slice 2/2 — Public Experience + Intro/Transitions.** **Not started.** Requires Mazen's explicit authorization before beginning. Would build the actual Intro → transition → public Identity viewing experience on top of Slice 1/2's data boundary, using the accepted Transition Engine.
+**Slice 2/2 — Public Experience + Intro/Transitions.** **Implemented, TESTING-validated, not yet formally accepted by Mazen** (see `PROJECT_HANDOFF.md` section 7d). Builds the actual Intro → Transition → public Profile viewing experience on top of Slice 1/2's data boundary, reusing the accepted Transition Engine and the existing Intro Identity implementation unmodified (via an iframe + postMessage, not a second Intro system). Includes an unobtrusive Replay Intro control and a clean no-Intro fallback. Both Public GamID Profile slices are now implemented; the roadmap item has no remaining unstarted slice.
 
-Chosen Games, Stats, Connections, Socials, verification indicators, the final permanent share URL, and QR sharing remain separate, unstarted roadmap items (3–9 below) and are not part of either Public Profile slice.
+Chosen Games, Stats, Connections, Socials, verification indicators, the final permanent share URL, and QR sharing remain separate, unstarted roadmap items (3–9 below) and are not part of either Public Profile slice — neither slice decided or locked in the final permanent URL/QR architecture.
 
 ### 3. Permanent share link
 

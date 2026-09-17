@@ -6,7 +6,7 @@ Repository: `jeddawe11-eng/gamid-testing`
 
 Branch: `main`
 
-Authoritative implementation checkpoint: see section 16 for the exact current commit. Public GamID Profile Slice 1/2 (Foundation + Public-Safe Data) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7b. It is applied on top of the accepted Split Reveal Intro-visibility fix (section 7a) and the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
+Authoritative implementation checkpoint: see section 16 for the exact current commit. Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7d. It is applied on top of Slice 1/2 (Foundation + Public-Safe Data, section 7b, also not yet formally accepted), the accepted Split Reveal Intro-visibility fix (section 7a), and the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
 This is the authoritative continuation record for Claude Code or any other coding agent. It records what exists, what Mazen accepted, what remains unverified, and what is only future direction. It does not authorize deferred testing, another slice, redesign, deployment, migration, cloud changes, or Production access.
 
@@ -175,6 +175,14 @@ Historical Samsung Gallery-backed Avatar files produced `File.arrayBuffer()` / `
 | `1c2a22c` | Processing polling and foreground refresh |
 | `2fbfe3197f0f409a9c4247760740c61ad4618f43` | Correct browser timer binding; latest implementation |
 
+### Public GamID Profile — Slice 1/2 (Foundation + Public-Safe Data)
+
+**IMPLEMENTED, DEPLOYED TO TESTING, VALIDATED, NOT FORMALLY ACCEPTED.** See section 7b.
+
+### Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions)
+
+**IMPLEMENTED, DEPLOYED TO TESTING, VALIDATED, NOT FORMALLY ACCEPTED.** See section 7d.
+
 ## 7. Slice 3C exact implementation
 
 ### Owner experience
@@ -325,6 +333,61 @@ A single-statement forward migration restoring exactly the grant the original, u
 - The Intro accordion and all five accepted transitions (Cross Fade, Blur Fade, Shrink to Avatar, Slide Away, Split Reveal) confirmed still listed and functioning, unaffected.
 - lint PASS, typecheck PASS, tests **101/101 PASS** (99 existing + 2 new, asserting the fix migration is a single minimal grant with no revoke/drop/create/alter statements).
 
+## 7d. Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions)
+
+**IMPLEMENTED, DEPLOYED TO TESTING, VALIDATED — NOT FORMALLY ACCEPTED.** Mazen authorized this exact scope: build the actual Intro → Transition → Public Profile visitor experience on top of Slice 1/2's public-safe data boundary, using the accepted Transition Engine and the existing Intro Identity implementation, with no second Intro system, no AI/Cinematic Identity work, and no roadmap items beyond this slice.
+
+### Goal
+
+A visitor opening a published player's public GamID experiences INTRO → SELECTED TRANSITION → PUBLIC PROFILE using the player's existing real GamID identity data — the normal/basic foundation, not the future experimental cinematic/AI identity system.
+
+### Backend changes (2 forward migrations, applied only to GamID TESTING `upvtrczefcvigxdyuylw`)
+
+| Migration | Purpose |
+|---|---|
+| `20260918130000_public_profile_intro.sql` | Extends `get_public_identity`'s return columns with `intro_transition_key text` and `intro_derivative_path text`, gated on `e.visibility = 'PUBLIC'` and the active intro job's `state = 'ready'`. Returns nothing for these columns when no Intro is configured or it is still processing — the frontend treats an empty path as "no Intro." |
+| `20260918130500_public_profile_intro_media_read.sql` | Adds a `storage.objects` SELECT policy for the `intro-media` bucket via a new `security definer` function `private.intro_media_is_public(candidate_path text)`, granted to `anon, authenticated` — written security-definer-first from the start, applying the lesson learned from the avatar policy bug in Slice 1/2 (section 7b) rather than repeating it. |
+
+No table gained a direct `anon` grant. `intro_processing_jobs`, `profile_intro_settings`, and `entities` still have zero direct anonymous access — the RPC and the one new storage policy are the only anonymous-safe boundary, both scoped to `visibility = 'PUBLIC'` and a ready derivative.
+
+**Never returned by the RPC:** `job_id`, `profile_id`, `entity_id`, `owner_user_id`, `source_path`, `failure_code`, or any other Intro processing internal — confirmed by static test assertion and by inspecting the actual anonymous HTTP response during E2E testing.
+
+### Frontend changes
+
+- `dist/account/supabase-client.js`: added `loadPublicIntroMedia(path)`, mirroring the existing `loadPublicAvatar(path)` exactly — anonymous fetch, no `Authorization` header.
+- `dist/account/intro-preview.html` / `intro-preview.js`: the same file the owner's own **PREVIEW INTRO** dialog already uses (`account.js`'s existing postMessage contract), reused unmodified for the public route via an `<iframe>`. Extended, not replaced, with:
+  - a `publicMode` config flag that hides the owner-only `PREVIEW` badge, `DRAFT · PRIVATE` badge, and the `YOUR GAMID` eyebrow label (`account.js` never sets this flag, so the owner's own preview is provably unaffected — asserted by test);
+  - a no-video branch that jumps straight to the revealed profile via the **existing** `SKIP` state-machine event, so a no-Intro profile opens directly with no broken/empty Intro stage instead of needing new state-machine logic;
+  - a `gamid-intro-preview-state` broadcast so a host page can show/hide its own Replay control without polling.
+- `dist/public/public.js`: rewritten to call `getPublicIdentity(handle)`, build the same config shape `account.js`'s own preview builds, load the avatar and Intro media anonymously in parallel, and post that config into the iframe. Adds an unobtrusive **↻ Replay Intro** button (`dist/public/index.html`, `public.css`) that appears only once the profile is revealed and only when an Intro exists, and replays by re-posting the same config — never `location.reload()`.
+- `dist/public/index.html` / `public.css`: the old Slice 1/2 custom `.public-card` markup is removed in favor of the iframe; the loading/not-found states and site header are unchanged. The route is still the same temporary `/public/?handle=` structure from Slice 1/2 — no permanent URL/QR architecture was decided or locked in.
+
+### Two genuine bugs found and fixed during live E2E testing
+
+Both were found by testing the real deployed-shape flow in a browser against live TESTING data (not by static assertions), and both are fixed in the implementation checkpoint below:
+
+1. **Intro never played on first page load.** `public.js` originally attached its `message` listener only *after* `await`ing the identity fetch and the avatar/Intro-media loads. `intro-preview.js` posts its `gamid-intro-preview-ready` signal synchronously as soon as its own script runs, which happens immediately because the iframe is already present in the static HTML. That ready signal reliably arrived before the listener existed and was silently lost, so the config was never sent and the Intro stage stayed permanently blank. Fixed by attaching the listener first, before any `await`, and calling `send()` again once the config resolves.
+2. **`DRAFT · PRIVATE` badge stayed visible in public mode despite `hidden=true`.** `intro-preview.css` unconditionally set `.preview-private{display:inline-block}`. That rule has the same CSS specificity as the browser's built-in `[hidden]{display:none}` rule, and being an author style it wins the cascade — so setting the `hidden` property in JavaScript had no visible effect. Fixed with a scoped `.preview-private[hidden]{display:none}` override that changes nothing about the badge's normal (visible) appearance.
+
+A third, lower-severity issue (the static `YOUR GAMID` eyebrow label rendering on a visitor's screen above someone else's identity) was fixed the same way the existing badges are hidden — a new `id="previewEyebrow"` toggled by the same `publicMode` flag — rather than inventing new public-facing copy.
+
+### Validation
+
+- lint PASS, typecheck PASS, tests **115/115 PASS** (112 existing + 3 new, covering the message-listener ordering fix, the `send()` guard, and the CSS/hidden fix).
+- Genuine live E2E against GamID TESTING using a disposable account (`slice2test1`, created and fully deleted afterward via the same cascade-delete pattern as sections 7b/7c):
+  - Full onboarding → Intro upload → transition selection → Publish, through the real UI.
+  - Intro → Transition → Profile confirmed working end-to-end after the fixes above, with the owner-only `PREVIEW`/`DRAFT · PRIVATE`/`YOUR GAMID` chrome correctly absent.
+  - **All five accepted transitions individually verified in the public experience**: Cross Fade, Blur Fade, Shrink to Center, Slide Away, and Split Reveal (including its live-video clone mechanism) each reached the `profile` state cleanly.
+  - Replay Intro verified: replays Intro → transition → profile with `performance.getEntriesByType("navigation")` confirming no page reload occurred.
+  - No-Intro case verified: removing the Intro and republishing opens directly to the revealed profile, no broken/empty Intro stage, Replay button correctly absent.
+  - Publish/Unpublish boundary re-verified in this slice's context: unpublishing immediately made `get_public_identity` return nothing and made the Intro-media storage fetch return nothing, and the public route immediately showed its "isn't public" state.
+  - Mobile portrait (375×812) and desktop (1440×900) viewports both verified clean, no overflow, no broken layout.
+  - Existing owner-side regressions reconfirmed unaffected: sign-in, YOUR GAMID editing (Bio, Display Name), Gaming Roles, Intro upload/replace/remove, the owner's own PREVIEW INTRO dialog (still shows its badges correctly), and handle-availability during sign-up (confirming the section 7c drift fix is still live).
+
+### Deliberately deferred (not part of this slice)
+
+The final permanent public share-URL/QR architecture (`GAMID_ROADMAP.md` items 3–4) was **not** decided or locked in here. The temporary `/public/?handle=` route from Slice 1/2 was preserved as-is because it remained sufficient for this slice's scope. Games, Stats, Gaming Connections, Discord, marketplace, jobs, organizations, teams, companies, and any AI-generated/Cinematic Identity presentation were explicitly out of scope and were not touched.
+
 ## 8. Real Samsung / real E2E evidence
 
 A protected Samsung/@BLACK job proved the backend path:
@@ -367,6 +430,8 @@ Do not ask for another upload or resume these automatically. Discuss the next pr
 |---|---|---|
 | Split Reveal showed a static poster instead of the playing Intro video, unaffected by video replacement | **FIXED AND ACCEPTED** | `.split-panel` was visible with `z-index:4` above `#introVideo` during the `intro` state; see section 7a, checkpoint `d7466f99e6f5398c5c0e83c029f1d09715c1321f` |
 | Brand-new user sign-up blocked in TESTING (`check_handle_availability_impl` missing its `anon` grant) | **FIXED** | Live grant had drifted from the already-applied, unmodified migration's intent; see section 7c, checkpoint `6bad4d583735d1e8c589642911f3decd52d7eff2` |
+| Public route's Intro never played on first load (message listener attached after two `await`s, missing the iframe's synchronous ready signal) | **FIXED** | `public.js` now attaches its `message` listener before the identity fetch; see section 7d, checkpoint `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` |
+| `DRAFT · PRIVATE` badge stayed visible in the public experience despite `hidden=true` | **FIXED** | `.preview-private{display:inline-block}` had the same CSS specificity as `[hidden]` and won the cascade; see section 7d, checkpoint `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` |
 | Samsung Avatar Gallery read/decode failures | **FIXED IMPLEMENTATION; 3A UNACCEPTED** | Stable Blob path exists; broader acceptance deferred |
 | Misleading Auth error during Intro upload | **FIXED** | Correct classification and TUS transport exist |
 | Samsung Intro source lifetime | **FIXED** | Stable Blob captured during selection |
@@ -492,12 +557,14 @@ Claude Code or another agent must:
 
 ## 16. START HERE
 
-Current exact implementation checkpoint: `6bad4d583735d1e8c589642911f3decd52d7eff2` — fixes the `check_handle_availability_impl` sign-up permission drift (section 7c). Built on top of Public GamID Profile Slice 1/2 (Foundation + Public-Safe Data) `697b6e3773233d4b403becb63a6857893dbe0ea2`, TESTING-deployed and validated but **not yet formally accepted by Mazen** (section 7b), the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a), and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
+Current exact implementation checkpoint: `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` — Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions), section 7d. Built on top of Public GamID Profile Slice 1/2 (Foundation + Public-Safe Data) `697b6e3773233d4b403becb63a6857893dbe0ea2` (section 7b), the `check_handle_availability_impl` sign-up permission drift fix `6bad4d583735d1e8c589642911f3decd52d7eff2` (section 7c), the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a), and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
 Slice 3C exists. Do not restart it. Its backend E2E succeeded and latest automated validation passed. The Split Reveal transition defect within Slice 3C's Full Preview feature is fixed and manually accepted by Mazen (section 7a), but this does not close Slice 3C as a whole — formal acceptance of the rest of Slice 3C was not given, and Mazen intentionally deferred the remaining manual Slice 3C testing/fixes listed in section 9. Do not automatically continue them.
 
-Public GamID Profile Slice 1/2 exists and is deployed to TESTING (section 7b). It has not been formally accepted. **Public GamID Profile Slice 2/2 (the public Intro → Transition → Identity experience) has NOT been started and must not begin without Mazen's explicit authorization** — do not infer authorization from Slice 1/2's existence or from its position in the roadmap.
+Public GamID Profile Slice 1/2 and Slice 2/2 both exist, are implemented, and are deployed to TESTING (sections 7b and 7d). **Neither has been formally accepted by Mazen.** Both Public Profile slices are now complete — the roadmap's Public GamID Profile item (roadmap section 2) has no remaining unstarted implementation slice. Do not infer authorization to start any adjacent roadmap item (permanent share link, QR sharing, Games/Stats/Connections/Socials, or any AI/Cinematic Identity concept) from either slice's existence or position in the roadmap.
 
 A pre-existing, unrelated bug was found during Slice 1/2 testing (`private.check_handle_availability_impl` missing its live `anon` grant, blocking brand-new user sign-up in TESTING) and has since been fixed under separate authorization — see section 7c.
+
+Two genuine bugs were found and fixed during Slice 2/2's own live E2E testing (a message-listener race condition and a CSS `[hidden]` override) — both fixed within this slice's own authorized scope; see section 7d and the section 10 issue register.
 
 Do not start the next implementation slice. First inspect the repository read-only, then discuss the roadmap and next priority with Mazen. Proceed only after he explicitly chooses and authorizes the next work.
