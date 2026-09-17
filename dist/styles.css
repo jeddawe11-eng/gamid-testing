@@ -13,3 +13,10 @@ body.is-experiencing{overflow:hidden;overscroll-behavior:none}.is-experiencing .
 
 /* Slice 3C can provide the current user-video frame while preserving the accepted poster fallback. */
 .split-panel{background-image:linear-gradient(180deg,rgba(4,3,9,.05),rgba(4,3,9,.25)),var(--split-frame,url('assets/gamid-intro-poster.webp'))}
+
+/* Live Split Reveal: JS-injected clip videos inside .split-panel keep real playback moving instead of a static frame. */
+.split-panel{overflow:hidden}
+.split-panel video{position:absolute;top:0;height:100%;width:200%;object-fit:cover}
+.split-left video{left:0;right:auto}
+.split-right video{left:auto;right:0}
+.experience[data-state="transitioning"] .preset-split .split-panel video{opacity:1}
