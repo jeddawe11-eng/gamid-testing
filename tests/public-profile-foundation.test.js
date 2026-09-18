@@ -11,6 +11,7 @@ const accountHtml = await readFile(new URL("../dist/account/index.html", import.
 const accountController = await readFile(new URL("../dist/account/account.js", import.meta.url), "utf8");
 const publicHtml = await readFile(new URL("../dist/public/index.html", import.meta.url), "utf8");
 const publicController = await readFile(new URL("../dist/public/public.js", import.meta.url), "utf8");
+const accountCss = await readFile(new URL("../dist/account/account.css", import.meta.url), "utf8");
 
 test("Public visibility is added as a new enum value in its own migration", () => {
   assert.match(enumMigration, /alter type public\.entity_visibility add value if not exists 'PUBLIC'/);
@@ -67,6 +68,12 @@ test("YOUR GAMID exposes a Publish/Unpublish control without redesigning the res
   assert.match(accountHtml, /id="visibilityToggle"/);
   assert.match(accountController, /api\.setMyIdentityVisibility\(goingPublic\)/);
   assert.match(accountController, /identity\?\.visibility === "PUBLIC"/);
+});
+
+test("the decorative circle behind the live-preview card cannot intercept real taps on Publish/Unpublish", () => {
+  const rule = accountCss.match(/\.identity-preview::after\{[^}]*\}/)?.[0] || "";
+  assert.ok(rule.length > 0, "could not locate the .identity-preview::after decorative rule");
+  assert.match(rule, /pointer-events:none/);
 });
 
 test("The public route is read-only: no forms, no file inputs, no auth-only controls", () => {
