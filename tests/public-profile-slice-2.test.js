@@ -65,7 +65,7 @@ test("intro-preview.js broadcasts its state to the parent frame so a host page c
 });
 
 test("the public route embeds the existing Intro Preview experience via iframe instead of duplicating it", () => {
-  assert.match(publicHtml, /src="\.\.\/account\/intro-preview\.html"/);
+  assert.match(publicHtml, /src="\.\.\/account\/intro-preview\.html\?v=__ASSET_VERSION__"/);
   assert.doesNotMatch(publicHtml, /<video/);
   assert.doesNotMatch(publicHtml, /split-panel|intro-layer|media-stage/);
 });
@@ -74,7 +74,7 @@ test("Replay Intro only appears once the profile is revealed and only when an In
   assert.match(publicHtml, /id="replayIntroButton"/);
   assert.match(publicController, /hasIntro = Boolean\(config\.videoUrl\)/);
   assert.match(publicController, /replayButton\.hidden = !hasIntro \|\| event\.data\.state !== "profile"/);
-  assert.match(publicController, /replayButton\.addEventListener\("click", send\)/);
+  assert.match(publicController, /replayButton\.addEventListener\("click", sendReplay\)/);
   assert.doesNotMatch(publicController, /location\.reload/);
 });
 
@@ -89,13 +89,13 @@ test("the iframe's message listener is attached before the identity fetch, so an
   assert.ok(listenerIndex < fetchIndex, "the message listener must be attached before awaiting the identity fetch, or the iframe's ready signal races ahead of it and is lost");
 });
 
-test("send() only posts once both the iframe is ready and a config has been built, and is re-invoked once the config resolves", () => {
-  assert.match(publicController, /const send = \(\) => \{ if \(frameReady && config\)/);
-  assert.match(publicController, /experienceWrap\.hidden = false;\s*\n\s*send\(\);/);
+test("sendInitial() only posts once both the iframe is ready and a config has been built, is idempotent against repeated ready/load signals, and is re-invoked once the config resolves", () => {
+  assert.match(publicController, /const sendInitial = \(\) => \{ if \(initialSendDone \|\| !frameReady \|\| !config\) return; initialSendDone = true; sendReplay\(\); \}/);
+  assert.match(publicController, /hasIntro = Boolean\(config\.videoUrl\);\s*\n\s*sendInitial\(\);/);
 });
 
 test("the iframe's native load event also marks it ready, mirroring account.js's own dual-trigger pattern, so a lost gamid-intro-preview-ready postMessage (the iframe can finish loading and broadcast it before this deferred module even starts executing) does not leave the Intro stage permanently blank", () => {
-  assert.match(publicController, /frame\.addEventListener\("load", \(\) => \{ frameReady = true; send\(\); \}\)/);
+  assert.match(publicController, /frame\.addEventListener\("load", \(\) => \{ frameReady = true; sendInitial\(\); \}\)/);
 });
 
 test("public mode also hides the owner-only 'YOUR GAMID' eyebrow label, and the CSS respects the hidden attribute instead of forcing the badge visible", async () => {

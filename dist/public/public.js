@@ -37,15 +37,23 @@ async function render() {
   let frameReady = false;
   let config = null;
   let hasIntro = false;
-  const send = () => { if (frameReady && config) frame.contentWindow?.postMessage({ type: "gamid-intro-preview", config }, location.origin); };
+  let initialSendDone = false;
+  let revealed = false;
+  const sendReplay = () => { if (config) frame.contentWindow?.postMessage({ type: "gamid-intro-preview", config }, location.origin); };
+  const sendInitial = () => { if (initialSendDone || !frameReady || !config) return; initialSendDone = true; sendReplay(); };
 
   addEventListener("message", event => {
     if (event.origin !== location.origin) return;
-    if (event.data?.type === "gamid-intro-preview-ready") { frameReady = true; send(); }
-    if (event.data?.type === "gamid-intro-preview-state") replayButton.hidden = !hasIntro || event.data.state !== "profile";
+    if (event.data?.type === "gamid-intro-preview-ready") { frameReady = true; sendInitial(); }
+    if (event.data?.type === "gamid-intro-preview-state") {
+      // The child only ever broadcasts a state after play() has actually applied a config, so this is
+      // the proof (not a guess) that the iframe now shows this identity rather than its raw placeholder markup.
+      if (!revealed) { revealed = true; loading.hidden = true; experienceWrap.hidden = false; }
+      replayButton.hidden = !hasIntro || event.data.state !== "profile";
+    }
   });
-  frame.addEventListener("load", () => { frameReady = true; send(); });
-  replayButton.addEventListener("click", send);
+  frame.addEventListener("load", () => { frameReady = true; sendInitial(); });
+  replayButton.addEventListener("click", sendReplay);
 
   const params = new URLSearchParams(location.search);
   const handle = (params.get("handle") || "").trim().replace(/^@/, "");
@@ -58,13 +66,11 @@ async function render() {
     try { identity = await getPublicIdentityByQr(qrToken); } catch { identity = null; }
   }
 
-  loading.hidden = true;
-  if (!identity) { notFound.hidden = false; return; }
+  if (!identity) { loading.hidden = true; notFound.hidden = false; return; }
 
   config = await buildConfig(identity);
   hasIntro = Boolean(config.videoUrl);
-  experienceWrap.hidden = false;
-  send();
+  sendInitial();
 }
 
 render();

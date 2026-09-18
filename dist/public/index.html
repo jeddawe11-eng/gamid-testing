@@ -15,10 +15,10 @@
     <div id="loadingState" class="state"><div class="loader"></div><p>Loading GamID…</p></div>
     <div id="notFoundState" class="state" hidden><h1>This GamID isn't public.</h1><p>The identity you're looking for doesn't exist, or its owner hasn't published it.</p></div>
     <div id="experienceWrap" class="experience-wrap" hidden>
-      <iframe id="experienceFrame" title="GamID public identity" src="../account/intro-preview.html" allow="autoplay"></iframe>
+      <iframe id="experienceFrame" title="GamID public identity" src="../account/intro-preview.html?v=__ASSET_VERSION__" allow="autoplay"></iframe>
       <button id="replayIntroButton" class="replay-button" type="button" hidden>↻ Replay Intro</button>
     </div>
   </main>
-  <script type="module" src="public.js"></script>
+  <script type="module" src="public.js?v=__ASSET_VERSION__"></script>
 </body>
 </html>

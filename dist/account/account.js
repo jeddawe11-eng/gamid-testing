@@ -27,6 +27,7 @@ let pendingIntroSource = null;
 let activeIntroUrl = null;
 let introAction = "keep";
 let pendingPreviewConfig = null;
+let previewConfigDelivered = false;
 let cropImage = null;
 let cropState = null;
 let cropOperation = null;
@@ -634,13 +635,15 @@ function currentPreviewConfig() {
 }
 
 function sendPreviewConfig() {
-  if (!pendingPreviewConfig) return;
+  if (!pendingPreviewConfig || previewConfigDelivered) return;
+  previewConfigDelivered = true;
   document.getElementById("introPreviewFrame").contentWindow?.postMessage({ type:"gamid-intro-preview", config:pendingPreviewConfig }, location.origin);
 }
 
 document.getElementById("previewIntroButton").addEventListener("click", () => {
   pendingPreviewConfig = currentPreviewConfig();
   if (!pendingPreviewConfig.videoUrl) return;
+  previewConfigDelivered = false;
   document.getElementById("introPreviewDialog").showModal();
   sendPreviewConfig();
 });

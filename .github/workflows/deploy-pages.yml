@@ -32,6 +32,13 @@ jobs:
           mkdir -p "${RUNNER_TEMP}/gamid-pages"
           rsync -a --exclude '/assets/gamid-intro.mp4' dist/ "${RUNNER_TEMP}/gamid-pages/"
 
+      - name: Stamp deterministic asset version
+        run: |
+          VERSION="${GITHUB_SHA:0:7}"
+          for f in public/index.html account/index.html account/intro-preview.html; do
+            sed -i "s/__ASSET_VERSION__/${VERSION}/g" "${RUNNER_TEMP}/gamid-pages/${f}"
+          done
+
       - name: Upload static site
         uses: actions/upload-pages-artifact@v3
         with:
