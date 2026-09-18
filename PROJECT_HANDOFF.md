@@ -513,6 +513,24 @@ Copy Link and Share always carry the permanent handle-based URL, never the raw Q
   - Mobile portrait (375×812) verified: Share section and QR dialog both render cleanly with no overflow; desktop (1024×768) verified likewise.
 - Deployed TESTING verification: `dist/account/qrcode.min.js`, the updated `account.js`/`account.css`/`index.html`, `public.js`, and `dist/404.html` all confirmed live via direct fetch against `https://jeddawe11-eng.github.io/gamid-testing/`, and the real GitHub Pages `/@<handle>` redirect verified end-to-end in a live browser (see the final report for the exact confirmed behavior).
 
+### A genuine bug found and fixed only after live deployment
+
+Live-testing the real `/@<handle>` redirect on GitHub Pages (not reproducible against a local static server, since only GitHub Pages actually serves a custom `404.html` for unmatched paths) surfaced a real regression risk: navigating to `/@<handle>` failed to play the Intro on roughly 3 of 4 attempts, while navigating directly to `/public/?handle=<handle>` succeeded every time.
+
+**Root cause:** `public.js`'s `gamid-intro-preview-ready` message listener is attached at the top of its own deferred module script, but the `<iframe src="../account/intro-preview.html">` element starts loading as soon as the HTML parser reaches it — independent of module script timing. If the iframe finishes loading and its own script runs (synchronously broadcasting `ready` as its very last line) before `public.js`'s deferred module even begins executing, the message is dispatched to no listener and lost forever — no ordering fix inside `public.js`'s own execution can catch a message sent before that script runs at all. This is a different, deeper layer of the same class of bug fixed in section 7d; the earlier fix (attaching the listener before the identity-fetch `await`) was necessary but not sufficient, because it only ordered things *within* `public.js`'s own execution, not the race between the iframe and the parent module even starting. The extra network hop through `404.html` shifted timing enough to make this manifest far more often than a direct navigation, though the underlying race was already latent either way.
+
+`account.js`'s own owner-facing Intro Preview dialog uses the identical postMessage contract but has never shown this symptom, because it already guards against exactly this by also listening for the iframe element's native `load` event (dispatched by the browser only after the iframe's document — including its synchronous ready broadcast — has fully executed, so it can never be missed the way a postMessage can).
+
+**Fix (`dist/public/public.js`, one line):**
+
+```js
+frame.addEventListener("load", () => { frameReady = true; send(); });
+```
+
+Added alongside the existing message-based trigger — no new mechanism invented; this mirrors the existing, already-proven pattern already used by `account.js` in this same codebase.
+
+**Validation:** re-tested the live `/@<handle>` redirect 4 consecutive times in fresh browser tabs after deploying the fix — all 4 reached the `profile` state correctly (versus 1 of 4 before the fix). The `?qr=` path was reconfirmed working as well. lint PASS, typecheck PASS, tests **130/130 PASS** (129 existing + 1 new).
+
 ### Deliberately deferred (not part of this slice)
 
 A custom domain (which would allow a bare `/@handle` with no `/gamid-testing/` prefix) was not pursued — infrastructure/Production decision, out of scope for TESTING. Platform-specific share integrations (WhatsApp/Discord/social APIs) were explicitly excluded per this slice's own instructions; the device's native share sheet is the only mechanism. Handle-changing, aliases, redirects, and multiple public handles per identity remain explicitly unsupported — one identity still maps to exactly one permanent `@handle`.
@@ -562,6 +580,7 @@ Do not ask for another upload or resume these automatically. Discuss the next pr
 | Public route's Intro never played on first load (message listener attached after two `await`s, missing the iframe's synchronous ready signal) | **FIXED** | `public.js` now attaches its `message` listener before the identity fetch; see section 7d, checkpoint `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` |
 | `DRAFT · PRIVATE` badge stayed visible in the public experience despite `hidden=true` | **FIXED** | `.preview-private{display:inline-block}` had the same CSS specificity as `[hidden]` and won the cascade; see section 7d, checkpoint `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` |
 | Publish button unresponsive to real taps on real Samsung Android mobile browsers (manual acceptance blocker) | **FIXED** | `.identity-preview::after`'s decorative circle had no `pointer-events:none` and intercepted real hit-testing; prior automated testing used synthetic `.click()`, which bypasses hit-testing and never caught it; see section 7e |
+| Public route Intro stage stayed blank via the new `/@handle` redirect on real GitHub Pages (~3 of 4 attempts) | **FIXED** | The iframe could finish loading and broadcast its `ready` message before `public.js`'s deferred module even started executing; only reproducible against a real GitHub Pages 404-redirect hop, not a local static server; see section 7f, checkpoint `08f516087fa61fe54025dc16b3e715d338f73f5e` |
 | Samsung Avatar Gallery read/decode failures | **FIXED IMPLEMENTATION; 3A UNACCEPTED** | Stable Blob path exists; broader acceptance deferred |
 | Misleading Auth error during Intro upload | **FIXED** | Correct classification and TUS transport exist |
 | Samsung Intro source lifetime | **FIXED** | Stable Blob captured during selection |
@@ -687,7 +706,7 @@ Claude Code or another agent must:
 
 ## 16. START HERE
 
-Current exact implementation checkpoint: `b1caefacf4652e090d134e9e50851572e9a088eb` — feat: Permanent Public GamID URL + QR + Sharing, section 7f. Built on top of the mobile Publish-button manual-acceptance fix `5f7f380ab08608630ee4e3e59d45181766083f39` (section 7e), Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` (section 7d), Slice 1/2 (Foundation + Public-Safe Data) `697b6e3773233d4b403becb63a6857893dbe0ea2` (section 7b), the `check_handle_availability_impl` sign-up permission drift fix `6bad4d583735d1e8c589642911f3decd52d7eff2` (section 7c), the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a), and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
+Current exact implementation checkpoint: `08f516087fa61fe54025dc16b3e715d338f73f5e` — fix: public route Intro stage could stay blank via the new `/@handle` redirect, section 7f. Built on top of the Permanent Public GamID URL + QR + Sharing implementation `b1caefacf4652e090d134e9e50851572e9a088eb` (section 7f), the mobile Publish-button manual-acceptance fix `5f7f380ab08608630ee4e3e59d45181766083f39` (section 7e), Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` (section 7d), Slice 1/2 (Foundation + Public-Safe Data) `697b6e3773233d4b403becb63a6857893dbe0ea2` (section 7b), the `check_handle_availability_impl` sign-up permission drift fix `6bad4d583735d1e8c589642911f3decd52d7eff2` (section 7c), the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a), and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
 Slice 3C exists. Do not restart it. Its backend E2E succeeded and latest automated validation passed. The Split Reveal transition defect within Slice 3C's Full Preview feature is fixed and manually accepted by Mazen (section 7a), but this does not close Slice 3C as a whole — formal acceptance of the rest of Slice 3C was not given, and Mazen intentionally deferred the remaining manual Slice 3C testing/fixes listed in section 9. Do not automatically continue them.
 
@@ -698,5 +717,7 @@ A pre-existing, unrelated bug was found during Slice 1/2 testing (`private.check
 Two genuine bugs were found and fixed during Slice 2/2's own live E2E testing (a message-listener race condition and a CSS `[hidden]` override) — both fixed within this slice's own authorized scope; see section 7d and the section 10 issue register.
 
 A third bug was found by Mazen during his own manual acceptance testing on a real Samsung Android mobile browser — the Publish button could not be activated by a real tap — and has since been fixed under this exact authorized scope only; see section 7e. It went undetected by every prior automated pass because those passes used a synthetic `.click()` call that bypasses real hit-testing.
+
+A fourth bug was found only after deploying the Permanent Public GamID URL to real GitHub Pages: the new `/@handle` redirect (through `404.html`) made the public Intro stage stay blank on roughly 3 of 4 attempts, because the iframe could finish loading and broadcast its ready signal before `public.js`'s deferred module even began executing — a deeper layer of the same class of bug fixed in section 7d, not reproducible against a local static server. Fixed by mirroring `account.js`'s own existing dual-trigger pattern (also listening for the iframe's native `load` event); see section 7f.
 
 Do not start the next implementation slice. First inspect the repository read-only, then discuss the roadmap and next priority with Mazen. Proceed only after he explicitly chooses and authorizes the next work.
