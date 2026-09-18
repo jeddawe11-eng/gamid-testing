@@ -27,7 +27,7 @@ The current entity is **SOLO**. Team, Organization, and Company are future direc
 | Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions) | **Implemented, not formally accepted** |
 | Permanent Public GamID URL + QR + Sharing | **Implemented, not formally accepted** |
 
-Current implementation checkpoint: see `PROJECT_HANDOFF.md` section 16 for the exact commit — Permanent Public GamID URL + QR + Sharing, built on top of Public GamID Profile Slice 2/2 `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7`, Slice 1/2 `697b6e3773233d4b403becb63a6857893dbe0ea2`, the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f`, and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`; see `PROJECT_HANDOFF.md` section 7f.
+Current implementation checkpoint: see `PROJECT_HANDOFF.md` section 16 for the exact commit — a verified public-Intro reliability fix (retry/ack handshake + deterministic asset versioning), built on top of Permanent Public GamID URL + QR + Sharing, Public GamID Profile Slice 2/2, Slice 1/2, the accepted Split Reveal Intro-visibility fix, and the Slice 3C backend/timer checkpoint; see `PROJECT_HANDOFF.md` section 7g.
 
 ## Ordered roadmap
 
@@ -49,11 +49,15 @@ Chosen Games, Stats, Connections, Socials, and verification indicators remain se
 
 ### 3. Permanent share link
 
-**Implemented, TESTING-validated, not yet formally accepted by Mazen** (see `PROJECT_HANDOFF.md` section 7f). The permanent handle now maps to a stable public URL, `https://jeddawe11-eng.github.io/gamid-testing/@<handle>`, via a `404.html`-based redirect into the existing `/public/` route (GitHub Pages has no server-side rewrites; this is the standard technique for clean URLs on a static project site with no custom domain). The link never exposes editor controls or internal IDs. The temporary `/public/?handle=` route from Slice 1/2 still works unchanged.
+**Implemented, TESTING-validated, not yet formally accepted by Mazen** (see `PROJECT_HANDOFF.md` section 7f). The permanent handle now maps to a stable public URL, `https://jeddawe11-eng.github.io/gamid-testing/@<handle>`, via a `404.html`-based redirect into the existing `/public/` route (GitHub Pages has no server-side rewrites; this is the standard technique for clean URLs on a static project site with no custom domain). The link never exposes editor controls or internal IDs. The temporary `/public/?handle=` route from Slice 1/2 still works unchanged. A real-device report that this link behaved inconsistently in Opera was diagnosed and mitigated — see item below and `PROJECT_HANDOFF.md` section 7g.
 
 ### 4. QR sharing
 
 **Implemented, TESTING-validated, not yet formally accepted by Mazen** (see `PROJECT_HANDOFF.md` section 7f). The opaque QR identifier from Slice 2 (`qr_references.public_token`) now resolves anonymously to the same public identity/share destination as the permanent handle, through a new RPC that delegates to the existing gated `get_public_identity_impl` rather than duplicating its rules — publishing/unpublishing applies identically to both. No internal IDs are exposed; the QR encodes only the opaque token.
+
+### 4a. Public Intro reliability fix (Opera vs Chrome)
+
+**Implemented, TESTING-validated, not yet formally accepted by Mazen** (see `PROJECT_HANDOFF.md` section 7g). A read-only diagnosis of a real-device report (the public Intro at `/@black` sometimes failed in Opera but not Chrome, temporarily recovering after "Delete Site Data") found two concrete risks: a still-unproven-safe parent/child handshake timing race, and GitHub Pages' unavoidable 10-minute asset cache allowing a stale build to keep running after a deploy. Both are now closed: the Intro iframe's readiness handshake is retry-based and acknowledged (works regardless of execution order, provably bounded, never duplicates playback), and every cross-document reference to the shared Intro iframe carries an automatically deploy-stamped version so a stale parent can never pair with a mismatched-version child. **Validated on Chromium-based tooling only — Mazen's manual acceptance on his real Opera browser is the outstanding final acceptance step.**
 
 ### 5. Social Links
 

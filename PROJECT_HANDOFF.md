@@ -6,7 +6,7 @@ Repository: `jeddawe11-eng/gamid-testing`
 
 Branch: `main`
 
-Authoritative implementation checkpoint: see section 16 for the exact current commit. The Permanent Public GamID URL + QR + Sharing slice is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7f. Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7d. A mobile-Publish-button manual-acceptance bug found during Mazen's acceptance testing has since been fixed — see section 7e. It is applied on top of Slice 1/2 (Foundation + Public-Safe Data, section 7b, also not yet formally accepted), the accepted Split Reveal Intro-visibility fix (section 7a), and the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
+Authoritative implementation checkpoint: see section 16 for the exact current commit. A verified Opera-vs-Chrome public-Intro reliability fix (retry/ack handshake + deterministic asset versioning) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7g. The Permanent Public GamID URL + QR + Sharing slice is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7f. Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7d. A mobile-Publish-button manual-acceptance bug found during Mazen's acceptance testing has since been fixed — see section 7e. It is applied on top of Slice 1/2 (Foundation + Public-Safe Data, section 7b, also not yet formally accepted), the accepted Split Reveal Intro-visibility fix (section 7a), and the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
 This is the authoritative continuation record for Claude Code or any other coding agent. It records what exists, what Mazen accepted, what remains unverified, and what is only future direction. It does not authorize deferred testing, another slice, redesign, deployment, migration, cloud changes, or Production access.
 
@@ -186,6 +186,10 @@ Historical Samsung Gallery-backed Avatar files produced `File.arrayBuffer()` / `
 ### Permanent Public GamID URL + QR + Sharing
 
 **IMPLEMENTED, DEPLOYED TO TESTING, VALIDATED, NOT FORMALLY ACCEPTED.** See section 7f.
+
+### Verified public Intro reliability fix (Opera vs Chrome diagnosis follow-up)
+
+**IMPLEMENTED, DEPLOYED TO TESTING, VALIDATED, NOT FORMALLY ACCEPTED.** See section 7g.
 
 ## 7. Slice 3C exact implementation
 
@@ -535,6 +539,102 @@ Added alongside the existing message-based trigger — no new mechanism invented
 
 A custom domain (which would allow a bare `/@handle` with no `/gamid-testing/` prefix) was not pursued — infrastructure/Production decision, out of scope for TESTING. Platform-specific share integrations (WhatsApp/Discord/social APIs) were explicitly excluded per this slice's own instructions; the device's native share sheet is the only mechanism. Handle-changing, aliases, redirects, and multiple public handles per identity remain explicitly unsupported — one identity still maps to exactly one permanent `@handle`.
 
+## 7g. Verified public Intro reliability fix (Opera vs Chrome diagnosis follow-up)
+
+**IMPLEMENTED, DEPLOYED TO TESTING, VALIDATED — NOT FORMALLY ACCEPTED.** Follows the read-only Opera-vs-Chrome diagnosis, which established two concrete reliability risks without proving a single root cause: (1) the parent/child Intro-iframe handshake still had a residual, unproven-safe timing race even after the two earlier mitigations (sections 7d, 7f), and (2) GitHub Pages serves every asset with `Cache-Control: max-age=600`, letting a browser legitimately reuse an older deployed version of `public.js`/`intro-preview.js` for up to 10 minutes after any push. This section makes the Intro handshake provably reliable regardless of execution order, and closes the stale-mixed-version window without touching headers this project cannot control.
+
+### Part 1 — retry/acknowledged handshake (`dist/account/intro-preview.js`)
+
+The one-shot `ready` broadcast (`parent.postMessage({type:"gamid-intro-preview-ready"}, ...)`, sent exactly once at script load) is replaced with a bounded, self-stopping retry:
+
+```js
+let configReceived=false,readyAttempts=0,readyTimer;
+const READY_RETRY_LIMIT=25,READY_RETRY_MS=200;
+function announceReady(){if(configReceived){clearInterval(readyTimer);return;}if(readyAttempts>=READY_RETRY_LIMIT){clearInterval(readyTimer);return;}readyAttempts++;parent.postMessage({type:"gamid-intro-preview-ready"},location.origin);}
+addEventListener("message",event=>{if(event.origin!==location.origin||event.data?.type!=="gamid-intro-preview")return;configReceived=true;clearInterval(readyTimer);play(event.data.config);});
+announceReady();
+readyTimer=setInterval(announceReady,READY_RETRY_MS);
+```
+
+- The child re-announces readiness every 200ms instead of once, so a parent whose own deferred module script hasn't started executing yet (the exact race that caused sections 7d's and 7f's bugs) will still catch a later retry once its listener attaches — tolerating **either** execution order (parent-first or iframe-first) without any arbitrary fixed delay.
+- Receiving a config message immediately sets `configReceived=true` and clears the retry timer **before** calling `play()` — retries stop the instant delivery succeeds, and the ability to *receive* a config (the permanent `addEventListener("message", ...)`) is never time-limited, only the *announcement* is — so a much-later, user-triggered send (e.g. the owner's own "PREVIEW INTRO" button, clicked long after the 5-second/25-attempt retry window has elapsed) still works exactly as before.
+- The retry is hard-capped at 25 attempts (~5 seconds) — no infinite message loop even if a parent genuinely never listens.
+
+Because both `dist/public/public.js` (the public route) and `dist/account/account.js` (the owner's own Intro Preview dialog) share this same `intro-preview.js`, a second, matching fix was required on **both** parents to prevent the new repeated `ready` pings from ever triggering a duplicate `play()` call (a duplicate Intro restart is a real regression the naive retry alone would introduce):
+
+- `dist/public/public.js`: `send()` was split into `sendInitial()` (idempotent — posts the config at most once per page load, guarded by `initialSendDone`) and `sendReplay()` (the Replay Intro button's explicit, intentionally-repeatable action). Both the `ready` message handler and the iframe's native `load` event now funnel into `sendInitial()`, so no matter how many redundant signals arrive, the config is delivered exactly once until the user deliberately clicks Replay.
+- `dist/account/account.js`: `sendPreviewConfig()` gained the same guard (`previewConfigDelivered`), reset only when the owner opens a **new** preview via the "PREVIEW INTRO" button — the dialog's existing `load`/`ready`/click triggers can no longer cause a duplicate restart either.
+
+### Identity safety — the raw placeholder can no longer be shown as a loaded profile
+
+Live testing during this fix (before this specific change) reproduced the exact reported symptom directly: with the iframe's own message listener attached late enough, `intro-preview.html`'s **static, unconfigured** default markup (`Gamer` / `@handle` / `DRAFT · PRIVATE` — literally the placeholder text baked into the HTML) is what a visitor sees once they click Skip Intro, because Skip unconditionally reveals the profile card regardless of whether `play()` had ever actually run.
+
+`dist/public/public.js` no longer reveals the Intro/Profile experience (`experienceWrap.hidden = false`) as soon as a config is *built* locally — it now waits for the child's own `gamid-intro-preview-state` broadcast, which the shared `intro-preview.js` only ever sends from inside `setState()`, itself only ever called from within `play(config)`. Receiving that message is proof — not an assumption — that the iframe has actually applied this identity's real data:
+
+```js
+if (event.data?.type === "gamid-intro-preview-state") {
+  if (!revealed) { revealed = true; loading.hidden = true; experienceWrap.hidden = false; }
+  replayButton.hidden = !hasIntro || event.data.state !== "profile";
+}
+```
+
+The `loadingState` spinner ("Loading GamID…") now stays visible the entire time until that confirmation arrives (previously it was hidden as soon as the identity RPC returned, well before the child had necessarily applied anything), so a slow or still-retrying handshake now shows an honest, intentional loading state — never the placeholder, and never a blank gap. No new message type or UI element was added; this reuses the existing `gamid-intro-preview-state` broadcast that `public.js` already listened to for the Replay button.
+
+### Part 2 — deterministic asset versioning (no manual maintenance)
+
+GitHub Pages' `Cache-Control: max-age=600` cannot be changed (no custom headers on the standard hosting product) and was intentionally left alone per this task's scope. Instead, every cross-document reference between the parents (`dist/public/index.html`, `dist/account/index.html`) and the shared Intro iframe (`dist/account/intro-preview.html`, and its own `intro-preview.js`/`intro-preview.css`) now carries a `?v=__ASSET_VERSION__` query string:
+
+```html
+<!-- dist/public/index.html -->
+<iframe id="experienceFrame" ... src="../account/intro-preview.html?v=__ASSET_VERSION__" ...></iframe>
+<script type="module" src="public.js?v=__ASSET_VERSION__"></script>
+<!-- dist/account/index.html -->
+<iframe id="introPreviewFrame" ... src="intro-preview.html?v=__ASSET_VERSION__" ...></iframe>
+<!-- dist/account/intro-preview.html -->
+<link rel="stylesheet" href="intro-preview.css?v=__ASSET_VERSION__" />
+<script type="module" src="intro-preview.js?v=__ASSET_VERSION__"></script>
+```
+
+`.github/workflows/deploy-pages.yml` stamps the real value automatically on every push, entirely in CI, with no manual editing ever required:
+
+```yaml
+- name: Stamp deterministic asset version
+  run: |
+    VERSION="${GITHUB_SHA:0:7}"
+    for f in public/index.html account/index.html account/intro-preview.html; do
+      sed -i "s/__ASSET_VERSION__/${VERSION}/g" "${RUNNER_TEMP}/gamid-pages/${f}"
+    done
+```
+
+This runs on the **staged copy** in `${RUNNER_TEMP}`, after rsync and before `upload-pages-artifact`, so the committed `dist/` source keeps the human-readable placeholder and Mazen never has to touch a version string for any deployment — it is deterministically derived from the commit that triggered the deploy, not random and not manually maintained.
+
+**Why this closes the "mixed incompatible versions" risk without controlling headers:** each parent HTML document always names the *exact matching* versioned URL for its own dependencies as of the commit that produced it. If a browser's cached copy of `public/index.html` (or `account/index.html`) is itself stale (still within its own 10-minute window), it references the OLD-but-internally-consistent pair of `public.js?v=OLDSHA` + `intro-preview.html?v=OLDSHA` — never a mix of a fresh parent with a stale iframe or vice versa, which was the actual mechanism by which two independently-cached files could drift out of sync and run incompatible handshake code against each other. Locally (`dist/` served directly, no CI step), the literal `?v=__ASSET_VERSION__` string is harmless — static file servers ignore query strings when resolving a path, so local testing is completely unaffected.
+
+**What remains, honestly:** the underlying `max-age=600` browser-cache window is unchanged and unchangeable on this hosting. A browser can still serve a stale-but-internally-consistent old build for up to 10 minutes after any deploy — this is expected, accepted GitHub Pages behavior for a TESTING static site, not a bug. What is now eliminated is (a) the handshake race that could fail even on a single, fully-current, non-stale build, and (b) any scenario where an old parent and a new child (or vice versa) end up paired together and running mismatched protocol code.
+
+### Validation
+
+- lint PASS, typecheck PASS, tests **141/141 PASS** (130 existing + 11 new in `tests/public-intro-handshake-reliability.test.js`, plus 4 pre-existing assertions in `tests/public-profile-slice-2.test.js` updated to match the new `sendInitial`/`sendReplay` names and versioned iframe `src`).
+- A dedicated, throwaway browser test harness (never committed) drove the real, unmodified `intro-preview.html` directly and controlled exactly when its message listener attached relative to iframe creation:
+  - **Parent-first** (listener attached before the iframe exists): config applied in 366ms, exactly 1 `ready` needed.
+  - **Iframe-first, 800ms-late listener**: config still applied correctly (857ms), proving recovery from the exact race that caused the original bug.
+  - **Iframe-first, 4800ms-late listener** (near the 5-second cap): still recovered (4862ms).
+  - **Iframe-first, 6000ms-late listener** (past the cap): correctly timed out with zero further `ready` pings sent — proving the retry is genuinely bounded, not disguised as unlimited.
+- Live TESTING E2E using a disposable account (`handshaketest1`, created and fully deleted afterward) against the local static server (identical files to what's deployed):
+  - Fresh load with Intro configured (Cross Fade default, then Split Reveal) both reached `profile` with the correct identity (`Handshake Test` / `@handshaketest1`), never the placeholder.
+  - Clicking Skip Intro as fast as automation allowed after navigation still revealed the correct identity, never the placeholder.
+  - Replay Intro replayed correctly with `performance.getEntriesByType("navigation").length === 1` (no reload).
+  - No-Intro case (Intro removed) opened directly to the correct profile, Replay button correctly absent.
+  - The QR route (`?qr=<token>`) resolved to the correct identity identically to the `?handle=` path.
+  - Unpublishing immediately blocked both the `?handle=` and `?qr=` paths.
+  - The owner's own "PREVIEW INTRO" dialog (`account.js`) reconfirmed working with no duplicate restart, correctly still showing its `PREVIEW`/`YOUR GAMID`/`DRAFT · PRIVATE` owner-only chrome (publicMode is never set there).
+  - `@black` was never modified — only read once, read-only, to confirm it still exists, exactly as required.
+- **This automated/Chromium-based validation is not the same as Mazen's final manual acceptance on his real Opera browser**, which remains outstanding and must be performed by him directly.
+
+### Deliberately deferred (not part of this fix)
+
+No `pageshow`/`bfcache`-restoration handling was added to `public.js` (unlike `account.js`, which already has this for an unrelated avatar concern) — the Opera diagnosis flagged this as a *separate*, still-unaddressed architectural gap, not part of the confirmed handshake-race/asset-versioning scope authorized here. Flagged for a future, explicitly-scoped decision rather than folded in silently.
+
 ## 8. Real Samsung / real E2E evidence
 
 A protected Samsung/@BLACK job proved the backend path:
@@ -581,6 +681,8 @@ Do not ask for another upload or resume these automatically. Discuss the next pr
 | `DRAFT · PRIVATE` badge stayed visible in the public experience despite `hidden=true` | **FIXED** | `.preview-private{display:inline-block}` had the same CSS specificity as `[hidden]` and won the cascade; see section 7d, checkpoint `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` |
 | Publish button unresponsive to real taps on real Samsung Android mobile browsers (manual acceptance blocker) | **FIXED** | `.identity-preview::after`'s decorative circle had no `pointer-events:none` and intercepted real hit-testing; prior automated testing used synthetic `.click()`, which bypasses hit-testing and never caught it; see section 7e |
 | Public route Intro stage stayed blank via the new `/@handle` redirect on real GitHub Pages (~3 of 4 attempts) | **FIXED** | The iframe could finish loading and broadcast its `ready` message before `public.js`'s deferred module even started executing; only reproducible against a real GitHub Pages 404-redirect hop, not a local static server; see section 7f, checkpoint `08f516087fa61fe54025dc16b3e715d338f73f5e` |
+| Public Intro fails intermittently in Opera (real device), recovers temporarily after "Delete Site Data" | **MITIGATED, PENDING MAZEN'S REAL-OPERA ACCEPTANCE** | Retry/acknowledged handshake replaces the one-shot ready broadcast (tolerates either execution order, provably bounded); deterministic per-deploy asset versioning prevents an old/new file-version mismatch during GitHub Pages' unavoidable 10-minute `max-age=600` cache window; see section 7g |
+| Skip Intro could reveal the raw unconfigured placeholder (`Gamer`/`@handle`/`DRAFT · PRIVATE`) as if it were a loaded profile | **FIXED** | The public route now only reveals the Intro/Profile experience once the child's own state broadcast proves `play()` actually ran with real data, instead of as soon as a config was merely built locally; see section 7g |
 | Samsung Avatar Gallery read/decode failures | **FIXED IMPLEMENTATION; 3A UNACCEPTED** | Stable Blob path exists; broader acceptance deferred |
 | Misleading Auth error during Intro upload | **FIXED** | Correct classification and TUS transport exist |
 | Samsung Intro source lifetime | **FIXED** | Stable Blob captured during selection |
@@ -706,7 +808,7 @@ Claude Code or another agent must:
 
 ## 16. START HERE
 
-Current exact implementation checkpoint: `08f516087fa61fe54025dc16b3e715d338f73f5e` — fix: public route Intro stage could stay blank via the new `/@handle` redirect, section 7f. Built on top of the Permanent Public GamID URL + QR + Sharing implementation `b1caefacf4652e090d134e9e50851572e9a088eb` (section 7f), the mobile Publish-button manual-acceptance fix `5f7f380ab08608630ee4e3e59d45181766083f39` (section 7e), Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` (section 7d), Slice 1/2 (Foundation + Public-Safe Data) `697b6e3773233d4b403becb63a6857893dbe0ea2` (section 7b), the `check_handle_availability_impl` sign-up permission drift fix `6bad4d583735d1e8c589642911f3decd52d7eff2` (section 7c), the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a), and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
+Current exact implementation checkpoint: `37c2699bc1152cfcbd6922600b8c2ba7a1907929` — fix: retry/ack Intro handshake + deterministic asset versioning (Opera reliability), section 7g. Built on top of the `/@handle` redirect race fix `08f516087fa61fe54025dc16b3e715d338f73f5e` (section 7f), the Permanent Public GamID URL + QR + Sharing implementation `b1caefacf4652e090d134e9e50851572e9a088eb` (section 7f), the mobile Publish-button manual-acceptance fix `5f7f380ab08608630ee4e3e59d45181766083f39` (section 7e), Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` (section 7d), Slice 1/2 (Foundation + Public-Safe Data) `697b6e3773233d4b403becb63a6857893dbe0ea2` (section 7b), the `check_handle_availability_impl` sign-up permission drift fix `6bad4d583735d1e8c589642911f3decd52d7eff2` (section 7c), the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a), and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
 Slice 3C exists. Do not restart it. Its backend E2E succeeded and latest automated validation passed. The Split Reveal transition defect within Slice 3C's Full Preview feature is fixed and manually accepted by Mazen (section 7a), but this does not close Slice 3C as a whole — formal acceptance of the rest of Slice 3C was not given, and Mazen intentionally deferred the remaining manual Slice 3C testing/fixes listed in section 9. Do not automatically continue them.
 
@@ -719,5 +821,7 @@ Two genuine bugs were found and fixed during Slice 2/2's own live E2E testing (a
 A third bug was found by Mazen during his own manual acceptance testing on a real Samsung Android mobile browser — the Publish button could not be activated by a real tap — and has since been fixed under this exact authorized scope only; see section 7e. It went undetected by every prior automated pass because those passes used a synthetic `.click()` call that bypasses real hit-testing.
 
 A fourth bug was found only after deploying the Permanent Public GamID URL to real GitHub Pages: the new `/@handle` redirect (through `404.html`) made the public Intro stage stay blank on roughly 3 of 4 attempts, because the iframe could finish loading and broadcast its ready signal before `public.js`'s deferred module even began executing — a deeper layer of the same class of bug fixed in section 7d, not reproducible against a local static server. Fixed by mirroring `account.js`'s own existing dual-trigger pattern (also listening for the iframe's native `load` event); see section 7f.
+
+A read-only diagnosis (requested separately, performed with no code changes) investigated a real-device report that the public Intro behaves differently in Opera than Chrome, and identified two concrete, evidence-backed risks without proving a single exclusive root cause: a still-unproven-safe handshake timing race, and GitHub Pages' unavoidable `Cache-Control: max-age=600` allowing a browser to legitimately run an older deployed build for up to 10 minutes. Both were then closed under explicit follow-up authorization: the one-shot `ready` broadcast became a bounded retry-until-acknowledged handshake (tolerating either execution order, provably capped, never duplicating playback), and every cross-document reference between the public/account parents and the shared Intro iframe now carries a deploy-derived, automatically-stamped version query string so a stale-cached parent can never end up paired with a mismatched-version child. A related identity-safety gap found during this work — Skip Intro could reveal the raw unconfigured placeholder as if it were a loaded profile — was fixed by only revealing the experience once the child's own state broadcast proves real data was applied. See section 7g. **This is a mitigation validated on Chromium-based tooling only — Mazen's manual acceptance on his real Opera browser is still outstanding and is the actual final acceptance test for the original report.**
 
 Do not start the next implementation slice. First inspect the repository read-only, then discuss the roadmap and next priority with Mazen. Proceed only after he explicitly chooses and authorizes the next work.
