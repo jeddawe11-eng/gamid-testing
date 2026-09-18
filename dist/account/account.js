@@ -375,8 +375,76 @@ async function showIdentity(data) {
   await restoreIntroState(intro);
   if (isProcessingIntroState(intro)) introStatusPoller.start();
   updateProfilePreview();
+  renderShare();
   showView("identity");
 }
+
+function permanentGamidUrl() {
+  return new URL(`../@${identity.gamid_handle}`, location.href).href;
+}
+
+function qrShareUrl() {
+  return new URL(`../public/index.html?qr=${encodeURIComponent(identity.qr_public_token)}`, location.href).href;
+}
+
+let qrCodeInstance = null;
+function renderShare() {
+  if (!identity?.gamid_handle) return;
+  document.getElementById("shareLinkInput").value = permanentGamidUrl();
+  const qrContainer = document.getElementById("qrCodeCanvas");
+  if (window.QRCode && qrContainer) {
+    qrContainer.innerHTML = "";
+    qrCodeInstance = new window.QRCode(qrContainer, {
+      text: qrShareUrl(), width: 220, height: 220,
+      colorDark: "#08070d", colorLight: "#ffffff", correctLevel: window.QRCode.CorrectLevel.M,
+    });
+  }
+  document.getElementById("qrDisplayName").textContent = identity.display_name || "Gamer";
+  document.getElementById("qrHandle").textContent = `@${identity.gamid_handle}`;
+}
+
+function flashShareMessage(text) {
+  const el = document.getElementById("shareMessage");
+  el.textContent = text;
+  el.hidden = false;
+  clearTimeout(flashShareMessage.timer);
+  flashShareMessage.timer = setTimeout(() => { el.hidden = true; }, 2400);
+}
+
+async function copyToClipboard(text) {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch {
+    const input = document.getElementById("shareLinkInput");
+    const previous = input.value;
+    input.value = text; input.select();
+    let copied = false;
+    try { copied = document.execCommand("copy"); } catch { copied = false; }
+    input.value = previous;
+    return copied;
+  }
+}
+
+document.getElementById("copyShareLinkButton").addEventListener("click", async () => {
+  flashShareMessage((await copyToClipboard(permanentGamidUrl())) ? "Link copied." : "Could not copy — select and copy manually.");
+});
+
+document.getElementById("shareIdentityButton").addEventListener("click", async () => {
+  const url = permanentGamidUrl();
+  if (navigator.share) {
+    try { await navigator.share({ title: identity?.display_name || "My GamID", text: `Check out my GamID: @${identity?.gamid_handle}`, url }); }
+    catch { /* user cancelled the native share sheet */ }
+    return;
+  }
+  flashShareMessage((await copyToClipboard(url)) ? "Link copied — share it anywhere." : "Could not copy — select and copy manually.");
+});
+
+document.getElementById("showQrButton").addEventListener("click", () => {
+  renderShare();
+  document.getElementById("shareQrDialog").showModal();
+});
+document.getElementById("closeQrDialog").addEventListener("click", () => {
+  document.getElementById("shareQrDialog").close();
+});
 
 async function routeAuthenticated() {
   identity = await api.getIdentity();

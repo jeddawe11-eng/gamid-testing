@@ -71,6 +71,18 @@
             <button id="visibilityToggle" class="text-button" type="button" disabled>Publish</button>
           </div>
         </section>
+        <section class="share-section" aria-label="Share your GamID">
+          <p class="eyebrow">SHARE YOUR GAMID</p>
+          <div class="share-link-row">
+            <input id="shareLinkInput" class="share-link-input" type="text" readonly aria-label="Your permanent GamID link" />
+            <button id="copyShareLinkButton" class="secondary" type="button">Copy Link</button>
+          </div>
+          <div class="share-actions">
+            <button id="shareIdentityButton" class="secondary" type="button">Share</button>
+            <button id="showQrButton" class="secondary" type="button">GamID QR</button>
+          </div>
+          <p id="shareMessage" class="share-message" role="status" hidden></p>
+        </section>
         <form id="profileForm" class="profile-form" novalidate>
           <label class="avatar-picker">Avatar <span>Private storage</span><input id="profileAvatarInput" name="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /><small>Tap to replace · JPG, PNG, WebP, or AVIF · max 5 MB</small></label>
           <div class="identity-section intro-section">
@@ -126,9 +138,20 @@
         <button id="closeIntroPreview" class="preview-close" type="button">Return to editor</button>
       </dialog>
 
+      <dialog id="shareQrDialog" class="share-qr-dialog" aria-label="GamID QR code">
+        <div class="qr-card">
+          <p class="qr-card-brand">GAM<span>ID</span></p>
+          <div id="qrCodeCanvas" class="qr-code-canvas" role="img" aria-label="Scannable GamID QR code"></div>
+          <strong id="qrDisplayName"></strong>
+          <span id="qrHandle" class="qr-handle"></span>
+        </div>
+        <button id="closeQrDialog" class="preview-close" type="button">Close</button>
+      </dialog>
+
       <p id="formMessage" class="form-message" role="alert" hidden></p>
     </section>
   </main>
+  <script src="qrcode.min.js"></script>
   <script type="module" src="account.js"></script>
 </body>
 </html>

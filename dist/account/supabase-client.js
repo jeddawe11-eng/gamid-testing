@@ -245,6 +245,11 @@ export async function getPublicIdentity(handle) {
   return rows?.[0] || null;
 }
 
+export async function getPublicIdentityByQr(token) {
+  const rows = await rpc("get_public_identity_by_qr", { candidate_token: token }, { anonymous: true });
+  return rows?.[0] || null;
+}
+
 export async function loadPublicAvatar(path) {
   if (!path) return null;
   const response = await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/avatars/${encodeStoragePath(path)}`, {

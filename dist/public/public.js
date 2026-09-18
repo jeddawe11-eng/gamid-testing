@@ -1,4 +1,4 @@
-import { getPublicIdentity, loadPublicAvatar, loadPublicIntroMedia } from "../account/supabase-client.js";
+import { getPublicIdentity, getPublicIdentityByQr, loadPublicAvatar, loadPublicIntroMedia } from "../account/supabase-client.js";
 
 const catalogLabel = (catalog, key) => catalog?.find(item => item.key === key)?.label || key || "";
 
@@ -46,11 +46,15 @@ async function render() {
   });
   replayButton.addEventListener("click", send);
 
-  const handle = (new URLSearchParams(location.search).get("handle") || "").trim().replace(/^@/, "");
+  const params = new URLSearchParams(location.search);
+  const handle = (params.get("handle") || "").trim().replace(/^@/, "");
+  const qrToken = (params.get("qr") || "").trim();
 
   let identity = null;
   if (handle) {
     try { identity = await getPublicIdentity(handle); } catch { identity = null; }
+  } else if (qrToken) {
+    try { identity = await getPublicIdentityByQr(qrToken); } catch { identity = null; }
   }
 
   loading.hidden = true;
