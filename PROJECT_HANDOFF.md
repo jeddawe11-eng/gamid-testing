@@ -6,7 +6,7 @@ Repository: `jeddawe11-eng/gamid-testing`
 
 Branch: `main`
 
-Authoritative implementation checkpoint: see section 16 for the exact current commit. Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7d. A mobile-Publish-button manual-acceptance bug found during Mazen's acceptance testing has since been fixed — see section 7e. It is applied on top of Slice 1/2 (Foundation + Public-Safe Data, section 7b, also not yet formally accepted), the accepted Split Reveal Intro-visibility fix (section 7a), and the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
+Authoritative implementation checkpoint: see section 16 for the exact current commit. The Permanent Public GamID URL + QR + Sharing slice is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7f. Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7d. A mobile-Publish-button manual-acceptance bug found during Mazen's acceptance testing has since been fixed — see section 7e. It is applied on top of Slice 1/2 (Foundation + Public-Safe Data, section 7b, also not yet formally accepted), the accepted Split Reveal Intro-visibility fix (section 7a), and the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
 This is the authoritative continuation record for Claude Code or any other coding agent. It records what exists, what Mazen accepted, what remains unverified, and what is only future direction. It does not authorize deferred testing, another slice, redesign, deployment, migration, cloud changes, or Production access.
 
@@ -182,6 +182,10 @@ Historical Samsung Gallery-backed Avatar files produced `File.arrayBuffer()` / `
 ### Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions)
 
 **IMPLEMENTED, DEPLOYED TO TESTING, VALIDATED, NOT FORMALLY ACCEPTED.** See section 7d.
+
+### Permanent Public GamID URL + QR + Sharing
+
+**IMPLEMENTED, DEPLOYED TO TESTING, VALIDATED, NOT FORMALLY ACCEPTED.** See section 7f.
 
 ## 7. Slice 3C exact implementation
 
@@ -418,6 +422,101 @@ No markup, layout, event handling, or visual appearance changed — the decorati
 - No table, RLS policy, RPC, or migration was touched — this is a pure frontend CSS fix with zero backend surface.
 - lint PASS, typecheck PASS, tests **116/116 PASS** (115 existing + 1 new, asserting `.identity-preview::after` carries `pointer-events:none`).
 
+## 7f. Permanent Public GamID URL + QR + Sharing
+
+**IMPLEMENTED, DEPLOYED TO TESTING, VALIDATED — NOT FORMALLY ACCEPTED.** This is the next authorized build slice after Public GamID Profile Slice 2/2 (section 7d) and its manual-acceptance fix (section 7e). It completes `GAMID_ROADMAP.md` items 3 (Permanent share link) and 4 (QR sharing) using only the existing permanent handle and the existing, previously-dormant `qr_references` opaque-token foundation from Slice 2 (section 6) — no second identifier system was created.
+
+### Goal
+
+Turn the existing Public GamID Profile into a genuinely shareable identity: a permanent human-readable public URL, a scannable QR that resolves to the same identity, and an owner-facing Share experience (Copy Link, native Share, QR), all built entirely on top of the already-accepted Transition Engine and the already-implemented Public Profile experience (sections 7b/7d) — no second profile page was built.
+
+### 1. Permanent public URL
+
+**Format:** `https://jeddawe11-eng.github.io/gamid-testing/@<handle>` (e.g. `/@black`).
+
+**Why this exact route, and not a bare `/@handle` at the domain root:** this repository is a GitHub Pages *project* site (no `CNAME`/custom domain — confirmed by inspecting the repo before implementing), so every route is necessarily prefixed with `/gamid-testing/`. GitHub Pages is a static host with no server-side rewrite/redirect capability, so a dynamic path segment like `/@<handle>` cannot be served as a real file or directory (handles are created at runtime, not build time). The standard, well-established technique for clean URLs on GitHub Pages — used by countless static-site/SPA deployments — is a custom `404.html` at the site root: GitHub Pages serves this file's contents (with an HTTP 404 status) for any path that doesn't match a real file, and a small inline script inspects `location.pathname` and redirects. This is what `dist/404.html` does:
+
+```js
+var match = path.match(/\/@([^/]+)\/?$/);
+if (match) {
+  var handle = decodeURIComponent(match[1]);
+  var base = path.slice(0, path.length - match[0].length);
+  location.replace(base + "/public/index.html?handle=" + encodeURIComponent(handle) + location.search);
+}
+```
+
+It derives the redirect target's base path from the *actual requested path* rather than a hardcoded prefix, so the same file works unmodified whether the site is served under `/gamid-testing/` (today) or from a bare domain root (if a custom domain is ever added later — an undecided, unstarted future infrastructure decision, not part of this slice). Nested paths under `/@handle/...` and unrelated unmatched paths fall through to a plain, self-contained "this GamID link isn't valid" message (no external stylesheet/script references, since a 404.html's relative asset URLs resolve against the *requested* path, not its own location — a well-known GitHub Pages gotcha avoided by inlining everything).
+
+**Backward compatibility preserved:** the temporary `/public/?handle=<handle>` route from Slice 1/2 is untouched and still fully functional — `/@<handle>` is purely an additive redirect *into* it, not a replacement.
+
+**Case handling:** the redirect passes the path segment through unmodified; normalization (lowercasing, trimming) continues to happen exactly once, server-side, in the already-accepted `private.normalize_handle()` — no duplicate client-side normalization logic was added.
+
+No internal IDs or QR tokens appear anywhere in this URL — only the permanent handle.
+
+### 2. GamID QR
+
+**Architecture:** completes the `public.qr_references` foundation from Slice 2 (section 6) — a `qr_reference_id`/`entity_id`/opaque `public_token` (`q_<36 hex chars>`) row created automatically for every SOLO identity, already returned to the *authenticated owner only* by `get_my_gamid`, but until this slice never resolved anywhere. No new table, no new token format, no second QR identity system.
+
+**New migration** (`20260919120000_public_profile_qr_resolution.sql`, TESTING only):
+
+```sql
+create function private.get_public_identity_by_qr_impl(candidate_token text)
+returns table (...same 13 columns as get_public_identity_impl...)
+language sql stable security definer
+set search_path = ''
+as $$
+  select * from private.get_public_identity_impl(
+    (select e.gamid_handle
+     from public.qr_references q
+     join public.entities e on e.entity_id = q.entity_id
+     where q.public_token = candidate_token
+     limit 1)
+  );
+$$;
+
+create function public.get_public_identity_by_qr(candidate_token text)
+... language sql stable security invoker ...
+as $$ select * from private.get_public_identity_by_qr_impl(candidate_token); $$;
+```
+
+This resolves the token to a handle and then **delegates entirely to the existing, unmodified `private.get_public_identity_impl`** (the same function `get_public_identity` already uses) rather than re-implementing its own query. Publishing rules (`e.visibility = 'PUBLIC'`) and every forbidden-column exclusion are therefore inherited automatically — a QR for an unpublished identity resolves to zero rows for exactly the same reason an unpublished handle does, with no separate gate to keep in sync. No table gained a direct `anon` grant; `qr_references` keeps its existing owner-only RLS policy untouched, and the new functions are `security definer`/`security invoker` following the same established pattern as every other public RPC in this codebase.
+
+### 3. QR resolution behavior
+
+The public route (`dist/public/`) now accepts **either** `?handle=<handle>` (existing, unchanged) **or** `?qr=<token>` (new) and converges on the exact same rendering path — `dist/public/public.js` gained one small branch (call `getPublicIdentityByQr` instead of `getPublicIdentity` when `?qr=` is present) and nothing else changed. No second profile page, no duplicated iframe/postMessage logic. The QR image itself encodes `<origin>/gamid-testing/public/index.html?qr=<token>` directly — machine-scanned links have no need for the human-readable `/@handle` form.
+
+### 4. Owner Share experience
+
+Inside YOUR GAMID (`dist/account/index.html`), a new **SHARE YOUR GAMID** section sits directly below the Live Preview/Publish card:
+
+- A read-only field showing the permanent URL (`../@<handle>` resolved to an absolute URL via `new URL(...)`, so it works unmodified at any base path).
+- **Copy Link** — copies the permanent handle-based URL via `navigator.clipboard.writeText`, falling back to `document.execCommand("copy")` when unavailable.
+- **Share** — uses `navigator.share()` where supported (passes the permanent URL, display name, and handle); falls back to Copy Link with a toast when the Web Share API is unavailable (verified on the desktop TESTING browser, which has no `navigator.share`).
+- **GamID QR** — opens a `<dialog>` (same `showModal()`/`.close()` pattern as the existing avatar-crop and Intro-preview dialogs) presenting a large, high-contrast QR code (vendored `qrcode.min.js`, MIT-licensed, client-side generation — no third-party QR-rendering API call, so the token is never sent to any outside service) alongside the GamID brand mark, Display Name, and `@handle`, styled for clean scanning (plain white QR panel, no logo overlay or decorative elements inside the code itself).
+
+Copy Link and Share always carry the permanent handle-based URL, never the raw QR token — the token appears only inside the QR image's own encoded destination.
+
+### Validation
+
+- lint PASS, typecheck PASS, tests **129/129 PASS** (116 existing + 13 new, covering: the QR RPC delegates to the existing gated function instead of duplicating it, the migration never widens direct table access, the frontend client mirrors the handle-based lookup, the public route's `?qr=` branch, the `404.html` redirect regex and fallback, the Share UI elements, Web Share/fallback wiring, and that Copy Link/Share never reference the raw QR token).
+- Live TESTING E2E using a disposable account (`sharetest1`, created and fully deleted afterward):
+  - Live Preview correctly showed the computed permanent URL (`.../@sharetest1`).
+  - QR dialog rendered a valid, decodable QR whose encoded destination was confirmed via the library's own `title` attribute to be `.../public/index.html?qr=<token>`.
+  - **QR blocked while unpublished**: scanning-equivalent navigation to the QR URL before publishing showed the existing "This GamID isn't public" state — confirmed QR cannot bypass Publish/Unpublish.
+  - After Publish, the same QR URL opened the full existing Public Profile experience (Intro/Transition/Profile machinery unchanged and untouched).
+  - Copy Link and Share (fallback path, since the TESTING desktop browser has no Web Share support) both verified via genuine trusted clicks to copy the correct permanent URL, with the visible confirmation toast.
+  - The temporary `/public/?handle=` route reconfirmed still fully functional (backward compatibility).
+  - The `404.html` redirect regex verified directly against `/gamid-testing/@black`, `/gamid-testing/@black/`, a hypothetical bare `/@black` (future custom domain), a nested `/gamid-testing/@black/extra` (correctly rejected), and an underscore handle — all resolved exactly as designed. (GitHub Pages' custom-404 serving cannot be emulated by a local static file server, so the redirect's live behavior is confirmed after deployment below.)
+  - Anonymous responses (both `?handle=` and `?qr=` paths) inspected directly and confirmed to contain none of: email, DOB, `entity_id`, `profile_id`, `qr_public_token`, or any other internal/private field.
+  - An invalid/garbage QR token returns `null` with no error leakage.
+  - Existing owner editor regression-checked: Bio edit + Save persisted correctly; Publish/Unpublish toggled correctly through the same control validated in section 7e.
+  - Mobile portrait (375×812) verified: Share section and QR dialog both render cleanly with no overflow; desktop (1024×768) verified likewise.
+- Deployed TESTING verification: `dist/account/qrcode.min.js`, the updated `account.js`/`account.css`/`index.html`, `public.js`, and `dist/404.html` all confirmed live via direct fetch against `https://jeddawe11-eng.github.io/gamid-testing/`, and the real GitHub Pages `/@<handle>` redirect verified end-to-end in a live browser (see the final report for the exact confirmed behavior).
+
+### Deliberately deferred (not part of this slice)
+
+A custom domain (which would allow a bare `/@handle` with no `/gamid-testing/` prefix) was not pursued — infrastructure/Production decision, out of scope for TESTING. Platform-specific share integrations (WhatsApp/Discord/social APIs) were explicitly excluded per this slice's own instructions; the device's native share sheet is the only mechanism. Handle-changing, aliases, redirects, and multiple public handles per identity remain explicitly unsupported — one identity still maps to exactly one permanent `@handle`.
+
 ## 8. Real Samsung / real E2E evidence
 
 A protected Samsung/@BLACK job proved the backend path:
@@ -588,11 +687,11 @@ Claude Code or another agent must:
 
 ## 16. START HERE
 
-Current exact implementation checkpoint: `5f7f380ab08608630ee4e3e59d45181766083f39` — fix: Publish button unresponsive to real taps on mobile (manual acceptance bug), section 7e. Built on top of Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` (section 7d), Slice 1/2 (Foundation + Public-Safe Data) `697b6e3773233d4b403becb63a6857893dbe0ea2` (section 7b), the `check_handle_availability_impl` sign-up permission drift fix `6bad4d583735d1e8c589642911f3decd52d7eff2` (section 7c), the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a), and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
+Current exact implementation checkpoint: `b1caefacf4652e090d134e9e50851572e9a088eb` — feat: Permanent Public GamID URL + QR + Sharing, section 7f. Built on top of the mobile Publish-button manual-acceptance fix `5f7f380ab08608630ee4e3e59d45181766083f39` (section 7e), Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` (section 7d), Slice 1/2 (Foundation + Public-Safe Data) `697b6e3773233d4b403becb63a6857893dbe0ea2` (section 7b), the `check_handle_availability_impl` sign-up permission drift fix `6bad4d583735d1e8c589642911f3decd52d7eff2` (section 7c), the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a), and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
 Slice 3C exists. Do not restart it. Its backend E2E succeeded and latest automated validation passed. The Split Reveal transition defect within Slice 3C's Full Preview feature is fixed and manually accepted by Mazen (section 7a), but this does not close Slice 3C as a whole — formal acceptance of the rest of Slice 3C was not given, and Mazen intentionally deferred the remaining manual Slice 3C testing/fixes listed in section 9. Do not automatically continue them.
 
-Public GamID Profile Slice 1/2 and Slice 2/2 both exist, are implemented, and are deployed to TESTING (sections 7b and 7d). **Neither has been formally accepted by Mazen.** Both Public Profile slices are now complete — the roadmap's Public GamID Profile item (roadmap section 2) has no remaining unstarted implementation slice. Do not infer authorization to start any adjacent roadmap item (permanent share link, QR sharing, Games/Stats/Connections/Socials, or any AI/Cinematic Identity concept) from either slice's existence or position in the roadmap.
+Public GamID Profile Slice 1/2, Slice 2/2, and the Permanent Public GamID URL + QR + Sharing slice all exist, are implemented, and are deployed to TESTING (sections 7b, 7d, and 7f). **None has been formally accepted by Mazen.** `GAMID_ROADMAP.md` items 2, 3, and 4 (Public GamID Profile, Permanent share link, QR sharing) now have no remaining unstarted implementation. Do not infer authorization to start any adjacent roadmap item (Games/Stats/Connections/Socials, a custom domain, platform-specific share integrations, or any AI/Cinematic Identity concept) from any of these slices' existence or position in the roadmap.
 
 A pre-existing, unrelated bug was found during Slice 1/2 testing (`private.check_handle_availability_impl` missing its live `anon` grant, blocking brand-new user sign-up in TESTING) and has since been fixed under separate authorization — see section 7c.
 
