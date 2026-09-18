@@ -44,6 +44,7 @@ async function render() {
     if (event.data?.type === "gamid-intro-preview-ready") { frameReady = true; send(); }
     if (event.data?.type === "gamid-intro-preview-state") replayButton.hidden = !hasIntro || event.data.state !== "profile";
   });
+  frame.addEventListener("load", () => { frameReady = true; send(); });
   replayButton.addEventListener("click", send);
 
   const params = new URLSearchParams(location.search);

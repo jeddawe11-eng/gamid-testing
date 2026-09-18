@@ -94,6 +94,10 @@ test("send() only posts once both the iframe is ready and a config has been buil
   assert.match(publicController, /experienceWrap\.hidden = false;\s*\n\s*send\(\);/);
 });
 
+test("the iframe's native load event also marks it ready, mirroring account.js's own dual-trigger pattern, so a lost gamid-intro-preview-ready postMessage (the iframe can finish loading and broadcast it before this deferred module even starts executing) does not leave the Intro stage permanently blank", () => {
+  assert.match(publicController, /frame\.addEventListener\("load", \(\) => \{ frameReady = true; send\(\); \}\)/);
+});
+
 test("public mode also hides the owner-only 'YOUR GAMID' eyebrow label, and the CSS respects the hidden attribute instead of forcing the badge visible", async () => {
   assert.match(previewHtml, /id="previewEyebrow"/);
   assert.match(previewController, /previewEyebrow\.hidden=Boolean\(config\.publicMode\)/);
