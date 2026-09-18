@@ -6,7 +6,7 @@ Repository: `jeddawe11-eng/gamid-testing`
 
 Branch: `main`
 
-Authoritative implementation checkpoint: see section 16 for the exact current commit. Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7d. It is applied on top of Slice 1/2 (Foundation + Public-Safe Data, section 7b, also not yet formally accepted), the accepted Split Reveal Intro-visibility fix (section 7a), and the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
+Authoritative implementation checkpoint: see section 16 for the exact current commit. Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7d. A mobile-Publish-button manual-acceptance bug found during Mazen's acceptance testing has since been fixed — see section 7e. It is applied on top of Slice 1/2 (Foundation + Public-Safe Data, section 7b, also not yet formally accepted), the accepted Split Reveal Intro-visibility fix (section 7a), and the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
 This is the authoritative continuation record for Claude Code or any other coding agent. It records what exists, what Mazen accepted, what remains unverified, and what is only future direction. It does not authorize deferred testing, another slice, redesign, deployment, migration, cloud changes, or Production access.
 
@@ -388,6 +388,36 @@ A third, lower-severity issue (the static `YOUR GAMID` eyebrow label rendering o
 
 The final permanent public share-URL/QR architecture (`GAMID_ROADMAP.md` items 3–4) was **not** decided or locked in here. The temporary `/public/?handle=` route from Slice 1/2 was preserved as-is because it remained sufficient for this slice's scope. Games, Stats, Gaming Connections, Discord, marketplace, jobs, organizations, teams, companies, and any AI-generated/Cinematic Identity presentation were explicitly out of scope and were not touched.
 
+## 7e. Manual acceptance bug — Publish button unresponsive to real mobile taps
+
+**FIXED.** Found by Mazen during manual acceptance testing of Public GamID Profile Slice 2/2 on a real Samsung Android mobile browser, blocking acceptance. Fix authorized under this exact scope only.
+
+**Symptom:** on the real deployed TESTING account page, the owner could see the Publish button inside YOUR GAMID / LIVE PREVIEW, but tapping it on a real Samsung Android mobile browser did nothing — the button could not be activated. Desktop and prior browser-automation testing never caught this, including the Slice 2/2 E2E validation in section 7d.
+
+**Root cause:** `.identity-preview::after` (`dist/account/account.css`), a purely decorative circle outline positioned in the bottom-right corner of the LIVE PREVIEW card (`right:-3.5rem;bottom:-3.5rem`), had no `pointer-events:none`. Being `position:absolute`, it paints above the normal-flow `.visibility-row` content within the same stacking context regardless of source order, and its transparent interior still receives pointer events by default. On viewport widths where the Publish/Unpublish button's real position falls under the pseudo-element's box, this silently intercepted the tap before it could reach the button. Confirmed directly: `document.elementFromPoint()` at the exact center of the button's bounding box returned the `.identity-preview` section, not the button.
+
+This had gone undetected through every earlier validation pass (including section 7d's Slice 2/2 sign-off) because all prior automated Publish/Unpublish testing used `document.getElementById("visibilityToggle").click()` — a synthetic DOM method call that invokes the click handler directly and bypasses real hit-testing entirely, so it could never have surfaced an overlapping-element problem. A real tap (or a coordinate-based click that goes through the browser's actual hit-testing) is required to reproduce it, which is exactly the difference between this bug and every prior pass.
+
+**Fix (`dist/account/account.css`, one property on one existing rule):**
+
+```css
+.identity-preview::after{content:"";position:absolute;width:8rem;height:8rem;right:-3.5rem;bottom:-3.5rem;border:1px solid rgba(139,93,255,.35);border-radius:50%;pointer-events:none}
+```
+
+No markup, layout, event handling, or visual appearance changed — the decorative circle still renders identically; it simply no longer participates in hit-testing. No other file was touched; this is a single-property change confined to a purely cosmetic pseudo-element.
+
+**Validation**, using a disposable TESTING account (`mobilebug1`, created and fully deleted afterward) at a 375×812 mobile viewport with touch emulation, verified via real coordinate-based taps (not synthetic `.click()`):
+
+- `document.elementFromPoint()` at the Publish button's center now returns the button itself, not `.identity-preview`.
+- A real tap activates Publish: state visibly changes from `DRAFT · PRIVATE` to `PUBLIC`, confirmed with the existing "Your GamID is now public." confirmation.
+- The public `/public/?handle=mobilebug1` route became anonymously accessible immediately after.
+- A real tap activates Unpublish the same way, with the existing "Your GamID is private again." confirmation.
+- The public route immediately returned to its "isn't public" state after unpublishing.
+- Existing editor functionality reconfirmed unaffected: the YOUR INTRO accordion, transition selector, and file inputs all still open/respond correctly.
+- The Intro → Transition → Public Profile experience from section 7d is unaffected — this fix is isolated to `dist/account/account.css`, which the public route and `intro-preview.html`/`.js`/`.css` never load.
+- No table, RLS policy, RPC, or migration was touched — this is a pure frontend CSS fix with zero backend surface.
+- lint PASS, typecheck PASS, tests **116/116 PASS** (115 existing + 1 new, asserting `.identity-preview::after` carries `pointer-events:none`).
+
 ## 8. Real Samsung / real E2E evidence
 
 A protected Samsung/@BLACK job proved the backend path:
@@ -432,6 +462,7 @@ Do not ask for another upload or resume these automatically. Discuss the next pr
 | Brand-new user sign-up blocked in TESTING (`check_handle_availability_impl` missing its `anon` grant) | **FIXED** | Live grant had drifted from the already-applied, unmodified migration's intent; see section 7c, checkpoint `6bad4d583735d1e8c589642911f3decd52d7eff2` |
 | Public route's Intro never played on first load (message listener attached after two `await`s, missing the iframe's synchronous ready signal) | **FIXED** | `public.js` now attaches its `message` listener before the identity fetch; see section 7d, checkpoint `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` |
 | `DRAFT · PRIVATE` badge stayed visible in the public experience despite `hidden=true` | **FIXED** | `.preview-private{display:inline-block}` had the same CSS specificity as `[hidden]` and won the cascade; see section 7d, checkpoint `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` |
+| Publish button unresponsive to real taps on real Samsung Android mobile browsers (manual acceptance blocker) | **FIXED** | `.identity-preview::after`'s decorative circle had no `pointer-events:none` and intercepted real hit-testing; prior automated testing used synthetic `.click()`, which bypasses hit-testing and never caught it; see section 7e |
 | Samsung Avatar Gallery read/decode failures | **FIXED IMPLEMENTATION; 3A UNACCEPTED** | Stable Blob path exists; broader acceptance deferred |
 | Misleading Auth error during Intro upload | **FIXED** | Correct classification and TUS transport exist |
 | Samsung Intro source lifetime | **FIXED** | Stable Blob captured during selection |
@@ -557,7 +588,7 @@ Claude Code or another agent must:
 
 ## 16. START HERE
 
-Current exact implementation checkpoint: `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` — Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions), section 7d. Built on top of Public GamID Profile Slice 1/2 (Foundation + Public-Safe Data) `697b6e3773233d4b403becb63a6857893dbe0ea2` (section 7b), the `check_handle_availability_impl` sign-up permission drift fix `6bad4d583735d1e8c589642911f3decd52d7eff2` (section 7c), the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a), and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
+Current exact implementation checkpoint: `5f7f380ab08608630ee4e3e59d45181766083f39` — fix: Publish button unresponsive to real taps on mobile (manual acceptance bug), section 7e. Built on top of Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` (section 7d), Slice 1/2 (Foundation + Public-Safe Data) `697b6e3773233d4b403becb63a6857893dbe0ea2` (section 7b), the `check_handle_availability_impl` sign-up permission drift fix `6bad4d583735d1e8c589642911f3decd52d7eff2` (section 7c), the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a), and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
 Slice 3C exists. Do not restart it. Its backend E2E succeeded and latest automated validation passed. The Split Reveal transition defect within Slice 3C's Full Preview feature is fixed and manually accepted by Mazen (section 7a), but this does not close Slice 3C as a whole — formal acceptance of the rest of Slice 3C was not given, and Mazen intentionally deferred the remaining manual Slice 3C testing/fixes listed in section 9. Do not automatically continue them.
 
@@ -566,5 +597,7 @@ Public GamID Profile Slice 1/2 and Slice 2/2 both exist, are implemented, and ar
 A pre-existing, unrelated bug was found during Slice 1/2 testing (`private.check_handle_availability_impl` missing its live `anon` grant, blocking brand-new user sign-up in TESTING) and has since been fixed under separate authorization — see section 7c.
 
 Two genuine bugs were found and fixed during Slice 2/2's own live E2E testing (a message-listener race condition and a CSS `[hidden]` override) — both fixed within this slice's own authorized scope; see section 7d and the section 10 issue register.
+
+A third bug was found by Mazen during his own manual acceptance testing on a real Samsung Android mobile browser — the Publish button could not be activated by a real tap — and has since been fixed under this exact authorized scope only; see section 7e. It went undetected by every prior automated pass because those passes used a synthetic `.click()` call that bypasses real hit-testing.
 
 Do not start the next implementation slice. First inspect the repository read-only, then discuss the roadmap and next priority with Mazen. Proceed only after he explicitly chooses and authorizes the next work.
