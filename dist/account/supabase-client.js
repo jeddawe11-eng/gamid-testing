@@ -278,6 +278,11 @@ export async function startConnection(provider) {
   return payload;
 }
 
+// Private, owner-only diagnostic (Riot discovery validation). Never contains tokens, raw external ids, or unrelated accounts.
+export async function getMyConnectionDiscovery() {
+  return (await rpc("get_my_connection_discovery")) || [];
+}
+
 export async function disconnectConnection(provider) {
   return rpc("disconnect_my_connection", { candidate_provider: provider });
 }

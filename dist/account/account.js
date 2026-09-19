@@ -454,6 +454,11 @@ document.getElementById("closeQrDialog").addEventListener("click", () => {
 // ---------------------------------------------------------------------------------------------------------
 const FRONTEND_CONNECTABLE = new Set(["discord"]);
 const CONNECTION_RETURN_OK = { connected: "Discord connected.", reconnected: "Discord reconnected.", cancelled: "Discord connection cancelled. Nothing was changed." };
+const DISCOVERY_RETURN = {
+  found: "Discord returned a Riot Games connection — see the private discovery result below.",
+  absent: "Discord did not return a Riot Games connection — see the private discovery result below.",
+  unavailable: "Discord's list of linked accounts couldn't be read this time — you can run the test again below.",
+};
 const CONNECTION_ERRORS = {
   invalid_state: "That connection link isn't valid. Please start again.",
   already_used: "That connection link was already used. Your current connections are shown below.",
@@ -471,6 +476,7 @@ const CONNECTION_ERRORS = {
   server_error: "Something went wrong connecting Discord. Please try again.",
 };
 let connectionRows = null;
+let discoveryRows = [];
 let connectingProvider = null;
 let confirmingDisconnect = null;
 let connectionsMessageTimer;
@@ -491,6 +497,54 @@ function element(tag, className, text) {
   if (className) node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
+}
+
+const flagText = value => (value === true ? "yes" : value === false ? "no" : "not returned");
+const visibilityText = value => (value === 1 ? "public" : value === 0 ? "private" : "not returned");
+
+// PRIVATE diagnostic for the Riot discovery validation slice: what Discord's connections API returned for Riot Games.
+// Owner-only, never shown on the public GamID. All values are rendered as text.
+function discoveryPanel(row) {
+  const result = discoveryRows.find(item => item.provider_key === row.provider_key && item.discovered_provider === "riot");
+  const panel = element("section", "connection-discovery");
+  panel.setAttribute("aria-label", "Discovered through Discord");
+  const head = element("div", "connection-discovery-head");
+  head.append(element("p", "eyebrow", "DISCOVERED THROUGH DISCORD"), element("span", "connection-chip", "PRIVATE — DISCOVERY TEST"));
+  panel.append(head);
+
+  if (!result) {
+    panel.append(element("p", "connection-discovery-note", "Riot discovery hasn't been run yet. It needs one extra Discord permission: viewing your linked accounts on Discord. Only Riot Games is looked at — every other linked account is ignored and never saved."));
+  } else if (result.status === "FOUND") {
+    panel.append(element("strong", "connection-discovery-title", "Riot Games"));
+    if (result.external_name) panel.append(element("span", "connection-name", result.external_name));
+    const facts = element("dl", "connection-discovery-facts");
+    const add = (label, value) => { facts.append(element("dt", "", label), element("dd", "", value)); };
+    add("Type returned by Discord", result.external_type || "not returned");
+    add("Verified", flagText(result.verified));
+    add("Visibility on Discord", visibilityText(result.visibility));
+    add("Friend sync", flagText(result.friend_sync));
+    add("Revoked", flagText(result.revoked));
+    add("Account ID", result.external_id_shape ? `${result.external_id_shape} format, ${result.external_id_length} characters (not stored or shown)` : "not returned");
+    add("Fields returned", Array.isArray(result.returned_fields) && result.returned_fields.length ? result.returned_fields.join(", ") : "none");
+    panel.append(facts);
+  } else if (result.status === "ABSENT") {
+    const total = Number.isInteger(result.total_returned) ? result.total_returned : 0;
+    panel.append(element("p", "connection-discovery-note", `Riot Games was not returned by Discord's connections API. Discord returned ${total} linked account${total === 1 ? "" : "s"} in total; none were Riot Games.`));
+  } else {
+    panel.append(element("p", "connection-discovery-note", "Discord's list of linked accounts couldn't be read on the last attempt."));
+  }
+  if (result?.checked_at) {
+    const when = new Date(result.checked_at);
+    if (!Number.isNaN(when.getTime())) panel.append(element("p", "connection-discovery-when", `Last checked ${when.toLocaleString()}`));
+  }
+  panel.append(element("p", "connection-discovery-note", "Diagnostic only — never shown on your public GamID."));
+
+  const button = element("button", "secondary connection-button", connectingProvider === row.provider_key ? "Opening Discord…" : result ? "Run Riot discovery test again" : "Grant permission & run Riot discovery test");
+  button.type = "button";
+  button.disabled = Boolean(connectingProvider);
+  button.addEventListener("click", () => beginConnection(row.provider_key));
+  panel.append(button);
+  return panel;
 }
 
 function connectionCard(row) {
@@ -519,6 +573,7 @@ function connectionCard(row) {
   card.append(head);
 
   if (row.connected) card.append(element("p", "connection-privacy", row.is_public ? "Shown on your public GamID." : "Private — not shown on your public GamID."));
+  if (row.connected && row.provider_key === "discord") card.append(discoveryPanel(row));
 
   const actions = element("div", "connection-actions");
   const supported = FRONTEND_CONNECTABLE.has(row.provider_key);
@@ -557,6 +612,8 @@ function renderConnections() {
 async function loadConnections() {
   try { connectionRows = await api.getMyConnections(); }
   catch { connectionRows = null; }
+  try { discoveryRows = await api.getMyConnectionDiscovery(); }
+  catch { discoveryRows = []; }
   renderConnections();
 }
 
@@ -592,10 +649,13 @@ function handleConnectionReturn() {
   if (params.get("connection") !== "discord") return;
   const result = params.get("result");
   const reason = params.get("reason");
+  const discovery = params.get("discovery");
   history.replaceState(null, "", `${location.pathname}${location.hash}`);
   if (result === "error") showConnectionsMessage(CONNECTION_ERRORS[reason] || CONNECTION_ERRORS.server_error, false, true);
-  else if (CONNECTION_RETURN_OK[result]) showConnectionsMessage(CONNECTION_RETURN_OK[result], result !== "cancelled");
-  else return;
+  else if (CONNECTION_RETURN_OK[result]) {
+    const extra = (result === "connected" || result === "reconnected") && DISCOVERY_RETURN[discovery] ? ` ${DISCOVERY_RETURN[discovery]}` : "";
+    showConnectionsMessage(`${CONNECTION_RETURN_OK[result]}${extra}`, result !== "cancelled", Boolean(extra));
+  } else return;
   document.getElementById("connectionsSection").scrollIntoView({ block: "center" });
 }
 
