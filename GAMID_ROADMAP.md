@@ -75,6 +75,8 @@ Connect Discord, Steam, PlayStation, Xbox, Riot, and official game/platform APIs
 
 **Riot discovery validation (implemented in TESTING; awaiting Mazen's real re-authorization)** — see `PROJECT_HANDOFF.md` section 7i. A small, private, diagnostic-only extension that also requests Discord's `connections` scope to learn whether `/users/@me/connections` returns a Riot Games entry and which safe fields it carries. It stores only the Riot result, never publishes it, and does not implement Riot OAuth/RSO, Riot API calls, OP.GG, or League rank/server/LP; those remain unstarted and need separate approval.
 
+**Result:** Mazen's real authorization showed Discord returns **0 linked accounts**, so Riot cannot be discovered through Discord (dropped). **League of Legends prototype (implemented in TESTING; private, unverified, awaiting Mazen's acceptance)** — see `PROJECT_HANDOFF.md` section 7j. The owner enters a Riot ID once and GamID shows Solo/Duo rank, LP and wins/losses through an isolated, temporary, unofficial OP.GG adapter (lookups only on Add/Refresh, database-throttled, never public). It is designed so official Riot RSO + the Riot API can replace the adapter without redesigning the League card or data model. Public League visibility, other queues, and any official Riot integration remain unstarted and need separate approval.
+
 ### 7. Verified / Connected / Manual model
 
 **Approved direction — Requires Mazen approval**
