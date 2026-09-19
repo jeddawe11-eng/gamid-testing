@@ -1,5 +1,7 @@
 import { readFile, access } from "node:fs/promises";
-const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
+// The Slice 1 Intro lab now lives outside the deployed site (see prototypes/slice-1-intro-lab/README.md).
+const html = await readFile(new URL("../prototypes/slice-1-intro-lab/index.html", import.meta.url), "utf8");
+const landing = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
 const css = await readFile(new URL("../dist/styles.css", import.meta.url), "utf8");
 const accountHtml = await readFile(new URL("../dist/account/index.html", import.meta.url), "utf8");
 const accountCss = await readFile(new URL("../dist/account/account.css", import.meta.url), "utf8");
@@ -19,7 +21,7 @@ if (!css.includes('.experience[data-state="profile"] .preset-shrink{background:t
 if (!html.includes('id="avatarTarget"') || !css.includes("--shrink-x")) {
   throw new Error("Shrink preset must target the runtime avatar position");
 }
-if (!html.includes('<source src="assets/gamid-intro.mp4" type="video/mp4"')) {
+if (!html.includes('<source src="../../dist/assets/gamid-intro.mp4" type="video/mp4"')) {
   throw new Error("Intro must retain the deferred MP4 source reference");
 }
 await access(new URL("../dist/assets/gamid-intro-poster.webp", import.meta.url));
@@ -32,4 +34,8 @@ if (!accountCss.includes("@media(min-width:760px)") || !accountCss.includes("min
 if (!accountClient.includes("sb_publishable_") || accountClient.includes("service_role")) {
   throw new Error("Frontend must use only a Supabase publishable key");
 }
+for (const required of ["account/?auth=register", "account/?auth=signin", "landing.css"]) {
+  if (!landing.includes(required)) throw new Error(`Landing page is missing ${required}`);
+}
+if (/<script|<form|<input|presetSelect|novarift/i.test(landing)) throw new Error("The public root must be a static landing page: no scripts, forms, or prototype content");
 console.log("Static prototype validation passed.");

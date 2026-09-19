@@ -48,6 +48,20 @@ function authErrorCode(error) {
   return String(error?.code || "AUTH_ERROR").toUpperCase().replace(/[^A-Z0-9_]/g, "_").slice(0, 64);
 }
 
+// Landing-page deep link (/account/?auth=signin | ?auth=register). It only chooses which tab of the EXISTING account view is
+// shown; it never signs anyone in, never reads or creates a session, and any other value is ignored.
+export function authTabFromSearch(search = "") {
+  const value = new URLSearchParams(search).get("auth");
+  return value === "signin" || value === "register" ? value : null;
+}
+
+export function searchWithoutAuth(search = "") {
+  const params = new URLSearchParams(search);
+  params.delete("auth");
+  const rest = params.toString();
+  return rest ? `?${rest}` : "";
+}
+
 export function authErrorMessage(error, flow) {
   const code = authErrorCode(error);
   if (flow === "signin") {

@@ -1,4 +1,4 @@
-import { PRESETS, clampDuration, computeShrinkTarget, effectiveTransitionDuration, isImmersiveState, nextExperienceState, resolvePreset } from "./transition-engine.js";
+import { PRESETS, clampDuration, computeShrinkTarget, effectiveTransitionDuration, isImmersiveState, nextExperienceState, resolvePreset } from "../../dist/transition-engine.js";
 
 const els = Object.fromEntries(["experience","profile","introLayer","mediaStage","avatarTarget","introVideo","introImage","skipButton","panelSkipButton","replayButton","presetSelect","introDuration","transitionDuration","introOutput","transitionOutput","progressBar","mediaSelect","stateBadge"].map(id => [id, document.getElementById(id)]));
 let state = "intro";

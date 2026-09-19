@@ -1,0 +1,83 @@
+/* GamID landing page V1 — static, script-free, mobile-first. Shares the account flow's visual language. */
+:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--bg:#07060b;--card:#11101a;--line:#2b2738;--text:#f7f5ff;--muted:#aaa4b7;--cyan:#62e7ff;--violet:#8b5dff;--green:#6ef0b5}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;min-height:100svh;background:radial-gradient(circle at 12% 0,#27134e 0,transparent 30rem),radial-gradient(circle at 92% 38%,rgba(61,157,255,.13) 0,transparent 26rem),var(--bg);color:var(--text);overflow-x:clip}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+
+.site-head{height:4rem;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07)}
+.brand{color:#fff;text-decoration:none;font-weight:950;letter-spacing:.08em}
+.brand span{color:var(--cyan)}
+.test-badge{font-size:.62rem;letter-spacing:.13em;border:1px solid #4a3e78;border-radius:999px;padding:.32rem .55rem;color:#c7b8ff}
+
+.landing{width:100%;max-width:72rem;margin:0 auto;padding:1.75rem 1.1rem 2.5rem}
+.eyebrow{margin:0 0 .7rem;color:var(--cyan);font-weight:800;font-size:.68rem;letter-spacing:.16em}
+.eyebrow i{font-style:normal;color:#7d6fb0;margin:0 .15em}
+
+/* hero */
+.hero{display:grid;gap:2rem;align-items:center}
+h1{margin:0;font-size:clamp(2.5rem,11.5vw,4.9rem);line-height:.98;letter-spacing:-.055em;overflow-wrap:break-word}
+h1 span{color:var(--cyan);background:linear-gradient(100deg,var(--cyan),#a996ff 70%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.lede{max-width:34rem;margin:1.1rem 0 0;color:var(--muted);font-size:1.02rem;line-height:1.6}
+.cta-row{display:grid;gap:.7rem;margin-top:1.5rem}
+.btn{display:flex;align-items:center;justify-content:center;min-height:3.4rem;padding:.8rem 1.4rem;border-radius:.95rem;font-size:1rem;font-weight:850;letter-spacing:.02em;text-decoration:none;text-align:center;border:1px solid transparent}
+.btn-primary{color:#fff;background:linear-gradient(110deg,#713dff,var(--violet) 50%,#3d9dff);box-shadow:0 .9rem 2.2rem rgba(92,57,200,.32)}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-secondary{color:#e6defc;background:rgba(28,24,40,.7);border-color:#3a334b}
+.btn-secondary:hover{border-color:#5c4f83;background:rgba(40,33,58,.8)}
+.fineprint{margin:1rem 0 0;color:#8e88a0;font-size:.78rem;line-height:1.5}
+
+/* illustrative identity card (decorative, non-interactive) */
+.showcase{position:relative;display:grid;justify-items:center;padding:1.2rem 0 .4rem;min-height:23rem;pointer-events:none;user-select:none;overflow:clip}
+.showcase-glow{position:absolute;inset:8% 6% 14%;background:radial-gradient(circle,rgba(139,93,255,.38),transparent 68%);filter:blur(28px)}
+.orbit-ring{position:absolute;width:min(20rem,86vw);aspect-ratio:1;top:.4rem;border:1px solid rgba(98,231,255,.25);border-radius:50%;box-shadow:0 0 5rem rgba(139,93,255,.14);animation:orbit 16s linear infinite}
+.orbit-ring::after{content:"";position:absolute;top:-.3rem;left:50%;width:.6rem;height:.6rem;border-radius:50%;background:var(--cyan);box-shadow:0 0 1rem var(--cyan)}
+.id-card{position:relative;width:min(17.5rem,78vw);margin-top:1.4rem;padding:1.15rem 1.1rem 1.2rem;border:1px solid #4a3e78;border-radius:1.6rem;background:linear-gradient(160deg,rgba(33,24,58,.92),rgba(14,12,22,.94));box-shadow:0 1.6rem 4rem rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.03) inset;transform:rotate(-3.5deg)}
+.id-card-top{display:flex;justify-content:space-between;align-items:center}
+.id-chip{font-size:.58rem;font-weight:800;letter-spacing:.14em;color:#ffd27a;border:1px solid #5a4a1e;background:rgba(255,196,77,.08);border-radius:999px;padding:.24rem .5rem}
+.id-dot{width:.55rem;height:.55rem;border-radius:50%;background:var(--green);box-shadow:0 0 .9rem var(--green)}
+.id-avatar{display:grid;place-items:center;width:5.2rem;height:5.2rem;margin:1rem auto .8rem;border-radius:50%;border:2px solid rgba(98,231,255,.4);background:linear-gradient(135deg,#4b3fd6,#2fb6d6);box-shadow:0 0 2.2rem rgba(98,231,255,.22)}
+.id-avatar b{font-size:2.1rem;font-weight:950}
+.id-name{margin:0;text-align:center;font-size:1.15rem;font-weight:900;letter-spacing:-.02em}
+.id-handle{margin:.15rem 0 0;text-align:center;color:#b9aaf5;font-size:.82rem;font-weight:700}
+.id-lines{display:grid;gap:.4rem;margin:1rem 0}
+.id-lines i{display:block;height:.42rem;border-radius:999px;background:rgba(255,255,255,.09)}
+.id-lines i:nth-child(1){width:92%}.id-lines i:nth-child(2){width:74%}.id-lines i:nth-child(3){width:52%}
+.id-tags{display:flex;gap:.4rem;justify-content:center}
+.id-tags span{font-size:.56rem;font-weight:800;letter-spacing:.12em;color:#c8bafc;border:1px solid #3a334b;border-radius:999px;padding:.26rem .5rem}
+.showcase-note{position:relative;margin:1.5rem 0 0;max-width:19rem;text-align:center;color:#8e88a0;font-size:.7rem;line-height:1.5}
+
+/* steps */
+.steps{display:grid;gap:.8rem;margin:2.4rem 0 0}
+.steps article{padding:1.1rem 1.1rem 1.2rem;border:1px solid var(--line);border-radius:1.1rem;background:rgba(17,16,26,.78)}
+.step-num{margin:0 0 .5rem;color:var(--cyan);font-size:.66rem;font-weight:800;letter-spacing:.16em}
+.steps h2{margin:0 0 .35rem;font-size:1.12rem;letter-spacing:-.02em}
+.steps p:not(.step-num){margin:0;color:var(--muted);font-size:.9rem;line-height:1.55}
+
+/* closing call to action */
+.closing{margin:2.4rem 0 0;padding:1.6rem 1.1rem 1.5rem;border:1px solid #4a3e78;border-radius:1.4rem;text-align:center;background:linear-gradient(160deg,rgba(33,24,58,.7),rgba(14,12,22,.7))}
+.closing h2{margin:0;font-size:clamp(1.4rem,6vw,2rem);letter-spacing:-.035em}
+.closing .cta-row{max-width:22rem;margin-left:auto;margin-right:auto}
+
+.site-foot{display:flex;justify-content:space-between;gap:1rem;padding:1.4rem 1.1rem calc(1.6rem + env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.06);color:#6f6979;font-size:.72rem;letter-spacing:.08em}
+.site-foot b{color:var(--cyan);font-weight:800}
+
+@keyframes orbit{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.orbit-ring{animation:none}}
+
+@media(min-width:34rem){
+  .cta-row{grid-template-columns:auto auto;justify-content:start}
+  .closing .cta-row{grid-template-columns:1fr 1fr}
+  .steps{grid-template-columns:repeat(3,1fr)}
+}
+@media(min-width:56rem){
+  .site-head{padding:0 2rem}
+  .landing{padding:3.4rem 2rem 3.5rem}
+  .hero{grid-template-columns:1.05fr .95fr;gap:3rem}
+  .showcase{min-height:30rem}
+  .orbit-ring{width:27rem;top:1rem}
+  .id-card{width:20rem;margin-top:2.6rem;padding:1.4rem 1.3rem 1.4rem}
+  .id-avatar{width:6.2rem;height:6.2rem}
+  .site-foot{padding-left:2rem;padding-right:2rem}
+}

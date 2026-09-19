@@ -6,7 +6,8 @@ const validator = await readFile(new URL("../scripts/validate.mjs", import.meta.
 const pagesWorkflow = await readFile(new URL("../.github/workflows/deploy-pages.yml", import.meta.url), "utf8");
 
 test("static validation checks the deferred video reference without accessing its file", () => {
-  assert.match(validator, /<source src="assets\/gamid-intro\.mp4" type="video\/mp4"/);
+  // The Slice 1 lab (and its video reference) moved to prototypes/slice-1-intro-lab/, so its path is now relative to dist/.
+  assert.match(validator, /<source src="(?:\.\.\/\.\.\/dist\/)?assets\/gamid-intro\.mp4" type="video\/mp4"/);
   assert.doesNotMatch(
     validator,
     /(?:access|readFile|open|stat|hash|createReadStream)[^\n]*gamid-intro\.mp4/,

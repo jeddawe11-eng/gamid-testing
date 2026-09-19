@@ -1,4 +1,4 @@
-import { INTRO_TRANSITIONS, authErrorMessage, authLanding, debounceAsync, errorMessage, hasIntroChanges, hasProfileChanges, normalizeHandle, validateHandle, validateIntroSource, validateProfileDraft } from "./domain.js";
+import { INTRO_TRANSITIONS, authErrorMessage, authLanding, authTabFromSearch, debounceAsync, errorMessage, hasIntroChanges, hasProfileChanges, normalizeHandle, searchWithoutAuth, validateHandle, validateIntroSource, validateProfileDraft } from "./domain.js";
 import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, createOwnedImageBlob, drawCropPreview, loadOrientedImage } from "./avatar-cropper.js";
 import { PRESETS } from "../transition-engine.js";
 import * as api from "./supabase-client.js";
@@ -1323,3 +1323,11 @@ try {
   if (redirected?.type === "recovery") showView("recovery");
   else await routeAuthenticated();
 } catch { showView("auth"); }
+
+// Landing-page deep link (/account/?auth=signin | ?auth=register): only picks the tab of the existing auth view, and only when
+// that view is what the visitor is looking at (a signed-in owner goes straight to YOUR GAMID as before). It touches no session.
+{
+  const tab = authTabFromSearch(location.search);
+  if (tab && document.getElementById("authView").classList.contains("is-active")) document.getElementById(tab === "signin" ? "signinTab" : "registerTab").click();
+  if (new URLSearchParams(location.search).has("auth")) history.replaceState(null, "", `${location.pathname}${searchWithoutAuth(location.search)}${location.hash}`);
+}
