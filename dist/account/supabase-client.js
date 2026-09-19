@@ -283,6 +283,43 @@ export async function getMyConnectionDiscovery() {
   return (await rpc("get_my_connection_discovery")) || [];
 }
 
+// League of Legends prototype (manual Riot ID + a temporary data source). Private to the owner. The browser never contacts
+// the data source: it asks the backend, which validates, throttles, looks up, and stores only normalized fields.
+export async function getMyLeagueProfile() {
+  const rows = await rpc("get_my_league_profile");
+  return rows?.[0] || null;
+}
+
+export async function lookupLeagueProfile(action, { gameName, tagLine, platformId } = {}) {
+  if (action !== "add" && action !== "refresh") throw new ApiError("Unsupported action.", 400, "invalid_action");
+  await restoreSession();
+  if (!session?.access_token) throw new ApiError("Sign in again to continue.", 401, "unauthenticated");
+  const body = action === "add" ? { action, game_name: gameName, tag_line: tagLine, region: platformId } : { action };
+  let response;
+  try {
+    response = await fetch(`${SUPABASE_URL}/functions/v1/league-lookup`, {
+      method: "POST",
+      headers: { apikey: PUBLISHABLE_KEY, Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError("The lookup service could not be reached.", 0, "NETWORK_ERROR");
+  }
+  let payload = null;
+  try { payload = await response.json(); } catch { payload = null; }
+  if (!response.ok) {
+    const error = new ApiError(payload?.error || `Request failed (${response.status})`, response.status, payload?.error || "lookup_failed");
+    error.field = payload?.field;
+    error.retryAfterSeconds = payload?.retry_after_seconds;
+    throw error;
+  }
+  return payload;
+}
+
+export async function removeLeagueProfile() {
+  return rpc("remove_my_league_profile");
+}
+
 export async function disconnectConnection(provider) {
   return rpc("disconnect_my_connection", { candidate_provider: provider });
 }

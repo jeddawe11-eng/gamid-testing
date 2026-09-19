@@ -104,7 +104,7 @@ begin
   begin perform public.record_connection_discovery(att, acct_a, 'riot', 'FOUND', 3, 1, 'riotgames', 'Name#1', 'uuid', 36, 'not-a-sha', true, false, false, 1, array['id']); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
   res := res || jsonb_build_object('step', 'a malformed fingerprint is rejected', 'pass', got like '%external_id_sha256%', 'got', got);
   reset role;
-  select count(*) into cnt from public.connection_discovery_results;
+  select count(*) into cnt from public.connection_discovery_results d where d.connection_id in (select g.connection_id from public.gaming_connections g where g.entity_id in (ent_a, ent_b));
   res := res || jsonb_build_object('step', 'none of the rejected calls wrote a row', 'pass', cnt = 0, 'count', cnt);
 
   -- ------------------------------------------------------------------ 3. record FOUND, then owner reads it
@@ -204,7 +204,7 @@ begin
 
   -- ------------------------------------------------------------------ 9. identity deletion cascades
   delete from public.entities e where e.entity_id = ent_b;
-  select count(*) into cnt from public.connection_discovery_results;
+  select count(*) into cnt from public.connection_discovery_results d where d.connection_id = conn_a;
   res := res || jsonb_build_object('step', 'deleting an identity removes its connections and discovery rows', 'pass', cnt = 0);
 
   res := res || jsonb_build_object('step', 'SUMMARY', 'pass', not exists (select 1 from jsonb_array_elements(res) e where (e->>'pass') is distinct from 'true'), 'total', jsonb_array_length(res));

@@ -75,7 +75,7 @@ test("connect button is guarded against double-open and restored after bfcache r
 
 test("connections load before the identity view is shown and after it handle the return", () => {
   const show = controller.slice(controller.indexOf("  renderShare();\n  await loadConnections();"));
-  assert.match(show, /await loadConnections\(\);\s*showView\("identity"\);\s*handleConnectionReturn\(\);/);
+  assert.match(show, /await loadConnections\(\);\s*(await loadLeague\(\);\s*)?showView\("identity"\);\s*handleConnectionReturn\(\);/);
 });
 
 test("connections styling keeps touch targets and does not hide the message states", () => {
@@ -203,11 +203,19 @@ test("the public profile is unchanged: no discovery, Riot, or connection code re
   }
 });
 
-test("no Riot API, RSO, OP.GG, or League lookup exists anywhere in the shipped code", async () => {
+// Updated by the League prototype slice: the original guard forbade OP.GG everywhere. OP.GG is now allowed in exactly ONE
+// isolated adapter module (plus the Edge Function glue that names it and the owner UI's plain-text "OP.GG" source label);
+// everything else must still be free of it, and no official Riot API / RSO / development key may appear anywhere.
+test("no Riot API, RSO, or Riot key exists anywhere in the shipped code; OP.GG exists only in the isolated adapter (plus its glue and a UI label)", async () => {
   const files = [...(await listFiles(new URL("../dist/", import.meta.url))), ...(await listFiles(new URL("../supabase/functions/", import.meta.url)))]
     .filter(file => /\.(js|ts|html)$/i.test(file.pathname) && !/qrcode\.min\.js$/i.test(file.pathname));
+  const allowedOpgg = /(_shared\/league\/opgg-adapter\.js|functions\/league-lookup\/index\.ts|dist\/account\/account\.js)$/;
   for (const file of files) {
     const text = await readFile(file, "utf8");
-    assert.doesNotMatch(text, /api\.riotgames\.com|riotgames\.com\/oauth|auth\.riotgames|RGAPI-|op\.gg|opgg|leagueoflegends\.com|\/lol\/(summoner|league)|RIOT_API_KEY|RSO_/i, `${file.pathname} must not call Riot/OP.GG`);
+    assert.doesNotMatch(text, /api\.riotgames\.com|riotgames\.com\/oauth|auth\.riotgames|RGAPI-|leagueoflegends\.com|RIOT_API_KEY|RSO_/i, `${file.pathname} must not use official Riot APIs, RSO, or a Riot key`);
+    if (allowedOpgg.test(file.pathname)) continue;
+    assert.doesNotMatch(text, /op\.gg|opgg|\/lol\/(summoner|league)/i, `${file.pathname} must not know about OP.GG`);
   }
+  const ui = await readFile(new URL("../dist/account/account.js", import.meta.url), "utf8");
+  assert.doesNotMatch(ui, /https?:\/\/[^\s"'`]*op\.gg/i, "the browser code never contains an OP.GG URL");
 });

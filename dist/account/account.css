@@ -79,3 +79,19 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .connection-discovery-facts dt{color:var(--muted)}
 .connection-discovery-facts dd{margin:0;overflow-wrap:anywhere}
 .connection-discovery .connection-button{width:100%;min-height:2.9rem;margin:0}
+.league-section{margin-top:.9rem}
+.league-card .connection-chip{border-color:#5a4a1e;background:rgba(255,196,77,.08);color:#ffd27a}
+.league-card .connection-chip.league-chip{white-space:normal;text-align:center}
+.league-form{display:grid;gap:.7rem;margin-top:.75rem}
+.league-id-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,.55fr);align-items:end;gap:.5rem}
+.league-field{display:grid;gap:.3rem;margin:0;color:#d5d0df;font-size:.72rem;font-weight:700}
+.league-field>span{margin:0}
+.league-hash{padding-bottom:.85rem;color:var(--muted);font-weight:800}
+.league-input{display:block;width:100%;min-height:2.9rem;padding:.6rem .8rem;border:1px solid var(--line);border-radius:.7rem;background:#191622;color:#fff;font-size:.9rem;outline:0}
+.league-input:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.16)}
+.league-form .connection-button{width:100%;min-height:2.9rem;margin:0}
+.league-rank{display:grid;gap:.15rem;margin:.75rem 0 .2rem}
+.league-rank-title{font-size:1.15rem;letter-spacing:-.01em}
+.league-warning{color:#ffd27a}
+.league-source-link{display:inline-block;margin-top:.55rem;color:#c8bafc;font-size:.74rem;font-weight:700;overflow-wrap:anywhere}
+.league-card .connection-privacy{margin-top:.55rem}

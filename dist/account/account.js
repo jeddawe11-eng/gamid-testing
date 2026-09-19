@@ -378,6 +378,7 @@ async function showIdentity(data) {
   updateProfilePreview();
   renderShare();
   await loadConnections();
+  await loadLeague();
   showView("identity");
   handleConnectionReturn();
 }
@@ -664,6 +665,264 @@ window.addEventListener("pageshow", event => {
   connectingProvider = null;
   loadConnections();
 });
+
+// ---------------------------------------------------------------------------------------------------------
+// League of Legends PROTOTYPE — manual Riot ID + a temporary data source. Private to the owner, unverified by design.
+// A lookup happens ONLY when the owner presses "Add League Account" or "Refresh". There is no polling and no background work;
+// the single timer below only re-enables the Refresh button and makes no network request.
+// ---------------------------------------------------------------------------------------------------------
+// Kept in step with supabase/functions/_shared/league/league-domain.js (a test asserts they match).
+const LEAGUE_REGIONS = [
+  ["NA1", "North America (NA1)"], ["EUW1", "Europe West (EUW1)"], ["EUN1", "Europe Nordic & East (EUN1)"], ["KR", "Korea (KR)"],
+  ["JP1", "Japan (JP1)"], ["BR1", "Brazil (BR1)"], ["LA1", "Latin America North (LA1)"], ["LA2", "Latin America South (LA2)"],
+  ["OC1", "Oceania (OC1)"], ["TR1", "Türkiye (TR1)"], ["RU", "Russia (RU)"], ["ME1", "Middle East (ME1)"],
+  ["SG2", "Singapore (SG2)"], ["TW2", "Taiwan (TW2)"], ["VN2", "Vietnam (VN2)"], ["PH2", "Philippines (PH2)"], ["TH2", "Thailand (TH2)"],
+];
+const LEAGUE_SOURCE_LABELS = { OPGG_TEMPORARY: "OP.GG" };
+const LEAGUE_APEX = new Set(["MASTER", "GRANDMASTER", "CHALLENGER"]);
+const LEAGUE_DIVISION = { I: "I", II: "II", III: "III", IV: "IV" };
+const LEAGUE_RESULT_MESSAGES = {
+  ok_add: "League account added. The details below came from a temporary source and are not verified.",
+  ok_refresh: "League details refreshed.",
+  not_found: "OP.GG couldn't find that Riot ID in the selected region. Check the game name, tagline and region.",
+  unavailable: "OP.GG couldn't be reached right now, so nothing was changed. Please try again later.",
+  structure_changed: "OP.GG returned something GamID couldn't read reliably, so nothing was changed.",
+  identity_mismatch: "OP.GG returned a different player than the one you entered, so nothing was changed.",
+};
+const LEAGUE_ERRORS = {
+  already_exists: "A League account is already added. Remove it first to add a different one.",
+  no_profile: "There's no League account to refresh yet.",
+  unauthenticated: "Please sign in again, then try again.",
+  email_not_verified: "Verify your email before adding a League account.",
+  identity_not_found: "We couldn't find your GamID. Please refresh the page.",
+  NETWORK_ERROR: "The lookup service couldn't be reached. Check your connection and try again.",
+  lookup_failed: "Something went wrong with the lookup. Please try again later.",
+  save_failed: "The lookup worked but couldn't be saved. Please try again later.",
+  not_configured: "League lookup isn't available on this TESTING site yet.",
+};
+const LEAGUE_FIELD_ERRORS = { game_name: "Check the Riot game name.", tag_line: "Check the tagline (no spaces, # or -).", region: "Choose a region." };
+const LEAGUE_FAILURE_REASONS = { NOT_FOUND: "the profile wasn't found", UNAVAILABLE: "the data source was unavailable", STRUCTURE_CHANGED: "the data source's format changed", IDENTITY_MISMATCH: "the source returned a different player" };
+let leagueProfile = null;
+let leagueLoaded = false;
+let leagueBusy = null;
+let confirmingLeagueRemove = false;
+let leagueMessageTimer;
+let leagueRefreshTimer;
+let leagueDraft = { gameName: "", tagLine: "", platformId: "" };
+
+function showLeagueMessage(text, success = false, sticky = false) {
+  const el = document.getElementById("leagueMessage");
+  clearTimeout(leagueMessageTimer);
+  el.textContent = text;
+  el.classList.toggle("success", success);
+  el.hidden = !text;
+  if (text && !sticky) leagueMessageTimer = setTimeout(() => { el.hidden = true; }, 10000);
+}
+
+const leagueRegionLabel = platformId => LEAGUE_REGIONS.find(([id]) => id === platformId)?.[1] || platformId;
+const titleCase = value => `${value.charAt(0)}${value.slice(1).toLowerCase()}`;
+const formatWhen = iso => { const when = new Date(iso); return Number.isNaN(when.getTime()) ? null : when.toLocaleString(); };
+function formatWait(seconds) {
+  const s = Math.max(1, Math.ceil(Number(seconds) || 60));
+  return s < 90 ? `${s} second${s === 1 ? "" : "s"}` : `${Math.ceil(s / 60)} minutes`;
+}
+
+function leagueErrorMessage(error) {
+  if (error.code === "invalid_input") return LEAGUE_FIELD_ERRORS[error.field] || "Check the Riot ID and region you entered.";
+  if (error.code === "cooldown") return `Please wait about ${formatWait(error.retryAfterSeconds)} before looking up again.`;
+  if (error.code === "rate_limited") return `Too many lookups for now. Try again in about ${formatWait(error.retryAfterSeconds)}.`;
+  return LEAGUE_ERRORS[error.code] || LEAGUE_ERRORS.lookup_failed;
+}
+
+function leagueRankText(profile) {
+  if (profile.solo_rank_state !== "RANKED" || !profile.solo_tier) return "No ranked Solo/Duo rank reported";
+  const division = !LEAGUE_APEX.has(profile.solo_tier) && LEAGUE_DIVISION[profile.solo_division] ? ` ${LEAGUE_DIVISION[profile.solo_division]}` : "";
+  return `${titleCase(profile.solo_tier)}${division} · ${profile.solo_lp} LP`;
+}
+
+function leagueForm() {
+  const form = element("form", "league-form");
+  form.noValidate = true;
+  form.append(element("p", "connection-discovery-note", "Enter your Riot ID once. GamID looks up public League details from OP.GG, a temporary source. Typing a Riot ID doesn't prove you own the account."));
+
+  const idRow = element("div", "league-id-row");
+  const nameLabel = element("label", "league-field");
+  nameLabel.append(element("span", "", "Riot ID"));
+  const name = element("input", "league-input");
+  name.type = "text"; name.name = "gameName"; name.placeholder = "Game Name"; name.maxLength = 64; name.autocomplete = "off"; name.spellcheck = false;
+  name.setAttribute("aria-label", "Riot game name");
+  name.value = leagueDraft.gameName;
+  nameLabel.append(name);
+  const hash = element("span", "league-hash", "#");
+  hash.setAttribute("aria-hidden", "true");
+  const tagLabel = element("label", "league-field league-tag");
+  tagLabel.append(element("span", "", "Tagline"));
+  const tag = element("input", "league-input");
+  tag.type = "text"; tag.name = "tagLine"; tag.placeholder = "Tagline"; tag.maxLength = 20; tag.autocomplete = "off"; tag.spellcheck = false;
+  tag.setAttribute("aria-label", "Riot tagline");
+  tag.value = leagueDraft.tagLine;
+  tagLabel.append(tag);
+  idRow.append(nameLabel, hash, tagLabel);
+
+  const regionLabel = element("label", "league-field");
+  regionLabel.append(element("span", "", "Region"));
+  const region = element("select", "league-input");
+  region.name = "platformId";
+  const placeholder = element("option", "", "Select your region");
+  placeholder.value = ""; placeholder.disabled = true; placeholder.selected = !leagueDraft.platformId;
+  region.append(placeholder);
+  for (const [id, label] of LEAGUE_REGIONS) { const option = element("option", "", label); option.value = id; option.selected = id === leagueDraft.platformId; region.append(option); }
+  regionLabel.append(region);
+
+  const submit = element("button", "secondary connection-button", leagueBusy === "add" ? "Looking up…" : "Add League Account");
+  submit.type = "submit";
+  submit.disabled = Boolean(leagueBusy);
+  form.append(idRow, regionLabel, submit);
+
+  // Keep what was typed if the view re-renders (e.g. after an error).
+  const remember = () => { leagueDraft = { gameName: name.value, tagLine: tag.value, platformId: region.value }; };
+  form.addEventListener("input", remember);
+  form.addEventListener("change", remember);
+  form.addEventListener("submit", event => { event.preventDefault(); remember(); submitLeagueAdd(); });
+  return form;
+}
+
+function leagueProfileView(profile) {
+  const frag = document.createDocumentFragment();
+  const head = element("div", "connection-head");
+  const avatar = element("div", "connection-avatar", "L");
+  const copy = element("div", "connection-copy");
+  copy.append(element("strong", "", "League of Legends"), element("span", "connection-name", `${profile.game_name}#${profile.tag_line}`), element("span", "connection-handle", leagueRegionLabel(profile.platform_id)));
+  head.append(avatar, copy, element("span", "connection-chip league-chip", "PROTOTYPE / UNVERIFIED"));
+  frag.append(head);
+
+  const rank = element("div", "league-rank");
+  rank.append(element("strong", "league-rank-title", leagueRankText(profile)));
+  if (Number.isInteger(profile.solo_wins) && Number.isInteger(profile.solo_losses)) rank.append(element("span", "connection-name", `Ranked Solo/Duo · ${profile.solo_wins}W ${profile.solo_losses}L`));
+  else if (profile.solo_rank_state === "RANKED") rank.append(element("span", "connection-name", "Ranked Solo/Duo"));
+  frag.append(rank);
+
+  const facts = element("dl", "connection-discovery-facts");
+  const add = (label, value) => { facts.append(element("dt", "", label), element("dd", "", value)); };
+  add("Data source", LEAGUE_SOURCE_LABELS[profile.data_source] || "Third-party source");
+  const fetched = formatWhen(profile.fetched_at);
+  add("Last updated", fetched || "unknown");
+  const sourceWhen = profile.source_updated_at ? formatWhen(profile.source_updated_at) : null;
+  if (sourceWhen) add("Source data as of", sourceWhen);
+  if (Number.isInteger(profile.profile_icon_id)) add("Profile icon ID", String(profile.profile_icon_id));
+  frag.append(facts);
+
+  if (profile.last_result && profile.last_result !== "OK") {
+    frag.append(element("p", "connection-discovery-note league-warning", `The last refresh didn't work (${LEAGUE_FAILURE_REASONS[profile.last_result] || "an unexpected problem"}). Showing the previous details.`));
+  }
+  frag.append(element("p", "connection-privacy", "Private — not shown on your public GamID. Unverified: your Riot ID was entered manually, so this isn't proof of account ownership."));
+
+  try {
+    const url = new URL(profile.source_url);
+    if (url.protocol === "https:") {
+      const link = element("a", "league-source-link", "View the source page");
+      link.href = url.toString(); link.target = "_blank"; link.rel = "noopener noreferrer nofollow";
+      frag.append(link);
+    }
+  } catch { /* an unusable URL is simply not shown */ }
+
+  const actions = element("div", "connection-actions");
+  if (confirmingLeagueRemove) {
+    actions.append(element("p", "connection-confirm", "Remove your League account from GamID? Your GamID, Intro, and public profile stay exactly as they are."));
+    const confirm = element("button", "secondary connection-button danger", "Remove League account");
+    confirm.type = "button"; confirm.disabled = Boolean(leagueBusy);
+    confirm.addEventListener("click", finishLeagueRemove);
+    const cancel = element("button", "text-button connection-button", "Cancel");
+    cancel.type = "button";
+    cancel.addEventListener("click", () => { confirmingLeagueRemove = false; renderLeague(); });
+    actions.append(confirm, cancel);
+  } else {
+    const availableAt = Date.parse(profile.refresh_available_at || "");
+    const waitMs = Number.isNaN(availableAt) ? 0 : availableAt - Date.now();
+    const refresh = element("button", "secondary connection-button", leagueBusy === "refresh" ? "Refreshing…" : waitMs > 0 ? `Refresh available in ${formatWait(waitMs / 1000)}` : "Refresh");
+    refresh.type = "button";
+    refresh.disabled = Boolean(leagueBusy) || waitMs > 0;
+    refresh.addEventListener("click", submitLeagueRefresh);
+    const remove = element("button", "text-button danger connection-button", "Remove");
+    remove.type = "button"; remove.disabled = Boolean(leagueBusy);
+    remove.addEventListener("click", () => { confirmingLeagueRemove = true; renderLeague(); });
+    actions.append(refresh, remove);
+    // Purely local: re-render once when the cooldown ends so the button re-enables. This makes no request.
+    if (waitMs > 0 && waitMs < 2 ** 31 - 1) leagueRefreshTimer = setTimeout(renderLeague, waitMs + 250);
+  }
+  frag.append(actions);
+  return frag;
+}
+
+function renderLeague() {
+  clearTimeout(leagueRefreshTimer);
+  const container = document.getElementById("leagueCard");
+  if (!leagueLoaded) { container.replaceChildren(element("p", "connections-empty", "League of Legends couldn't be loaded right now. Refresh to try again.")); return; }
+  const card = element("article", `connection-card league-card${leagueProfile ? " is-connected" : ""}`);
+  if (leagueProfile) card.append(leagueProfileView(leagueProfile));
+  else {
+    const head = element("div", "connection-head");
+    const copy = element("div", "connection-copy");
+    copy.append(element("strong", "", "League of Legends"), element("span", "connection-name", "Prototype · unverified"));
+    head.append(element("div", "connection-avatar", "L"), copy, element("span", "connection-chip", "NOT ADDED"));
+    card.append(head, leagueForm());
+  }
+  container.replaceChildren(card);
+}
+
+async function loadLeague() {
+  try { leagueProfile = await api.getMyLeagueProfile(); leagueLoaded = true; }
+  catch { leagueProfile = null; leagueLoaded = false; }
+  renderLeague();
+}
+
+function splitRiotId() {
+  // Convenience: a pasted "Name#TAG" in the name box is split for the owner (the server still validates everything).
+  const at = leagueDraft.gameName.lastIndexOf("#");
+  if (at > 0 && !leagueDraft.tagLine.trim()) leagueDraft = { ...leagueDraft, gameName: leagueDraft.gameName.slice(0, at), tagLine: leagueDraft.gameName.slice(at + 1) };
+}
+
+async function runLeagueLookup(action, busy) {
+  if (leagueBusy) return;
+  leagueBusy = busy;
+  confirmingLeagueRemove = false;
+  showLeagueMessage(action === "add" ? "Looking up your League profile…" : "Refreshing…", false, true);
+  renderLeague();
+  try {
+    const result = await api.lookupLeagueProfile(action, { gameName: leagueDraft.gameName.trim(), tagLine: leagueDraft.tagLine.trim().replace(/^#/, ""), platformId: leagueDraft.platformId });
+    if (result?.status === "ok") {
+      showLeagueMessage(LEAGUE_RESULT_MESSAGES[action === "add" ? "ok_add" : "ok_refresh"], true, true);
+      if (action === "add") leagueDraft = { gameName: "", tagLine: "", platformId: "" };
+    } else showLeagueMessage(LEAGUE_RESULT_MESSAGES[result?.status] || LEAGUE_ERRORS.lookup_failed, false, true);
+  } catch (error) {
+    showLeagueMessage(leagueErrorMessage(error), false, true);
+  }
+  leagueBusy = null;
+  await loadLeague();
+}
+
+function submitLeagueAdd() {
+  splitRiotId();
+  if (!leagueDraft.gameName.trim() || !leagueDraft.tagLine.trim()) { showLeagueMessage("Enter your Riot game name and tagline (the part after the #).", false, true); renderLeague(); return; }
+  if (!leagueDraft.platformId) { showLeagueMessage(LEAGUE_FIELD_ERRORS.region, false, true); renderLeague(); return; }
+  runLeagueLookup("add", "add");
+}
+
+function submitLeagueRefresh() { runLeagueLookup("refresh", "refresh"); }
+
+async function finishLeagueRemove() {
+  if (leagueBusy) return;
+  leagueBusy = "remove";
+  showLeagueMessage("Removing…", false, true);
+  renderLeague();
+  try {
+    await api.removeLeagueProfile();
+    showLeagueMessage("League account removed.", true);
+  } catch { showLeagueMessage("Couldn't remove it right now. Please try again.", false, true); }
+  confirmingLeagueRemove = false;
+  leagueBusy = null;
+  await loadLeague();
+}
 
 async function routeAuthenticated() {
   identity = await api.getIdentity();
