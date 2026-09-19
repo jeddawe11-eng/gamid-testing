@@ -71,7 +71,7 @@ Support user-controlled Snapchat, X/Twitter, Instagram, TikTok, YouTube, Twitch,
 
 Connect Discord, Steam, PlayStation, Xbox, Riot, and official game/platform APIs where available. Discord can support identity/discovery/linked accounts and permitted presence, but is not a universal stats/history/ranks/achievements source.
 
-**Discord foundation implemented in TESTING (fail-closed until Mazen configures Discord; not yet accepted)** — see `PROJECT_HANDOFF.md` section 7h. A provider-neutral connection model plus Discord account linking (OAuth `identify` scope only, no stored tokens, private by default) and a CONNECTIONS area in YOUR GAMID. Steam, PlayStation, Xbox, Riot, game discovery, presence, and public display of connections remain unstarted and need separate approval.
+**Discord foundation implemented in TESTING (Discord configured by Mazen; real end-to-end flow awaiting his manual acceptance)** — see `PROJECT_HANDOFF.md` section 7h. A provider-neutral connection model plus Discord account linking (OAuth `identify` scope only, no stored tokens, private by default) and a CONNECTIONS area in YOUR GAMID. Steam, PlayStation, Xbox, Riot, game discovery, presence, and public display of connections remain unstarted and need separate approval.
 
 ### 7. Verified / Connected / Manual model
 

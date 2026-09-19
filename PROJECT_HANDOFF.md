@@ -39,7 +39,7 @@ The current entity is **SOLO**. **Team**, **Organization**, and **Company** are 
 | Slice 3C — Intro Identity Integration | **IMPLEMENTED, NOT FORMALLY ACCEPTED** | Latest implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43` |
 | Public GamID Profile — Slice 1/2 (Foundation + Public-Safe Data) | **IMPLEMENTED, NOT FORMALLY ACCEPTED** | TESTING-deployed and validated; see section 7b |
 | Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions) | **NOT STARTED** | Explicitly deferred; do not begin without Mazen's authorization |
-| Gaming Connections Engine — Discord foundation | **IMPLEMENTED, DEPLOYED FAIL-CLOSED; AWAITING DISCORD CONFIGURATION + MANUAL ACCEPTANCE** | Implementation `08b7d039bd118513a8e3129a7e8a70d527cd2bfd`; see section 7h |
+| Gaming Connections Engine — Discord foundation | **IMPLEMENTED, DEPLOYED, DISCORD CONFIGURED; AWAITING MANUAL ACCEPTANCE OF THE REAL FLOW** | Implementation `08b7d039bd118513a8e3129a7e8a70d527cd2bfd`; see section 7h |
 | Post-3C phases | **APPROVED DIRECTION / IDEA ONLY** | See `GAMID_ROADMAP.md`; none is authorized to start |
 
 Mazen intentionally deferred further Slice 3C manual testing and fixes. Do not resume them automatically and do not infer acceptance from technical completion.
@@ -195,7 +195,7 @@ Historical Samsung Gallery-backed Avatar files produced `File.arrayBuffer()` / `
 
 ### Gaming Connections Engine — Discord foundation
 
-**IMPLEMENTED; functions deployed fail-closed; requires Mazen's Discord configuration and manual acceptance.** See section 7h.
+**IMPLEMENTED; Discord configured by Mazen; requires his manual acceptance of the real end-to-end flow.** See section 7h.
 
 ## 7. Slice 3C exact implementation
 
@@ -643,7 +643,7 @@ No `pageshow`/`bfcache`-restoration handling was added to `public.js` (unlike `a
 
 ## 7h. Gaming Connections Engine — Discord foundation
 
-**IMPLEMENTED AND DEPLOYED TO TESTING (functions fail-closed). NOT COMPLETE UNTIL MAZEN CONFIGURES DISCORD.** The Discord application does not exist yet; no client ID/secret is configured anywhere. Implementation checkpoint `08b7d039bd118513a8e3129a7e8a70d527cd2bfd` (built on `706fc58`, previous accepted docs checkpoint; the docs checkpoint is the commit that adds this section). This is the **first foundation slice** of a provider-neutral Gaming Connections system; **only Discord is implemented**. Steam, PlayStation, Xbox, Riot, game discovery, presence, Socials expansion, and Cinematic Identity were not started.
+**IMPLEMENTED, DEPLOYED TO TESTING, DISCORD CONFIGURED BY MAZEN (2026-09-19). AWAITING MAZEN'S MANUAL ACCEPTANCE OF THE REAL END-TO-END FLOW.** Mazen created the Discord application and set `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` as TESTING Edge Function secrets (verified by name and update time only; values were never seen). The functions were deployed fail-closed first and pick the secrets up without redeployment. Implementation checkpoint `08b7d039bd118513a8e3129a7e8a70d527cd2bfd` (built on `706fc58`, previous accepted docs checkpoint; the docs checkpoint is the commit that adds this section). This is the **first foundation slice** of a provider-neutral Gaming Connections system; **only Discord is implemented**. Steam, PlayStation, Xbox, Riot, game discovery, presence, Socials expansion, and Cinematic Identity were not started.
 
 ### Product behavior
 
@@ -715,7 +715,7 @@ Explicit two-step UI (Disconnect → confirm). `disconnect_my_connection` is own
 
 ### Manual actions still required (Mazen)
 
-1. Create the Discord application and set `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` as **Supabase Edge Function secrets** on TESTING (instructions are in the slice's final report; never paste them into chat, Git, frontend code, or screenshots).
+1. ~~Create the Discord application and set the two function secrets~~ — **DONE by Mazen 2026-09-19** (never paste them into chat, Git, frontend code, or screenshots).
 2. Run the manual acceptance plan on Samsung Android Chrome, Windows Chrome, and Windows Opera with a disposable Discord/TESTING account, then his own account.
 
 ### Known limitations / deferred
@@ -769,7 +769,7 @@ Do not ask for another upload or resume these automatically. Discuss the next pr
 | Public route Intro stage stayed blank via the new `/@handle` redirect on real GitHub Pages (~3 of 4 attempts) | **FIXED** | The iframe could finish loading and broadcast its `ready` message before `public.js`'s deferred module even started executing; only reproducible against a real GitHub Pages 404-redirect hop, not a local static server; see section 7f, checkpoint `08f516087fa61fe54025dc16b3e715d338f73f5e` |
 | Public Intro fails intermittently in Opera (real device), recovers temporarily after "Delete Site Data" | **FIXED AND ACCEPTED** (Mazen verified on real Opera without clearing Site Data; accepted checkpoint `706fc58`) | Retry/acknowledged handshake replaces the one-shot ready broadcast (tolerates either execution order, provably bounded); deterministic per-deploy asset versioning prevents an old/new file-version mismatch during GitHub Pages' unavoidable 10-minute `max-age=600` cache window; see section 7g |
 | Skip Intro could reveal the raw unconfigured placeholder (`Gamer`/`@handle`/`DRAFT · PRIVATE`) as if it were a loaded profile | **FIXED** | The public route now only reveals the Intro/Profile experience once the child's own state broadcast proves `play()` actually ran with real data, instead of as soon as a config was merely built locally; see section 7g |
-| Discord connection cannot complete end-to-end until Discord is configured | **AWAITING MAZEN** | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` are not set; functions fail closed (`not_configured`) by design; see section 7h |
+| Discord real end-to-end connection not yet exercised | **AWAITING MAZEN'S MANUAL ACCEPTANCE** | Secrets are configured (the callback no longer returns `not_configured`); the real consent → callback → CONNECTED path has only been proven with mocks, the live DB script, and a runtime diagnostic, never with a real Discord authorization; see section 7h |
 | Discord OAuth has no PKCE | **BY DESIGN / DOCUMENTED** | Not documented by Discord's current OAuth2 docs; compensated by a confidential client, DB-bound one-time hashed state, exact redirect URI, server-side exchange, immediate token revocation; see section 7h |
 | Samsung Avatar Gallery read/decode failures | **FIXED IMPLEMENTATION; 3A UNACCEPTED** | Stable Blob path exists; broader acceptance deferred |
 | Misleading Auth error during Intro upload | **FIXED** | Correct classification and TUS transport exist |
@@ -912,6 +912,6 @@ A fourth bug was found only after deploying the Permanent Public GamID URL to re
 
 A read-only diagnosis (requested separately, performed with no code changes) investigated a real-device report that the public Intro behaves differently in Opera than Chrome, and identified two concrete, evidence-backed risks without proving a single exclusive root cause: a still-unproven-safe handshake timing race, and GitHub Pages' unavoidable `Cache-Control: max-age=600` allowing a browser to legitimately run an older deployed build for up to 10 minutes. Both were then closed under explicit follow-up authorization: the one-shot `ready` broadcast became a bounded retry-until-acknowledged handshake (tolerating either execution order, provably capped, never duplicating playback), and every cross-document reference between the public/account parents and the shared Intro iframe now carries a deploy-derived, automatically-stamped version query string so a stale-cached parent can never end up paired with a mismatched-version child. A related identity-safety gap found during this work — Skip Intro could reveal the raw unconfigured placeholder as if it were a loaded profile — was fixed by only revealing the experience once the child's own state broadcast proves real data was applied. See section 7g. **This is a mitigation validated on Chromium-based tooling only — Mazen's manual acceptance on his real Opera browser is still outstanding and is the actual final acceptance test for the original report.**
 
-Gaming Connections Engine — Discord foundation (section 7h) exists at implementation checkpoint `08b7d039bd118513a8e3129a7e8a70d527cd2bfd`. The Opera reliability work above was subsequently **accepted by Mazen on his real Opera browser** (no Site Data clearing). The Discord slice is **not complete**: it is deployed fail-closed and waits for Mazen to create the Discord application and set the two function secrets, then to run the manual acceptance plan. Do not start Steam/other providers, game discovery, Socials, or Cinematic Identity without authorization.
+Gaming Connections Engine — Discord foundation (section 7h) exists at implementation checkpoint `08b7d039bd118513a8e3129a7e8a70d527cd2bfd`. The Opera reliability work above was subsequently **accepted by Mazen on his real Opera browser** (no Site Data clearing). Mazen has since created the Discord application and set the two TESTING function secrets. The Discord slice is **not accepted**: it waits for Mazen to run the real end-to-end manual acceptance plan. Do not start Steam/other providers, game discovery, Socials, or Cinematic Identity without authorization.
 
 Do not start the next implementation slice. First inspect the repository read-only, then discuss the roadmap and next priority with Mazen. Proceed only after he explicitly chooses and authorizes the next work.
