@@ -769,6 +769,16 @@ A private panel: **DISCOVERED THROUGH DISCORD — PRIVATE — DISCOVERY TEST**, 
 - Browser: the panel was exercised locally against a scratch mock API (not committed) in all states, with a hostile Riot name rendered as inert text, no navigation without a click, non-Discord authorization URLs refused, and no horizontal overflow at 375px.
 - Deployment: migration applied via `supabase db push` (single pending migration); both Edge Functions redeployed (v3, `verify_jwt` pins unchanged); unauthenticated probes confirm the callback still redirects safely (`invalid_state`) and `start` still rejects a missing JWT (401). **The authorization URL a signed-in user receives (scope `identify%20connections`) is proven by tests against the same module, not by a live signed-in call.**
 
+### Fix: real ME1 lookup failure (non-apex rank sentence) — implementation `0b75160eed763aee5713047222df84807308655d`
+
+**Symptom (real, Mazen's account, Middle East / ME1):** Add League Account answered "OP.GG returned something GamID couldn't read reliably" (`STRUCTURE_CHANGED`); a second immediate attempt was correctly stopped by the server-side throttle.
+
+**Diagnosis (one instrumented request through the real adapter):** OP.GG served the ME1 page normally — HTTP 200, no redirect, no block, region identifier `me`, canonical `/lol/summoners/me/…`, "on the ME server", the same JSON-LD structure as KR. So the ME1 URL/region mapping, redirect handling and JSON-LD structure were all **correct**. The actual mismatch was the rank sentence: non-apex tiers are written with their division right after the tier name (`bronze 4 Division 4 7 LP with 2 wins, 3 losses…`), whereas apex tiers are `challenger Division 1 2144 LP…`. The parser required `<tier> Division <n>`, and only apex had been observed live when it was written — the non-apex test fixtures were a wrong guess. **The defect therefore affected every non-apex rank (Iron–Diamond) in every region, not only ME1.**
+
+**Fix (adapter only):** the number after the tier is accepted; when present it must equal the following `Division N`, otherwise the page is refused as `STRUCTURE_CHANGED` (a disagreement or out-of-range number is never resolved by guessing). Apex parsing is unchanged. The domain model, service, database, throttling, UI, Discord and the public profile were not touched; no migration.
+
+**Verification:** the fixed parser was run against the two real captured pages — ME1 now yields `BRONZE IV · 7 LP · 2W 3L · icon 1666` (matching OP.GG's own summary), and the earlier KR apex page is unchanged. Regression tests reproduce the exact live ME1 response shape with a stand-in Riot ID (the real player's ID is deliberately not committed), cover every non-apex tier × division, the refusal cases, and an end-to-end service test using the real adapter (one OP.GG request, correct stored data, throttle unchanged). They **fail against the previous adapter (5 failures)**. Full build: 280/280. `league-lookup` redeployed (v2); the endpoint boots and rejects unauthenticated calls; no lookup was made against the owner's Riot ID after the single diagnostic request. Throttling is byte-for-byte unchanged (60 s spacing, 6 per hour, 10-minute Refresh cooldown — no migration touched).
+
 ### Manual acceptance still required (Mazen) and known limitations
 
 1. Mazen must click **Grant permission & run Riot discovery test** in the real TESTING account and approve the `connections` permission on Discord; only then does the real answer exist. Do not act on Riot data before that result is reviewed.
@@ -815,7 +825,7 @@ Private by default (`is_public=false`, no toggle, no public RPC reads it; `dist/
 ### Manual acceptance still required (Mazen) and known limitations
 
 1. Mazen must add his own Riot ID in the real TESTING account and confirm the card, Refresh cooldown and Remove behave; the real signed-in end-to-end path was **not** run by the agent (no credentials).
-2. Only **KR** was exercised against live OP.GG. Other regions rely on the region path segment mapping (notably LA1→`lan`, LA2→`las`, ME1→`me`); a wrong segment surfaces as "not found" for that region.
+2. **KR and ME1** have now been exercised against live OP.GG (ME1 is reachable normally and its region mapping `me` is correct). The other regions still rely on the region path segment mapping (notably LA1→`lan`, LA2→`las`); a wrong segment surfaces as "not found" for that region.
 3. OP.GG is unofficial: its page format can change without notice (reported as `structure_changed`), it can be unavailable, and its data can lag. Solo/Duo only; wins/losses only when the page states them; one League account per GamID (change = Remove then Add).
 4. Not started and needing separate authorization: public League visibility, other queues, ranked history, server-specific extras, Riot RSO/API, Steam/other providers.
 
