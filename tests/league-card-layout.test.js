@@ -7,7 +7,9 @@ const controller = (await readFile(new URL("../dist/account/account.js", import.
 
 const MARKER = "/* League card presentation fix (layout only).";
 const fixStart = css.indexOf(MARKER);
-const fixWithComment = css.slice(fixStart);
+// the League fix block runs up to the next block (the generic "Show on my GamID" switch styles)
+const fixEnd = css.indexOf('/* "Show on my GamID"', fixStart);
+const fixWithComment = css.slice(fixStart, fixEnd > 0 ? fixEnd : undefined);
 const fix = fixWithComment.replace(/\/\*[\s\S]*?\*\//g, ""); // declarations only
 // [selector, declarations] pairs of the fix block, including rules inside its @media block
 const rules = [...fix.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].map(match => [match[1].trim().replace(/^\/\*[\s\S]*?\*\/\s*/, ""), match[2].trim()]);

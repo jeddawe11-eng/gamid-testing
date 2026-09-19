@@ -376,6 +376,7 @@ async function showIdentity(data) {
   await restoreIntroState(intro);
   if (isProcessingIntroState(intro)) introStatusPoller.start();
   updateProfilePreview();
+  await loadSectionVisibility();
   renderShare();
   await loadConnections();
   await loadLeague();
@@ -505,6 +506,77 @@ const visibilityText = value => (value === 1 ? "public" : value === 0 ? "private
 
 // PRIVATE diagnostic for the Riot discovery validation slice: what Discord's connections API returned for Riot Games.
 // Owner-only, never shown on the public GamID. All values are rendered as text.
+// "Show on my GamID" — one generic control for every optional section (Discord, League of Legends, Education & Work).
+// CONNECTED / SAVED is different from PUBLIC: every section starts OFF, and flipping a switch only changes that switch (the server
+// enforces it; it never disconnects, deletes, refreshes, looks anything up, or touches a throttle).
+const SECTION_ERRORS = {
+  SECTION_NOT_SET_UP: "Add or connect this first, then you can choose to show it.",
+  AUTH_REQUIRED: "Please sign in again, then try again.",
+  IDENTITY_NOT_FOUND: "We couldn't find your GamID. Please refresh the page.",
+  NETWORK_ERROR: "Couldn't reach the server. Check your connection and try again.",
+};
+let sectionVisibility = {};
+let sectionBusy = null;
+
+const isGamidPublished = () => identity?.visibility === "PUBLIC";
+const visibilityHint = on => (on
+  ? (isGamidPublished() ? "Shown on your public GamID." : "Will appear on your public GamID once you publish it.")
+  : "Private — not shown on your public GamID.");
+
+function visibilitySwitch({ on, busy = false, onChange }) {
+  const row = element("div", "section-visibility");
+  row.append(element("span", "section-visibility-label", "Show on my GamID"));
+  const button = element("button", `visibility-switch${on ? " is-on" : ""}`);
+  button.type = "button";
+  button.setAttribute("role", "switch");
+  button.setAttribute("aria-checked", String(on));
+  button.setAttribute("aria-label", "Show on my GamID");
+  button.disabled = busy || Boolean(sectionBusy);
+  button.append(element("span", "visibility-switch-knob"), element("span", "visibility-switch-text", on ? "ON" : "OFF"));
+  button.addEventListener("click", () => onChange(!on));
+  row.append(button);
+  return row;
+}
+
+async function changeSectionVisibility(section, visible, report, reload) {
+  if (sectionBusy) return;
+  sectionBusy = section;
+  report("Updating…", false, true);
+  try {
+    await api.setSectionVisibility(section, visible);
+    report(visible ? "Now shown on your GamID." : "Hidden from your public GamID.", true);
+  } catch (error) {
+    report(SECTION_ERRORS[error.message] || SECTION_ERRORS[error.code] || "Couldn't update this setting. Please try again.");
+  }
+  sectionBusy = null;
+  await reload();
+}
+
+async function loadSectionVisibility() {
+  try { sectionVisibility = Object.fromEntries((await api.getMySectionVisibility()).map(row => [row.section_key, row])); }
+  catch { sectionVisibility = {}; }
+  renderEducationVisibility();
+}
+
+function showEducationVisibilityMessage(text, success = false) {
+  const el = document.getElementById("educationVisibilityMessage");
+  el.textContent = text;
+  el.classList.toggle("success", success);
+  el.hidden = !text;
+}
+
+function renderEducationVisibility() {
+  const slot = document.getElementById("educationVisibility");
+  if (!slot) return;
+  const state = sectionVisibility.education_work;
+  if (!state) { slot.replaceChildren(); return; }
+  const on = Boolean(state.is_public);
+  slot.replaceChildren(
+    visibilitySwitch({ on, onChange: next => changeSectionVisibility("education_work", next, showEducationVisibilityMessage, loadSectionVisibility) }),
+    element("p", "section-visibility-hint", `${visibilityHint(on)} Turning this off keeps what you entered.`),
+  );
+}
+
 function discoveryPanel(row) {
   const result = discoveryRows.find(item => item.provider_key === row.provider_key && item.discovered_provider === "riot");
   const panel = element("section", "connection-discovery");
@@ -573,7 +645,12 @@ function connectionCard(row) {
   head.append(avatar, copy, chip);
   card.append(head);
 
-  if (row.connected) card.append(element("p", "connection-privacy", row.is_public ? "Shown on your public GamID." : "Private — not shown on your public GamID."));
+  if (row.connected) {
+    card.append(element("p", "connection-privacy", visibilityHint(Boolean(row.is_public))));
+    if (row.provider_key === "discord") {
+      card.append(visibilitySwitch({ on: Boolean(row.is_public), onChange: next => changeSectionVisibility("discord", next, showConnectionsMessage, loadConnections) }));
+    }
+  }
   if (row.connected && row.provider_key === "discord") card.append(discoveryPanel(row));
 
   const actions = element("div", "connection-actions");
@@ -815,7 +892,11 @@ function leagueProfileView(profile) {
   if (profile.last_result && profile.last_result !== "OK") {
     frag.append(element("p", "connection-discovery-note league-warning", `The last refresh didn't work (${LEAGUE_FAILURE_REASONS[profile.last_result] || "an unexpected problem"}). Showing the previous details.`));
   }
-  frag.append(element("p", "connection-privacy", "Private — not shown on your public GamID. Unverified: your Riot ID was entered manually, so this isn't proof of account ownership."));
+  const unverifiedNote = "Unverified: your Riot ID was entered manually, so this isn't proof of account ownership.";
+  frag.append(element("p", "connection-privacy", profile.is_public
+    ? `${isGamidPublished() ? "Shown on your public GamID" : "Will appear on your public GamID once you publish it"}, marked PROTOTYPE / UNVERIFIED (data: ${LEAGUE_SOURCE_LABELS[profile.data_source] || "a third-party source"}). ${unverifiedNote}`
+    : `Private — not shown on your public GamID. ${unverifiedNote}`));
+  frag.append(visibilitySwitch({ on: Boolean(profile.is_public), onChange: next => changeSectionVisibility("league", next, showLeagueMessage, loadLeague) }));
 
   try {
     const url = new URL(profile.source_url);
@@ -1096,6 +1177,8 @@ document.getElementById("visibilityToggle").addEventListener("click", async even
     setMessage(errorMessage(reasonFrom(error) || error.message));
   } finally {
     renderVisibility();
+    // the per-section hints ("Shown on your public GamID" vs "Will appear once you publish") depend on the publish state
+    renderConnections(); renderLeague(); renderEducationVisibility();
   }
 });
 

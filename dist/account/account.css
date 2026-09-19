@@ -114,3 +114,15 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
   .league-card .connection-discovery-facts{grid-template-columns:minmax(0,10.5rem) minmax(0,1fr);gap:.55rem 1rem;align-items:baseline}
   .league-card .connection-discovery-facts dt{margin-top:0}
 }
+/* "Show on my GamID" — the generic per-section public visibility switch (Discord, League of Legends, Education & Work). */
+.section-visibility{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-top:.75rem;padding:.65rem .8rem;border:1px solid var(--line);border-radius:.8rem;background:rgba(255,255,255,.02)}
+.section-visibility-label{min-width:0;color:var(--text);font-size:.8rem;font-weight:700;overflow-wrap:anywhere}
+.visibility-switch{flex:0 0 auto;display:inline-flex;align-items:center;gap:.5rem;min-height:2.75rem;padding:.25rem .7rem .25rem .3rem;border:1px solid #3a334b;border-radius:999px;background:#1c1828;color:var(--muted);font-size:.66rem;font-weight:800;letter-spacing:.1em;cursor:pointer}
+.visibility-switch:disabled{opacity:.55;cursor:not-allowed}
+.visibility-switch-knob{width:1.5rem;height:1.5rem;border-radius:50%;background:#6f6979;transition:transform .15s,background .15s}
+.visibility-switch.is-on{border-color:#27604a;background:#10251d;color:var(--green)}
+.visibility-switch.is-on .visibility-switch-knob{background:var(--green)}
+.section-visibility-hint{margin:.55rem 0 0;color:var(--muted);font-size:.74rem;line-height:1.5;overflow-wrap:anywhere}
+.visibility-slot{margin-top:.4rem}
+.visibility-slot .section-visibility{margin-top:.9rem}
+@media(prefers-reduced-motion:reduce){.visibility-switch-knob{transition:none}}

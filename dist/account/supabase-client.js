@@ -283,6 +283,18 @@ export async function getMyConnectionDiscovery() {
   return (await rpc("get_my_connection_discovery")) || [];
 }
 
+// "Show on my GamID": per-section public visibility (Discord, League of Legends, Education & Work). Flipping a switch changes only
+// that switch: it never disconnects, deletes, refreshes, looks anything up, or touches a throttle. Hidden sections are enforced
+// server-side by the public-safe boundary, not by the browser.
+export async function getMySectionVisibility() {
+  return (await rpc("get_my_section_visibility")) || [];
+}
+
+export async function setSectionVisibility(section, visible) {
+  const rows = await rpc("set_my_section_visibility", { candidate_section: section, candidate_visible: Boolean(visible) });
+  return rows?.[0] || null;
+}
+
 // League of Legends prototype (manual Riot ID + a temporary data source). Private to the owner. The browser never contacts
 // the data source: it asks the backend, which validates, throttles, looks up, and stores only normalized fields.
 export async function getMyLeagueProfile() {

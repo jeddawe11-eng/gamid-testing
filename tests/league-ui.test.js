@@ -170,12 +170,18 @@ test("the Edge Function requires a signed-in owner (verify_jwt) and reads no thi
   assert.match(pkg.scripts.typecheck, /_shared\/league\/league-service\.js/);
 });
 
-test("the public profile is unchanged: no League code, data, or RPC reaches the public route", async () => {
+// Updated by Public Profile Expansion Phase 1: League may now be PRESENTED on the public route, but only from the server-gated
+// `public_sections` object (a hidden League profile is absent from the anonymous response). The route must still know nothing about
+// League internals, lookups, or the data source, and no public RPC may read League data unless its owner switched it ON.
+test("the public route presents League only from the server-gated public_sections; League internals, lookups and sources stay private", async () => {
   const files = (await listFiles(new URL("../dist/public/", import.meta.url))).filter(file => /\.(js|html|css)$/i.test(file.pathname));
   assert.ok(files.length > 0);
-  for (const file of files) assert.doesNotMatch(await readFile(file, "utf8"), /league|league_profiles|get_my_league|riot|op\.gg/i, `${file.pathname} must not know about League data`);
+  for (const file of files) assert.doesNotMatch(await readFile(file, "utf8"), /league_profiles|get_my_league|lookupLeagueProfile|league-lookup|reserve_league|source_url|last_result|last_attempt|riot_api|rgapi/i, `${file.pathname} must not know about League internals`);
   const publicMigrations = (await Promise.all((await readdir(new URL("../supabase/migrations/", import.meta.url))).filter(n => /public_profile|public_identity/.test(n)).map(n => read(`../supabase/migrations/${n}`)))).join("\n");
-  assert.doesNotMatch(publicMigrations, /league_profiles/, "no public RPC reads League data");
+  assert.doesNotMatch(publicMigrations, /league_profiles/, "the original public-profile migrations never read League data");
+  const sections = await read("../supabase/migrations/20260920140000_public_section_visibility.sql");
+  const publicFunction = sections.slice(sections.indexOf("create function private.get_public_identity_impl"), sections.indexOf("create function public.get_public_identity("));
+  assert.match(publicFunction, /from public\.league_profiles l\s+where l\.entity_id = e\.entity_id and l\.is_public/, "the only public read of League data is gated by its own switch");
 });
 
 test("the existing Discord integration is untouched by this slice", () => {

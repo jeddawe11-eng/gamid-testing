@@ -194,13 +194,19 @@ test("the requested Discord scopes are exactly identify + connections, and no ot
   assert.equal([...oauthModule.matchAll(/scope: "([^"]*)"/g)].map(match => match[1]).join("|"), "identify connections");
 });
 
-test("the public profile is unchanged: no discovery, Riot, or connection code reaches the public route", async () => {
+// Updated by Public Profile Expansion Phase 1: Discord may now be PRESENTED on the public route, but only from the server-gated
+// `public_sections` object of the anonymous public-safe response (a hidden section is simply absent). The route must still know
+// nothing about the private connection machinery: discovery, owner RPCs, the connections table, tokens, or provider ids.
+test("the public route presents Discord only from the server-gated public_sections and knows nothing of the private connection machinery", async () => {
   const files = (await listFiles(new URL("../dist/public/", import.meta.url))).filter(file => /\.(js|html|css)$/i.test(file.pathname));
   assert.ok(files.length > 0);
   for (const file of files) {
     const text = await readFile(file, "utf8");
-    assert.doesNotMatch(text, /riot|discovery|get_my_connection|gaming_connections|discord/i, `${file.pathname} must not know about connections`);
+    assert.doesNotMatch(text, /discovery|get_my_|gaming_connections|connection_discovery|connection_oauth|provider_account|access_token|refresh_token|client_secret|avatar_url|snowflake/i, `${file.pathname} must not know about private connection data`);
   }
+  const publicJs = await readFile(new URL("../dist/public/public.js", import.meta.url), "utf8");
+  assert.match(publicJs, /identity\.public_sections/);
+  assert.doesNotMatch(publicJs, /rpc\(|fetch\(/, "the public renderer makes no requests of its own");
 });
 
 // Updated by the League prototype slice: the original guard forbade OP.GG everywhere. OP.GG is now allowed in exactly ONE
@@ -209,7 +215,7 @@ test("the public profile is unchanged: no discovery, Riot, or connection code re
 test("no Riot API, RSO, or Riot key exists anywhere in the shipped code; OP.GG exists only in the isolated adapter (plus its glue and a UI label)", async () => {
   const files = [...(await listFiles(new URL("../dist/", import.meta.url))), ...(await listFiles(new URL("../supabase/functions/", import.meta.url)))]
     .filter(file => /\.(js|ts|html)$/i.test(file.pathname) && !/qrcode\.min\.js$/i.test(file.pathname));
-  const allowedOpgg = /(_shared\/league\/opgg-adapter\.js|functions\/league-lookup\/index\.ts|dist\/account\/account\.js)$/;
+  const allowedOpgg = /(_shared\/league\/opgg-adapter\.js|functions\/league-lookup\/index\.ts|dist\/account\/account\.js|dist\/public\/public\.js)$/;
   for (const file of files) {
     const text = await readFile(file, "utf8");
     assert.doesNotMatch(text, /api\.riotgames\.com|riotgames\.com\/oauth|auth\.riotgames|RGAPI-|leagueoflegends\.com|RIOT_API_KEY|RSO_/i, `${file.pathname} must not use official Riot APIs, RSO, or a Riot key`);
@@ -218,4 +224,5 @@ test("no Riot API, RSO, or Riot key exists anywhere in the shipped code; OP.GG e
   }
   const ui = await readFile(new URL("../dist/account/account.js", import.meta.url), "utf8");
   assert.doesNotMatch(ui, /https?:\/\/[^\s"'`]*op\.gg/i, "the browser code never contains an OP.GG URL");
+  assert.doesNotMatch(await readFile(new URL("../dist/public/public.js", import.meta.url), "utf8"), /https?:\/\/[^\s"'`]*op\.gg/i, "the public renderer carries only the plain-text source label, never an OP.GG URL");
 });
