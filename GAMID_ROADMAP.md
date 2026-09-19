@@ -105,6 +105,8 @@ Use official APIs where available and label connected-only/manual data honestly.
 
 Give owners explicit control over public profile fields, Games, Stats, Connections, Socials, Education/Work, and presence. Private data never becomes public automatically.
 
+**Phase 1 implemented in TESTING (awaiting Mazen's acceptance)** — see `PROJECT_HANDOFF.md` section 7l: a generic per-section "Show on my GamID" switch (Discord, League of Legends, Education & Work; OFF by default) and a server-enforced `public_sections` object in the public-safe boundary. The public visual expansion / cinematic profile and additional games remain unstarted and need separate approval.
+
 ### 11. Team, Organization, Company
 
 **Approved direction — Requires Mazen approval**
