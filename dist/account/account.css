@@ -95,3 +95,22 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .league-warning{color:#ffd27a}
 .league-source-link{display:inline-block;margin-top:.55rem;color:#c8bafc;font-size:.74rem;font-weight:700;overflow-wrap:anywhere}
 .league-card .connection-privacy{margin-top:.55rem}
+/* League card presentation fix (layout only). Root cause: the header reused the Connections row where the chip cannot shrink (it
+   crushed the Riot ID column and overlapped the title on phones), those lines were nowrap+ellipsis (clipped), and the metadata
+   <dl> inherited the global bordered, overflow:hidden, unpadded dl/dd rules. Everything below is scoped to .league-card. */
+.league-card{padding:1rem}
+.league-card .connection-head{flex-wrap:wrap;row-gap:.6rem}
+.league-card .connection-copy{flex:1 1 9rem}
+.league-card .connection-chip{flex:0 1 auto;max-width:100%}
+.league-card .connection-name,.league-card .connection-handle{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+.league-card .connection-discovery-facts{display:grid;grid-template-columns:minmax(0,1fr);gap:.1rem 0;margin:.8rem 0 0;padding:.8rem 0 0;border:0;border-top:1px solid var(--line);border-radius:0;overflow:visible;font-size:.78rem}
+.league-card .connection-discovery-facts dt{margin-top:.55rem;color:var(--muted);font-size:.72rem;line-height:1.35}
+.league-card .connection-discovery-facts dt:first-child{margin-top:0}
+.league-card .connection-discovery-facts dd{margin:0;color:var(--text);font-size:.8rem;font-weight:600;letter-spacing:0;line-height:1.45;overflow-wrap:anywhere}
+.league-card .connection-discovery-note,.league-card .connection-privacy{line-height:1.5;overflow-wrap:anywhere}
+.league-card .connection-privacy{margin-top:.95rem}
+.league-card .league-warning{margin-top:.85rem}
+@media(min-width:34rem){
+  .league-card .connection-discovery-facts{grid-template-columns:minmax(0,10.5rem) minmax(0,1fr);gap:.55rem 1rem;align-items:baseline}
+  .league-card .connection-discovery-facts dt{margin-top:0}
+}
