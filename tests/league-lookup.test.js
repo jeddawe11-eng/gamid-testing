@@ -116,9 +116,12 @@ test("parsing a ranked apex profile yields the normalized source-neutral snapsho
 
 test("parsing covers every ranked tier, division mapping, thousands separators, and singular win/loss", () => {
   const cases = [
-    ["iron Division 4 0 LP with 3 wins, 4 losses, and a 43% win rate.", "IRON", "IV", 0, 3, 4],
-    ["platinum Division 2 64 LP with 20 wins, 18 losses, and a 53% win rate.", "PLATINUM", "II", 64, 20, 18],
-    ["emerald Division 1 99 LP with 1 win, 1 loss, and a 50% win rate.", "EMERALD", "I", 99, 1, 1],
+    // Non-apex tiers repeat their division after the tier name ("bronze 4 Division 4 7 LP"): the shape observed on a live ME1 page.
+    ["iron 4 Division 4 0 LP with 3 wins, 4 losses, and a 43% win rate.", "IRON", "IV", 0, 3, 4],
+    ["bronze 4 Division 4 7 LP with 2 wins, 3 losses, and a 40% win rate.", "BRONZE", "IV", 7, 2, 3],
+    ["gold Division 3 10 LP", "GOLD", "III", 10, null, null],
+    ["platinum 2 Division 2 64 LP with 20 wins, 18 losses, and a 53% win rate.", "PLATINUM", "II", 64, 20, 18],
+    ["emerald 1 Division 1 99 LP with 1 win, 1 loss, and a 50% win rate.", "EMERALD", "I", 99, 1, 1],
     ["master Division 1 1,234 LP with 200 wins, 190 losses, and a 51% win rate.", "MASTER", "I", 1234, 200, 190],
     ["grandmaster Division 1 700 LP", "GRANDMASTER", "I", 700, null, null],
   ];
@@ -624,4 +627,95 @@ test("replaceability: any adapter implementing { sourceKey, lookup } works uncha
   assert.deepEqual(await response.json(), { status: "ok" });
   assert.equal(reads(world, "save_league_lookup")[0].args.candidate_data_source, "SOME_FUTURE_OFFICIAL_SOURCE");
   assert.equal(world.profiles.get("entity-a").data_source, "SOME_FUTURE_OFFICIAL_SOURCE");
+});
+
+// =====================================================================================================================
+// Regression: the real ME1 (Middle East) page that failed with "couldn't read reliably".
+// The fixture reproduces the EXACT shape of that live response — same JSON-LD nodes, "ME server" wording, region "me",
+// a name containing a space, a lowercase tagline, a profile icon id > 999, a +09:00 dateModified, and the non-apex rank
+// sentence "bronze 4 Division 4 7 LP with 2 wins, 3 losses, and a 40% win rate." — using a stand-in Riot ID (the real
+// player's ID is deliberately not committed). Nothing here is specific to that player: it is the general ME1 / non-apex shape.
+// =====================================================================================================================
+const ME1_NAME = "Sample name#tag1";
+const ME1_RANK = "current SOLORANKED rank is bronze 4 Division 4 7 LP with 2 wins, 3 losses, and a 40% win rate.";
+const ME1_QUERY = { gameName: "Sample name", tagLine: "tag1", platformId: "ME1" };
+const ME1_URL = "https://op.gg/lol/summoners/me/Sample%20name-tag1";
+const me1Html = (over = {}) => pageHtml({ name: ME1_NAME, region: "me", serverLabel: "ME", rank: ME1_RANK, dateModified: "2026-09-20T01:00:30+09:00", image: "https://opgg-static.akamaized.net/meta/images/profile_icons/profileIcon1666.jpg", ...over });
+
+test("ME1 regression: the real ME1 response shape (non-apex 'bronze 4 Division 4' sentence) parses to the correct snapshot", () => {
+  const result = parseProfilePage(me1Html(), { platformId: "ME1", sourceUrl: ME1_URL });
+  assert.equal(result.ok, true, "this exact shape used to be refused as STRUCTURE_CHANGED");
+  assert.deepEqual(result.snapshot, {
+    gameName: "Sample name", tagLine: "tag1", platformId: "ME1",
+    soloRank: { state: "RANKED", tier: "BRONZE", division: "IV", lp: 7, wins: 2, losses: 3 },
+    profileIconId: 1666, sourceUrl: ME1_URL, sourceUpdatedAt: "2026-09-19T16:00:30.000Z",
+  });
+  assert.equal(validateSnapshot(result.snapshot), true);
+});
+
+test("ME1 regression: Middle East maps to the 'me' path segment and the lookup is one plain request that succeeds", async () => {
+  assert.equal(buildProfileUrl(ME1_QUERY), ME1_URL);
+  const calls = [];
+  const result = await opggAdapter.lookup(ME1_QUERY, { fetchImpl: async (url, init) => { calls.push({ url: String(url), init }); return htmlResponse(me1Html()); } });
+  assert.equal(result.ok, true);
+  assert.equal(calls.length, 1, "still exactly one request — no retry");
+  assert.equal(calls[0].url, ME1_URL);
+  assert.equal(result.snapshot.platformId, "ME1");
+  assert.equal(result.snapshot.soloRank.tier, "BRONZE");
+});
+
+test("ME1 regression: a page for a different region is still refused (the fix did not loosen the region check)", () => {
+  assert.deepEqual(parseProfilePage(me1Html({ region: "euw" }), { platformId: "ME1", sourceUrl: ME1_URL }), { ok: false, code: "STRUCTURE_CHANGED" });
+  assert.deepEqual(parseProfilePage(me1Html(), { platformId: "EUW1", sourceUrl: ME1_URL }), { ok: false, code: "STRUCTURE_CHANGED" });
+});
+
+test("every non-apex tier and division parses in the real 'tier N Division N' shape (this affected all regions, not only ME1)", () => {
+  const tiers = ["iron", "bronze", "silver", "gold", "platinum", "emerald", "diamond"];
+  const roman = { 1: "I", 2: "II", 3: "III", 4: "IV" };
+  for (const tier of tiers) {
+    for (const d of [1, 2, 3, 4]) {
+      const result = parseProfilePage(me1Html({ rank: `current SOLORANKED rank is ${tier} ${d} Division ${d} 55 LP with 10 wins, 11 losses, and a 48% win rate.` }), { platformId: "ME1", sourceUrl: ME1_URL });
+      assert.equal(result.ok, true, `${tier} ${d}`);
+      assert.deepEqual(result.snapshot.soloRank, { state: "RANKED", tier: tier.toUpperCase(), division: roman[d], lp: 55, wins: 10, losses: 11 }, `${tier} ${d}`);
+    }
+  }
+  for (const apex of ["master", "grandmaster", "challenger"]) {
+    const result = parseProfilePage(me1Html({ rank: `current SOLORANKED rank is ${apex} Division 1 300 LP with 1 wins, 1 losses, and a 50% win rate.` }), { platformId: "ME1", sourceUrl: ME1_URL });
+    assert.equal(result.snapshot.soloRank.division, "I");
+    assert.equal(result.snapshot.soloRank.tier, apex.toUpperCase());
+  }
+});
+
+test("if the two division numbers in the rank sentence disagree, or one is out of range, nothing is guessed (STRUCTURE_CHANGED)", () => {
+  for (const sentence of ["bronze 3 Division 4 7 LP", "bronze 4 Division 3 7 LP", "bronze 5 Division 4 7 LP", "bronze 0 Division 4 7 LP", "bronze 4 Division 0 7 LP", "bronze 4 Division 5 7 LP", "bronze 44 Division 4 7 LP", "bronze four Division 4 7 LP"]) {
+    assert.deepEqual(parseProfilePage(me1Html({ rank: `current SOLORANKED rank is ${sentence}.` }), { platformId: "ME1", sourceUrl: ME1_URL }), { ok: false, code: "STRUCTURE_CHANGED" }, sentence);
+  }
+});
+
+test("ME1 end to end through the service with the REAL adapter: one OP.GG request, correct data stored, and the throttle is unchanged", async () => {
+  const world = makeWorld();
+  const opggRequests = [];
+  const routed = async (url, init) => {
+    if (String(url).startsWith("https://op.gg/")) { opggRequests.push(String(url)); return htmlResponse(me1Html()); }
+    return world.fetch(url, init);
+  };
+  const add = { action: "add", game_name: "Sample name", tag_line: "tag1", region: "ME1" };
+  const response = await handleLeagueLookup({ request: request(add), env: ENV, adapter: opggAdapter, fetchImpl: routed });
+  assert.deepEqual(await response.json(), { status: "ok" });
+  assert.deepEqual(opggRequests, [ME1_URL]);
+  const stored = world.profiles.get("entity-a");
+  assert.equal(stored.platform_id, "ME1");
+  assert.equal(stored.data_source, "OPGG_TEMPORARY");
+  assert.equal(stored.trust_status, "MANUAL");
+  assert.equal(stored.is_public, false);
+  assert.deepEqual(stored.solo, { state: "RANKED", tier: "BRONZE", division: "IV", lp: 7, wins: 2, losses: 3 });
+  assert.equal(stored.profile_icon_id, 1666);
+
+  // the throttle behaves exactly as before: spacing, Refresh cooldown, and explicit-only requests
+  const early = await handleLeagueLookup({ request: request({ action: "refresh" }), env: ENV, adapter: opggAdapter, fetchImpl: routed });
+  assert.equal(early.status, 429);
+  assert.equal((await early.json()).error, "cooldown");
+  world.advance(3600);
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal(opggRequests.length, 1, "no automatic request happened while time passed, and the throttled refresh made none");
 });

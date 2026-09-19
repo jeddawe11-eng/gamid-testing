@@ -106,15 +106,19 @@ export function parseProfilePage(html, { platformId, sourceUrl }) {
   let soloRank = { state: "NOT_REPORTED", tier: null, division: null, lp: null, wins: null, losses: null };
   const rankPrefix = `${name}'s current SOLORANKED rank is `;
   if (rest.startsWith(rankPrefix)) {
-    const rank = /^([a-z]+) Division ([1-4]) ([\d,]+) LP(?: with ([\d,]+) wins?, ([\d,]+) loss(?:es)?)?/i.exec(rest.slice(rankPrefix.length));
+    // Observed live shapes: apex tiers read "challenger Division 1 2144 LP"; every other tier repeats its division right after the
+    // tier name, "bronze 4 Division 4 7 LP". The number after the tier is optional; when present it must agree with the
+    // "Division N" that follows (a disagreement is refused, never resolved by guessing).
+    const rank = /^([a-z]+)(?: ([1-4]))? Division ([1-4]) ([\d,]+) LP(?: with ([\d,]+) wins?, ([\d,]+) loss(?:es)?)?/i.exec(rest.slice(rankPrefix.length));
     if (!rank) return { ok: false, code: "STRUCTURE_CHANGED" };
     const tier = rank[1].toUpperCase();
     if (!RANK_TIERS.includes(tier)) return { ok: false, code: "STRUCTURE_CHANGED" };
-    const division = APEX_TIERS.includes(tier) ? "I" : DIVISIONS[Number(rank[2]) - 1];
+    if (rank[2] !== undefined && rank[2] !== rank[3]) return { ok: false, code: "STRUCTURE_CHANGED" };
+    const division = APEX_TIERS.includes(tier) ? "I" : DIVISIONS[Number(rank[3]) - 1];
     soloRank = {
-      state: "RANKED", tier, division, lp: toInt(rank[3]),
-      wins: rank[4] === undefined ? null : toInt(rank[4]),
-      losses: rank[5] === undefined ? null : toInt(rank[5]),
+      state: "RANKED", tier, division, lp: toInt(rank[4]),
+      wins: rank[5] === undefined ? null : toInt(rank[5]),
+      losses: rank[6] === undefined ? null : toInt(rank[6]),
     };
   }
 
