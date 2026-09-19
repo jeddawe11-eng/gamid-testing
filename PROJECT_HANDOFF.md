@@ -42,6 +42,7 @@ The current entity is **SOLO**. **Team**, **Organization**, and **Company** are 
 | Gaming Connections Engine — Discord foundation | **IMPLEMENTED AND MANUALLY ACCEPTED** | Implementation `08b7d039bd118513a8e3129a7e8a70d527cd2bfd`; real Discord OAuth accepted by Mazen; see section 7h |
 | Discord `connections` scope + private Riot discovery validation | **COMPLETED — Discord returned 0 linked accounts; Riot not returned** | Implementation `39f97c83c455abe56e8281a9e4b179562ede0cc9`; see section 7i |
 | League of Legends prototype (manual Riot ID + temporary OP.GG adapter) | **IMPLEMENTED AND DEPLOYED TO TESTING; PRIVATE / UNVERIFIED; AWAITING MAZEN'S MANUAL ACCEPTANCE** | Implementation `44c7a4455f40088572d165a6de453b73491d6500`; see section 7j |
+| Root landing page V1 (replaces the public NovaRift prototype at the TESTING root) | **IMPLEMENTED, DEPLOYED TO TESTING AND VERIFIED LIVE; AWAITING MAZEN'S MANUAL ACCEPTANCE** | Implementation `3cb0cde7f474cbe7efd194623c6c02853c3de365`; see section 7k |
 | Post-3C phases | **APPROVED DIRECTION / IDEA ONLY** | See `GAMID_ROADMAP.md`; none is authorized to start |
 
 Mazen intentionally deferred further Slice 3C manual testing and fixes. Do not resume them automatically and do not infer acceptance from technical completion.
@@ -54,7 +55,7 @@ Mazen intentionally deferred further Slice 3C manual testing and fixes. Do not r
 - Node.js: 20 or newer.
 - Frontend: dependency-free static HTML, CSS, and native ES modules under `dist/`.
 - Validation: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, and `git diff --check`.
-- TESTING root: `https://jeddawe11-eng.github.io/gamid-testing/`
+- TESTING root: `https://jeddawe11-eng.github.io/gamid-testing/` — the static **landing page** (section 7k); the old Slice 1 Intro lab lives at `prototypes/slice-1-intro-lab/` and is not deployed.
 - TESTING owner/editor: `https://jeddawe11-eng.github.io/gamid-testing/account/`
 - Pages workflow: `.github/workflows/deploy-pages.yml`; it publishes `dist/` and excludes the large development asset `/assets/gamid-intro.mp4`.
 - Frontend routing and assets account for the GitHub Pages `/gamid-testing/` base path.
@@ -209,6 +210,10 @@ Historical Samsung Gallery-backed Avatar files produced `File.arrayBuffer()` / `
 
 **IMPLEMENTED AND DEPLOYED TO TESTING; private, unverified, prototype only; awaiting Mazen's manual acceptance.** See section 7j.
 
+### Root landing page V1
+
+**IMPLEMENTED, DEPLOYED TO TESTING AND VERIFIED LIVE; awaiting Mazen's manual acceptance.** See section 7k.
+
 ## 7. Slice 3C exact implementation
 
 ### Owner experience
@@ -278,7 +283,7 @@ Two earlier attempts were made and superseded before this root cause was isolate
 - A second fix (commit `f4327d9`) replaced the canvas snapshot with live cloned `<video>` elements synced to the source video, fixing the transition's own motion — but this did not fix what users actually saw, because it only changes content during the `transitioning` state; the poster-covering-video defect above happens entirely during the earlier `intro` state, before any clone exists.
 - A speculative change (deriving the clone's source from `config.videoUrl` instead of `introVideo.currentSrc`) was investigated as a possible cause of a reported stale-video-reference symptom, but was not reproducible under rigorous testing and was reverted. It is **not** part of the accepted fix.
 
-**Accepted fix (commit `d7466f99e6f5398c5c0e83c029f1d09715c1321f`):** in `dist/account/intro-preview.css` (loaded only by the real Preview flow; the separately-accepted Slice 1 lab prototype at `dist/index.html` does not load this file and is unaffected):
+**Accepted fix (commit `d7466f99e6f5398c5c0e83c029f1d09715c1321f`):** in `dist/account/intro-preview.css` (loaded only by the real Preview flow; the separately-accepted Slice 1 lab prototype (then at `dist/index.html`, now preserved at `prototypes/slice-1-intro-lab/index.html`) does not load this file and is unaffected):
 
 ```css
 .preview-only .experience[data-state="intro"] .preset-split .split-panel{opacity:0;pointer-events:none}
@@ -829,6 +834,39 @@ Private by default (`is_public=false`, no toggle, no public RPC reads it; `dist/
 3. OP.GG is unofficial: its page format can change without notice (reported as `structure_changed`), it can be unavailable, and its data can lag. Solo/Duo only; wins/losses only when the page states them; one League account per GamID (change = Remove then Add).
 4. Not started and needing separate authorization: public League visibility, other queues, ranked history, server-specific extras, Riot RSO/API, Steam/other providers.
 
+## 7k. Root landing page V1 — replace the public NovaRift prototype at the TESTING root
+
+**IMPLEMENTED, DEPLOYED TO TESTING AND VERIFIED LIVE; AWAITING MAZEN'S MANUAL ACCEPTANCE.** Implementation checkpoint `3cb0cde7f474cbe7efd194623c6c02853c3de365` (built on `bba30a382bbc69666b7c5925762401be9a94f284`). A focused product/UX correction: no authentication, RLS, Discord, League/OP.GG, Intro, public-route, or `@black` change.
+
+### Problem and root cause
+
+The anonymous root `https://jeddawe11-eng.github.io/gamid-testing/` served `dist/index.html` + `dist/app.js`: the accepted **Slice 1 "Intro Engine" lab** — a fictional "NovaRift" profile (`@novarift`, Marvel Rivals, Favorite Games, Duo, Team) with prototype controls. It was never meant to be a public entrance, and it let a visitor believe they had opened a real, controllable GamID account. `/account/` (real Create Account / Sign In) was already correct.
+
+### What was done with the old prototype
+
+Moved (`git mv`) to **`prototypes/slice-1-intro-lab/`** (`index.html`, `app.js`, plus a README stating its status). It still runs locally (paths point at `../../dist/…`) but is **not deployed** — the Pages workflow publishes only `dist/`, so it has no public route (the live `/app.js` and `/prototypes/…` return 404). `dist/styles.css`, `dist/transition-engine.js`, and `dist/assets/*` deliberately **stayed** in `dist/`: the real Intro iframe (`account/intro-preview.html` → `../styles.css`), the account preview, and the public profile all use them (the public `/@handle` Intro was re-verified live). `scripts/validate.mjs` and `npm run typecheck` now target the relocated lab and also validate the landing page.
+
+### Landing page structure (`dist/index.html` + `dist/landing.css`)
+
+Static, script-free, form-free, no network calls, no external URLs. Header (GAMID brand + TESTING badge) → hero (`CREATE → WOW → SHARE`, **"Your gaming identity. One GamID."**, one supporting sentence, the two CTAs, "Your GamID stays private until you choose to publish it.") beside a **clearly labelled, non-interactive, `aria-hidden` EXAMPLE identity card** ("Illustration only — not a real profile", generic `@yourhandle` placeholders, no real data) → three short steps (Create / WOW / Share) → a closing CTA block → footer. Mobile-first with breakpoints at 34rem and 56rem; CTAs ≥54 px tall and above the fold at 375 and 320 px; reduced-motion respected. A real 17 px horizontal scroll caused by the spinning ring's bounding box was found in browser testing and fixed (`.showcase{overflow:clip}`).
+
+### Exact CTA behavior
+
+- **Create your GamID** → relative link `account/?auth=register` → the existing `/account/` page, **Create account** tab (already the default there).
+- **Sign in** → `account/?auth=signin` → the existing `/account/` page with the **Sign in** tab selected.
+- Small, testable UI-only hook: `authTabFromSearch` / `searchWithoutAuth` in `dist/account/domain.js` and a block at the end of `account.js` that clicks the existing tab **only when the auth view is what the visitor is seeing**, then strips only the `auth` parameter (others are preserved; unknown values are ignored). It runs after the normal routing decision and touches no session, so a signed-in owner opening either link goes straight to YOUR GAMID exactly as before. No auth form was duplicated.
+
+### Validation
+
+- `npm run build`: lint + typecheck + **298/298** tests (was 280). `tests/landing-page.test.js` (18) fails against the old root (6 failures) and passes now. **One earlier assertion legitimately updated:** `tests/validation-architecture.test.js` checked the lab's video reference in `validate.mjs` by exact text; the path prefix changed with the relocation (the intent — check the reference without reading the file — is unchanged).
+- Browser (local Pages-like copy, then the **live** site, both from a clean anonymous state — 0 stored keys): layout at 320, 375, 768 and 1280 px with real scroll attempts (no horizontal scroll); Sign in and Create your GamID each land on the right tab of the real `/account/`; a bogus `?auth=` value is ignored and `?keep=1` preserved; `/account/` alone still opens on Create account; `/@black` still redirects through `404.html` to `/public/index.html?handle=black` and renders the Intro route; an unknown handle still shows "This GamID isn't public…". The landing shows no `@black`, no emails/ids, no Discord/League/Riot content, and no owner controls.
+- Deployment: GitHub Pages deploy succeeded; live root fetched over plain HTTP contains the landing, no NovaRift/prototype markers, 0 scripts/forms/inputs.
+
+### Residual notes
+
+- `dist/account/index.html` still labels its header brand link `aria-label="GamID Intro Lab"` (it points at `../`, now the landing page). It was left untouched because the brief forbade changing the account experience; it is a one-word accessibility label that can be corrected in a later account pass.
+- No Supabase/Discord/League/OP.GG code, migration, function, or data was touched by this slice.
+
 ## 8. Real Samsung / real E2E evidence
 
 A protected Samsung/@BLACK job proved the backend path:
@@ -1022,6 +1060,6 @@ A fourth bug was found only after deploying the Permanent Public GamID URL to re
 
 A read-only diagnosis (requested separately, performed with no code changes) investigated a real-device report that the public Intro behaves differently in Opera than Chrome, and identified two concrete, evidence-backed risks without proving a single exclusive root cause: a still-unproven-safe handshake timing race, and GitHub Pages' unavoidable `Cache-Control: max-age=600` allowing a browser to legitimately run an older deployed build for up to 10 minutes. Both were then closed under explicit follow-up authorization: the one-shot `ready` broadcast became a bounded retry-until-acknowledged handshake (tolerating either execution order, provably capped, never duplicating playback), and every cross-document reference between the public/account parents and the shared Intro iframe now carries a deploy-derived, automatically-stamped version query string so a stale-cached parent can never end up paired with a mismatched-version child. A related identity-safety gap found during this work — Skip Intro could reveal the raw unconfigured placeholder as if it were a loaded profile — was fixed by only revealing the experience once the child's own state broadcast proves real data was applied. See section 7g. **This is a mitigation validated on Chromium-based tooling only — Mazen's manual acceptance on his real Opera browser is still outstanding and is the actual final acceptance test for the original report.**
 
-Gaming Connections Engine — Discord foundation (section 7h) exists at implementation checkpoint `08b7d039bd118513a8e3129a7e8a70d527cd2bfd` and was **manually accepted by Mazen** with real Discord OAuth (the real TESTING GamID is connected to Discord). The Opera reliability work was likewise accepted on his real Opera browser. The Discord `connections` discovery test (section 7i) was run for real and **Discord returned 0 linked accounts, so Riot was not returned**; that route is closed and the stored result is preserved. The current slice is the **League of Legends prototype** (section 7j, implementation `44c7a4455f40088572d165a6de453b73491d6500`): the owner types a Riot ID once and GamID resolves private, **unverified** League details through an isolated, temporary OP.GG adapter (lookups only on Add/Refresh, throttled in the database, never public). It is deployed to TESTING and waits for Mazen's manual acceptance. Do not start public League visibility, Riot RSO/API, Steam/other providers, game discovery, Socials, or Cinematic Identity without authorization, and never add any way around OP.GG blocking or rate limiting.
+Gaming Connections Engine — Discord foundation (section 7h) exists at implementation checkpoint `08b7d039bd118513a8e3129a7e8a70d527cd2bfd` and was **manually accepted by Mazen** with real Discord OAuth (the real TESTING GamID is connected to Discord). The Opera reliability work was likewise accepted on his real Opera browser. The Discord `connections` discovery test (section 7i) was run for real and **Discord returned 0 linked accounts, so Riot was not returned**; that route is closed and the stored result is preserved. The current slice is the **League of Legends prototype** (section 7j, implementation `44c7a4455f40088572d165a6de453b73491d6500`): the owner types a Riot ID once and GamID resolves private, **unverified** League details through an isolated, temporary OP.GG adapter (lookups only on Add/Refresh, throttled in the database, never public). It is deployed to TESTING and waits for Mazen's manual acceptance. Do not start public League visibility, Riot RSO/API, Steam/other providers, game discovery, Socials, or Cinematic Identity without authorization, and never add any way around OP.GG blocking or rate limiting. The anonymous TESTING root is now a real **landing page** (section 7k, implementation `3cb0cde7f474cbe7efd194623c6c02853c3de365`) whose Create your GamID / Sign in buttons open the existing `/account/` flow; the old NovaRift/Intro-lab prototype was preserved at `prototypes/slice-1-intro-lab/` and is not deployed. Do not put it back at the root or expose any prototype controls publicly.
 
 Do not start the next implementation slice. First inspect the repository read-only, then discuss the roadmap and next priority with Mazen. Proceed only after he explicitly chooses and authorizes the next work.
