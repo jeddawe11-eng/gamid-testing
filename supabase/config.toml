@@ -1,0 +1,12 @@
+# Minimal Supabase CLI config for GamID TESTING. Only Edge Function JWT policy is pinned here so it lives in the repo
+# instead of depending on a deploy-time CLI flag. (All other settings intentionally use CLI defaults; no local stack is used.)
+project_id = "gamid-testing"
+
+# Called by the signed-in owner's browser. The gateway verifies the user JWT, and the database re-authenticates it (auth.uid()).
+[functions.discord-connect-start]
+verify_jwt = true
+
+# Called by Discord's browser redirect: no GamID credentials can be presented. Trust comes exclusively from the one-time,
+# database-bound OAuth state validated inside the function.
+[functions.discord-connect-callback]
+verify_jwt = false

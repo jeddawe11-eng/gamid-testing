@@ -46,3 +46,27 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .qr-code-canvas{padding:.9rem;border-radius:1rem;background:#fff;line-height:0}
 .qr-card strong{margin-top:.5rem;font-size:1.05rem}
 .qr-handle{color:var(--muted);font-size:.8rem}
+.connections-section{margin:1.5rem 0 0;padding:1rem;border:1px solid rgba(255,255,255,.08);border-radius:1rem;background:rgba(255,255,255,.025)}
+.connections-lede{margin:.1rem 0 .9rem;color:var(--muted);font-size:.8rem;line-height:1.5}
+.connection-list{display:grid;gap:.7rem}
+.connections-empty{margin:0;color:var(--muted);font-size:.8rem}
+.connection-card{padding:.85rem;border:1px solid var(--line);border-radius:.9rem;background:var(--card)}
+.connection-card.is-connected{border-color:#27604a}
+.connection-head{display:flex;align-items:center;gap:.75rem;min-width:0}
+.connection-avatar{flex:0 0 auto;display:grid;place-items:center;width:2.75rem;height:2.75rem;border-radius:50%;overflow:hidden;background:#1c1828;border:1px solid #3a334b;color:var(--cyan);font-weight:900}
+.connection-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.connection-copy{display:grid;flex:1 1 auto;min-width:0;gap:.1rem}
+.connection-copy strong{font-size:.92rem}
+.connection-name,.connection-handle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:.78rem}
+.connection-chip{flex:0 0 auto;padding:.3rem .55rem;border:1px solid #3a334b;border-radius:999px;color:var(--muted);font-size:.6rem;font-weight:800;letter-spacing:.08em}
+.connection-chip.is-connected{border-color:#27604a;background:#10251d;color:var(--green)}
+.connection-privacy{margin:.65rem 0 0;color:var(--muted);font-size:.74rem}
+.connection-actions{display:grid;gap:.5rem;margin-top:.75rem}
+.connection-actions .connection-button{width:100%;min-height:2.9rem;margin:0}
+.connection-actions .text-button.connection-button{border:1px solid #3a334b;border-radius:.78rem;font-size:.78rem}
+.connection-actions .danger{color:var(--danger)}
+.connection-actions .secondary.danger{border-color:#754151}
+.connection-confirm{margin:0;color:#ffc1cd;font-size:.78rem;line-height:1.5}
+.connections-message{margin:.75rem 0 0;padding:.75rem .9rem;border:1px solid #754151;border-radius:.7rem;background:#28151c;color:#ffc1cd;font-size:.78rem;line-height:1.45}
+.connections-message.success{border-color:#27604a;background:#10251d;color:#91f4c8}
+@media(min-width:34rem){.connection-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.connection-actions .connection-confirm{grid-column:1/-1}}

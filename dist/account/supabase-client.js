@@ -250,6 +250,38 @@ export async function getPublicIdentityByQr(token) {
   return rows?.[0] || null;
 }
 
+const CONNECTABLE_PROVIDERS = new Set(["discord"]);
+
+export async function getMyConnections() {
+  return (await rpc("get_my_connections")) || [];
+}
+
+// Asks the backend for the official provider authorization URL. The signed-in owner's own token is sent; no provider
+// secret, OAuth code, or provider token is ever handled in the browser.
+export async function startConnection(provider) {
+  if (!CONNECTABLE_PROVIDERS.has(provider)) throw new ApiError("Unsupported provider.", 400, "INVALID_PROVIDER");
+  await restoreSession();
+  if (!session?.access_token) throw new ApiError("Sign in again to connect an account.", 401, "unauthenticated");
+  let response;
+  try {
+    response = await fetch(`${SUPABASE_URL}/functions/v1/${provider}-connect-start`, {
+      method: "POST",
+      headers: { apikey: PUBLISHABLE_KEY, Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ provider }),
+    });
+  } catch {
+    throw new ApiError("The connection service could not be reached.", 0, "NETWORK_ERROR");
+  }
+  let payload = null;
+  try { payload = await response.json(); } catch { payload = null; }
+  if (!response.ok) throw new ApiError(payload?.error || `Request failed (${response.status})`, response.status, payload?.error || "start_failed");
+  return payload;
+}
+
+export async function disconnectConnection(provider) {
+  return rpc("disconnect_my_connection", { candidate_provider: provider });
+}
+
 export async function loadPublicAvatar(path) {
   if (!path) return null;
   const response = await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/avatars/${encodeStoragePath(path)}`, {

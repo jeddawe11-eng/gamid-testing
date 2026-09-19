@@ -377,7 +377,9 @@ async function showIdentity(data) {
   if (isProcessingIntroState(intro)) introStatusPoller.start();
   updateProfilePreview();
   renderShare();
+  await loadConnections();
   showView("identity");
+  handleConnectionReturn();
 }
 
 function permanentGamidUrl() {
@@ -445,6 +447,162 @@ document.getElementById("showQrButton").addEventListener("click", () => {
 });
 document.getElementById("closeQrDialog").addEventListener("click", () => {
   document.getElementById("shareQrDialog").close();
+});
+
+// ---------------------------------------------------------------------------------------------------------
+// Connections (Gaming Connections Engine — Discord foundation). Connected accounts are private by default.
+// ---------------------------------------------------------------------------------------------------------
+const FRONTEND_CONNECTABLE = new Set(["discord"]);
+const CONNECTION_RETURN_OK = { connected: "Discord connected.", reconnected: "Discord reconnected.", cancelled: "Discord connection cancelled. Nothing was changed." };
+const CONNECTION_ERRORS = {
+  invalid_state: "That connection link isn't valid. Please start again.",
+  already_used: "That connection link was already used. Your current connections are shown below.",
+  expired: "That connection attempt expired. Please start again.",
+  provider_error: "Discord couldn't complete the connection. Please try again.",
+  exchange_failed: "Discord couldn't complete the connection. Please try again.",
+  account_in_use: "That Discord account is already connected to another GamID.",
+  other_account_connected: "A different Discord account is already connected. Disconnect it first to connect another.",
+  identity_not_found: "We couldn't find your GamID for this connection. Please try again.",
+  not_configured: "Discord connection isn't available yet on this TESTING site.",
+  email_not_verified: "Verify your email before connecting an account.",
+  too_many_attempts: "Too many connection attempts. Please wait a few minutes and try again.",
+  unauthenticated: "Please sign in again, then reconnect.",
+  NETWORK_ERROR: "The connection service couldn't be reached. Check your connection and try again.",
+  server_error: "Something went wrong connecting Discord. Please try again.",
+};
+let connectionRows = null;
+let connectingProvider = null;
+let confirmingDisconnect = null;
+let connectionsMessageTimer;
+
+const isSafeProviderAvatar = url => typeof url === "string" && url.startsWith("https://cdn.discordapp.com/");
+
+function showConnectionsMessage(text, success = false, sticky = false) {
+  const el = document.getElementById("connectionsMessage");
+  clearTimeout(connectionsMessageTimer);
+  el.textContent = text;
+  el.classList.toggle("success", success);
+  el.hidden = !text;
+  if (text && !sticky) connectionsMessageTimer = setTimeout(() => { el.hidden = true; }, 8000);
+}
+
+function element(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function connectionCard(row) {
+  const card = element("article", `connection-card${row.connected ? " is-connected" : ""}`);
+  card.dataset.provider = row.provider_key;
+
+  const head = element("div", "connection-head");
+  const avatar = element("div", "connection-avatar");
+  if (row.connected && isSafeProviderAvatar(row.provider_avatar_url)) {
+    const image = element("img");
+    image.alt = "";
+    image.referrerPolicy = "no-referrer";
+    image.src = row.provider_avatar_url;
+    avatar.append(image);
+  } else avatar.textContent = (row.label || "?").trim()[0]?.toUpperCase() || "?";
+
+  const copy = element("div", "connection-copy");
+  copy.append(element("strong", "", row.label));
+  if (row.connected) {
+    const primary = row.provider_display_name || row.provider_username || "";
+    if (primary) copy.append(element("span", "connection-name", primary));
+    if (row.provider_username && row.provider_username !== primary) copy.append(element("span", "connection-handle", `@${row.provider_username}`));
+  }
+  const chip = element("span", `connection-chip${row.connected ? " is-connected" : ""}`, row.connected ? "CONNECTED" : "NOT CONNECTED");
+  head.append(avatar, copy, chip);
+  card.append(head);
+
+  if (row.connected) card.append(element("p", "connection-privacy", row.is_public ? "Shown on your public GamID." : "Private — not shown on your public GamID."));
+
+  const actions = element("div", "connection-actions");
+  const supported = FRONTEND_CONNECTABLE.has(row.provider_key);
+  if (!row.connected && supported) {
+    const connecting = connectingProvider === row.provider_key;
+    const button = element("button", "secondary connection-button", connecting ? `Opening ${row.label}…` : `Connect ${row.label}`);
+    button.type = "button";
+    button.disabled = Boolean(connectingProvider);
+    button.addEventListener("click", () => beginConnection(row.provider_key));
+    actions.append(button);
+  } else if (row.connected && confirmingDisconnect === row.provider_key) {
+    actions.append(element("p", "connection-confirm", `Disconnect ${row.label} from your GamID? Your GamID, Intro, and public profile stay exactly as they are.`));
+    const confirm = element("button", "secondary connection-button danger", `Disconnect ${row.label}`);
+    confirm.type = "button";
+    confirm.addEventListener("click", () => finishDisconnect(row.provider_key));
+    const cancel = element("button", "text-button connection-button", "Cancel");
+    cancel.type = "button";
+    cancel.addEventListener("click", () => { confirmingDisconnect = null; renderConnections(); });
+    actions.append(confirm, cancel);
+  } else if (row.connected) {
+    const button = element("button", "text-button danger connection-button", `Disconnect ${row.label}`);
+    button.type = "button";
+    button.addEventListener("click", () => { confirmingDisconnect = row.provider_key; renderConnections(); });
+    actions.append(button);
+  }
+  if (actions.childElementCount) card.append(actions);
+  return card;
+}
+
+function renderConnections() {
+  const list = document.getElementById("connectionsList");
+  if (!connectionRows) { list.replaceChildren(element("p", "connections-empty", "Connections couldn't be loaded right now. Refresh to try again.")); return; }
+  list.replaceChildren(...connectionRows.map(connectionCard));
+}
+
+async function loadConnections() {
+  try { connectionRows = await api.getMyConnections(); }
+  catch { connectionRows = null; }
+  renderConnections();
+}
+
+async function beginConnection(provider) {
+  if (connectingProvider) return;
+  connectingProvider = provider;
+  confirmingDisconnect = null;
+  showConnectionsMessage("Opening Discord…", false, true);
+  renderConnections();
+  try {
+    const { authorization_url: target } = await api.startConnection(provider);
+    if (typeof target !== "string" || !target.startsWith("https://discord.com/oauth2/authorize?")) throw new Error("INVALID_AUTHORIZATION_URL");
+    location.assign(target);
+  } catch (error) {
+    connectingProvider = null;
+    showConnectionsMessage(CONNECTION_ERRORS[error.code] || CONNECTION_ERRORS[error.message] || "Couldn't start the connection. Please try again.");
+    renderConnections();
+  }
+}
+
+async function finishDisconnect(provider) {
+  confirmingDisconnect = null;
+  showConnectionsMessage("Disconnecting…", false, true);
+  try {
+    await api.disconnectConnection(provider);
+    showConnectionsMessage(`${provider === "discord" ? "Discord" : "Account"} disconnected.`, true);
+  } catch { showConnectionsMessage("Couldn't disconnect right now. Please try again."); }
+  await loadConnections();
+}
+
+function handleConnectionReturn() {
+  const params = new URLSearchParams(location.search);
+  if (params.get("connection") !== "discord") return;
+  const result = params.get("result");
+  const reason = params.get("reason");
+  history.replaceState(null, "", `${location.pathname}${location.hash}`);
+  if (result === "error") showConnectionsMessage(CONNECTION_ERRORS[reason] || CONNECTION_ERRORS.server_error, false, true);
+  else if (CONNECTION_RETURN_OK[result]) showConnectionsMessage(CONNECTION_RETURN_OK[result], result !== "cancelled");
+  else return;
+  document.getElementById("connectionsSection").scrollIntoView({ block: "center" });
+}
+
+window.addEventListener("pageshow", event => {
+  if (!event.persisted || !identity) return;
+  connectingProvider = null;
+  loadConnections();
 });
 
 async function routeAuthenticated() {

@@ -111,6 +111,12 @@
           <button id="saveProfileButton" class="primary" type="submit" disabled>SAVE GAMID</button>
           <p id="saveConfirmation" class="save-confirmation" role="status" hidden>Saved ✓</p>
         </form>
+        <section id="connectionsSection" class="connections-section" aria-label="Connections">
+          <p class="eyebrow">CONNECTIONS</p>
+          <p class="connections-lede">Link your gaming accounts to your GamID. Connected accounts stay private until you choose to show them.</p>
+          <div id="connectionsList" class="connection-list" aria-live="polite"><p class="connections-empty">Loading connections…</p></div>
+          <p id="connectionsMessage" class="connections-message" role="status" hidden></p>
+        </section>
         <div class="future-board" aria-label="Future GamID identity areas"><p class="eyebrow">IDENTITY BOARD · FUTURE</p><div><span>Games</span><span>Stats</span><span>Connections</span><span>Socials</span></div></div>
         <hr/><p class="eyebrow">ACCOUNT SETTINGS</p><p class="account-email">Signed in as <strong id="accountEmail"></strong></p>
         <form id="languageForm"><label>Preferred language<select name="language"><option value="en">English</option><option value="ar">العربية</option><option value="ms">Bahasa Melayu</option></select></label><button class="secondary">Save language</button></form>
