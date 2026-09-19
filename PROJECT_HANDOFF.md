@@ -39,7 +39,8 @@ The current entity is **SOLO**. **Team**, **Organization**, and **Company** are 
 | Slice 3C — Intro Identity Integration | **IMPLEMENTED, NOT FORMALLY ACCEPTED** | Latest implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43` |
 | Public GamID Profile — Slice 1/2 (Foundation + Public-Safe Data) | **IMPLEMENTED, NOT FORMALLY ACCEPTED** | TESTING-deployed and validated; see section 7b |
 | Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions) | **NOT STARTED** | Explicitly deferred; do not begin without Mazen's authorization |
-| Gaming Connections Engine — Discord foundation | **IMPLEMENTED, DEPLOYED, DISCORD CONFIGURED; AWAITING MANUAL ACCEPTANCE OF THE REAL FLOW** | Implementation `08b7d039bd118513a8e3129a7e8a70d527cd2bfd`; see section 7h |
+| Gaming Connections Engine — Discord foundation | **IMPLEMENTED AND MANUALLY ACCEPTED** | Implementation `08b7d039bd118513a8e3129a7e8a70d527cd2bfd`; real Discord OAuth accepted by Mazen; see section 7h |
+| Discord `connections` scope + private Riot discovery validation | **IMPLEMENTED AND DEPLOYED TO TESTING; AWAITING MAZEN'S REAL RE-AUTHORIZATION** | Implementation `39f97c83c455abe56e8281a9e4b179562ede0cc9`; see section 7i |
 | Post-3C phases | **APPROVED DIRECTION / IDEA ONLY** | See `GAMID_ROADMAP.md`; none is authorized to start |
 
 Mazen intentionally deferred further Slice 3C manual testing and fixes. Do not resume them automatically and do not infer acceptance from technical completion.
@@ -100,6 +101,7 @@ Repository migrations:
 15. `20260918122000_public_profile_avatar_policy_fix.sql`
 16. `20260918123000_fix_check_handle_availability_anon_grant.sql`
 17. `20260919130000_gaming_connections_foundation.sql` (Gaming Connections Engine — Discord foundation, section 7h; applied to TESTING only)
+18. `20260919170000_connection_discovery_riot_validation.sql` (private Riot discovery diagnostic, section 7i; applied to TESTING only)
 
 Equivalent applied Slice 3C remote records are `20260916101711`, `20260916101805`, `20260916102030`, and dispatch activation record `20260916150139`. Do not rerun or duplicate them. Migrations 1–10 above were originally applied out-of-band under those different remote version identifiers; on 2026-09-18 their tracking history was reconciled via `supabase migration repair` (metadata-only — no schema or data was touched, verified by direct schema/RLS/function introspection beforehand) so that `supabase db push` could resume normal operation. Migrations 11–15 were applied by `supabase db push` directly and their remote version identifiers match their filenames exactly.
 
@@ -195,7 +197,11 @@ Historical Samsung Gallery-backed Avatar files produced `File.arrayBuffer()` / `
 
 ### Gaming Connections Engine — Discord foundation
 
-**IMPLEMENTED; Discord configured by Mazen; requires his manual acceptance of the real end-to-end flow.** See section 7h.
+**IMPLEMENTED AND MANUALLY ACCEPTED (real Discord OAuth).** See section 7h.
+
+### Discord connections scope + private Riot discovery validation
+
+**IMPLEMENTED AND DEPLOYED TO TESTING; awaiting Mazen's real re-authorization to learn whether Discord returns Riot.** See section 7i.
 
 ## 7. Slice 3C exact implementation
 
@@ -643,7 +649,7 @@ No `pageshow`/`bfcache`-restoration handling was added to `public.js` (unlike `a
 
 ## 7h. Gaming Connections Engine — Discord foundation
 
-**IMPLEMENTED, DEPLOYED TO TESTING, DISCORD CONFIGURED BY MAZEN (2026-09-19). AWAITING MAZEN'S MANUAL ACCEPTANCE OF THE REAL END-TO-END FLOW.** Mazen created the Discord application and set `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` as TESTING Edge Function secrets (verified by name and update time only; values were never seen). The functions were deployed fail-closed first and pick the secrets up without redeployment. Implementation checkpoint `08b7d039bd118513a8e3129a7e8a70d527cd2bfd` (built on `706fc58`, previous accepted docs checkpoint; the docs checkpoint is the commit that adds this section). This is the **first foundation slice** of a provider-neutral Gaming Connections system; **only Discord is implemented**. Steam, PlayStation, Xbox, Riot, game discovery, presence, Socials expansion, and Cinematic Identity were not started.
+**IMPLEMENTED, DEPLOYED TO TESTING, AND MANUALLY ACCEPTED BY MAZEN (real Discord OAuth completed; the real TESTING GamID is CONNECTED to Discord).** Mazen created the Discord application and set `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` as TESTING Edge Function secrets (2026-09-19; verified by name and update time only, values never seen). The scope set was later extended for the Riot discovery validation in section 7i. The functions were deployed fail-closed first and pick the secrets up without redeployment. Implementation checkpoint `08b7d039bd118513a8e3129a7e8a70d527cd2bfd` (built on `706fc58`, previous accepted docs checkpoint; the docs checkpoint is the commit that adds this section). This is the **first foundation slice** of a provider-neutral Gaming Connections system; **only Discord is implemented**. Steam, PlayStation, Xbox, Riot, game discovery, presence, Socials expansion, and Cinematic Identity were not started.
 
 ### Product behavior
 
@@ -659,7 +665,7 @@ YOUR GAMID → **CONNECTIONS** (a section inside the existing identity view, not
 
 ### Scopes (least privilege)
 
-Exactly one: **`identify`** — needed only to read the user's stable Discord id, username/display name, and avatar. **Not** requested: `email`, `connections`, `guilds`, `guilds.members.read`, `bot`, `rpc*`, `activities.*`, `messages.read`, or any "future" scope. The token response is checked to contain exactly `identify`; anything else is revoked and rejected. `prompt=consent` is sent so the user always sees what is being granted.
+**Superseded by section 7i (2026-09-19): the scope set is now exactly `identify connections`.** Original 7h decision, kept for history: Exactly one: **`identify`** — needed only to read the user's stable Discord id, username/display name, and avatar. **Not** requested: `email`, `connections`, `guilds`, `guilds.members.read`, `bot`, `rpc*`, `activities.*`, `messages.read`, or any "future" scope. The token response is checked to contain exactly `identify`; anything else is revoked and rejected. `prompt=consent` is sent so the user always sees what is being granted.
 
 ### Architecture
 
@@ -679,7 +685,7 @@ Function secrets (set by Mazen, never in Git/frontend/chat): `DISCORD_CLIENT_ID`
 2. Browser is sent to Discord (`response_type=code`, `scope=identify`, exact `redirect_uri`, `state`, `prompt=consent`). The frontend only navigates if the URL starts with `https://discord.com/oauth2/authorize?`.
 3. Callback → `consume_connection_attempt` (service_role only) locks the row `for update` and **consumes the state before any Discord call**. Result classes: `INVALID_STATE`, `REPLAYED`, `EXPIRED`, or the bound user/entity. Concurrent/duplicate/replayed callbacks are serialized by the lock; only one can win.
 4. **Identity comes only from the DB-bound one-time state.** Any user/entity id present in the callback URL is ignored (tested), so a state cannot be replayed into a different account. The callback cannot rely on a cookie/session (cross-site navigation); this is the honest binding mechanism and is documented rather than disguised.
-5. Server-side code exchange with the client secret; token must be `Bearer` with scope exactly `identify`; `/users/@me` read once; the access token is **revoked immediately**; `complete_connection_attempt` links the account.
+5. Server-side code exchange with the client secret; token must be `Bearer` with scope exactly `identify`; `/users/@me` read once; the access token is **revoked immediately**; `complete_connection_attempt` links the account. *(Superseded by section 7i: the token must carry exactly `identify connections`, `/users/@me/connections` is also read before the revoke, and only a Riot-only minimized result is recorded.)*
 6. Outcomes: `CONNECTED`, `RECONNECTED` (same account again — display fields refreshed), `ACCOUNT_ALREADY_LINKED` (Discord account belongs to another GamID → refused), `OWNER_HAS_OTHER_ACCOUNT` (this GamID already has a different Discord → refused, **never silently overwritten**), `IDENTITY_NOT_FOUND`. Cancellation, provider errors, exchange/network failures, expiry, and unexpected exceptions map to allow-listed `result`/`reason` codes; the UI maps them to fixed messages and never renders query text. Code and state are stripped from the URL by `history.replaceState` and never logged.
 
 ### Data model (migration `20260919130000_gaming_connections_foundation.sql`, migration #17)
@@ -721,6 +727,49 @@ Explicit two-step UI (Disconnect → confirm). `disconnect_my_connection` is own
 ### Known limitations / deferred
 
 PKCE unavailable (not documented by Discord). The state is bound in the database, not to a browser cookie. No connection visibility toggle or public display (deferred by design). Only Discord; provider modules for others are unwritten. Rate limiting is per user on attempt creation only. Discord's own Authorized Apps list is managed by the user in Discord. `supabase functions deploy` requires the Supabase CLI login; secrets are managed outside the repo.
+## 7i. Discord connections scope + private Riot discovery validation
+
+**IMPLEMENTED, MIGRATION APPLIED AND FUNCTIONS DEPLOYED TO TESTING. THE REAL RESULT IS UNKNOWN UNTIL MAZEN RE-AUTHORIZES DISCORD.** Implementation checkpoint `39f97c83c455abe56e8281a9e4b179562ede0cc9` (built on `33cad8dd54375a1ae686091740d88ebb0663554b`). This is a **discovery/validation slice only**: it answers one question — when the real TESTING Discord account authorizes `identify connections`, does Discord's official `GET /users/@me/connections` return the Riot Games connection visible on that Discord profile, and which safe fields does it carry? It does **not** implement Riot OAuth/RSO, call any Riot API, use the Riot development key, touch OP.GG, or look up League rank/server/LP, and it does not change the public profile.
+
+### What the current official docs say (docs.discord.com/developers, fetched for this slice)
+
+`GET /users/@me/connections` requires the `connections` scope. Connection object fields: `id`, `name`, `type`, `revoked`, `integrations`, `verified`, `friend_sync`, `show_activity`, `two_way_link`, `visibility` (0 private / 1 public). **Riot Games is not in Discord's documented Services table**, so Riot's `type` string is unknown and is deliberately not assumed — it is learned from the live response. The docs do not describe how granted scopes change when an already-authorized user re-authorizes; `prompt=consent` forces the consent screen again.
+
+### Exact OAuth scopes now requested
+
+**`identify connections`** (sent as `scope=identify%20connections`). Nothing else. `identify` is unchanged (id, username, display name, avatar). `connections` is the new, explicit, temporary discovery permission. The token response must contain **exactly** these two scopes — more, fewer, or different is revoked and refused (`exchange_failed`). This intentionally applies to every Discord authorization (per the slice brief), not just the owner's; narrowing it back to on-demand only is an open decision for after the validation result (see limitations).
+
+### How `/users/@me/connections` is handled
+
+- Called once in the callback, server-side, with the temporary token, **after** `/users/@me` and **before** the token is revoked. The token is revoked immediately afterwards and is never stored, logged, or returned.
+- The payload is reduced **in memory** by `summarizeConnections` (`supabase/functions/_shared/discord-oauth.js`). An entry is treated as Riot only if its `type`, reduced to lowercase alphanumerics, **starts with `riot`** or is `leagueoflegends`/`valorant` (Riot's own game names). Every other entry is discarded; only the total count survives (so "Riot absent" can be told apart from "Discord returned nothing").
+- For the (first) Riot entry only, retained: `type` as returned, `name` (control characters stripped, ≤128), the id's **shape** (`uuid`/`digits`/`alnum`/`other`) and **length**, a **SHA-256 fingerprint** of the id (never returned to any client), `verified`/`revoked`/`friend_sync` (booleans only), `visibility` (0–9), the allow-listed **names** of the fields Discord returned, and the number of Riot-typed entries. The raw external id is never stored.
+- Never retained/logged/exposed: unrelated accounts, the full payload, the raw id, tokens, codes. The browser receives only `discovery=found|absent|unavailable` in the return URL; the details are read separately through an owner-only RPC.
+- The result is recorded **only after the owner's own Discord link succeeds** (`CONNECTED`/`RECONNECTED`) and is bound to the account just linked — never for a refused attempt (`account_in_use`, `other_account_connected`), cancellation, or failed exchange. A connections failure/malformed response never fails the identity link: it is recorded `UNAVAILABLE`. A failure to save the diagnostic never undoes or misreports the link.
+
+### Schema (migration #18: `20260919170000_connection_discovery_riot_validation.sql`, applied to TESTING only)
+
+Additive only; `gaming_connections` and every earlier object are untouched. New `public.connection_discovery_results` (PK `connection_id` + `discovered_provider`, `on delete cascade` from `gaming_connections`, so **Disconnect removes it**); RLS on, all table privileges revoked from `public`/`anon`/`authenticated`, owner-select policy; check constraints so only a `FOUND` row can carry details and a `FOUND` row must carry a type. `record_connection_discovery` is `service_role` only (also guarded by `current_user <> 'service_role'`, requires a consumed+completed attempt whose outcome is `CONNECTED`/`RECONNECTED`, and the account must be the one that attempt linked). `get_my_connection_discovery` is `authenticated` only and does not return the fingerprint. The provider column is generic (`riot` is the only accepted value now).
+
+### UI (owner only, inside the existing YOUR GAMID → Connections → Discord card)
+
+A private panel: **DISCOVERED THROUGH DISCORD — PRIVATE — DISCOVERY TEST**, showing "not run yet" / Riot found (type, name, verified, Discord visibility, friend sync, revoked, id format, field names, when checked) / Riot not returned (with the total number of linked accounts Discord returned) / list unreadable. It always says it is diagnostic and never shown on the public GamID. The button **Grant permission & run Riot discovery test** (later **Run Riot discovery test again**) is the only way to request the extra permission: it reuses the existing OAuth start → consent → callback flow, requires an explicit click, and never disconnects or silently reconnects anything. Because the current connection was granted with `identify` only, the real account shows "not run yet" until Mazen clicks it. Public profile code (`dist/public/*`) does not reference discovery, Riot, or Discord (asserted by a test).
+
+### Validation
+
+- `npm run build`: lint + typecheck + **218/218** tests (was 191). `tests/gaming-connections-oauth.test.js` 36 → 55; `tests/gaming-connections-ui.test.js` 14 → 22. **Existing tests that were legitimately updated** because the contract changed: the authorization-URL scope assertion (`identify` → `identify connections`), the fake token scope, the success-flow Discord call sequence/count (3 → 4 calls: exchange, identity, connections, revoke) and log events, the over-scope test (now also refuses narrower/different scope sets), and the allowed-redirect-keys test (adds `discovery`). No test was removed or weakened.
+- Mutation testing: nine deliberate breakages (keep every entry, store the raw id, record on a refused link, loosen the scope check, request `identify` only, put the name in the redirect, let a connections failure fail the link, log the full payload, skip the revoke) — **all nine caught**; the module was restored byte-for-byte.
+- Live DB: `tests/integration/connection-discovery-db.sql` — **30/30** steps against TESTING (self-rolling-back); it was also run wrapped with the migration itself **before** applying it (rolled back). The original `gaming-connections-db.sql` still passes (47/47 + summary). After all runs: 1 connection, 3 identities, 0 discovery rows; `@black` untouched.
+- Browser: the panel was exercised locally against a scratch mock API (not committed) in all states, with a hostile Riot name rendered as inert text, no navigation without a click, non-Discord authorization URLs refused, and no horizontal overflow at 375px.
+- Deployment: migration applied via `supabase db push` (single pending migration); both Edge Functions redeployed (v3, `verify_jwt` pins unchanged); unauthenticated probes confirm the callback still redirects safely (`invalid_state`) and `start` still rejects a missing JWT (401). **The authorization URL a signed-in user receives (scope `identify%20connections`) is proven by tests against the same module, not by a live signed-in call.**
+
+### Manual acceptance still required (Mazen) and known limitations
+
+1. Mazen must click **Grant permission & run Riot discovery test** in the real TESTING account and approve the `connections` permission on Discord; only then does the real answer exist. Do not act on Riot data before that result is reviewed.
+2. Riot is matched only by connection `type`. If Discord returns Riot under an unexpected type, this validation reports "not returned" (the total count is shown to help spot that); the type is deliberately not guessed beyond `riot*`, `leagueoflegends`, `valorant`.
+3. `connections` is requested on **every** Discord authorization right now (a temporary, deliberate widening of the least-privilege scope set from 7h). After the result is known, decide whether to keep discovery on-demand only.
+4. No Riot ID is stored, no Riot API is called, and nothing about Riot is public; OP.GG, League rank/server/LP, and any Riot OAuth/RSO remain unstarted and need separate authorization.
+
 ## 8. Real Samsung / real E2E evidence
 
 A protected Samsung/@BLACK job proved the backend path:
@@ -769,7 +818,8 @@ Do not ask for another upload or resume these automatically. Discuss the next pr
 | Public route Intro stage stayed blank via the new `/@handle` redirect on real GitHub Pages (~3 of 4 attempts) | **FIXED** | The iframe could finish loading and broadcast its `ready` message before `public.js`'s deferred module even started executing; only reproducible against a real GitHub Pages 404-redirect hop, not a local static server; see section 7f, checkpoint `08f516087fa61fe54025dc16b3e715d338f73f5e` |
 | Public Intro fails intermittently in Opera (real device), recovers temporarily after "Delete Site Data" | **FIXED AND ACCEPTED** (Mazen verified on real Opera without clearing Site Data; accepted checkpoint `706fc58`) | Retry/acknowledged handshake replaces the one-shot ready broadcast (tolerates either execution order, provably bounded); deterministic per-deploy asset versioning prevents an old/new file-version mismatch during GitHub Pages' unavoidable 10-minute `max-age=600` cache window; see section 7g |
 | Skip Intro could reveal the raw unconfigured placeholder (`Gamer`/`@handle`/`DRAFT · PRIVATE`) as if it were a loaded profile | **FIXED** | The public route now only reveals the Intro/Profile experience once the child's own state broadcast proves `play()` actually ran with real data, instead of as soon as a config was merely built locally; see section 7g |
-| Discord real end-to-end connection not yet exercised | **AWAITING MAZEN'S MANUAL ACCEPTANCE** | Secrets are configured (the callback no longer returns `not_configured`); the real consent → callback → CONNECTED path has only been proven with mocks, the live DB script, and a runtime diagnostic, never with a real Discord authorization; see section 7h |
+| Discord real end-to-end connection | **ACCEPTED** | Mazen completed real Discord OAuth; the real TESTING GamID is CONNECTED (`identify` only at the time); see section 7h |
+| Does Discord's `/users/@me/connections` return the Riot Games connection, and with which fields? | **UNKNOWN — AWAITING MAZEN** | Riot is not in Discord's documented Services table; the private discovery test is deployed and needs Mazen's explicit `connections` authorization; see section 7i |
 | Discord OAuth has no PKCE | **BY DESIGN / DOCUMENTED** | Not documented by Discord's current OAuth2 docs; compensated by a confidential client, DB-bound one-time hashed state, exact redirect URI, server-side exchange, immediate token revocation; see section 7h |
 | Samsung Avatar Gallery read/decode failures | **FIXED IMPLEMENTATION; 3A UNACCEPTED** | Stable Blob path exists; broader acceptance deferred |
 | Misleading Auth error during Intro upload | **FIXED** | Correct classification and TUS transport exist |
@@ -912,6 +962,6 @@ A fourth bug was found only after deploying the Permanent Public GamID URL to re
 
 A read-only diagnosis (requested separately, performed with no code changes) investigated a real-device report that the public Intro behaves differently in Opera than Chrome, and identified two concrete, evidence-backed risks without proving a single exclusive root cause: a still-unproven-safe handshake timing race, and GitHub Pages' unavoidable `Cache-Control: max-age=600` allowing a browser to legitimately run an older deployed build for up to 10 minutes. Both were then closed under explicit follow-up authorization: the one-shot `ready` broadcast became a bounded retry-until-acknowledged handshake (tolerating either execution order, provably capped, never duplicating playback), and every cross-document reference between the public/account parents and the shared Intro iframe now carries a deploy-derived, automatically-stamped version query string so a stale-cached parent can never end up paired with a mismatched-version child. A related identity-safety gap found during this work — Skip Intro could reveal the raw unconfigured placeholder as if it were a loaded profile — was fixed by only revealing the experience once the child's own state broadcast proves real data was applied. See section 7g. **This is a mitigation validated on Chromium-based tooling only — Mazen's manual acceptance on his real Opera browser is still outstanding and is the actual final acceptance test for the original report.**
 
-Gaming Connections Engine — Discord foundation (section 7h) exists at implementation checkpoint `08b7d039bd118513a8e3129a7e8a70d527cd2bfd`. The Opera reliability work above was subsequently **accepted by Mazen on his real Opera browser** (no Site Data clearing). Mazen has since created the Discord application and set the two TESTING function secrets. The Discord slice is **not accepted**: it waits for Mazen to run the real end-to-end manual acceptance plan. Do not start Steam/other providers, game discovery, Socials, or Cinematic Identity without authorization.
+Gaming Connections Engine — Discord foundation (section 7h) exists at implementation checkpoint `08b7d039bd118513a8e3129a7e8a70d527cd2bfd` and was **manually accepted by Mazen** with real Discord OAuth (the real TESTING GamID is connected to Discord). The Opera reliability work was likewise accepted on his real Opera browser. A follow-up **discovery/validation slice** (section 7i, implementation `39f97c83c455abe56e8281a9e4b179562ede0cc9`) extended the scopes to `identify connections` and added a private Riot discovery diagnostic; it is deployed to TESTING and waits for Mazen to click **Grant permission & run Riot discovery test** so the real answer exists. Do not start Steam/other providers, Riot OAuth/RSO, Riot API calls, OP.GG, League rank/server/LP, game discovery, Socials, or Cinematic Identity without authorization.
 
 Do not start the next implementation slice. First inspect the repository read-only, then discuss the roadmap and next priority with Mazen. Proceed only after he explicitly chooses and authorizes the next work.

@@ -71,7 +71,9 @@ Support user-controlled Snapchat, X/Twitter, Instagram, TikTok, YouTube, Twitch,
 
 Connect Discord, Steam, PlayStation, Xbox, Riot, and official game/platform APIs where available. Discord can support identity/discovery/linked accounts and permitted presence, but is not a universal stats/history/ranks/achievements source.
 
-**Discord foundation implemented in TESTING (Discord configured by Mazen; real end-to-end flow awaiting his manual acceptance)** — see `PROJECT_HANDOFF.md` section 7h. A provider-neutral connection model plus Discord account linking (OAuth `identify` scope only, no stored tokens, private by default) and a CONNECTIONS area in YOUR GAMID. Steam, PlayStation, Xbox, Riot, game discovery, presence, and public display of connections remain unstarted and need separate approval.
+**Discord foundation implemented in TESTING (real Discord OAuth manually accepted by Mazen)** — see `PROJECT_HANDOFF.md` section 7h. A provider-neutral connection model plus Discord account linking (OAuth `identify` scope only, no stored tokens, private by default) and a CONNECTIONS area in YOUR GAMID. Steam, PlayStation, Xbox, Riot, game discovery, presence, and public display of connections remain unstarted and need separate approval.
+
+**Riot discovery validation (implemented in TESTING; awaiting Mazen's real re-authorization)** — see `PROJECT_HANDOFF.md` section 7i. A small, private, diagnostic-only extension that also requests Discord's `connections` scope to learn whether `/users/@me/connections` returns a Riot Games entry and which safe fields it carries. It stores only the Riot result, never publishes it, and does not implement Riot OAuth/RSO, Riot API calls, OP.GG, or League rank/server/LP; those remain unstarted and need separate approval.
 
 ### 7. Verified / Connected / Manual model
 
