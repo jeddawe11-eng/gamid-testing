@@ -39,6 +39,7 @@ The current entity is **SOLO**. **Team**, **Organization**, and **Company** are 
 | Slice 3C — Intro Identity Integration | **IMPLEMENTED, NOT FORMALLY ACCEPTED** | Latest implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43` |
 | Public GamID Profile — Slice 1/2 (Foundation + Public-Safe Data) | **IMPLEMENTED, NOT FORMALLY ACCEPTED** | TESTING-deployed and validated; see section 7b |
 | Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions) | **NOT STARTED** | Explicitly deferred; do not begin without Mazen's authorization |
+| Gaming Connections Engine — Discord foundation | **IMPLEMENTED, DEPLOYED FAIL-CLOSED; AWAITING DISCORD CONFIGURATION + MANUAL ACCEPTANCE** | Implementation `08b7d039bd118513a8e3129a7e8a70d527cd2bfd`; see section 7h |
 | Post-3C phases | **APPROVED DIRECTION / IDEA ONLY** | See `GAMID_ROADMAP.md`; none is authorized to start |
 
 Mazen intentionally deferred further Slice 3C manual testing and fixes. Do not resume them automatically and do not infer acceptance from technical completion.
@@ -69,7 +70,7 @@ Everything here is TESTING. Production is not started or authorized.
 - Project: `GamID — TESTING`
 - Ref: `upvtrczefcvigxdyuylw`
 - Region: Singapore / `ap-southeast-1`
-- Auth: email/password registration, confirmation, sign-in/out, password recovery/update, and browser session persistence/refresh. OAuth is not implemented.
+- Auth: email/password registration, confirmation, sign-in/out, password recovery/update, and browser session persistence/refresh. GamID's own sign-in is email/password only; the only OAuth in the system is the outbound Discord account-connection flow (section 7h), which is a linked account, not a login method.
 - Browser initialization uses the TESTING URL and public anon key. Privileged credentials never belong in the browser.
 
 | Private bucket | Limit | Purpose |
@@ -98,6 +99,7 @@ Repository migrations:
 14. `20260918121500_public_profile_education_catalog.sql`
 15. `20260918122000_public_profile_avatar_policy_fix.sql`
 16. `20260918123000_fix_check_handle_availability_anon_grant.sql`
+17. `20260919130000_gaming_connections_foundation.sql` (Gaming Connections Engine — Discord foundation, section 7h; applied to TESTING only)
 
 Equivalent applied Slice 3C remote records are `20260916101711`, `20260916101805`, `20260916102030`, and dispatch activation record `20260916150139`. Do not rerun or duplicate them. Migrations 1–10 above were originally applied out-of-band under those different remote version identifiers; on 2026-09-18 their tracking history was reconciled via `supabase migration repair` (metadata-only — no schema or data was touched, verified by direct schema/RLS/function introspection beforehand) so that `supabase db push` could resume normal operation. Migrations 11–15 were applied by `supabase db push` directly and their remote version identifiers match their filenames exactly.
 
@@ -189,7 +191,11 @@ Historical Samsung Gallery-backed Avatar files produced `File.arrayBuffer()` / `
 
 ### Verified public Intro reliability fix (Opera vs Chrome diagnosis follow-up)
 
-**IMPLEMENTED, DEPLOYED TO TESTING, VALIDATED, NOT FORMALLY ACCEPTED.** See section 7g.
+**IMPLEMENTED, DEPLOYED TO TESTING, VALIDATED, ACCEPTED BY MAZEN (including real Opera).** See section 7g.
+
+### Gaming Connections Engine — Discord foundation
+
+**IMPLEMENTED; functions deployed fail-closed; requires Mazen's Discord configuration and manual acceptance.** See section 7h.
 
 ## 7. Slice 3C exact implementation
 
@@ -635,6 +641,86 @@ This runs on the **staged copy** in `${RUNNER_TEMP}`, after rsync and before `up
 
 No `pageshow`/`bfcache`-restoration handling was added to `public.js` (unlike `account.js`, which already has this for an unrelated avatar concern) — the Opera diagnosis flagged this as a *separate*, still-unaddressed architectural gap, not part of the confirmed handshake-race/asset-versioning scope authorized here. Flagged for a future, explicitly-scoped decision rather than folded in silently.
 
+## 7h. Gaming Connections Engine — Discord foundation
+
+**IMPLEMENTED AND DEPLOYED TO TESTING (functions fail-closed). NOT COMPLETE UNTIL MAZEN CONFIGURES DISCORD.** The Discord application does not exist yet; no client ID/secret is configured anywhere. Implementation checkpoint `08b7d039bd118513a8e3129a7e8a70d527cd2bfd` (built on `706fc58`, previous accepted docs checkpoint; the docs checkpoint is the commit that adds this section). This is the **first foundation slice** of a provider-neutral Gaming Connections system; **only Discord is implemented**. Steam, PlayStation, Xbox, Riot, game discovery, presence, Socials expansion, and Cinematic Identity were not started.
+
+### Product behavior
+
+YOUR GAMID → **CONNECTIONS** (a section inside the existing identity view, not a new page) → Discord → **Connect Discord** → official Discord consent → redirect back to `/account/` → **CONNECTED**. GamID never sees, asks for, stores, or proxies the Discord password; the user authenticates only on `discord.com`.
+
+- Trust state: an OAuth-linked Discord is **CONNECTED**. Nothing here creates VERIFIED data, and Discord is not used as a source of games, ranks, or stats.
+- **CONNECTED ≠ PUBLIC.** `gaming_connections.is_public` defaults `false`; no public RPC reads connections; there is no visibility toggle in this slice; the Public Profile was not modified. The owner sees "Private — not shown on your public GamID."
+- The connection attaches to the existing authenticated permanent `@handle` identity. No second username/profile/account system.
+
+### Official Discord docs consulted (current, `docs.discord.com/developers`)
+
+`topics/oauth2`, `resources/user`, and `change-log`. Facts relied on: Authorization Code grant; authorize `https://discord.com/oauth2/authorize`; token `https://discord.com/api/oauth2/token`; revoke `https://discord.com/api/oauth2/token/revoke` (revokes the whole grant); identity read `GET https://discord.com/api/v10/users/@me`; the user `id` is a snowflake, `username` is mutable and not unique. **PKCE is not documented for Discord's OAuth2 in the current docs, so it is deliberately not used** (sending `code_challenge` would be simulated security). The compensating controls are below. The documented format for a user-denied authorization was not found, so any `error` on the callback is handled generically (`error=access_denied` is treated as cancellation).
+
+### Scopes (least privilege)
+
+Exactly one: **`identify`** — needed only to read the user's stable Discord id, username/display name, and avatar. **Not** requested: `email`, `connections`, `guilds`, `guilds.members.read`, `bot`, `rpc*`, `activities.*`, `messages.read`, or any "future" scope. The token response is checked to contain exactly `identify`; anything else is revoked and rejected. `prompt=consent` is sent so the user always sees what is being granted.
+
+### Architecture
+
+GitHub Pages is static, so every secret operation lives in two **Supabase Edge Functions** on TESTING (`upvtrczefcvigxdyuylw`, deployed with `supabase functions deploy … --use-api`), with shared logic in `supabase/functions/_shared/discord-oauth.js` (dependency-injected, unit-tested with a fake backend):
+
+| Function | `verify_jwt` | Role |
+|---|---|---|
+| `discord-connect-start` | **true** (pinned in `supabase/config.toml`) | Requires the owner's GamID session; calls `start_connection_attempt` as that user; returns only `{authorization_url}`. CORS limited to `https://jeddawe11-eng.github.io`. |
+| `discord-connect-callback` | **false** (Discord's cross-site redirect carries no GamID credentials) | The exact registered redirect URI. Consumes the state, exchanges the code, reads `/users/@me`, links, revokes, and 302s to `https://jeddawe11-eng.github.io/gamid-testing/account/?connection=discord&result=…[&reason=…]`. |
+
+Redirect URI to register in Discord (exact): `https://upvtrczefcvigxdyuylw.supabase.co/functions/v1/discord-connect-callback`.
+Function secrets (set by Mazen, never in Git/frontend/chat): `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`. `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` are injected by the platform. **Until the two Discord secrets exist, the functions fail closed**: start returns 503 `not_configured` and the callback redirects with `reason=not_configured`; the UI says "Discord connection isn't available yet on this TESTING site."
+
+### OAuth flow and CSRF / replay protection
+
+1. Owner clicks Connect → browser calls `discord-connect-start` with the session token → `private.start_connection_attempt_impl` requires a confirmed-email owner of a SOLO identity, rate-limits (10 attempts per 10 minutes per user), creates a **256-bit random state** (`extensions.gen_random_bytes(32)`, hex), stores **only its SHA-256 hash** bound to `user_id` + `entity_id` with a **10-minute expiry**.
+2. Browser is sent to Discord (`response_type=code`, `scope=identify`, exact `redirect_uri`, `state`, `prompt=consent`). The frontend only navigates if the URL starts with `https://discord.com/oauth2/authorize?`.
+3. Callback → `consume_connection_attempt` (service_role only) locks the row `for update` and **consumes the state before any Discord call**. Result classes: `INVALID_STATE`, `REPLAYED`, `EXPIRED`, or the bound user/entity. Concurrent/duplicate/replayed callbacks are serialized by the lock; only one can win.
+4. **Identity comes only from the DB-bound one-time state.** Any user/entity id present in the callback URL is ignored (tested), so a state cannot be replayed into a different account. The callback cannot rely on a cookie/session (cross-site navigation); this is the honest binding mechanism and is documented rather than disguised.
+5. Server-side code exchange with the client secret; token must be `Bearer` with scope exactly `identify`; `/users/@me` read once; the access token is **revoked immediately**; `complete_connection_attempt` links the account.
+6. Outcomes: `CONNECTED`, `RECONNECTED` (same account again — display fields refreshed), `ACCOUNT_ALREADY_LINKED` (Discord account belongs to another GamID → refused), `OWNER_HAS_OTHER_ACCOUNT` (this GamID already has a different Discord → refused, **never silently overwritten**), `IDENTITY_NOT_FOUND`. Cancellation, provider errors, exchange/network failures, expiry, and unexpected exceptions map to allow-listed `result`/`reason` codes; the UI maps them to fixed messages and never renders query text. Code and state are stripped from the URL by `history.replaceState` and never logged.
+
+### Data model (migration `20260919130000_gaming_connections_foundation.sql`, migration #17)
+
+- `public.connection_provider_catalog` — provider registry (seeded with `discord` only); new providers are catalog rows plus a provider module, not schema redesign.
+- `public.gaming_connections` — `connection_id`, `entity_id` (→ `entities`, cascade), `provider_key`, `provider_account_id` (**durable key: the Discord snowflake**, never the mutable username), `provider_username`, `provider_display_name`, `provider_avatar_url` (must be `https://`), `trust_status` (`VERIFIED|CONNECTED|MANUAL`, default `CONNECTED`), `is_public` (default `false`), `connected_at`, `updated_at`. **Unique `(entity_id, provider_key)`** and **unique `(provider_key, provider_account_id)`** — one Discord identity cannot silently link to two GamIDs.
+- `private.connection_oauth_attempts` — hashed one-time state ledger (`state_hash` unique, `expires_at`, `consumed_at`, `completed_at`, `outcome`).
+- Owner RPCs (`authenticated` only): `start_connection_attempt`, `get_my_connections` (returns **no** `provider_account_id`, connection id, or entity id), `disconnect_my_connection`. Backend RPCs (`service_role` only, additionally guarded by `current_user <> 'service_role'`): `consume_connection_attempt`, `complete_connection_attempt`, `finish_connection_attempt`. Pattern: `private.*_impl` security definer + `public.*` invoker wrapper; revoke-all-then-grant.
+
+### RLS / authorization
+
+RLS is enabled on all three tables. `gaming_connections` has one owner-`select` policy; there are **no** insert/update/delete policies and direct table grants are revoked from `public`, `anon`, and `authenticated`. Anonymous roles have no access to any connections object; no `anon` grant was added or widened; no existing policy or grant was changed. Public Profile RPCs were not touched.
+
+### Token-storage decision
+
+**No OAuth token of any kind is persisted** (no access token, refresh token, or code). The access token lives in memory for one request and is revoked immediately (revoke failure is logged as a code only and never fails the link). Nothing secret is returned to the browser or logged. `dist/` contains no secret material (asserted by a test that scans all of `dist/`).
+
+### Disconnect
+
+Explicit two-step UI (Disconnect → confirm). `disconnect_my_connection` is owner-verified, **idempotent** (`DISCONNECTED` / `NOT_CONNECTED`), hard-deletes the row, and thereby frees the Discord account for another GamID. Because no tokens are retained, there is nothing to revoke at disconnect time (the grant was already revoked at link time). GamID, `@handle`, Intro, and the Public Profile are unaffected. If the user wants Discord's own authorized-app entry gone, that is in Discord → Settings → Authorized Apps (documented limitation).
+
+### Files
+
+`supabase/migrations/20260919130000_gaming_connections_foundation.sql`; `supabase/functions/_shared/discord-oauth.js`; `supabase/functions/discord-connect-start/index.ts`; `supabase/functions/discord-connect-callback/index.ts`; `supabase/config.toml` (new, minimal: pins per-function `verify_jwt` only); `dist/account/{index.html,account.js,account.css,supabase-client.js}`; `tests/gaming-connections-oauth.test.js`; `tests/gaming-connections-ui.test.js`; `tests/integration/gaming-connections-db.sql`; `package.json` (typecheck now includes the shared OAuth module).
+
+### Validation
+
+- `npm run build`: lint + typecheck + **191/191 tests pass** (was 141 before this slice; 36 OAuth behavior tests + 14 static UI/security tests added; no existing test was modified or weakened). `tests/slice-3b-roles-education.test.js` still asserts the placeholder `<span>Connections</span>` in the Identity Board; it was intentionally left untouched.
+- Live DB behavior: `tests/integration/gaming-connections-db.sql` (run with `supabase db query --linked -f …`) impersonates roles inside a self-rolling-back block: **48/48 steps** — state creation/hash-only storage/expiry/one-time consumption, replay, invalid state, cross-user isolation, duplicate provider account, other-account refusal, reconnect, disconnect idempotency, RLS/anon denial, private-by-default, public-boundary non-exposure. Nothing persisted.
+- OAuth tests use a fake backend and fake Discord `fetch`; they were **mutation-tested** (removing consume-before-Discord, scope check, revoke, state binding, etc. each makes tests fail).
+- Deployed runtime was verified with a temporary diagnostic function (since deleted, never committed): platform env present, user-JWT start OK, consume/finish OK, replay/garbage handled. A disposable TESTING identity was used and cleaned up; **`@black` was never touched**; Mazen's real Discord was never connected.
+- Frontend was exercised locally against a mocked API module (scratch, not committed) at a 375px mobile viewport: not-connected/connected/error/list-failure states, hostile display names rendered as inert text, authorize-URL rejection, double-click guard, two-step disconnect, return-param handling and URL stripping. **The real end-to-end Discord flow has not been run — it cannot be until Mazen configures Discord.**
+
+### Manual actions still required (Mazen)
+
+1. Create the Discord application and set `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` as **Supabase Edge Function secrets** on TESTING (instructions are in the slice's final report; never paste them into chat, Git, frontend code, or screenshots).
+2. Run the manual acceptance plan on Samsung Android Chrome, Windows Chrome, and Windows Opera with a disposable Discord/TESTING account, then his own account.
+
+### Known limitations / deferred
+
+PKCE unavailable (not documented by Discord). The state is bound in the database, not to a browser cookie. No connection visibility toggle or public display (deferred by design). Only Discord; provider modules for others are unwritten. Rate limiting is per user on attempt creation only. Discord's own Authorized Apps list is managed by the user in Discord. `supabase functions deploy` requires the Supabase CLI login; secrets are managed outside the repo.
 ## 8. Real Samsung / real E2E evidence
 
 A protected Samsung/@BLACK job proved the backend path:
@@ -681,8 +767,10 @@ Do not ask for another upload or resume these automatically. Discuss the next pr
 | `DRAFT · PRIVATE` badge stayed visible in the public experience despite `hidden=true` | **FIXED** | `.preview-private{display:inline-block}` had the same CSS specificity as `[hidden]` and won the cascade; see section 7d, checkpoint `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` |
 | Publish button unresponsive to real taps on real Samsung Android mobile browsers (manual acceptance blocker) | **FIXED** | `.identity-preview::after`'s decorative circle had no `pointer-events:none` and intercepted real hit-testing; prior automated testing used synthetic `.click()`, which bypasses hit-testing and never caught it; see section 7e |
 | Public route Intro stage stayed blank via the new `/@handle` redirect on real GitHub Pages (~3 of 4 attempts) | **FIXED** | The iframe could finish loading and broadcast its `ready` message before `public.js`'s deferred module even started executing; only reproducible against a real GitHub Pages 404-redirect hop, not a local static server; see section 7f, checkpoint `08f516087fa61fe54025dc16b3e715d338f73f5e` |
-| Public Intro fails intermittently in Opera (real device), recovers temporarily after "Delete Site Data" | **MITIGATED, PENDING MAZEN'S REAL-OPERA ACCEPTANCE** | Retry/acknowledged handshake replaces the one-shot ready broadcast (tolerates either execution order, provably bounded); deterministic per-deploy asset versioning prevents an old/new file-version mismatch during GitHub Pages' unavoidable 10-minute `max-age=600` cache window; see section 7g |
+| Public Intro fails intermittently in Opera (real device), recovers temporarily after "Delete Site Data" | **FIXED AND ACCEPTED** (Mazen verified on real Opera without clearing Site Data; accepted checkpoint `706fc58`) | Retry/acknowledged handshake replaces the one-shot ready broadcast (tolerates either execution order, provably bounded); deterministic per-deploy asset versioning prevents an old/new file-version mismatch during GitHub Pages' unavoidable 10-minute `max-age=600` cache window; see section 7g |
 | Skip Intro could reveal the raw unconfigured placeholder (`Gamer`/`@handle`/`DRAFT · PRIVATE`) as if it were a loaded profile | **FIXED** | The public route now only reveals the Intro/Profile experience once the child's own state broadcast proves `play()` actually ran with real data, instead of as soon as a config was merely built locally; see section 7g |
+| Discord connection cannot complete end-to-end until Discord is configured | **AWAITING MAZEN** | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` are not set; functions fail closed (`not_configured`) by design; see section 7h |
+| Discord OAuth has no PKCE | **BY DESIGN / DOCUMENTED** | Not documented by Discord's current OAuth2 docs; compensated by a confidential client, DB-bound one-time hashed state, exact redirect URI, server-side exchange, immediate token revocation; see section 7h |
 | Samsung Avatar Gallery read/decode failures | **FIXED IMPLEMENTATION; 3A UNACCEPTED** | Stable Blob path exists; broader acceptance deferred |
 | Misleading Auth error during Intro upload | **FIXED** | Correct classification and TUS transport exist |
 | Samsung Intro source lifetime | **FIXED** | Stable Blob captured during selection |
@@ -823,5 +911,7 @@ A third bug was found by Mazen during his own manual acceptance testing on a rea
 A fourth bug was found only after deploying the Permanent Public GamID URL to real GitHub Pages: the new `/@handle` redirect (through `404.html`) made the public Intro stage stay blank on roughly 3 of 4 attempts, because the iframe could finish loading and broadcast its ready signal before `public.js`'s deferred module even began executing — a deeper layer of the same class of bug fixed in section 7d, not reproducible against a local static server. Fixed by mirroring `account.js`'s own existing dual-trigger pattern (also listening for the iframe's native `load` event); see section 7f.
 
 A read-only diagnosis (requested separately, performed with no code changes) investigated a real-device report that the public Intro behaves differently in Opera than Chrome, and identified two concrete, evidence-backed risks without proving a single exclusive root cause: a still-unproven-safe handshake timing race, and GitHub Pages' unavoidable `Cache-Control: max-age=600` allowing a browser to legitimately run an older deployed build for up to 10 minutes. Both were then closed under explicit follow-up authorization: the one-shot `ready` broadcast became a bounded retry-until-acknowledged handshake (tolerating either execution order, provably capped, never duplicating playback), and every cross-document reference between the public/account parents and the shared Intro iframe now carries a deploy-derived, automatically-stamped version query string so a stale-cached parent can never end up paired with a mismatched-version child. A related identity-safety gap found during this work — Skip Intro could reveal the raw unconfigured placeholder as if it were a loaded profile — was fixed by only revealing the experience once the child's own state broadcast proves real data was applied. See section 7g. **This is a mitigation validated on Chromium-based tooling only — Mazen's manual acceptance on his real Opera browser is still outstanding and is the actual final acceptance test for the original report.**
+
+Gaming Connections Engine — Discord foundation (section 7h) exists at implementation checkpoint `08b7d039bd118513a8e3129a7e8a70d527cd2bfd`. The Opera reliability work above was subsequently **accepted by Mazen on his real Opera browser** (no Site Data clearing). The Discord slice is **not complete**: it is deployed fail-closed and waits for Mazen to create the Discord application and set the two function secrets, then to run the manual acceptance plan. Do not start Steam/other providers, game discovery, Socials, or Cinematic Identity without authorization.
 
 Do not start the next implementation slice. First inspect the repository read-only, then discuss the roadmap and next priority with Mazen. Proceed only after he explicitly chooses and authorizes the next work.
