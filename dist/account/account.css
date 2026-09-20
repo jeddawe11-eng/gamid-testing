@@ -147,6 +147,27 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .game-library-more{color:var(--muted);font-weight:650;font-size:.74rem}
 .game-display{margin:1rem 0}
 .game-display .section-visibility-hint{overflow-wrap:anywhere}
+/* Optional expandable Game Profile on a My Games row (provider-neutral; see game-profile.js). A row without a profile keeps the plain compact layout. */
+.game-library .game-item{flex-wrap:wrap}
+.game-library .game-item .game-copy{flex:1 1 5.5rem;min-width:0}
+.game-profile-toggle{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;flex:0 0 auto;min-height:2.75rem;min-width:2.75rem;margin-left:auto;padding:0 .65rem;border:1px solid var(--line);border-radius:.65rem;background:rgba(255,255,255,.03);color:var(--cyan);font:inherit;font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;touch-action:manipulation}
+.game-profile-toggle:hover{border-color:#51456e}
+.game-profile-chevron{flex:0 0 auto;width:.5rem;height:.5rem;border-right:2px solid var(--cyan);border-bottom:2px solid var(--cyan);transform:translateY(-.08rem) rotate(45deg);transition:transform .15s ease}
+.game-profile-toggle[aria-expanded="true"] .game-profile-chevron{transform:translateY(.08rem) rotate(-135deg)}
+.game-profile-toggle[aria-expanded="true"]{border-color:var(--cyan)}
+.game-profile-panel{flex:0 0 100%;display:grid;gap:.55rem;margin:.1rem 0 .45rem;padding:.75rem .8rem;border:1px solid var(--line);border-radius:.75rem;background:rgba(98,231,255,.04)}
+.game-profile-panel[hidden]{display:none}
+.game-profile-meta{display:flex;flex-wrap:wrap;gap:.35rem}
+.game-profile-chip{padding:.18rem .5rem;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:.58rem;font-weight:800;letter-spacing:.1em}
+.game-profile-chip.is-ok{border-color:#27604a;background:#10251d;color:var(--green)}
+.game-profile-chip.is-caution{border-color:#5a4a1e;background:rgba(255,196,77,.08);color:#ffd27a}
+.game-profile-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem .9rem;margin:0}
+/* specific enough to win over the page-wide dl div / dt / dd rules used by other cards */
+.game-library .game-profile-fields .game-profile-field{display:block;min-width:0;padding:0;background:transparent}
+.game-library .game-profile-field dt{color:var(--muted);font-size:.66rem;font-weight:700;letter-spacing:.05em}
+.game-library .game-profile-field dd{margin:.1rem 0 0;color:var(--text);font-size:.9rem;font-weight:750;letter-spacing:0;overflow-wrap:anywhere}
+.game-profile-note{margin:0;color:var(--muted);font-size:.7rem;line-height:1.45;overflow-wrap:anywhere}
+@media(max-width:23rem){.game-profile-fields{grid-template-columns:1fr}}
 /* Steam Connection Foundation: the SteamID64 is the whole identity, so on the Steam card it wraps and is never ellipsized (same approach as
    the League card fix). Scoped to the Steam card only: Discord and League styling is untouched. */
 .connection-card[data-provider="steam"] .connection-head{flex-wrap:wrap;row-gap:.6rem}

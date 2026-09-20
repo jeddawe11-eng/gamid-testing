@@ -217,7 +217,7 @@ test("the public route presents Discord only from the server-gated public_sectio
 test("no Riot API, RSO, or Riot key exists anywhere in the shipped code; OP.GG exists only in the isolated adapter (plus its glue and a UI label)", async () => {
   const files = [...(await listFiles(new URL("../dist/", import.meta.url))), ...(await listFiles(new URL("../supabase/functions/", import.meta.url)))]
     .filter(file => /\.(js|ts|html)$/i.test(file.pathname) && !/qrcode\.min\.js$/i.test(file.pathname));
-  const allowedOpgg = /(_shared\/league\/opgg-adapter\.js|functions\/league-lookup\/index\.ts|dist\/account\/account\.js|dist\/public\/public\.js)$/;
+  const allowedOpgg = /(_shared\/league\/opgg-adapter\.js|functions\/league-lookup\/index\.ts|dist\/account\/account\.js|dist\/public\/public\.js|dist\/account\/game-profile-league-compat\.js)$/;   // + the isolated, read-only League shape for the generic Game Profile model
   for (const file of files) {
     const text = await readFile(file, "utf8");
     assert.doesNotMatch(text, /api\.riotgames\.com|riotgames\.com\/oauth|auth\.riotgames|RGAPI-|leagueoflegends\.com|RIOT_API_KEY|RSO_/i, `${file.pathname} must not use official Riot APIs, RSO, or a Riot key`);

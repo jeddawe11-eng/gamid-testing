@@ -320,6 +320,12 @@ export async function setGamePlaytimeVisibility(visible) {
   return rows?.[0] || null;
 }
 
+// Game Profiles (provider-neutral, optional, owner-private): a plain database read of the profiles GamID already holds for the owner. It never contacts
+// any stats provider; profiles are attached by a backend adapter, never by the browser (there is no browser write).
+export async function getMyGameProfiles() {
+  return (await rpc("get_my_game_profiles")) || [];
+}
+
 export async function refreshSteamGames() {
   await restoreSession();
   if (!session?.access_token) throw new ApiError("Sign in again to load your games.", 401, "unauthenticated");

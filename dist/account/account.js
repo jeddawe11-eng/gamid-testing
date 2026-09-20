@@ -5,6 +5,7 @@ import * as api from "./supabase-client.js";
 import { createOwnedUploadBlob } from "./resumable-upload.js";
 import { IntroStatusPoller, isProcessingIntroState } from "./intro-status-poller.js";
 import { buildGameLibrary } from "./game-list.js";
+import { attachGameProfile, indexGameProfiles, profileForGame } from "./game-profile.js";
 
 const views = [...document.querySelectorAll(".view")];
 const message = document.getElementById("formMessage");
@@ -764,6 +765,11 @@ async function changePlaytimeVisibility(visible) {
   renderGameDisplay();
 }
 
+async function loadGameProfiles() {
+  try { gameProfileIndex = indexGameProfiles(await api.getMyGameProfiles()); }
+  catch { gameProfileIndex = new Map(); }   // a failed read simply leaves every row compact
+}
+
 async function loadGameDisplay() {
   try { gameDisplay = await api.getMyGameDisplaySettings(); }
   catch { gameDisplay = null; }
@@ -775,6 +781,7 @@ async function loadConnections() {
   try { discoveryRows = await api.getMyConnectionDiscovery(); }
   catch { discoveryRows = []; }
   await loadSteamGames();
+  await loadGameProfiles();
   await loadGameDisplay();
   renderConnections();
 }
@@ -856,6 +863,9 @@ let steamGames = [];
 let steamGamesBusy = false;
 // Which providers' game lists the owner expanded. Every list starts COLLAPSED (see game-list.js): a library can hold hundreds of games.
 const gameListExpanded = new Set();
+// Game Profiles already held for the owner (game_key -> normalized profile) and which rows the owner opened. Loaded with the stored games; no provider is contacted.
+let gameProfileIndex = new Map();
+const expandedGameProfiles = new Set();
 let steamGamesNotice = null;
 let steamGamesTimer;
 
@@ -908,6 +918,10 @@ function gameItem(game) {
   const meta = [Number.isInteger(game.playtime_minutes) ? gameHours(game.playtime_minutes) : null, "Discovered via Steam"].filter(Boolean).join(" · ");
   copy.append(element("span", "game-name", game.game_name || `App ${game.external_game_id}`), element("span", "game-meta", meta));
   item.append(gameIcon(game), copy);
+  // A row becomes expandable ONLY when a real Game Profile is attached to this game's normalized key (never because a game was merely discovered).
+  // Nothing starts open; each game toggles independently and in place.
+  const profile = profileForGame(gameProfileIndex, game.recognized_game_key);
+  if (profile) attachGameProfile({ element, item, profile, stateKey: `steam:${game.external_game_id}`, expanded: expandedGameProfiles, gameName: game.game_name || `App ${game.external_game_id}` });
   return item;
 }
 
