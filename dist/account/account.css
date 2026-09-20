@@ -168,6 +168,52 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .game-library .game-profile-field dd{margin:.1rem 0 0;color:var(--text);font-size:.9rem;font-weight:750;letter-spacing:0;overflow-wrap:anywhere}
 .game-profile-note{margin:0;color:var(--muted);font-size:.7rem;line-height:1.45;overflow-wrap:anywhere}
 @media(max-width:23rem){.game-profile-fields{grid-template-columns:1fr}}
+/* My Games: the ONE provider-neutral library, "+ Add Game", the catalog search and the platform picker (see manual-games.js). Mobile first: every target is at
+   least 44 px, long names wrap, nothing is hover-only. */
+.my-games{display:grid;gap:.7rem;margin-top:1rem;padding:.85rem;border:1px dashed var(--line);border-radius:.8rem;background:rgba(255,255,255,.015);min-width:0}
+.my-games[hidden]{display:none}
+.my-games .connection-discovery-head .eyebrow{margin:0}
+.my-games .connection-discovery-note{overflow-wrap:anywhere}
+.my-games .game-add-button{width:100%;min-height:2.9rem;margin:0}
+.my-games-status{margin:0;font-size:.78rem;line-height:1.5;overflow-wrap:anywhere;color:var(--muted)}
+.my-games-status.is-ok{color:var(--text)}
+.my-games-status.is-warn{color:#ffd27a}
+.my-games-status[hidden]{display:none}
+.my-games-library{min-width:0}
+.game-add-panel{display:grid;gap:.6rem;padding:.8rem;border:1px solid var(--line);border-radius:.8rem;background:rgba(98,231,255,.04);min-width:0}
+.game-add-panel[hidden],.game-add-search[hidden],.game-add-platforms[hidden]{display:none}
+.game-add-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.game-add-head .eyebrow{margin:0}
+.game-add-panel .game-add-close{width:auto;min-height:2.75rem;min-width:2.75rem;padding:0 .8rem}
+.game-add-label{margin:0;font-size:.78rem}
+.game-add-input{margin-top:.4rem}
+.game-add-hint{margin:.4rem 0 0;color:var(--muted);font-size:.74rem;line-height:1.45;overflow-wrap:anywhere}
+.game-add-results{display:grid;gap:.35rem;margin:.5rem 0 0;padding:0;list-style:none}
+.game-add-results[data-stale="true"]{opacity:.55}
+.game-result{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .6rem;width:100%;min-height:2.75rem;padding:.55rem .8rem;border:1px solid var(--line);border-radius:.7rem;background:rgba(255,255,255,.03);color:var(--text);text-align:left;font:inherit;cursor:pointer;touch-action:manipulation}
+.game-result:hover{border-color:#51456e}
+.game-result-name{font-size:.88rem;font-weight:700;overflow-wrap:anywhere}
+.game-result-alias{flex:0 0 100%;color:var(--muted);font-size:.7rem;font-weight:600;overflow-wrap:anywhere}
+.game-result-badge{margin-left:auto;padding:.1rem .45rem;border:1px solid #27604a;border-radius:999px;background:#10251d;color:var(--green);font-size:.58rem;font-weight:800;letter-spacing:.08em}
+.game-add-title{margin:0;font-size:1rem;overflow-wrap:anywhere}
+.game-add-sub{margin:0;color:var(--text);font-size:.85rem;font-weight:700}
+.game-platform-set{display:grid;gap:.35rem;margin:0;padding:0;border:0;min-width:0}
+.game-add-legend{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:normal}
+.game-platform-option{display:flex;flex-wrap:wrap;align-items:center;gap:.15rem .7rem;margin:0;min-height:2.75rem;padding:.5rem .8rem;border:1px solid var(--line);border-radius:.7rem;background:rgba(255,255,255,.03);color:var(--text);font-size:.86rem;font-weight:700;cursor:pointer;touch-action:manipulation}
+.game-platform-option input{flex:0 0 auto;display:inline-block;width:1.35rem;height:1.35rem;min-height:1.35rem;margin:0;padding:0;accent-color:var(--cyan)}
+.game-platform-option.is-locked{opacity:.85;cursor:default;border-style:dashed}
+.game-platform-name{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.game-platform-note{flex:0 0 100%;padding-left:2.05rem;color:var(--muted);font-size:.68rem;font-weight:600;line-height:1.35}
+.game-add-note{margin:0;color:var(--muted);font-size:.7rem;line-height:1.5;overflow-wrap:anywhere}
+.game-add-confirm{margin:0;color:#ffc1cd;font-size:.78rem;line-height:1.45;overflow-wrap:anywhere}
+.game-add-actions{display:grid;gap:.5rem}
+.game-add-actions .primary{margin-top:0}
+.game-add-message{margin:0;padding:.65rem .8rem;border:1px solid #754151;border-radius:.7rem;background:#28151c;color:#ffc1cd;font-size:.76rem;line-height:1.45;overflow-wrap:anywhere}
+.game-add-message.is-ok{border-color:#27604a;background:#10251d;color:#91f4c8}
+.game-add-message[hidden]{display:none}
+.game-library .game-manual-line{color:var(--text)}
+.game-library .game-edit-button{flex:0 0 auto;width:auto;min-height:2.75rem;min-width:2.75rem;margin-left:auto;padding:0 .7rem;border:1px solid var(--line);border-radius:.65rem;background:rgba(255,255,255,.03);color:var(--cyan);font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;touch-action:manipulation}
+.game-library .game-edit-button:hover{border-color:#51456e}
 /* Steam Connection Foundation: the SteamID64 is the whole identity, so on the Steam card it wraps and is never ellipsized (same approach as
    the League card fix). Scoped to the Steam card only: Discord and League styling is untouched. */
 .connection-card[data-provider="steam"] .connection-head{flex-wrap:wrap;row-gap:.6rem}

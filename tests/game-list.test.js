@@ -94,11 +94,13 @@ test("the list module is provider-neutral: it names no provider and keeps no pro
   assert.doesNotMatch(source, /innerHTML|outerHTML|insertAdjacentHTML/);
 });
 
-test("the editor uses it for Steam through a per-provider expanded set that starts empty (collapsed by default)", () => {
+test("the editor uses it for the ONE My Games library through an expanded set that starts empty (collapsed by default)", () => {
   const account = read("dist/account/account.js");
   assert.match(account, /import \{ buildGameLibrary \} from "\.\/game-list\.js";/);
   assert.match(account, /const gameListExpanded = new Set\(\);/);
-  assert.match(account, /expanded: gameListExpanded\.has\("steam"\)/);
+  // the library is provider-neutral (Steam-discovered games and games added by hand in one list), so its state key is "library", not a provider
+  assert.match(account, /expanded: gameListExpanded\.has\("library"\)/);
+  assert.doesNotMatch(account, /gameListExpanded\.has\("steam"\)/);
   assert.doesNotMatch(account, /steamGamesShowAll|STEAM_GAMES_PREVIEW/);
   const css = read("dist/account/account.css");
   const block = css.slice(css.indexOf("/* Provider-neutral game library"), css.indexOf("/* Steam Connection Foundation:"));

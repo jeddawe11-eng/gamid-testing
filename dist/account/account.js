@@ -6,6 +6,8 @@ import { createOwnedUploadBlob } from "./resumable-upload.js";
 import { IntroStatusPoller, isProcessingIntroState } from "./intro-status-poller.js";
 import { buildGameLibrary } from "./game-list.js";
 import { attachGameProfile, indexGameProfiles, profileForGame } from "./game-profile.js";
+import { buildLibraryRows, normalizeManualGames, rowGameKey } from "./game-platforms.js";
+import { addManualPlatformsToDiscoveredItem, createAddGamePanel, manualGameItem } from "./manual-games.js";
 
 const views = [...document.querySelectorAll(".view")];
 const message = document.getElementById("formMessage");
@@ -709,6 +711,7 @@ function connectionCard(row) {
 function renderConnections() {
   const list = document.getElementById("connectionsList");
   renderGameDisplay();
+  renderMyGames();
   if (!connectionRows) { list.replaceChildren(element("p", "connections-empty", "Connections couldn't be loaded right now. Refresh to try again.")); return; }
   list.replaceChildren(...connectionRows.map(connectionCard));
 }
@@ -781,6 +784,7 @@ async function loadConnections() {
   try { discoveryRows = await api.getMyConnectionDiscovery(); }
   catch { discoveryRows = []; }
   await loadSteamGames();
+  await loadManualGames();
   await loadGameProfiles();
   await loadGameDisplay();
   renderConnections();
@@ -861,8 +865,14 @@ const STEAM_GAMES_ERRORS = {
 let steamGamesState = null;
 let steamGames = [];
 let steamGamesBusy = false;
-// Which providers' game lists the owner expanded. Every list starts COLLAPSED (see game-list.js): a library can hold hundreds of games.
+// Which game lists the owner expanded. Every list starts COLLAPSED (see game-list.js): a library can hold hundreds of games. There is ONE library ("library")
+// holding every provider's discovered games together with the games the owner added by hand.
 const gameListExpanded = new Set();
+// Games the owner added by hand (canonical game_key + the platforms they declared; always MANUAL / unverified) and the state of the one Add Game panel.
+let manualGames = [];
+let myGamesNotice = null;
+let myGamesView = null;
+let libraryKeys = new Set();
 // Game Profiles already held for the owner (game_key -> normalized profile) and which rows the owner opened. Loaded with the stored games; no provider is contacted.
 let gameProfileIndex = new Map();
 const expandedGameProfiles = new Set();
@@ -912,12 +922,14 @@ function gameIcon(game) {
   return box;
 }
 
-function gameItem(game) {
+function gameItem(game, manual = null) {
   const item = element("li", "game-item");
   const copy = element("span", "game-copy");
   const meta = [Number.isInteger(game.playtime_minutes) ? gameHours(game.playtime_minutes) : null, "Discovered via Steam"].filter(Boolean).join(" · ");
   copy.append(element("span", "game-name", game.game_name || `App ${game.external_game_id}`), element("span", "game-meta", meta));
   item.append(gameIcon(game), copy);
+  // The owner also declared platforms for this same canonical game: they merge into THIS row (no second row) and stay labelled as added by the owner.
+  if (manual) addManualPlatformsToDiscoveredItem({ element, item, copy, manual, gameName: game.game_name || manual.name, onEdit: () => editManualGame(manual.gameKey, manual.name) });
   // A row becomes expandable ONLY when a real Game Profile is attached to this game's normalized key (never because a game was merely discovered).
   // Nothing starts open; each game toggles independently and in place.
   const profile = profileForGame(gameProfileIndex, game.recognized_game_key);
@@ -944,9 +956,9 @@ function marvelRecognition() {
 function steamGamesPanel() {
   clearTimeout(steamGamesTimer);
   const panel = element("section", "steam-games");
-  panel.setAttribute("aria-label", "My Games");
+  panel.setAttribute("aria-label", "Steam games");
   const head = element("div", "connection-discovery-head");
-  head.append(element("p", "eyebrow", "MY GAMES"), element("span", "connection-chip", "PRIVATE"));
+  head.append(element("p", "eyebrow", "STEAM GAMES"), element("span", "connection-chip", "PRIVATE"));
   panel.append(head, element("p", "connection-discovery-note", "Games your Steam account shares with GamID. Private to you — not shown on your public GamID. GamID asks Steam only when you press the button, and saves the game names, IDs and playtime Steam returns (playtime appears only if Steam shares it)."));
 
   const status = steamGamesStatus(steamGamesState, steamGames.length);
@@ -976,19 +988,109 @@ function steamGamesPanel() {
   if (waitMs > 0 && waitMs < 2 ** 31 - 1) steamGamesTimer = setTimeout(renderConnections, waitMs + 250);
 
   if (steamGames.length) {
-    // Provider-neutral compact list: a bounded preview, the total count, and a chevron that expands / collapses it (game-list.js).
-    panel.append(buildGameLibrary({
-      element, games: steamGames, renderItem: gameItem, expanded: gameListExpanded.has("steam"), id: "gameList-steam",
-      onToggle: () => { if (gameListExpanded.has("steam")) gameListExpanded.delete("steam"); else gameListExpanded.add("steam"); renderConnections(); },
-    }));
+    // The games themselves are listed in the ONE My Games library below (together with anything the owner added by hand).
+    panel.append(element("p", "connection-discovery-note", `${gamePlural(steamGames.length)} from Steam ${steamGames.length === 1 ? "is" : "are"} listed in My Games below.`));
     if (steamGamesState?.game_count > steamGames.length) panel.append(element("p", "connection-discovery-note", `Showing the ${steamGames.length} most-played of ${steamGamesState.game_count} games.`));
   }
   return panel;
 }
 
+// ---------------------------------------------------------------------------------------------------------
+// My Games: the ONE library. Every provider's discovered games plus the games the owner added by hand, each canonical game listed once. A game the owner
+// adds that a provider already discovered MERGES into the discovered row; provider discovery is never edited or removed from here. Manual games are
+// MANUAL / user-declared (never verified). Private to the owner. Reading it asks the database only; the catalog is searched (server-side, bounded, after
+// 3 characters, debounced) only while the owner is typing in the Add Game panel.
+// ---------------------------------------------------------------------------------------------------------
+const MY_GAMES_NOTICES = {
+  added: name => `${name} added to My Games.`,
+  addedToExisting: name => `Added your platforms to ${name}.`,
+  updated: name => `${name} updated.`,
+  removed: name => `${name} removed from My Games.`,
+  removedPlatforms: name => `Removed the platforms you added for ${name}. It stays in My Games because your connected account discovered it.`,
+};
+
+function libraryItem(row) {
+  if (row.kind === "manual") return manualGameItem({ element, row, onEdit: () => editManualGame(row.gameKey, row.name) });
+  return gameItem(row.game, row.manual);
+}
+
+function editManualGame(gameKey, name) {
+  if (!myGamesView) return;
+  myGamesView.panel.openEditor(gameKey, name);
+  myGamesView.addButton.setAttribute("aria-expanded", "true");
+  myGamesView.panel.root.scrollIntoView?.({ block: "nearest" });
+}
+
+function afterManualChange(done) {
+  myGamesView.addButton.setAttribute("aria-expanded", "false");
+  myGamesView.addButton.focus?.();
+  if (!done || done.mode === "closed") return;
+  const alreadyListed = steamGames.some(game => game.recognized_game_key === done.gameKey);   // a provider discovered it: the owner's platforms merge into that row
+  loadManualGames().then(() => {
+    const mode = done.mode === "removed" && alreadyListed ? "removedPlatforms" : done.mode === "added" && alreadyListed ? "addedToExisting" : done.mode;
+    myGamesNotice = { tone: "ok", text: MY_GAMES_NOTICES[mode](done.name) };
+    renderMyGames();
+  });
+}
+
+function ensureMyGames() {
+  if (myGamesView) return myGamesView;
+  const root = document.getElementById("myGamesSection");
+  if (!root) return null;
+  const head = element("div", "connection-discovery-head");
+  head.append(element("p", "eyebrow", "MY GAMES"), element("span", "connection-chip", "PRIVATE"));
+  const note = element("p", "connection-discovery-note", "Games your connected accounts discovered, plus games you add yourself. Private to you — not shown on your public GamID. Games you add are marked as added by you; GamID does not verify them.");
+  const addButton = element("button", "secondary connection-button game-add-button", "+ Add Game");
+  addButton.type = "button";
+  addButton.setAttribute("aria-expanded", "false");
+  const status = element("p", "my-games-status");
+  status.setAttribute("role", "status");
+  status.hidden = true;
+  const panel = createAddGamePanel({
+    element, isInLibrary: gameKey => libraryKeys.has(gameKey), onDone: afterManualChange,
+    api: { searchGames: api.searchGameCatalog, getPlatformState: api.getMyGamePlatformState, saveGame: api.saveMyManualGame, removeGame: api.removeMyManualGame },
+  });
+  const host = element("div", "my-games-library");
+  addButton.addEventListener("click", () => {
+    myGamesNotice = null;
+    if (panel.isOpen()) { panel.close(); addButton.setAttribute("aria-expanded", "false"); renderMyGames(); return; }
+    panel.openSearch();
+    addButton.setAttribute("aria-expanded", "true");
+    renderMyGames();
+  });
+  root.append(head, note, addButton, status, panel.root, host);
+  myGamesView = { root, status, addButton, panel, host };
+  return myGamesView;
+}
+
+function renderMyGames() {
+  const view = ensureMyGames();
+  if (!view) return;
+  view.root.hidden = !identity;
+  const rows = buildLibraryRows(steamGames, manualGames);
+  libraryKeys = new Set(rows.map(rowGameKey).filter(Boolean));
+  view.status.textContent = myGamesNotice?.text || "";
+  view.status.className = `my-games-status is-${myGamesNotice?.tone || "info"}`;
+  view.status.hidden = !myGamesNotice;
+  if (!rows.length) {
+    view.host.replaceChildren(element("p", "connection-discovery-note", "No games yet. Connect Steam to discover your games, or tap + Add Game to add one yourself."));
+    return;
+  }
+  // Provider-neutral compact list: a bounded preview, the total count, and a chevron that expands / collapses it (game-list.js).
+  view.host.replaceChildren(buildGameLibrary({
+    element, games: rows, renderItem: libraryItem, expanded: gameListExpanded.has("library"), id: "gameList-library",
+    onToggle: () => { if (gameListExpanded.has("library")) gameListExpanded.delete("library"); else gameListExpanded.add("library"); renderMyGames(); },
+  }));
+}
+
+async function loadManualGames() {
+  try { manualGames = normalizeManualGames(await api.getMyManualGames()); }
+  catch { manualGames = []; myGamesNotice = { tone: "warn", text: "Couldn't load the games you added right now." }; }   // a failed read never hides the discovered games
+}
+
 async function loadSteamGames() {
   const connected = Boolean(connectionRows?.some(row => row.provider_key === "steam" && row.connected));
-  if (!connected) { steamGamesState = null; steamGames = []; gameListExpanded.delete("steam"); steamGamesNotice = null; steamGamesBusy = false; return; }
+  if (!connected) { steamGamesState = null; steamGames = []; steamGamesNotice = null; steamGamesBusy = false; return; }
   try {
     // Database reads only — this never contacts Steam.
     [steamGamesState, steamGames] = await Promise.all([api.getMyGameDiscoveryState("steam"), api.getMyDiscoveredGames("steam")]);

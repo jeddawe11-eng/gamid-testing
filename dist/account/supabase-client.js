@@ -326,6 +326,29 @@ export async function getMyGameProfiles() {
   return (await rpc("get_my_game_profiles")) || [];
 }
 
+// Game Catalog + manual games (provider-neutral). The catalog itself is never downloaded: search is server-side, bounded to 12 rows, and only asked once the
+// user typed at least 3 characters. Every write names a canonical game_key + platform keys; the server validates both and can only store MANUAL declarations.
+export async function searchGameCatalog(query, limit = 10) {
+  return (await rpc("search_game_catalog", { candidate_query: query, candidate_limit: limit })) || [];
+}
+
+export async function getMyGamePlatformState(gameKey) {
+  const rows = await rpc("get_my_game_platform_state", { candidate_game_key: gameKey });
+  return rows?.[0] || null;
+}
+
+export async function getMyManualGames() {
+  return (await rpc("get_my_manual_games")) || [];
+}
+
+export async function saveMyManualGame(gameKey, platformKeys) {
+  return rpc("save_my_manual_game", { candidate_game_key: gameKey, candidate_platform_keys: platformKeys });
+}
+
+export async function removeMyManualGame(gameKey) {
+  return rpc("remove_my_manual_game", { candidate_game_key: gameKey });
+}
+
 export async function refreshSteamGames() {
   await restoreSession();
   if (!session?.access_token) throw new ApiError("Sign in again to load your games.", 401, "unauthenticated");

@@ -331,10 +331,10 @@ test("existing privacy is unchanged: owner playtime still shows privately, the p
   assert.equal(normalizeGameProfile(rawProfile({ fields: [{ key: "playtime", label: "Playtime", value: "300 h" }, { key: "rank", label: "Rank", value: "Gold" }] })).fields.length, 1);
 });
 
-test("the accepted list behavior is preserved: rows still come from buildGameLibrary with a per-provider expanded set and provenance labels", () => {
+test("the accepted list behavior is preserved: rows still come from buildGameLibrary with an expanded set and provenance labels", () => {
   const account = read("dist/account/account.js");
   assert.match(account, /buildGameLibrary\(\{/);
-  assert.match(account, /expanded: gameListExpanded\.has\("steam"\)/);
+  assert.match(account, /expanded: gameListExpanded\.has\("library"\)/);
   assert.match(account, /"Discovered via Steam"/);
   assert.match(account, /const expandedGameProfiles = new Set\(\);/, "profile expansion state is separate from the list's Show all state");
   assert.match(account, /if \(profile\) attachGameProfile\(/);

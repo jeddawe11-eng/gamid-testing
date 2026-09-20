@@ -189,7 +189,7 @@ test("the browser reads stored games with database reads and contacts Steam only
   assert.doesNotMatch(block, /steamid|steam_id|provider_account_id|provider_username/i);
 });
 
-test("YOUR GAMID: My Games sits inside the Steam card with Load My Games / Refresh Games, private, with clear states and no polling", () => {
+test("YOUR GAMID: the Steam card keeps Load My Games / Refresh Games (its games are listed in the one My Games library), private, with clear states and no polling", () => {
   const panel = controller.slice(controller.indexOf("// Steam \"My Games\""), controller.indexOf("// League of Legends PROTOTYPE"));
   assert.match(panel, /"Load My Games"/);
   assert.match(panel, /"Refresh Games"/);
@@ -265,7 +265,10 @@ test("Discord, League, OpenID, Intro and the public boundary were not modified i
 test("nothing beyond discovery was started: no Marvel API/stats/UID, no third-party game source, no Game ID Wall, no other provider, no Production reference", () => {
   const files = [...walk(join(root, "dist")), ...walk(join(root, "supabase"))].filter(path => /\.(js|ts|html|css|sql|toml)$/.test(path) && !/qrcode\.min\.js$/.test(path)
     // the isolated W0 throwaway prototype is a separate, unlinked feasibility page (its own isolation is asserted in game-id-wall-w0.test.js)
-    && !/[\\/]dist[\\/]prototypes[\\/]game-id-wall-w0[\\/]/.test(path));
+    && !/[\\/]dist[\\/]prototypes[\\/]game-id-wall-w0[\\/]/.test(path)
+    // the Game Catalog migration only lists platform NAMES as reference data (e.g. the Epic Games Store as a storefront under PC); it integrates no provider.
+    // That is asserted for it in tests/game-catalog-contract.test.js, which forbids every provider integration pattern in it.
+    && !/20260921210000_game_catalog_manual_games\.sql$/.test(path));
   const all = files.map(path => readFileSync(path, "utf8")).join("\n");
   assert.doesNotMatch(all, /tracker\.gg|rivalsmeta|marvelrivalsapi|mrapi|op\.gg\/marvel|marvel[-_ ]?uid|marvel[-_ ]?rank|marvel[-_ ]?stats|game[-_ ]?id[-_ ]?wall|profile[-_ ]?canvas|xbox live|playstation network|battle\.net|epic games/i);
   assert.doesNotMatch(migration + module + glue, /production|prod\./i);
