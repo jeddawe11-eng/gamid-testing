@@ -299,6 +299,36 @@ export function factorRange(doc, id) {
   return { min: 0.1, max: Infinity };
 }
 
+// ------------------------------------------------------------------------------------------------ selection controls that stay usable for tiny elements and elements against a stage edge
+// Handles live in SCREEN space: however small the selected box is on screen, its four corner handles are pushed OUTWARD until neighbouring handle
+// centres are at least HANDLE_GAP_PX apart (>= the 44 px hit target), so they never stack on top of each other. A box smaller than MOVE_PAD_PX also gets
+// a centred move pad so it can still be dragged. Nothing here limits how small an element may be (only the per-type minimums in factorRange do).
+export const HANDLE_HIT_PX = 44;
+export const HANDLE_GAP_PX = 56;
+export const MOVE_PAD_PX = 44;
+export function handleOffsets(widthPx, heightPx, gap = HANDLE_GAP_PX) {
+  return { ox: Math.max(0, (gap - widthPx) / 2), oy: Math.max(0, (gap - heightPx) / 2) };
+}
+export const needsMovePad = (widthPx, heightPx, min = MOVE_PAD_PX) => Math.min(widthPx, heightPx) < min;
+
+// Where the four corner handle centres sit (px, relative to the box's top-left) for a box of the given on-screen size.
+export function handleCentres(widthPx, heightPx) {
+  const { ox, oy } = handleOffsets(widthPx, heightPx);
+  return { nw: { x: -ox, y: -oy }, ne: { x: widthPx + ox, y: -oy }, sw: { x: -ox, y: heightPx + oy }, se: { x: widthPx + ox, y: heightPx + oy } };
+}
+
+// Button-style resize (no gesture): scale about the box centre, never beyond the stage, then slide back inside. Pure.
+// Used as the recovery path for an element that is hard to grab: it can always be made bigger from the Props sheet.
+export function scaleAboutCenterInStage(node, geo, box, factor) {
+  const f = Math.max(0, Math.min(factor, UNITS_W / box.w, STAGE_H / box.h));
+  const anchor = { x: box.x + box.w / 2, y: box.y + box.h / 2 };
+  const next = scaledNode(node, geo, f, anchor);
+  const scaled = { x: anchor.x + (box.x - anchor.x) * f, y: anchor.y + (box.y - anchor.y) * f, w: box.w * f, h: box.h * f };
+  const { dx, dy } = clampMove(scaled, 0, 0);
+  next.geo.x += dx; next.geo.y += dy;
+  return { geo: next.geo, content: next.content, factor: f };
+}
+
 // ------------------------------------------------------------------------------------------------ groups (stage-local, uniform scale only, no nesting in W0)
 export function groupNodes(doc, stageIndex, ids) {
   const stage = doc.stages[stageIndex];

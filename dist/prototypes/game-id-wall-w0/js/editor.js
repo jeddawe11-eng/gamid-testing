@@ -1,11 +1,11 @@
 // GAME ID WALL - W0 PROTOTYPE - mobile-first editor. THROWAWAY: state lives in memory only ("TEST / NOT SAVED"); nothing touches a backend.
-import * as M from "./model.js?v=w0c";
-import { createSampleWall } from "./sample.js?v=w0c";
-import { ASSETS, BLOCKS, FONT_LABELS, SAMPLE_MEDIA } from "./assets.js?v=w0c";
-import { el, css, buildNode, placeBox, renderEditStage, renderWallPage, attachColumnSizing, updateEmbedModes } from "./render.js?v=w0c";
-import { EmbedController, activeIframeCount } from "./embeds.js?v=w0c";
-import { startDiag } from "./diag.js?v=w0c";
-import { createIntroSim } from "./intro-sim.js?v=w0c";
+import * as M from "./model.js?v=w0d";
+import { createSampleWall } from "./sample.js?v=w0d";
+import { ASSETS, BLOCKS, FONT_LABELS, SAMPLE_MEDIA } from "./assets.js?v=w0d";
+import { el, css, buildNode, placeBox, renderEditStage, renderWallPage, attachColumnSizing, updateEmbedModes } from "./render.js?v=w0d";
+import { EmbedController, activeIframeCount } from "./embeds.js?v=w0d";
+import { startDiag } from "./diag.js?v=w0d";
+import { createIntroSim } from "./intro-sim.js?v=w0d";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const app = $("#app"), viewport = $("#viewport"), sheetEl = $("#sheet"), toastEl = $("#toast"), diagEl = $("#diag"), dockEl = $("#dock"), stageBar = $("#stagebar"), modeBar = $("#modebar");
@@ -64,7 +64,7 @@ function renderAll() {
 function renderEdit() {
   viewport.replaceChildren();
   viewport.className = "viewport is-edit";
-  const rect = viewport.getBoundingClientRect(), pad = 26;
+  const rect = viewport.getBoundingClientRect(), pad = 44;   // room around the stage for handles that sit outside a small element at the stage edge
   S.col = Math.max(140, Math.floor(Math.min(rect.width - 2 * pad, ((rect.height - 2 * pad) * 9) / 16)));
   const { page, column } = renderEditStage(S.doc, S.stage, { contain: S.contain });
   css(column, { width: `${S.col}px` });
@@ -92,23 +92,45 @@ function renderOverview() {
   });
 }
 
-function renderSelection() {
+// The selection layer lives in the COLUMN (a sibling of the stage), not inside it, so handles that sit outside the stage edge are never clipped by a
+// stage containment mode and stay tappable.
+const columnEl = () => viewport.querySelector(".wall-column");
+
+// Screen-space layout of the selection controls: handles are pushed outward for small boxes and a move pad appears for tiny ones (see model.js).
+function layoutSelection(frame, box) {
   const stage = stageEl();
-  if (!stage) return;
-  stage.querySelector(".sel-layer")?.remove();
+  if (!stage || !frame) return;
+  const perUnit = stage.getBoundingClientRect().width / M.UNITS_W, wPx = box.w * perUnit, hPx = box.h * perUnit;
+  placeBox(frame, box);
+  const { ox, oy } = M.handleOffsets(wPx, hPx), tiny = M.needsMovePad(wPx, hPx);
+  css(frame, { "--ox": `${ox}px`, "--oy": `${oy}px` });
+  frame.dataset.tiny = tiny ? "1" : "0";
+  const pad = frame.querySelector(".move-pad");
+  if (pad) { pad.hidden = !tiny; css(pad, { width: `${Math.max(wPx, M.MOVE_PAD_PX)}px`, height: `${Math.max(hPx, M.MOVE_PAD_PX)}px` }); }
+}
+
+function renderSelection() {
+  const stage = stageEl(), column = columnEl();
+  if (!stage || !column) return;
+  column.querySelector(".sel-layer")?.remove();
   stage.querySelectorAll(".is-selected").forEach(n => n.classList.remove("is-selected"));
   if (S.sel.length) {
     const box = M.unionBox(S.sel.map(id => M.nodeBox(S.doc, id)));
     const layer = el("div", "sel-layer"), frame = el("div", "sel-box");
-    placeBox(frame, box);
+    frame.append(el("div", "move-pad"));
     if (S.sel.length === 1) {
-      for (const corner of ["nw", "ne", "sw", "se"]) { const handle = el("div", "handle"); handle.dataset.corner = corner; frame.append(handle); }
       const only = node(S.sel[0]);
-      const tag = only.type === "embed" ? `${M.EMBED[only.provider].label.toUpperCase()} - TOP LAYER ONLY` : only.type === "group" ? "GROUP" : only.type === "block" ? "GAMID BLOCK (one element)" : only.type.toUpperCase();
+      frame.dataset.kind = only.type;
+      for (const corner of ["nw", "ne", "sw", "se"]) { const handle = el("div", "handle"); handle.dataset.corner = corner; frame.append(handle); }
+      const tag = only.type === "embed" ? `${M.EMBED[only.provider].label.toUpperCase()} - TOP LAYER ONLY` : only.type === "group" ? "GROUP - drag a corner to resize" : only.type === "block" ? "GAMID BLOCK (one element)" : only.type.toUpperCase();
       frame.append(el("div", "sel-tag", tag));
-    } else frame.append(el("div", "sel-tag", `${S.sel.length} SELECTED`));
+    } else {
+      frame.dataset.kind = "multi";
+      frame.append(el("div", "sel-tag", `${S.sel.length} SELECTED - tap Group to move and resize as one`));
+    }
     layer.append(frame);
-    stage.append(layer);
+    column.append(layer);
+    layoutSelection(frame, box);
     S.sel.forEach(id => stage.querySelector(`.stage-fg > [data-id="${id}"]`)?.classList.add("is-selected"));
   }
   updateChrome();
@@ -130,8 +152,8 @@ function updateGeometry(id) {
 }
 
 function updateSelBox() {
-  const frame = stageEl()?.querySelector(".sel-box");
-  if (frame && S.sel.length) placeBox(frame, M.unionBox(S.sel.map(id => M.nodeBox(S.doc, id))));
+  const frame = columnEl()?.querySelector(".sel-box");
+  if (frame && S.sel.length) layoutSelection(frame, M.unionBox(S.sel.map(id => M.nodeBox(S.doc, id))));
 }
 
 // Text boxes have a fixed frame; after any text/size change the frame height is re-fitted to the rendered text.
@@ -155,8 +177,8 @@ const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
 function onDown(event) {
   if (S.mode !== "edit") return;
-  const stage = stageEl();
-  if (!stage || !stage.contains(event.target)) return;
+  const column = columnEl();
+  if (!column || !column.contains(event.target)) return;
   if (event.pointerType === "mouse" && event.button !== 0) return;
   pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
   try { viewport.setPointerCapture(event.pointerId); } catch { /* not capturable */ }
@@ -167,12 +189,19 @@ function onDown(event) {
   const handle = event.target.closest(".handle");
   if (handle && S.sel.length === 1) { startResize(handle.dataset.corner, event); return; }
 
+  // a tiny selected element cannot be grabbed by its own pixels: its move pad (min 44 px) drags the current selection
+  if (event.target.closest(".move-pad") && S.sel.length) { beginMove(event, S.sel[0], false); return; }
+
   const target = event.target.closest(".stage-fg > [data-id]");
-  if (!target) { if (!S.multi) { S.sel = []; renderSelection(); } return; }
+  if (!target) { if (!S.multi && !event.target.closest(".sel-layer")) { S.sel = []; renderSelection(); } return; }
   const id = target.dataset.id;
   let togglePending = false;
   if (S.multi) { if (S.sel.includes(id)) togglePending = true; else S.sel.push(id); } else if (!S.sel.includes(id)) S.sel = [id];
   renderSelection();
+  beginMove(event, id, togglePending);
+}
+
+function beginMove(event, id, togglePending) {
   gesture = { kind: "move", pointerId: event.pointerId, start: { x: event.clientX, y: event.clientY }, moved: false, togglePending, id,
     snaps: S.sel.map(sid => ({ id: sid, x: geo(sid).x, y: geo(sid).y })), box0: M.unionBox(S.sel.map(sid => M.nodeBox(S.doc, sid))) };
 }
@@ -225,9 +254,9 @@ function startResize(corner, event) {
   const id = S.sel[0], box = M.nodeBox(S.doc, id);
   const anchor = { nw: { x: box.x + box.w, y: box.y + box.h }, ne: { x: box.x, y: box.y + box.h }, sw: { x: box.x + box.w, y: box.y }, se: { x: box.x, y: box.y } }[corner];
   const { rect } = stageMetrics();
-  const px = point => ({ x: rect.left + (point.x / M.UNITS_W) * rect.width, y: rect.top + (point.y / M.UNITS_W) * rect.width });
-  const cornerPoint = { nw: { x: box.x, y: box.y }, ne: { x: box.x + box.w, y: box.y }, sw: { x: box.x, y: box.y + box.h }, se: { x: box.x + box.w, y: box.y + box.h } }[corner];
-  gesture = { kind: "resize", pointerId: event.pointerId, id, corner, anchor, box, range: M.factorRange(S.doc, id), snapNode: JSON.parse(JSON.stringify(node(id))), snapGeo: { ...geo(id) }, d0: Math.max(1, dist(px(cornerPoint), px(anchor))), changed: false };
+  const anchorPx = { x: rect.left + (anchor.x / M.UNITS_W) * rect.width, y: rect.top + (anchor.y / M.UNITS_W) * rect.width };
+  // the reference distance is measured from where the FINGER landed (the handle may sit outside a small box), so grabbing a handle never makes the element jump
+  gesture = { kind: "resize", pointerId: event.pointerId, id, corner, anchor, box, range: M.factorRange(S.doc, id), snapNode: JSON.parse(JSON.stringify(node(id))), snapGeo: { ...geo(id) }, d0: Math.max(1, dist({ x: event.clientX, y: event.clientY }, anchorPx)), changed: false };
   stageEl().classList.add("is-dragging");
 }
 
@@ -252,13 +281,16 @@ function groupSelected() {
   const result = M.groupNodes(S.doc, S.stage, S.sel);
   if (result.error) { toast(result.error === "NEED_TWO_ELEMENTS" ? "Select two or more elements (turn on Multi, then tap them)." : "Nested groups are not part of W0. Ungroup first.", "warn"); return; }
   S.sel = [result.groupId];
-  if (finishEdit() === 0) { renderEdit(); toast("Grouped: move and resize as one. Ungroup restores the elements."); }
+  // leave Multi mode: while it is on, tapping the (already selected) group toggles it OFF, which made its resize handles seem to vanish
+  S.multi = false;
+  if (finishEdit() === 0) { renderEdit(); toast("Grouped and Multi turned off. Drag the group, or a corner handle to resize it as one. Ungroup restores the elements."); }
 }
 function ungroupSelected() {
   const only = single();
   if (!only || only.type !== "group") return;
   const result = M.ungroupNode(S.doc, S.stage, S.sel[0]);
   S.sel = result.released.slice();
+  S.multi = false;
   if (finishEdit() === 0) { renderEdit(); toast("Ungrouped: elements are independent again."); }
 }
 function deleteSelected() {
@@ -412,7 +444,7 @@ function groupPanel(id) {
   const g = geo(id), panel = el("div", "panel");
   panel.append(el("p", "info", `Group of ${node(id).children.length}  -  uniform scale ${g.s.toFixed(2)}`));
   panel.append(field("", button("Ungroup", ungroupSelected, "primary")));
-  panel.append(el("p", "note", "Drag the group, or its corner handles to resize uniformly. Groups are stage-local and do not nest in W0."));
+  panel.append(el("p", "note", "Drag the group, or one of its four corner handles to resize everything uniformly (relationships between the children are preserved). Or use Size above. Groups are stage-local and do not nest in W0."));
   return panel;
 }
 
@@ -477,11 +509,27 @@ function addPanel() {
   return panel;
 }
 
+// Button resize: the recovery path for an element that is tiny or against a stage edge (select it from Layers, then make it bigger here).
+function scaleSelected(factor) {
+  const only = single();
+  if (!only) return;
+  const id = S.sel[0], box = M.nodeBox(S.doc, id), range = M.factorRange(S.doc, id);
+  const wanted = Math.min(Math.max(factor, range.min), range.max);
+  const result = M.scaleAboutCenterInStage(node(id), geo(id), box, wanted);
+  if (Math.abs(result.factor - 1) < 0.005) { toast(factor < 1 ? "Already at the smallest size for this element." : "Already as big as the stage allows.", "warn"); return; }
+  S.doc.nodes[id] = result.content; S.doc.layouts[M.LAYOUT][id] = result.geo;
+  updateGeometry(id); updateSelBox();
+  finishEdit();
+}
+const sizeRow = () => field("Size", segment([["0.8", "Smaller"], ["1.25", "Bigger"], ["2", "2x bigger"]], "", key => scaleSelected(Number(key))));
+
 function propsPanel() {
   const only = single();
   if (!only) { const p = el("div", "panel"); p.append(el("p", "info", hasSel() ? "Select ONE element to edit its properties." : "Tap an element first.")); return p; }
   const id = S.sel[0];
-  return { text: textPanel, image: imagePanel, block: blockPanel, embed: embedPanel, group: groupPanel }[only.type](id);
+  const panel = { text: textPanel, image: imagePanel, block: blockPanel, embed: embedPanel, group: groupPanel }[only.type](id);
+  panel.prepend(sizeRow());
+  return panel;
 }
 
 const SHEETS = { add: ["Add", addPanel], props: ["Properties", propsPanel], layers: ["Layers", layersPanel], move: ["Move to stage", movePanel], bg: ["Backgrounds", bgPanel], more: ["More", morePanel] };

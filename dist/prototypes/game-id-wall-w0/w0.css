@@ -135,10 +135,17 @@ body[data-mode] #app { display: flex; flex-direction: column; height: 100vh; hei
 .stage .n.is-selected { cursor: move; }
 .handle { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; pointer-events: auto; touch-action: none; }
 .handle::after { content: ""; position: absolute; left: 14px; top: 14px; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 3px solid var(--cyan); }
-.handle[data-corner="nw"] { left: 0; top: 0; cursor: nwse-resize; }
-.handle[data-corner="ne"] { left: 100%; top: 0; cursor: nesw-resize; }
-.handle[data-corner="sw"] { left: 0; top: 100%; cursor: nesw-resize; }
-.handle[data-corner="se"] { left: 100%; top: 100%; cursor: nwse-resize; }
+/* handles are positioned in SCREEN pixels: --ox / --oy push them outward for small boxes so they never stack on each other (see model.js handleOffsets) */
+.handle[data-corner="nw"] { left: calc(0px - var(--ox, 0px)); top: calc(0px - var(--oy, 0px)); cursor: nwse-resize; }
+.handle[data-corner="ne"] { left: calc(100% + var(--ox, 0px)); top: calc(0px - var(--oy, 0px)); cursor: nesw-resize; }
+.handle[data-corner="sw"] { left: calc(0px - var(--ox, 0px)); top: calc(100% + var(--oy, 0px)); cursor: nesw-resize; }
+.handle[data-corner="se"] { left: calc(100% + var(--ox, 0px)); top: calc(100% + var(--oy, 0px)); cursor: nwse-resize; }
+.move-pad { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: auto; touch-action: none; cursor: move; border: 1px dashed #38e3ffcc; border-radius: 6px; background: #38e3ff22; }
+.sel-box[data-kind="group"] { border-style: dashed; border-width: 3px; border-color: #ffd76a; }
+.sel-box[data-kind="group"] .sel-tag { background: #ffd76a; }
+.sel-box[data-kind="group"] .handle::after { border-color: #ffd76a; }
+.sel-box[data-kind="multi"] { border-style: dotted; }
+.n-group.is-selected .group-inner > .n { outline: 1px dashed #ffd76a99; }
 #dock { display: flex; gap: 4px; padding: 6px; overflow-x: auto; background: var(--panel); border-top: 1px solid var(--line); -webkit-overflow-scrolling: touch; }
 #dock[hidden] { display: none; }
 .dbtn { flex: none; min-width: 62px; font-size: 13px; padding: 0 8px; }
@@ -162,7 +169,7 @@ body[data-mode] #app { display: flex; flex-direction: column; height: 100vh; hei
 .addgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
 .layerlist { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
 .layerlist .sbtn { text-align: left; min-height: 38px; font-size: 13px; }
-#toast { position: fixed; left: 10px; right: 10px; bottom: 76px; z-index: 90; padding: 10px 12px; border-radius: 8px; background: #1d1636; border: 1px solid var(--cyan); color: #fff; font-size: 13px; pointer-events: none; }
+#toast { position: fixed; left: 10px; right: 10px; top: 6px; z-index: 90; padding: 10px 12px; border-radius: 8px; background: #1d1636; border: 1px solid var(--cyan); color: #fff; font-size: 13px; pointer-events: none; }
 #toast[data-kind="warn"] { border-color: var(--warn); background: #2a1c02; }
 #toast[hidden] { display: none; }
 #diag { position: fixed; left: 6px; bottom: 6px; z-index: 1100; margin: 0; max-width: calc(100vw - 12px); max-height: 46vh; overflow: auto; padding: 8px; border-radius: 8px; background: #000d; border: 1px solid #3a6; color: #9fe8b8; font: 11px/1.4 ui-monospace, Consolas, monospace; pointer-events: none; white-space: pre-wrap; }

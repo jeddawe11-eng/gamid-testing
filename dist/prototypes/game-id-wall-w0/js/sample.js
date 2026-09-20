@@ -1,6 +1,6 @@
 // GAME ID WALL - W0 PROTOTYPE - the SAMPLE Wall. Fake content only: nothing here is real user data or a real GamID.
-import { createDoc, addNode, groupNodes, sanitizeText, STAGE_H } from "./model.js?v=w0c";
-import { ASSETS, BLOCKS, SAMPLE_MEDIA } from "./assets.js?v=w0c";
+import { createDoc, addNode, groupNodes, sanitizeText, STAGE_H } from "./model.js?v=w0d";
+import { ASSETS, BLOCKS, SAMPLE_MEDIA } from "./assets.js?v=w0d";
 
 const text = (content, geo) => ({ content: sanitizeText({ text: "", ...content }), geo });
 

@@ -111,6 +111,10 @@ Give owners explicit control over public profile fields, Games, Stats, Connectio
 
 **Steam My Games implemented in TESTING (blocked on the `STEAM_WEB_API_KEY` secret, then awaiting Mazen's real library check)** — see `PROJECT_HANDOFF.md` section 7n: owner-triggered, private discovery of the connected account's games through Steam's official API, stored provider-neutrally as `DISCOVERED_FROM_STEAM`; Marvel Rivals is only recognized. Marvel account/UID/rank/stats and verification, third-party sources, the generic Games / Game ID system, the Game ID Wall / Profile Canvas, and any public display of games remain unstarted and need separate approval.
 
+**Game ID Wall W0 risk prototype implemented in TESTING (isolated, throwaway) and tested on a real Samsung** — see `PROJECT_HANDOFF.md` section 7o. Two Samsung-found editor bugs were fixed in W0 and await Mazen's re-test; iPhone/iOS is NOT TESTED. W1, the Wall document model/DB and any production Wall remain unstarted and need separate approval.
+
+**Product backlog notes (approved direction, NOT implementation authorization):** (1) game lists must be provider-neutral and collapsible — a bounded initial count with a clear expand/collapse control, safe for 200–300+ games, never auto-expanding the profile/Wall; (2) game playtime/hours is hidden by default publicly and only shown if the owner explicitly turns it on, independent of showing the game. **Separate real-Intro bug (unfixed):** landscape source videos are stretched/distorted; the fix must preserve the source aspect ratio (see `PROJECT_HANDOFF.md` sections 7o and 10).
+
 ### 11. Team, Organization, Company
 
 **Approved direction — Requires Mazen approval**

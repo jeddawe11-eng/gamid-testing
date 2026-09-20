@@ -1088,6 +1088,36 @@ Migration applied with `supabase db push` (dry run listed only it; project `upvt
 
 After setting the key: YOUR GAMID → Steam → **My Games** → **Load My Games** → your real games appear (or the explained privacy message) → check whether **Marvel Rivals** appears as "Discovered via Steam". Nothing about the connection, Discord, League, or `@black` changes; there is no public display.
 
+## 7o. Game ID Wall — W0 risk prototype (isolated, throwaway, TESTING only)
+
+Not the Wall product and not W1. A deployable, isolated feasibility prototype for the accepted Game ID Wall architecture (1–3 stacked 9:16 stages of 1000 stage-local units, one continuous public Wall, stage-local foreground/groups/z-order, YouTube + Spotify embeds). It lives in `dist/prototypes/game-id-wall-w0/` (deployed with `dist/`; the repo convention keeps `prototypes/` undeployed and `tests/landing-page.test.js` forbids the workflow mentioning "prototypes"), is noindex, unlinked from the product, has a strict meta CSP and sample content only. **No** Supabase, auth, real profile, Discord/Steam/League data, migration, Edge Function or Production access; state is in memory. The real Intro is untouched (W0 has its own tiny *simulated* Intro overlay). Live: `https://jeddawe11-eng.github.io/gamid-testing/prototypes/game-id-wall-w0/`. Its own `README.md` has the page list and the manual test sequence; `tests/game-id-wall-w0.test.js` covers the deterministic rules and asserts the isolation.
+
+Checkpoints on `main`: `d27743b` (implementation), `f1f43c2` and `9d4884f` (sample-layout fixes found during live verification), then the Samsung-feedback correction recorded below.
+
+### Real Samsung / Android evidence (Mazen, real device, Chrome)
+
+**Tested:** real Samsung Android / Chrome. **NOT tested:** iPhone / iOS (no iPhone available) — iOS is neither PASS nor FAIL and nothing about it may be inferred from Android or emulation.
+
+Working on the Samsung: the 3-stage Wall and Overview (three connected stages); the continuous vertically scrolling Wall; normal dragging/resizing; text selection and handles for normal-sized text; real YouTube and Spotify embeds load; the larger in-page YouTube player opens and its external Close button closes it; Shape A (top-level Wall) and Shape B (Wall inside an outer iframe) both ran — Mazen noticed no meaningful practical difference **on this Samsung only** (not evidence for iOS or other browsers); the viewport comparison page ran and the 360 px composition kept the general Wall composition; the diagnostics overlay is W0-only, not product UI.
+
+**Spotify:** Playlist rendered at 360×352, 260×152 and 200×80; Track rendered at 200×80. At very small sizes the Spotify UI is compressed/cropped even though it technically renders. Finding for W1: Spotify accepting an iframe is not the same as a usable layout — W1 needs a PRODUCT minimum or fixed variants chosen by usable appearance, not by provider tolerance.
+
+**YouTube:** a 200×70 box behaves as the overlay/tile case; 200×200 loads inline but is a visually poor, square/cropped presentation for a normal 16:9 video. Meeting the documented inline minimum must not be confused with a good layout. Default YouTube geometry must keep the video's aspect ratio; a deliberately small Wall tile keeps the approved behaviour (small tile/facade → tap → larger in-page player) instead of stretching or cropping the video to satisfy a technical minimum.
+
+### Two W0 editor bugs found on the Samsung — fixed in W0
+
+1. **Tiny element / stage-edge recovery.** A very small element near a stage boundary could not be enlarged (its four 44 px handle hit areas stacked on each other, and outward growth against the edge is blocked). Fix: selection controls now live in screen space — handles are pushed outward until neighbouring centres are ≥ 56 px apart (`handleOffsets`), a box smaller than 44 px gets a centred 44 px move pad, the selection layer sits outside the stage (never clipped by a containment mode) with more padding around the stage, the resize reference distance starts from where the finger landed, and there are two gesture-free recovery paths (Layers → tap the element → Props → Size Smaller / Bigger / 2x, implemented as `scaleAboutCenterInStage`). Small elements are still allowed (per-type minimums only).
+2. **Group resize controls.** Reproduced the likely cause: Multi mode stayed ON after Group, and while Multi is on tapping the already-selected group toggles it OFF, so its handles kept disappearing. Fix: Group and Ungroup now switch Multi off; a selected group has the same four corner handles as a normal element plus a distinct dashed gold selection, a "GROUP - drag a corner to resize" tag and outlined children; a multi-selection says "tap Group to move and resize as one". Group resize is uniform, keeps the children's group-local geometry untouched and Ungroup still bakes the scale into positions/text size exactly.
+
+### Product notes recorded from this test (backlog — NOT authorization to implement)
+
+- **Provider-neutral collapsible game lists.** GamID may discover games from Steam, Discord, PlayStation, Xbox and future providers, and libraries can hold 200–300+ games. The profile/Wall must never expand to show every discovered game automatically. Needed: a bounded initial number, a clear expand/collapse control, handling of very large libraries, and it must NOT be Steam-specific. For the Wall, a game-library live block must be placeable without hundreds of games unexpectedly expanding it.
+- **Playtime privacy.** Game playtime/hours is HIDDEN by default in the public profile/Wall; the owner may explicitly turn display ON; independent of whether the game itself is shown. Belongs to the future slice that displays games; not implemented now.
+
+### Separate: real Intro bug (NOT W0, NOT fixed here)
+
+The existing real GamID Intro stretches an uploaded **landscape/horizontal** video: it is distorted and looks poor on mobile and on PC (the video is stretched into geometry that does not match its source aspect ratio). Principle for the follow-up fix: never distort the source aspect ratio — preserve the intrinsic ratio and choose the presentation for landscape/portrait sources deliberately (contain / cover / background treatment, etc.). Logged in the issue register (section 10); the real Intro was deliberately not touched.
+
 ## 8. Real Samsung / real E2E evidence
 
 A protected Samsung/@BLACK job proved the backend path:
@@ -1152,6 +1182,10 @@ Do not ask for another upload or resume these automatically. Discuss the next pr
 | Existing-email Create Account UX | **DEFERRED** | Enumeration-safe Auth behavior can lead an already-registered email into the verification presentation instead of clearly guiding a returning user; do not change it incidentally |
 | Supabase Pro / leaked-password protection | **DEFERRED** | A future service-plan/security decision, not current implementation authorization |
 | Built-in Supabase email sender limits | **KNOWN PRODUCTION CONCERN** | Real confirmation email worked in TESTING; custom SMTP/rate-limit planning belongs to Production readiness |
+| Real Intro stretches an uploaded landscape/horizontal video (distorted, poor quality on mobile and PC) | **OBSERVED, NOT FIXED (real Intro untouched)** | The source video is not shown at its intrinsic aspect ratio. Never distort the source; a follow-up must preserve the ratio and choose the landscape/portrait presentation deliberately. See section 7o |
+| W0: tiny/edge element could not be re-enlarged; group had no usable resize handles (real Samsung) | **FIXED IN W0, awaiting Mazen's Samsung re-test** | Screen-space handles + move pad + Size buttons; Group/Ungroup leave Multi mode. See section 7o |
+| Game ID Wall W0 on iPhone / iOS | **NOT TESTED** | No iPhone available; neither PASS nor FAIL; do not infer from Android/emulation |
+| Spotify/YouTube usable-layout minimums for the Wall | **FINDING FOR W1** | Provider acceptance ≠ good layout (Spotify compresses/crops at ~200×80; YouTube 200×200 is a square crop). W1 needs a product minimum / variants and aspect-preserving defaults. See section 7o |
 
 ## 11. Video processing policy
 

@@ -150,6 +150,119 @@ test("blocks are indivisible: a group may hold one but the block itself has no c
   assert.deepEqual(M.validateDoc(doc), []);
 });
 
+// ------------------------------------------------------------------------------------------------ Samsung findings: tiny / edge recovery and group resize
+test("resize handles stay >= 44 px apart and never stack, whatever the on-screen size of the selected box", () => {
+  for (const [w, h] of [[2, 2], [8, 8], [20, 11], [30, 200], [200, 30], [43, 43], [55, 55], [56, 56], [120, 90], [300, 500]]) {
+    const c = M.handleCentres(w, h);
+    assert.ok(c.ne.x - c.nw.x >= M.HANDLE_GAP_PX - 1e-9, `horizontal spacing for ${w}x${h}`);
+    assert.ok(c.sw.y - c.nw.y >= M.HANDLE_GAP_PX - 1e-9, `vertical spacing for ${w}x${h}`);
+    assert.ok(M.HANDLE_GAP_PX >= M.HANDLE_HIT_PX, "spacing is at least the 44 px hit target, so hit areas cannot overlap");
+  }
+  assert.deepEqual(M.handleOffsets(120, 90), { ox: 0, oy: 0 }, "big boxes keep their handles exactly on the corners");
+  assert.ok(M.handleOffsets(10, 200).ox > 0 && M.handleOffsets(10, 200).oy === 0, "only the too-small axis is pushed outward");
+});
+
+test("a tiny box gets a move pad of at least 44 px; a normal box does not", () => {
+  assert.ok(M.needsMovePad(12, 200));
+  assert.ok(M.needsMovePad(200, 12));
+  assert.ok(M.needsMovePad(43, 43));
+  assert.ok(!M.needsMovePad(44, 44));
+  assert.ok(!M.needsMovePad(300, 300));
+  assert.equal(M.MOVE_PAD_PX, 44);
+});
+
+test("a tiny element pressed into ANY stage corner can always be made bigger again and stays inside the stage", () => {
+  const corners = [[0, 0], [M.UNITS_W - 64, 0], [0, M.STAGE_H - 36], [M.UNITS_W - 64, M.STAGE_H - 36]];
+  for (const [x, y] of corners) {
+    const doc = M.createDoc();
+    const id = add(doc, 0, image(), x, y, 64, 36);
+    let last = 64;
+    for (let i = 0; i < 6; i++) {
+      const result = M.scaleAboutCenterInStage(doc.nodes[id], M.geoOf(doc, id), M.nodeBox(doc, id), 1.25);
+      doc.layouts[M.LAYOUT][id] = result.geo; doc.nodes[id] = result.content;
+      assert.ok(M.insideStage(M.nodeBox(doc, id)), `corner ${x},${y} step ${i} stays inside`);
+      assert.ok(M.geoOf(doc, id).w > last, `corner ${x},${y} step ${i} really grew`);
+      last = M.geoOf(doc, id).w;
+    }
+    assert.ok(Math.abs(last - 64 * 1.25 ** 6) < 1e-6);
+    assert.deepEqual(M.validateDoc(doc), []);
+  }
+});
+
+test("scaling about the centre never exceeds the stage and never shrinks below the caller's factor range", () => {
+  const doc = M.createDoc();
+  const id = add(doc, 0, image(), 100, 100, 900, 506);
+  const big = M.scaleAboutCenterInStage(doc.nodes[id], M.geoOf(doc, id), M.nodeBox(doc, id), 5);
+  assert.ok(big.geo.w <= M.UNITS_W + 1e-9 && big.geo.h <= M.STAGE_H + 1e-9);
+  assert.ok(M.insideStage({ x: big.geo.x, y: big.geo.y, w: big.geo.w, h: big.geo.h }));
+  const range = M.factorRange(doc, id);
+  assert.ok(range.min > 0, "a per-type minimum exists, so an element cannot vanish");
+  const text1 = add(doc, 0, text("T", { size: 100 }), 300, 300, 400, 120);
+  const t = M.scaleAboutCenterInStage(doc.nodes[text1], M.geoOf(doc, text1), M.nodeBox(doc, text1), 1.5);
+  assert.equal(t.content.size, 150, "text size scales with the box");
+});
+
+test("a corner handle opposite the pressed-in corner can still grow an element (anchor on the stage corner is not blocked)", () => {
+  const box = { x: M.UNITS_W - 64, y: M.STAGE_H - 36, w: 64, h: 36 };
+  const anchor = { x: M.UNITS_W, y: M.STAGE_H };                 // dragging the NW handle scales about the SE corner (the stage corner)
+  assert.ok(M.fitFactorWithinStage(box, anchor, 4) > 3.99, "growing toward the inside of the stage is allowed");
+  const blocked = M.fitFactorWithinStage(box, { x: box.x, y: box.y }, 4);   // the SE handle scales about the NW corner: outward is blocked by the edge
+  assert.ok(blocked < 1.0001, "growing outward past the stage edge is blocked, which is why handles on every corner must stay reachable");
+});
+
+test("group resize keeps the children's group-local geometry untouched and stays inside the stage from every corner", () => {
+  const doc = M.createDoc();
+  const a = add(doc, 0, text("A", { size: 100 }), 100, 200, 400, 120), b = add(doc, 0, image(), 250, 260, 400, 225);
+  const { groupId } = M.groupNodes(doc, 0, [a, b]);
+  const childBefore = JSON.stringify(doc.nodes[groupId].children.map(id => M.geoOf(doc, id)));
+  const box = M.nodeBox(doc, groupId);
+  const anchors = { nw: { x: box.x + box.w, y: box.y + box.h }, ne: { x: box.x, y: box.y + box.h }, sw: { x: box.x + box.w, y: box.y }, se: { x: box.x, y: box.y } };
+  for (const [corner, anchor] of Object.entries(anchors)) {
+    const f = Math.min(1.8, M.fitFactorWithinStage(box, anchor, 1.8));
+    const r = M.scaledNode(doc.nodes[groupId], M.geoOf(doc, groupId), f, anchor);
+    const next = M.cloneDoc(doc); next.layouts[M.LAYOUT][groupId] = r.geo;
+    assert.ok(M.insideStage(M.nodeBox(next, groupId)), `${corner} resize stays inside`);
+    assert.ok(Math.abs(M.nodeBox(next, groupId).w - box.w * f) < 1e-6);
+    assert.equal(JSON.stringify(next.nodes[groupId].children.map(id => M.geoOf(next, id))), childBefore, `${corner}: child relationships preserved`);
+    // group resize is uniform, so ungrouping afterwards keeps the same union box
+    const un = M.cloneDoc(next); const { released } = M.ungroupNode(un, 0, groupId);
+    const union = M.unionBox(released.map(id => M.nodeBox(un, id)));
+    assert.ok(Math.abs(union.w - box.w * f) < 1e-6 && Math.abs(union.h - box.h * f) < 1e-6, `${corner}: ungroup preserves the resized geometry`);
+    assert.deepEqual(M.validateDoc(un), []);
+  }
+});
+
+test("a selected group has the same 4 handles as a normal element, a stable group scale range, and a distinct selection style", async () => {
+  const doc = M.createDoc();
+  const a = add(doc, 0, text("A"), 100, 100, 300, 100), b = add(doc, 0, image(), 100, 250, 300, 170);
+  const { groupId } = M.groupNodes(doc, 0, [a, b]);
+  const range = M.factorRange(doc, groupId);
+  assert.ok(range.min > 0 && range.max === Infinity);
+  const editor = await read("js/editor.js"), sheet = await read("w0.css");
+  assert.match(editor, /for \(const corner of \["nw", "ne", "sw", "se"\]\)/, "handles are built for every single selection, including groups");
+  assert.match(editor, /group: groupPanel/);
+  assert.match(sheet, /\.sel-box\[data-kind="group"\]/);
+});
+
+test("grouping and ungrouping leave Multi mode, so tapping the selected group cannot toggle its handles away", async () => {
+  const editor = await read("js/editor.js");
+  const group = editor.slice(editor.indexOf("function groupSelected"), editor.indexOf("function deleteSelected"));
+  assert.equal((group.match(/S\.multi = false/g) || []).length, 2, "both groupSelected and ungroupSelected switch Multi off");
+  assert.match(editor, /the \(already selected\) group toggles it OFF|toggles it OFF/, "the reason is documented at the call site");
+});
+
+test("selection controls live outside the stage (never clipped by a stage containment mode) and drive tiny elements by a move pad", async () => {
+  const editor = await read("js/editor.js"), css = await read("w0.css");
+  assert.match(editor, /column\.append\(layer\)/);
+  assert.ok(!/stage\.append\(layer\)/.test(editor));
+  assert.match(editor, /closest\("\.move-pad"\)/);
+  assert.match(editor, /M\.handleOffsets\(wPx, hPx\)/);
+  assert.match(css, /\.handle\[data-corner="nw"\] \{ left: calc\(0px - var\(--ox/);
+  assert.match(css, /\.move-pad \{/);
+  assert.match(editor, /Layers|layersPanel/);
+  assert.match(editor, /sizeRow\(\)/, "the Props sheet offers Smaller / Bigger as a non-gesture recovery");
+});
+
 // ------------------------------------------------------------------------------------------------ embeds
 test("YouTube inline-versus-tile classification follows the documented 200x200 minimum", () => {
   assert.equal(M.classifyEmbedPx("youtube", 360, 202.5).mode, "inline", "full-width 16:9 on the narrowest phone is still inline");
