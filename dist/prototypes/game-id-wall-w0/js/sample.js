@@ -1,6 +1,6 @@
 // GAME ID WALL - W0 PROTOTYPE - the SAMPLE Wall. Fake content only: nothing here is real user data or a real GamID.
-import { createDoc, addNode, groupNodes, sanitizeText, STAGE_H } from "./model.js?v=w0a";
-import { ASSETS, BLOCKS, SAMPLE_MEDIA } from "./assets.js?v=w0a";
+import { createDoc, addNode, groupNodes, sanitizeText, STAGE_H } from "./model.js?v=w0b";
+import { ASSETS, BLOCKS, SAMPLE_MEDIA } from "./assets.js?v=w0b";
 
 const text = (content, geo) => ({ content: sanitizeText({ text: "", ...content }), geo });
 
@@ -30,9 +30,10 @@ export function createSampleWall() {
   put(1, text({ text: "WATCH THE CLIP", font: "russo", size: 84, color: "#ffcf4a", align: "left" }, { x: 80, y: 96, w: 780, h: 100 }));
   // full-width 16:9: 1000 units = 360 px on the narrowest phone -> 360 x 202 CSS px, which still meets YouTube's 200x200 inline minimum
   put(1, embed(SAMPLE_MEDIA.youtube, 0, 210, 1000));
-  put(1, embed(SAMPLE_MEDIA.spotifyPlaylist, 160, 810, 680, { variant: "standard" }));
-  put(1, block("league.rank", 400, 1455, 560));
-  put(1, { content: image("photo"), geo: { x: 40, y: 1470, ...fit("photo", 340) } });
+  // the gap under the YouTube box (>= 150 units) is left free on purpose: the "Close player" control lives OUTSIDE the player box, below it
+  put(1, embed(SAMPLE_MEDIA.spotifyPlaylist, 200, 925, 600, { variant: "standard" }));
+  put(1, block("league.rank", 460, 1480, 500));
+  put(1, { content: image("photo"), geo: { x: 40, y: 1480, ...fit("photo", 340) } });
   put(1, text({ text: "SEAM 2 - BOTTOM GLOW", font: "orbitron", size: 56, color: "#ffffff", glow: { color: "#ffb84a", radius: 40 } }, { x: 40, y: 1690, w: 920, h: 80 }));
 
   // ---------------------------------------------------------------- STAGE 3: typography stress, small YouTube tile, Spotify compact, a pre-made group, OVERRIDE background

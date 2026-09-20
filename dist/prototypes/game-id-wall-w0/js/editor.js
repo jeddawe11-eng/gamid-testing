@@ -1,11 +1,11 @@
 // GAME ID WALL - W0 PROTOTYPE - mobile-first editor. THROWAWAY: state lives in memory only ("TEST / NOT SAVED"); nothing touches a backend.
-import * as M from "./model.js?v=w0a";
-import { createSampleWall } from "./sample.js?v=w0a";
-import { ASSETS, BLOCKS, FONT_LABELS, SAMPLE_MEDIA } from "./assets.js?v=w0a";
-import { el, css, buildNode, placeBox, renderEditStage, renderWallPage, attachColumnSizing, updateEmbedModes } from "./render.js?v=w0a";
-import { EmbedController, activeIframeCount } from "./embeds.js?v=w0a";
-import { startDiag } from "./diag.js?v=w0a";
-import { createIntroSim } from "./intro-sim.js?v=w0a";
+import * as M from "./model.js?v=w0b";
+import { createSampleWall } from "./sample.js?v=w0b";
+import { ASSETS, BLOCKS, FONT_LABELS, SAMPLE_MEDIA } from "./assets.js?v=w0b";
+import { el, css, buildNode, placeBox, renderEditStage, renderWallPage, attachColumnSizing, updateEmbedModes } from "./render.js?v=w0b";
+import { EmbedController, activeIframeCount } from "./embeds.js?v=w0b";
+import { startDiag } from "./diag.js?v=w0b";
+import { createIntroSim } from "./intro-sim.js?v=w0b";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const app = $("#app"), viewport = $("#viewport"), sheetEl = $("#sheet"), toastEl = $("#toast"), diagEl = $("#diag"), dockEl = $("#dock"), stageBar = $("#stagebar"), modeBar = $("#modebar");
@@ -391,7 +391,6 @@ function setEmbedWidth(id, widthUnits) {
 
 function embedPanel(id) {
   const n = node(id), g = geo(id), panel = el("div", "panel");
-  const stage = stageEl(), px = stage ? stage.getBoundingClientRect().width / M.UNITS_W : 0;
   panel.append(el("p", "info", `${M.EMBED[n.provider].label} ${n.kind}  -  ${Math.round(g.w)} x ${Math.round(g.h)} units`));
   if (n.provider === "youtube") {
     const aspect = M.embedAspect(n), need = col => Math.ceil(M.youtubeInlineMinUnits(col, aspect));
@@ -405,7 +404,7 @@ function embedPanel(id) {
     panel.append(el("p", "info", `Spotify documents no minimum or maximum size: W0 measures it. Editor floor is only a ${M.EMBED.spotify.labFloorPx}px tap target.`));
   }
   panel.append(field("Real player", button("Preview / Interact", () => { ctrl.open(id, { forceOverlay: true }); }, "primary")));
-  panel.append(el("p", "note", "Edit mode never loads a real third-party player. Preview / Interact opens a temporary overlay and destroys it on close. Elements can sit behind an embed; the editor keeps anything from staying in front of it."));
+  panel.append(el("p", "note", "Edit mode never loads a real third-party player. Preview / Interact opens a temporary overlay and destroys it on close. Elements can sit behind an embed; the editor keeps anything from staying in front of it. The public Close player button sits outside the player, just below it, so leave free space there."));
   return panel;
 }
 

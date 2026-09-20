@@ -277,6 +277,16 @@ test("the built-in sample Wall is valid: 3 stages, stage-local content, nothing 
   assert.ok(!/px|https?:|<|javascript:/i.test(json), "the document holds units and ids, never pixels, URLs or markup");
 });
 
+test("the sample leaves room below the large YouTube for the Close player control that sits outside the player box", () => {
+  const doc = createSampleWall();
+  const flat = M.flattenStage(doc, 1), video = flat.find(e => doc.nodes[e.id].type === "embed" && doc.nodes[e.id].provider === "youtube");
+  const bottom = video.box.y + video.box.h;
+  for (const other of flat) {
+    if (other.id === video.id || other.box.y < bottom) continue;
+    if (other.box.x < video.box.x + video.box.w && other.box.x + other.box.w > video.box.x) assert.ok(other.box.y - bottom >= 120, `${other.id} starts too close under the player`);
+  }
+});
+
 test("a doc round-trips through JSON without losing geometry (stage-local units are plain numbers)", () => {
   const doc = createSampleWall();
   assert.deepEqual(JSON.parse(JSON.stringify(doc)), doc);

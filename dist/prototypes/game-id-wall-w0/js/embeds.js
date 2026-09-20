@@ -6,8 +6,8 @@
 //   * inline playback when the box meets the provider minimum; a smaller tile opens a larger IN-PAGE overlay player (never navigates away)
 //   * at most ONE active player per provider (activating another of the same provider reverts the previous one to its facade)
 //   * no early connection hints to providers, no provider JS API: plain iframes only, built from constants + a validated resource id (never user markup)
-import { ActivePlayers, EMBED_ID, classifyEmbedPx, embedAspect, EMBED } from "./model.js?v=w0a";
-import { el, css } from "./render.js?v=w0a";
+import { ActivePlayers, EMBED_ID, classifyEmbedPx, embedAspect, EMBED } from "./model.js?v=w0b";
+import { el, css } from "./render.js?v=w0b";
 
 export const PROVIDERS = Object.freeze({
   youtube: Object.freeze({

@@ -1,10 +1,10 @@
 // GAME ID WALL - W0 PROTOTYPE - embed size lab. It answers ONE question with real players: how does each provider actually behave at
 // different widths and heights on THIS device? Nothing loads until you tap "Load player"; one lab player at a time; Destroy removes the frame.
-import { classifyEmbedPx, EMBED } from "./model.js?v=w0a";
-import { SAMPLE_MEDIA } from "./assets.js?v=w0a";
-import { el, css } from "./render.js?v=w0a";
-import { buildIframe } from "./embeds.js?v=w0a";
-import { startDiag } from "./diag.js?v=w0a";
+import { classifyEmbedPx, EMBED } from "./model.js?v=w0b";
+import { SAMPLE_MEDIA } from "./assets.js?v=w0b";
+import { el, css } from "./render.js?v=w0b";
+import { buildIframe } from "./embeds.js?v=w0b";
+import { startDiag } from "./diag.js?v=w0b";
 
 const S = { provider: "spotify", kind: "playlist", w: 360, h: 352, frame: null };
 const controls = document.getElementById("controls"), stage = document.getElementById("stage"), readout = document.getElementById("readout"), diagEl = document.getElementById("diag");

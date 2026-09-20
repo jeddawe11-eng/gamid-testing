@@ -1,11 +1,11 @@
 // GAME ID WALL - W0 PROTOTYPE - hosting shape A (top-level page) and, when loaded in a frame, the inner page of hosting shape B.
 // One continuous vertical Wall in ordinary page scroll: zero gap between stages, no snap, no slides. Sample data only.
-import * as M from "./model.js?v=w0a";
-import { createSampleWall } from "./sample.js?v=w0a";
-import { el, renderWallPage, attachColumnSizing, updateEmbedModes } from "./render.js?v=w0a";
-import { EmbedController, activeIframeCount } from "./embeds.js?v=w0a";
-import { startDiag } from "./diag.js?v=w0a";
-import { createIntroSim } from "./intro-sim.js?v=w0a";
+import * as M from "./model.js?v=w0b";
+import { createSampleWall } from "./sample.js?v=w0b";
+import { el, renderWallPage, attachColumnSizing, updateEmbedModes } from "./render.js?v=w0b";
+import { EmbedController, activeIframeCount } from "./embeds.js?v=w0b";
+import { startDiag } from "./diag.js?v=w0b";
+import { createIntroSim } from "./intro-sim.js?v=w0b";
 
 const q = new URLSearchParams(location.search);
 const embedded = window.top !== window || q.get("embedded") === "1";

@@ -3,8 +3,8 @@
 //   * NO innerHTML / no markup from data: every node is built with createElement + textContent
 //   * no inline style attributes of any kind: all styling goes through CSSOM setProperty, so a strict meta CSP (style-src 'self') works
 //   * every length is `calc(var(--u) * units)`: the document never contains device pixels
-import { STAGE_H, UNITS_W, geoOf, groupLocalBox, classifyEmbedPx, EMBED, HEX } from "./model.js?v=w0a";
-import { ASSETS, BLOCKS } from "./assets.js?v=w0a";
+import { STAGE_H, UNITS_W, geoOf, groupLocalBox, classifyEmbedPx, EMBED, HEX } from "./model.js?v=w0b";
+import { ASSETS, BLOCKS } from "./assets.js?v=w0b";
 
 export function el(tag, className, text) {
   const node = document.createElement(tag);
