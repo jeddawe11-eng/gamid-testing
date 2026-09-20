@@ -307,6 +307,18 @@ export async function getMyDiscoveredGames(provider = "steam", limit = 1000) {
   return (await rpc("get_my_discovered_games", { candidate_provider: provider, candidate_limit: limit, candidate_offset: 0 })) || [];
 }
 
+// Game display (provider-neutral): the owner's single switch for showing playtime / hours publicly. OFF by default; only the owner can flip it;
+// it changes that one flag and nothing else (no game, connection, refresh or throttle is touched).
+export async function getMyGameDisplaySettings() {
+  const rows = await rpc("get_my_game_display_settings");
+  return rows?.[0] || { show_game_playtime: false };
+}
+
+export async function setGamePlaytimeVisibility(visible) {
+  const rows = await rpc("set_my_game_playtime_visibility", { candidate_visible: Boolean(visible) });
+  return rows?.[0] || null;
+}
+
 export async function refreshSteamGames() {
   await restoreSession();
   if (!session?.access_token) throw new ApiError("Sign in again to load your games.", 401, "unauthenticated");

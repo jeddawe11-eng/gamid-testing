@@ -3,3 +3,8 @@
 
 /* The real Intro video must stay fully visible while it plays; Split Reveal's panels (and their build-time poster fallback) only need to be shown once the transition itself begins. */
 .preview-only .experience[data-state="intro"] .preset-split .split-panel{opacity:0;pointer-events:none}
+/* Aspect-ratio-safe Intro video: never stretched. intro-preview.js sets data-fit from the video's real shape versus the stage (see ../video-fit.js):
+   cover when little of the picture is lost, contain (bars) otherwise, so a landscape clip on a portrait phone is no longer zoomed in and cropped to its middle. */
+.preview-only .media-stage video[data-fit="cover"]{object-fit:cover}
+.preview-only .media-stage video[data-fit="contain"]{object-fit:contain;background:#05050a}
+.preview-only .experience[data-fit="contain"] .preset-split .split-panel{background-image:none;background-color:#05050a}

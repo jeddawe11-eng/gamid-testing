@@ -1104,7 +1104,21 @@ Working on the Samsung: the 3-stage Wall and Overview (three connected stages); 
 
 **YouTube:** a 200×70 box behaves as the overlay/tile case; 200×200 loads inline but is a visually poor, square/cropped presentation for a normal 16:9 video. Meeting the documented inline minimum must not be confused with a good layout. Default YouTube geometry must keep the video's aspect ratio; a deliberately small Wall tile keeps the approved behaviour (small tile/facade → tap → larger in-page player) instead of stretching or cropping the video to satisfy a technical minimum.
 
-### Two W0 editor bugs found on the Samsung — fixed in W0
+### FINAL W0 RESULTS (Mazen, real Samsung Android / Chrome) — authoritative
+
+| Item | Result |
+|---|---|
+| 3 stages / continuous vertically scrolling Wall + Overview | **PASS on Samsung** for the W0 purpose (supports the 1–3 stage model for the tested environment) |
+| Responsive width (360 px composition kept) | **PASS on Samsung**; the W0 diagnostics overlay is test instrumentation only and must never be treated as product UI |
+| Tiny element / edge resize recovery (all four handles reachable when very small and at an edge) | **PASS** (re-tested on the Samsung after the fix; do not redesign, only avoid regression) |
+| Group resize (Multi → Group → clear group box + four corner handles, resized as one) | **PASS** (re-tested after the fix; same rule) |
+| Shape A vs Shape B hosting | **SAMSUNG OBSERVATION — NO PRACTICAL DIFFERENCE OBSERVED.** Not proof that the two architectures behave identically across other devices/browsers |
+| YouTube small tile → larger in-page player; external Close control | Worked; the close control closed and destroyed the larger player |
+| iPhone / iOS | **NOT TESTED / DEVICE UNAVAILABLE.** Neither PASS nor FAIL; nothing is inferred from Android or emulation |
+
+**Embed product findings (not W1 work):** Spotify Playlist and Track both technically render even at 200×80, but very small boxes crop/compress Spotify's interface — "technically renders" is NOT "acceptable product size", so arbitrary Spotify dimensions must not be allowed in the final product (W1 needs a product minimum or variants by usable appearance). YouTube at 200×200 becomes INLINE but the square result is visually poor/cropped for normal video — the final Wall must preserve an appropriate video aspect ratio instead of treating every technically valid box as acceptable; a small tile keeps the approved tile → tap → larger in-page player. Future UX must keep player closing obvious and easy without forcing an ugly permanent control area into the user's Wall design.
+
+### Two W0 editor bugs found on the Samsung — fixed in W0 (and re-tested PASS)
 
 1. **Tiny element / stage-edge recovery.** A very small element near a stage boundary could not be enlarged (its four 44 px handle hit areas stacked on each other, and outward growth against the edge is blocked). Fix: selection controls now live in screen space — handles are pushed outward until neighbouring centres are ≥ 56 px apart (`handleOffsets`), a box smaller than 44 px gets a centred 44 px move pad, the selection layer sits outside the stage (never clipped by a containment mode) with more padding around the stage, the resize reference distance starts from where the finger landed, and there are two gesture-free recovery paths (Layers → tap the element → Props → Size Smaller / Bigger / 2x, implemented as `scaleAboutCenterInStage`). Small elements are still allowed (per-type minimums only).
 2. **Group resize controls.** Reproduced the likely cause: Multi mode stayed ON after Group, and while Multi is on tapping the already-selected group toggles it OFF, so its handles kept disappearing. Fix: Group and Ungroup now switch Multi off; a selected group has the same four corner handles as a normal element plus a distinct dashed gold selection, a "GROUP - drag a corner to resize" tag and outlined children; a multi-selection says "tap Group to move and resize as one". Group resize is uniform, keeps the children's group-local geometry untouched and Ungroup still bakes the scale into positions/text size exactly.
@@ -1116,7 +1130,53 @@ Working on the Samsung: the 3-stage Wall and Overview (three connected stages); 
 
 ### Separate: real Intro bug (NOT W0, NOT fixed here)
 
-The existing real GamID Intro stretches an uploaded **landscape/horizontal** video: it is distorted and looks poor on mobile and on PC (the video is stretched into geometry that does not match its source aspect ratio). Principle for the follow-up fix: never distort the source aspect ratio — preserve the intrinsic ratio and choose the presentation for landscape/portrait sources deliberately (contain / cover / background treatment, etc.). Logged in the issue register (section 10); the real Intro was deliberately not touched.
+The existing real GamID Intro stretches an uploaded **landscape/horizontal** video: it is distorted and looks poor on mobile and on PC (the video is stretched into geometry that does not match its source aspect ratio). Principle for the follow-up fix: never distort the source aspect ratio — preserve the intrinsic ratio and choose the presentation for landscape/portrait sources deliberately (contain / cover / background treatment, etc.). Logged in the issue register (section 10); the real Intro was deliberately not touched by W0. **Fixed afterwards in section 7p.**
+
+## 7p. Remaining profile fixes — Intro aspect ratio, provider-neutral compact game lists, playtime privacy (TESTING only)
+
+Three separate, small changes to the existing TESTING product (no W1, no Wall, no change to the public-safe boundary, Discord, League, Steam OpenID, the Intro engine/transitions or the media pipeline; `@black` and the real Discord/Steam connections untouched).
+
+### 1. Intro video is never stretched (aspect-ratio-safe presentation)
+
+**Root cause (determined before changing anything).** The stretch is a *presentation* matter, not the derivative: (a) the worker's ffmpeg command has no `-vf`/scale/pad/crop/aspect option, so the derivative keeps the source's dimensions and shape (asserted by a test); (b) no stylesheet uses `object-fit:fill` or a non-uniform scale on the video. What the user saw: the Intro page drew the video with `object-fit: cover` in every portrait viewport, so a landscape 16:9 clip on a phone was scaled ~3.8× and cropped to its middle ~27% — a huge, blurry zoom that looks "stretched" — and only landscape *windows* used `contain`. Reproduced in the browser with generated test-pattern videos (a round circle stays round but only its middle is visible). I could not reproduce a true anisotropic (x≠y) stretch anywhere in the code; the real uploaded file (private) was not inspected, so a non-square-pixel source cannot be excluded — the pipeline does not create one.
+
+**Behavior now** (`dist/video-fit.js`, pure and unit-tested; applied by `dist/account/intro-preview.js`, which is the page used by BOTH the owner's preview dialog and the public route): the video is only ever drawn with `cover` or `contain` — X and Y always scale by the same factor. Choice: `visible = min(videoAspect/stageAspect, stageAspect/videoAspect)`; **cover when at least 70 % of the picture survives** (a portrait clip on a phone, a 16:9 clip in a 16:9 window: fills the screen, small crop at most), **otherwise contain** (a landscape clip on a portrait phone, a portrait/square clip on a desktop window: the whole picture with dark bars). Unknown dimensions resolve to contain. The decision uses the stage's layout size (unaffected by the Shrink transform), is taken on `loadedmetadata` and on resize, and the live Split Reveal clips inherit the same fit (with the poster hidden in the bars). The transition engine and its five presets are unchanged.
+
+**Verified (browser, generated 16:9 / 9:16 / 1:1 videos):** landscape on a 375×812 phone → contain, whole frame visible, circle round; portrait on the phone → cover; landscape on 1280×720 → cover (exact fit, nothing lost); portrait on 1280×720 → contain; square → contain; all five transitions (fade, blur, shrink, slide, split) completed on the phone for both orientations, Skip and Replay worked. Not verified: the real public route → profile handoff with a real Supabase identity (its handshake code and tests are unchanged and pass; the real-device check is Mazen's).
+
+### 2. Provider-neutral compact game list
+
+`dist/account/game-list.js` (no provider name inside) owns one behavior for every provider: **collapsed by default** — only the first **8** games are rendered (the rest are not created as DOM nodes), the **total count** is always shown ("243 games"), and a full-width **chevron** button ("Show all 243 games · 235 more" / "Show fewer games", 44 px high, `aria-expanded` / `aria-controls`) expands and collapses the same list. Lists of 8 or fewer show no control. The expanded state is remembered per provider in the editor (`gameListExpanded`, starts empty) and Steam's My Games panel now uses it (replacing the old Steam-only "50 rows / Show all" behavior). Every row still says where it came from ("Discovered via Steam"); provenance/trust labels are unchanged, and no provider data was invented. A future provider only supplies its games and a row renderer. Styles are provider-neutral (`.game-library*`). The stored list is still read from the database only; nothing contacts Steam.
+
+### 3. Playtime privacy (owner-controlled, OFF by default, provider-neutral)
+
+**Today the public GamID carries no game data and no playtime at all** (`get_public_identity` is unchanged: same 14 columns; discovered games have no public function). This change adds the owner's switch and the single server-side gate any future public game presenter must use, without creating any public game display:
+
+- Migration #23 `20260921000000_game_playtime_visibility.sql` (additive; applied to TESTING only): `profiles.show_game_playtime boolean not null default false` (no backfill, so no existing or future identity — and no provider connection — can turn it on by itself); owner RPCs `get_my_game_display_settings()` and `set_my_game_playtime_visibility(boolean)` (authenticated only, identity from `auth.uid()`, change that one flag only); and `private.public_game_playtime_allowed(entity_id)` — true only when the switch is ON **and** the GamID is published, granted to no client role. The migration names no provider.
+- YOUR GAMID: when a game-supplying provider is connected (currently Steam; `GAME_PROVIDERS` is the one place to extend) a **GAME DISPLAY** block shows "Show playtime on my GamID" — **OFF** ("Hidden. Hours played are never shown on your public GamID…"); ON says hours may be shown publicly only where a game is shown and its provider supplied them, and that nothing is public until publishing. It also says honestly that no game list is public yet. The owner always sees their own playtime privately. It is independent of showing any game.
+- When ON in the future, presentation may show playtime only where the data exists; when OFF the presenter must omit it entirely (the gate returns false).
+
+### Validation
+
+- `npm run build`: lint + typecheck (adds `game-list.js`, `video-fit.js`) + **506/506** tests (was 475): `tests/intro-video-fit.test.js` (12: never-stretch invariants across phones/desktops/sources, the old failure quantified, safe fallback, worker has no resize, no stylesheet stretches, engine/presets unchanged), `tests/game-list.test.js` (9: bounded preview for 9…10000 games, count, expand/collapse, DOM structure with a fake element, provider-neutral module, editor wiring), `tests/game-playtime-visibility.test.js` (10: additive migration, default false/no backfill, provider-neutral, owner-only grants, gate needs ON + published, public boundary untouched, client/UI rules, never auto-ON). Older assertions narrowed (none removed): the Steam "50 rows" check now asserts the provider-neutral list.
+- Live DB `tests/integration/game-playtime-visibility-db.sql` — **15/15**, self-rolling-back with disposable users only; run wrapped with the migration BEFORE applying it, and again after. **6 SQL mutants** (default true, gate ignoring publish, gate ignoring the flag, gate granted to clients, null accepted, anon granted) — all caught. Every earlier live suite still passes against the new schema: section visibility 46, Steam My Games 61, Steam connection 68, Discord connections 47, discovery 30, League 54. Real data: no profile has playtime ON; `@black` and the connections untouched.
+
+### Deployment (TESTING only)
+
+Migration applied with `supabase db push` (dry run listed only it; project `upvtrczefcvigxdyuylw`). Static files deployed by GitHub Pages. No Edge Function, no secret and no Production resource touched. `STEAM_WEB_API_KEY` is still not set (Steam My Games cannot be fully real-data accepted until that manual step).
+
+### Backlog notes preserved (not implemented here)
+
+- Current mobile optional-card / Bio overlap visual bug remains known unless already fixed elsewhere.
+- SteamID64 is a backend/internal technical identifier and should not be the normal public-facing Steam identity (the accepted Phase-1 public section still shows it as text when the owner turns Steam ON).
+- New connected game/platform visibility stays private / OFF by default unless the owner explicitly enables it.
+- Existing real Discord and Steam connections must never be disconnected for testing; never delete/reset/recreate `@black`; never expose private provider data merely to render the Wall.
+
+### Manual acceptance (Mazen)
+
+1. Intro: on the Samsung open YOUR GAMID → Preview Intro (and the public route) with a **landscape** video — the whole picture should be visible with dark bars, not zoomed/cropped; with a **portrait** video it should fill the screen; on PC a landscape clip fills the window, a portrait clip is centered with bars. Check Skip, Replay and the transition into the profile.
+2. Games (needs Steam connected and Load My Games once the API key exists): the list shows 8 games, the total count and a chevron; Expand shows all, Collapse returns.
+3. YOUR GAMID → GAME DISPLAY (shown once Steam is connected): "Show playtime on my GamID" is OFF by default; switching it changes only that flag.
 
 ## 8. Real Samsung / real E2E evidence
 
@@ -1182,9 +1242,13 @@ Do not ask for another upload or resume these automatically. Discuss the next pr
 | Existing-email Create Account UX | **DEFERRED** | Enumeration-safe Auth behavior can lead an already-registered email into the verification presentation instead of clearly guiding a returning user; do not change it incidentally |
 | Supabase Pro / leaked-password protection | **DEFERRED** | A future service-plan/security decision, not current implementation authorization |
 | Built-in Supabase email sender limits | **KNOWN PRODUCTION CONCERN** | Real confirmation email worked in TESTING; custom SMTP/rate-limit planning belongs to Production readiness |
-| Real Intro stretches an uploaded landscape/horizontal video (distorted, poor quality on mobile and PC) | **OBSERVED, NOT FIXED (real Intro untouched)** | The source video is not shown at its intrinsic aspect ratio. Never distort the source; a follow-up must preserve the ratio and choose the landscape/portrait presentation deliberately. See section 7o |
-| W0: tiny/edge element could not be re-enlarged; group had no usable resize handles (real Samsung) | **FIXED IN W0, awaiting Mazen's Samsung re-test** | Screen-space handles + move pad + Size buttons; Group/Ungroup leave Multi mode. See section 7o |
-| Game ID Wall W0 on iPhone / iOS | **NOT TESTED** | No iPhone available; neither PASS nor FAIL; do not infer from Android/emulation |
+| Real Intro stretches an uploaded landscape/horizontal video (distorted, poor quality on mobile and PC) | **FIXED IN TESTING (awaiting Mazen's real-device check)** | Root cause: presentation (`object-fit: cover` in portrait viewports zoomed a landscape clip ~3.8× and cropped it to its middle 27 %); the pipeline never resizes. Now cover only when ≥ 70 % of the picture survives, otherwise contain; never a non-uniform stretch. See section 7p |
+| Large game libraries (200–300+) would expand the editor/profile | **FIXED for the editor list (provider-neutral)** | Collapsed by default: 8 games, total count, chevron expand/collapse; no public game display exists yet. See section 7p |
+| Playtime/hours must be private by default | **IMPLEMENTED (owner switch + server gate; no public game display yet)** | `profiles.show_game_playtime` default false, owner-only RPCs, gate needs ON + published. See section 7p |
+| Mobile optional-card / Bio overlap visual bug | **KNOWN, NOT FIXED** | Recorded backlog; not part of this change |
+| SteamID64 shown as the public Steam identity | **KNOWN, BACKLOG** | Backend/internal technical identifier; should not be the normal public-facing Steam identity |
+| W0: tiny/edge element could not be re-enlarged; group had no usable resize handles (real Samsung) | **FIXED AND PASSED on Mazen's Samsung** | Screen-space handles + move pad + Size buttons; Group/Ungroup leave Multi mode. Do not redesign; only avoid regression. See section 7o |
+| Game ID Wall W0 on iPhone / iOS | **NOT TESTED / DEVICE UNAVAILABLE** | No iPhone available; neither PASS nor FAIL; do not infer from Android/emulation |
 | Spotify/YouTube usable-layout minimums for the Wall | **FINDING FOR W1** | Provider acceptance ≠ good layout (Spotify compresses/crops at ~200×80; YouTube 200×200 is a square crop). W1 needs a product minimum / variants and aspect-preserving defaults. See section 7o |
 
 ## 11. Video processing policy

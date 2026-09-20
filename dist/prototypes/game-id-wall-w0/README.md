@@ -58,10 +58,18 @@ Useful URL parameters: `wall-view.html?intro=1&col=560|640|720&contain=none|clip
   Provider acceptance is not a good layout: W1 needs a product minimum or variants.
 * **YouTube:** 200x70 is the overlay/tile case; 200x200 is inline but a poor square crop of a 16:9 video. Keep the video aspect ratio;
   small Wall tiles keep tile -> tap -> larger in-page player.
-* **Two editor bugs found and fixed in W0 (re-test on the Samsung):** (1) a tiny element near a stage edge could not be enlarged;
-  (2) a group had no usable resize handles (Multi stayed on and toggled the group off when tapped).
+* **Two editor bugs found on the Samsung, fixed in W0 and RE-TESTED: PASS** (do not redesign, only avoid regression): (1) a tiny element
+  near a stage edge could not be enlarged - all four handles now stay reachable; (2) a group had no usable resize handles (Multi stayed on
+  and toggled the group off when tapped) - a selected group now shows a clear box with four corner handles and resizes as one unit.
+* **Final Samsung results:** 3 stages / continuous Wall + Overview PASS; the same Wall at the tested widths PASS (360 px kept the general
+  composition); Shape A vs Shape B - SAMSUNG OBSERVATION, NO PRACTICAL DIFFERENCE OBSERVED (not proof for other devices/browsers); the
+  YouTube tile opened the larger in-page player and its external Close control closed and destroyed it. The diagnostics overlay is W0
+  instrumentation only, never product UI. **iPhone / iOS: NOT TESTED / DEVICE UNAVAILABLE** (neither PASS nor FAIL).
+* **Embed findings (not W1 work):** Spotify renders even at 200x80 but crops/compresses its UI - "technically renders" is not an acceptable
+  product size. YouTube at 200x200 is inline but a poor square crop - preserve the video aspect ratio; small tiles keep tile -> tap -> larger
+  player. Player closing must stay obvious without an ugly permanent control area in the user's design.
 
-### Re-test on the Samsung (the two fixes)
+### The two fixes (re-tested PASS; steps kept for regression checks)
 
 1. Editor -> Add -> Photo. Drag a corner handle to shrink it very small, then drag it into a stage corner. Its four handles must now sit
    apart from each other (outside the tiny box), each grabbable; a dashed move pad lets you drag the tiny element itself.
@@ -74,7 +82,9 @@ Useful URL parameters: `wall-view.html?intro=1&col=560|640|720&contain=none|clip
 
 * Game lists must be **provider-neutral and collapsible** (bounded initial count, expand/collapse control, safe for 200-300+ games; never
   auto-expanding the profile/Wall). Playtime/hours is **hidden by default** publicly, shown only if the owner turns it on.
-* Separate from W0: the **real** Intro stretches landscape videos. It is logged as an unfixed backlog bug; W0 never touched it.
+* Separate from W0: the **real** Intro used to zoom/crop landscape videos on phones. That was fixed in the real product afterwards (never
+  a non-uniform stretch; see PROJECT_HANDOFF section 7p); W0 itself never touched the real Intro. Compact game lists and the playtime
+  switch were also implemented in the real editor, not in W0.
 
 ## What only a real iPhone can answer
 

@@ -127,6 +127,26 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .visibility-slot .section-visibility{margin-top:.9rem}
 @media(prefers-reduced-motion:reduce){.visibility-switch-knob{transition:none}}
 
+/* Provider-neutral game library (collapsed by default; see game-list.js) and game display settings */
+.game-library{display:grid;gap:.3rem;margin-top:.7rem}
+.game-library-head{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem}
+.game-library-title{color:var(--cyan);font-size:.6rem;font-weight:800;letter-spacing:.16em}
+.game-library-count{color:var(--muted);font-size:.74rem;font-weight:700}
+.game-library .game-list{display:grid;gap:.15rem;margin:0;padding:0;list-style:none}
+.game-library .game-item{display:flex;align-items:center;gap:.65rem;min-width:0;padding:.35rem 0;border-top:1px solid rgba(255,255,255,.05)}
+.game-library .game-item:first-child{border-top:0}
+.game-library .game-icon{display:inline-grid;place-items:center;flex:0 0 2rem;width:2rem;height:2rem;overflow:hidden;border-radius:.4rem;background:var(--card);border:1px solid var(--line);color:var(--muted);font-size:.8rem;font-weight:800}
+.game-library .game-icon img{display:block;width:100%;height:100%;object-fit:cover}
+.game-library .game-copy{display:grid;min-width:0;gap:.05rem}
+.game-library .game-name{font-size:.84rem;font-weight:650;line-height:1.3;overflow-wrap:anywhere}
+.game-library .game-meta{font-size:.72rem;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
+.game-library-toggle{display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;min-height:2.75rem;margin-top:.25rem;padding:.55rem .8rem;border:1px solid var(--line);border-radius:.7rem;background:rgba(255,255,255,.03);color:var(--text);font:inherit;font-size:.82rem;font-weight:750;cursor:pointer}
+.game-library-toggle:hover{border-color:#51456e}
+.game-library-chevron{flex:0 0 auto;width:.55rem;height:.55rem;border-right:2px solid var(--cyan);border-bottom:2px solid var(--cyan);transform:translateY(-.1rem) rotate(45deg);transition:transform .15s ease}
+.game-library-toggle[aria-expanded="true"] .game-library-chevron{transform:translateY(.1rem) rotate(-135deg)}
+.game-library-more{color:var(--muted);font-weight:650;font-size:.74rem}
+.game-display{margin:1rem 0}
+.game-display .section-visibility-hint{overflow-wrap:anywhere}
 /* Steam Connection Foundation: the SteamID64 is the whole identity, so on the Steam card it wraps and is never ellipsized (same approach as
    the League card fix). Scoped to the Steam card only: Discord and League styling is untouched. */
 .connection-card[data-provider="steam"] .connection-head{flex-wrap:wrap;row-gap:.6rem}

@@ -236,7 +236,9 @@ test("server data is rendered as text only; icons come from Steam's media host w
   assert.match(panel, /image\.loading = "lazy"/);
   assert.match(panel, /image\.alt = ""/);
   assert.doesNotMatch(panel, /provider_account_id|provider_username|steam_id|entity_id|connection_id/, "the panel never reads an account identifier");
-  assert.match(panel, /STEAM_GAMES_PREVIEW = 50/, "long libraries render 50 rows until the owner asks for more");
+  // narrowed (was: 50 rows in a Steam-only list): the list is now the provider-neutral compact library (dist/account/game-list.js, tests/game-list.test.js)
+  assert.match(panel, /buildGameLibrary\(\{/, "long libraries render through the provider-neutral collapsed list until the owner asks for more");
+  assert.doesNotMatch(panel, /STEAM_GAMES_PREVIEW|steamGamesShowAll/, "no Steam-specific preview size or expand flag remains");
 });
 
 test("layout: the My Games styles are scoped to the Steam card and let long names wrap", () => {

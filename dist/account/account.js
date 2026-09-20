@@ -4,6 +4,7 @@ import { PRESETS } from "../transition-engine.js";
 import * as api from "./supabase-client.js";
 import { createOwnedUploadBlob } from "./resumable-upload.js";
 import { IntroStatusPoller, isProcessingIntroState } from "./intro-status-poller.js";
+import { buildGameLibrary } from "./game-list.js";
 
 const views = [...document.querySelectorAll(".view")];
 const message = document.getElementById("formMessage");
@@ -538,14 +539,14 @@ const visibilityHint = on => (on
   ? (isGamidPublished() ? "Shown on your public GamID." : "Will appear on your public GamID once you publish it.")
   : "Private — not shown on your public GamID.");
 
-function visibilitySwitch({ on, busy = false, onChange }) {
+function visibilitySwitch({ on, busy = false, onChange, label = "Show on my GamID" }) {
   const row = element("div", "section-visibility");
-  row.append(element("span", "section-visibility-label", "Show on my GamID"));
+  row.append(element("span", "section-visibility-label", label));
   const button = element("button", `visibility-switch${on ? " is-on" : ""}`);
   button.type = "button";
   button.setAttribute("role", "switch");
   button.setAttribute("aria-checked", String(on));
-  button.setAttribute("aria-label", "Show on my GamID");
+  button.setAttribute("aria-label", label);
   button.disabled = busy || Boolean(sectionBusy);
   button.append(element("span", "visibility-switch-knob"), element("span", "visibility-switch-text", on ? "ON" : "OFF"));
   button.addEventListener("click", () => onChange(!on));
@@ -706,8 +707,66 @@ function connectionCard(row) {
 
 function renderConnections() {
   const list = document.getElementById("connectionsList");
+  renderGameDisplay();
   if (!connectionRows) { list.replaceChildren(element("p", "connections-empty", "Connections couldn't be loaded right now. Refresh to try again.")); return; }
   list.replaceChildren(...connectionRows.map(connectionCard));
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Game display (provider-neutral). Playtime / hours played is sensitive: it is HIDDEN from the public GamID by default and only the owner can turn
+// its public display ON. The switch is independent of whether any game is shown, applies to every provider that supplies playtime, and never
+// changes what the owner sees privately. The server keeps it as one flag (profiles.show_game_playtime) behind a gate any future public game
+// presenter must use; today the public GamID shows no game data at all.
+// ---------------------------------------------------------------------------------------------------------
+const GAME_PROVIDERS = new Set(["steam"]);   // connections that can supply games (and playtime); extended when another provider is added
+let gameDisplay = null;
+let gameDisplayBusy = false;
+
+function showGameDisplayMessage(text, success = false) {
+  const el = document.getElementById("gameDisplayMessage");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle("success", success);
+  el.hidden = !text;
+}
+
+function renderGameDisplay() {
+  const section = document.getElementById("gameDisplaySection");
+  const slot = document.getElementById("gameDisplaySlot");
+  if (!section || !slot) return;
+  const relevant = Boolean(connectionRows?.some(row => row.connected && GAME_PROVIDERS.has(row.provider_key)));
+  section.hidden = !relevant;
+  if (!relevant || !gameDisplay) { slot.replaceChildren(); return; }
+  const on = Boolean(gameDisplay.show_game_playtime);
+  slot.replaceChildren(
+    visibilitySwitch({ on, busy: gameDisplayBusy, label: "Show playtime on my GamID", onChange: changePlaytimeVisibility }),
+    element("p", "section-visibility-hint", on
+      ? `Hours played may be shown publicly, only where a game is shown and its provider supplied them.${isGamidPublished() ? "" : " Nothing is public until you publish your GamID."}`
+      : "Hidden. Hours played are never shown on your public GamID. You always see your own playtime in your private lists."),
+    element("p", "section-visibility-hint", "This is separate from showing a game, and applies to every connected provider. No game list is shown on your public GamID yet."),
+  );
+}
+
+async function changePlaytimeVisibility(visible) {
+  if (gameDisplayBusy) return;
+  gameDisplayBusy = true;
+  showGameDisplayMessage("Updating…");
+  renderGameDisplay();
+  try {
+    await api.setGamePlaytimeVisibility(visible);
+    gameDisplay = { ...(gameDisplay || {}), show_game_playtime: visible };
+    showGameDisplayMessage(visible ? "Playtime can now be shown publicly." : "Playtime is hidden from your public GamID.", true);
+  } catch (error) {
+    showGameDisplayMessage(SECTION_ERRORS[error.message] || SECTION_ERRORS[error.code] || "Couldn't update this setting. Please try again.");
+  }
+  gameDisplayBusy = false;
+  try { gameDisplay = await api.getMyGameDisplaySettings(); } catch { /* keep what we know */ }
+  renderGameDisplay();
+}
+
+async function loadGameDisplay() {
+  try { gameDisplay = await api.getMyGameDisplaySettings(); }
+  catch { gameDisplay = null; }
 }
 
 async function loadConnections() {
@@ -716,6 +775,7 @@ async function loadConnections() {
   try { discoveryRows = await api.getMyConnectionDiscovery(); }
   catch { discoveryRows = []; }
   await loadSteamGames();
+  await loadGameDisplay();
   renderConnections();
 }
 
@@ -780,7 +840,6 @@ window.addEventListener("pageshow", event => {
 // the button and makes no request. Everything from the server is rendered as text.
 // A game listed here was DISCOVERED through Steam. That is not proof of any in-game profile, character, UID, rank, or stats.
 // ---------------------------------------------------------------------------------------------------------
-const STEAM_GAMES_PREVIEW = 50;
 const STEAM_ICON_BASE = "https://media.steampowered.com/steamcommunity/public/images/apps";
 const STEAM_GAMES_ERRORS = {
   not_configured: "Steam game lookup isn't set up yet on this TESTING site.",
@@ -795,7 +854,8 @@ const STEAM_GAMES_ERRORS = {
 let steamGamesState = null;
 let steamGames = [];
 let steamGamesBusy = false;
-let steamGamesShowAll = false;
+// Which providers' game lists the owner expanded. Every list starts COLLAPSED (see game-list.js): a library can hold hundreds of games.
+const gameListExpanded = new Set();
 let steamGamesNotice = null;
 let steamGamesTimer;
 
@@ -902,16 +962,11 @@ function steamGamesPanel() {
   if (waitMs > 0 && waitMs < 2 ** 31 - 1) steamGamesTimer = setTimeout(renderConnections, waitMs + 250);
 
   if (steamGames.length) {
-    const shown = steamGamesShowAll ? steamGames : steamGames.slice(0, STEAM_GAMES_PREVIEW);
-    const list = element("ul", "game-list");
-    list.append(...shown.map(gameItem));
-    panel.append(list);
-    if (steamGames.length > STEAM_GAMES_PREVIEW) {
-      const toggle = element("button", "text-button connection-button", steamGamesShowAll ? "Show fewer games" : `Show all ${steamGames.length} games`);
-      toggle.type = "button";
-      toggle.addEventListener("click", () => { steamGamesShowAll = !steamGamesShowAll; renderConnections(); });
-      panel.append(toggle);
-    }
+    // Provider-neutral compact list: a bounded preview, the total count, and a chevron that expands / collapses it (game-list.js).
+    panel.append(buildGameLibrary({
+      element, games: steamGames, renderItem: gameItem, expanded: gameListExpanded.has("steam"), id: "gameList-steam",
+      onToggle: () => { if (gameListExpanded.has("steam")) gameListExpanded.delete("steam"); else gameListExpanded.add("steam"); renderConnections(); },
+    }));
     if (steamGamesState?.game_count > steamGames.length) panel.append(element("p", "connection-discovery-note", `Showing the ${steamGames.length} most-played of ${steamGamesState.game_count} games.`));
   }
   return panel;
@@ -919,7 +974,7 @@ function steamGamesPanel() {
 
 async function loadSteamGames() {
   const connected = Boolean(connectionRows?.some(row => row.provider_key === "steam" && row.connected));
-  if (!connected) { steamGamesState = null; steamGames = []; steamGamesShowAll = false; steamGamesNotice = null; steamGamesBusy = false; return; }
+  if (!connected) { steamGamesState = null; steamGames = []; gameListExpanded.delete("steam"); steamGamesNotice = null; steamGamesBusy = false; return; }
   try {
     // Database reads only — this never contacts Steam.
     [steamGamesState, steamGames] = await Promise.all([api.getMyGameDiscoveryState("steam"), api.getMyDiscoveredGames("steam")]);
