@@ -1,6 +1,6 @@
 // GAME ID WALL - W0 PROTOTYPE - the SAMPLE Wall. Fake content only: nothing here is real user data or a real GamID.
-import { createDoc, addNode, groupNodes, sanitizeText, STAGE_H } from "./model.js?v=w0b";
-import { ASSETS, BLOCKS, SAMPLE_MEDIA } from "./assets.js?v=w0b";
+import { createDoc, addNode, groupNodes, sanitizeText, STAGE_H } from "./model.js?v=w0c";
+import { ASSETS, BLOCKS, SAMPLE_MEDIA } from "./assets.js?v=w0c";
 
 const text = (content, geo) => ({ content: sanitizeText({ text: "", ...content }), geo });
 
@@ -46,7 +46,7 @@ export function createSampleWall() {
   put(2, text({ text: "CHAKRA PETCH", font: "chakra", size: 62, color: "#ffffff", shadow: { color: "#ff4fd8", x: 8, y: 8, blur: 0 }, align: "left" }, { x: 40, y: 800, w: 520, h: 80 }));
   put(2, text({ text: "RAJDHANI GLOW", font: "rajdhani", size: 100, color: "#ffffff", glow: { color: "#38e3ff", radius: 30 }, align: "left" }, { x: 40, y: 940, w: 900, h: 110 }));
   put(2, { content: image("frame"), geo: { x: 575, y: 640, ...fit("frame", 425) } });   // decorative plate BEHIND the tile (allowed)
-  put(2, embed(SAMPLE_MEDIA.youtube, 640, 690, 300));                     // small YouTube TILE (below the 200x200 inline minimum on phones)
+  put(2, embed(SAMPLE_MEDIA.youtube, 640, 690, 350));                     // small YouTube TILE: above the 120x70 tile minimum on the narrowest column (346+ units), below the 200x200 inline minimum
   // the character sits BEHIND the Spotify tile (allowed: elements may be behind an embed, never in front of it)
   put(2, { content: image("character"), geo: { x: 620, y: 1190, ...fit("character", 340) } });
   put(2, embed(SAMPLE_MEDIA.spotifyTrack, 40, 1110, 640, { variant: "compact" }));

@@ -287,6 +287,20 @@ test("the sample leaves room below the large YouTube for the Close player contro
   }
 });
 
+test("every embed in the sample respects the provider minimums: nothing below the tile floor, large one inline on every phone, small one a tile up to the widest desktop candidate", () => {
+  const doc = createSampleWall(), embeds = Object.entries(doc.nodes).filter(([, n]) => n.type === "embed");
+  for (const [id, node] of embeds) assert.ok(M.geoOf(doc, id).w >= M.embedMinWidthUnits(node), `${id} is smaller than the smallest valid ${node.provider} tile`);
+  const youtube = embeds.filter(([, n]) => n.provider === "youtube").map(([id]) => M.geoOf(doc, id)).sort((a, b) => b.w - a.w);
+  assert.equal(youtube.length, 2);
+  const [large, small] = youtube;
+  for (const col of [360, 375, 390, 412, 768]) assert.equal(M.classifyEmbedPx("youtube", M.unitsToPx(large.w, col), M.unitsToPx(large.h, col)).mode, "inline", `large at ${col}`);
+  for (const col of [360, 375, 390, 412, 560, 640, 720]) {
+    const px = { w: M.unitsToPx(small.w, col), h: M.unitsToPx(small.h, col) };
+    assert.equal(M.classifyEmbedPx("youtube", px.w, px.h).mode, "overlay", `small at ${col}`);
+    assert.ok(px.w >= 120 && px.h >= 70, `small tile at ${col} is still a valid >= 120x70 tile`);
+  }
+});
+
 test("a doc round-trips through JSON without losing geometry (stage-local units are plain numbers)", () => {
   const doc = createSampleWall();
   assert.deepEqual(JSON.parse(JSON.stringify(doc)), doc);

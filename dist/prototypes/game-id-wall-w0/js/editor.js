@@ -1,11 +1,11 @@
 // GAME ID WALL - W0 PROTOTYPE - mobile-first editor. THROWAWAY: state lives in memory only ("TEST / NOT SAVED"); nothing touches a backend.
-import * as M from "./model.js?v=w0b";
-import { createSampleWall } from "./sample.js?v=w0b";
-import { ASSETS, BLOCKS, FONT_LABELS, SAMPLE_MEDIA } from "./assets.js?v=w0b";
-import { el, css, buildNode, placeBox, renderEditStage, renderWallPage, attachColumnSizing, updateEmbedModes } from "./render.js?v=w0b";
-import { EmbedController, activeIframeCount } from "./embeds.js?v=w0b";
-import { startDiag } from "./diag.js?v=w0b";
-import { createIntroSim } from "./intro-sim.js?v=w0b";
+import * as M from "./model.js?v=w0c";
+import { createSampleWall } from "./sample.js?v=w0c";
+import { ASSETS, BLOCKS, FONT_LABELS, SAMPLE_MEDIA } from "./assets.js?v=w0c";
+import { el, css, buildNode, placeBox, renderEditStage, renderWallPage, attachColumnSizing, updateEmbedModes } from "./render.js?v=w0c";
+import { EmbedController, activeIframeCount } from "./embeds.js?v=w0c";
+import { startDiag } from "./diag.js?v=w0c";
+import { createIntroSim } from "./intro-sim.js?v=w0c";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const app = $("#app"), viewport = $("#viewport"), sheetEl = $("#sheet"), toastEl = $("#toast"), diagEl = $("#diag"), dockEl = $("#dock"), stageBar = $("#stagebar"), modeBar = $("#modebar");
@@ -395,7 +395,7 @@ function embedPanel(id) {
   if (n.provider === "youtube") {
     const aspect = M.embedAspect(n), need = col => Math.ceil(M.youtubeInlineMinUnits(col, aspect));
     panel.append(el("p", "info", `Inline needs >= 200x200 CSS px: at least ${need(360)} units wide on a 360 px phone, ${need(412)} on 412, ${need(640)} on a 640 px desktop column. Smaller stays a tile and a tap opens a larger in-page player.`));
-    panel.append(field("Size", segment([["large", "Full width"], ["medium", "Medium"], ["small", "Small tile"]], "", v => { setEmbedWidth(id, { large: 1000, medium: 560, small: 300 }[v]); finishEdit(); renderSheet(); })));
+    panel.append(field("Size", segment([["large", "Full width"], ["medium", "Medium"], ["small", "Small tile"]], "", v => { setEmbedWidth(id, { large: 1000, medium: 560, small: 350 }[v]); finishEdit(); renderSheet(); })));
     panel.append(field("Aspect", segment([["16:9", "16:9"], ["9:16", "9:16"], ["1:1", "1:1"]], n.aspect, v => { S.doc.nodes[id] = { ...n, aspect: v }; setEmbedWidth(id, v === "9:16" ? 340 : g.w); finishEdit(); renderSheet(); })));
   } else {
     panel.append(field("Variant", segment([["compact", "Compact"], ["standard", "Standard"], ["free", "Free (lab)"]], n.variant, v => { S.doc.nodes[id] = { ...n, variant: v }; setEmbedWidth(id, geo(id).w); finishEdit(); renderSheet(); })));
