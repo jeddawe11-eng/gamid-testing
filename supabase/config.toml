@@ -11,6 +11,16 @@ verify_jwt = true
 [functions.discord-connect-callback]
 verify_jwt = false
 
+# Steam connection: called by the signed-in owner's browser. Same model as Discord: the gateway verifies the user JWT and the
+# database re-authenticates it (auth.uid()).
+[functions.steam-connect-start]
+verify_jwt = true
+
+# Called by Steam's browser redirect: no GamID credentials can be presented. Trust comes exclusively from the one-time,
+# database-bound state (consumed first) plus Steam's own server-side validation of the signed OpenID assertion.
+[functions.steam-connect-callback]
+verify_jwt = false
+
 # League prototype: called by the signed-in owner's browser. The gateway verifies the user JWT and the database re-authenticates
 # it (auth.uid()) and throttles the lookup before any outbound request is made.
 [functions.league-lookup]

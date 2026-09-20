@@ -22,17 +22,19 @@ test("CONNECTIONS lives inside the existing YOUR GAMID identity view, not a new 
 });
 
 test("the frontend only talks to the Discord connection boundary via the session-authenticated client", () => {
-  assert.match(client, /CONNECTABLE_PROVIDERS = new Set\(\["discord"\]\)/);
+  // Steam Connection Foundation added a second provider; the list is an exact allow-list, never "any provider".
+  assert.match(client, /CONNECTABLE_PROVIDERS = new Set\(\["discord", "steam"\]\)/);
   assert.match(client, /\/functions\/v1\/\$\{provider\}-connect-start/);
   assert.match(client, /export async function getMyConnections/);
   assert.match(client, /rpc\("disconnect_my_connection"/);
-  assert.match(controller, /FRONTEND_CONNECTABLE = new Set\(\["discord"\]\)/);
+  assert.match(controller, /FRONTEND_CONNECTABLE = new Set\(\["discord", "steam"\]\)/);
 });
 
-test("the Connect action only navigates to the official Discord authorize URL", () => {
-  assert.match(connectionsBlock, /startsWith\("https:\/\/discord\.com\/oauth2\/authorize\?"\)/);
+test("the Connect action only navigates to the official provider URL (Discord authorize / Steam OpenID), validated first", () => {
+  assert.match(connectionsBlock, /discord: \{ name: "Discord", prefix: "https:\/\/discord\.com\/oauth2\/authorize\?" \}/);
+  assert.match(connectionsBlock, /steam: \{ name: "Steam", prefix: "https:\/\/steamcommunity\.com\/openid\/login\?" \}/);
   const assign = connectionsBlock.indexOf("location.assign(target)");
-  const validation = connectionsBlock.indexOf('startsWith("https://discord.com/oauth2/authorize?")');
+  const validation = connectionsBlock.indexOf("startsWith(auth.prefix)");
   assert.ok(validation > -1 && assign > validation, "URL must be validated before navigation");
 });
 

@@ -126,3 +126,11 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .visibility-slot{margin-top:.4rem}
 .visibility-slot .section-visibility{margin-top:.9rem}
 @media(prefers-reduced-motion:reduce){.visibility-switch-knob{transition:none}}
+
+/* Steam Connection Foundation: the SteamID64 is the whole identity, so on the Steam card it wraps and is never ellipsized (same approach as
+   the League card fix). Scoped to the Steam card only: Discord and League styling is untouched. */
+.connection-card[data-provider="steam"] .connection-head{flex-wrap:wrap;row-gap:.6rem}
+.connection-card[data-provider="steam"] .connection-copy{flex:1 1 9rem}
+.connection-card[data-provider="steam"] .connection-chip{flex:0 1 auto;max-width:100%}
+.connection-card[data-provider="steam"] .connection-name{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+.connection-card[data-provider="steam"] .connection-privacy,.connection-card[data-provider="steam"] .connection-discovery-note{overflow-wrap:anywhere;line-height:1.5}

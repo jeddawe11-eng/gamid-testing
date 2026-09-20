@@ -80,7 +80,8 @@ begin
   set local role authenticated;
   select count(*) as total, count(*) filter (where v.is_public) as on_count, count(*) filter (where v.is_set_up) as set_up, string_agg(v.section_key, ',' order by v.section_key) as keys into rec from public.get_my_section_visibility() v;
   reset role;
-  res := res || jsonb_build_object('step', 'the owner sees three sections, all set up and all OFF', 'pass', rec.total = 3 and rec.on_count = 0 and rec.set_up = 3 and rec.keys = 'discord,education_work,league', 'got', rec.keys);
+  -- (The registry grew from three to four sections with the Steam Connection Foundation; Steam is listed but NOT set up here.)
+  res := res || jsonb_build_object('step', 'the owner sees every registered section (Discord, Education/Work, League set up; Steam listed but not set up), all OFF', 'pass', rec.total = 4 and rec.on_count = 0 and rec.set_up = 3 and rec.keys = 'discord,education_work,league,steam', 'got', rec.keys);
 
   -- ------------------------------------------------------------------ 2. PUBLISHED with every section OFF: only the core identity is public
   perform set_config('request.jwt.claims', json_build_object('sub', ub, 'role', 'authenticated')::text, true);
@@ -248,7 +249,7 @@ begin
   res := res || jsonb_build_object('step', 'a user with no Discord connection cannot switch Discord ON (SECTION_NOT_SET_UP)', 'pass', got = 'SECTION_NOT_SET_UP', 'got', got);
   begin perform 1 from public.set_my_section_visibility('league', true); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
   res := res || jsonb_build_object('step', 'a user with no League profile cannot switch League ON (SECTION_NOT_SET_UP)', 'pass', got = 'SECTION_NOT_SET_UP', 'got', got);
-  begin perform 1 from public.set_my_section_visibility('steam', true); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
+  begin perform 1 from public.set_my_section_visibility('battlenet', true); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
   res := res || jsonb_build_object('step', 'an unknown section is rejected (INVALID_SECTION)', 'pass', got = 'INVALID_SECTION', 'got', got);
   begin perform 1 from public.set_my_section_visibility('discord', null); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
   res := res || jsonb_build_object('step', 'a missing on/off value is rejected (INVALID_VISIBILITY)', 'pass', got = 'INVALID_VISIBILITY', 'got', got);
@@ -327,7 +328,7 @@ begin
 
   -- ------------------------------------------------------------------ 13. registry
   select count(*), string_agg(c.section_key, ',' order by c.sort_order) into rec from public.public_section_catalog c where c.active;
-  res := res || jsonb_build_object('step', 'the section registry lists exactly discord, league, education_work', 'pass', rec.count = 3 and rec.string_agg = 'discord,league,education_work');
+  res := res || jsonb_build_object('step', 'the section registry lists exactly discord, steam, league, education_work', 'pass', rec.count = 4 and rec.string_agg = 'discord,steam,league,education_work');
 
   res := res || jsonb_build_object('step', 'SUMMARY', 'pass', not exists (select 1 from jsonb_array_elements(res) e where (e->>'pass') is distinct from 'true'), 'total', jsonb_array_length(res));
   raise exception 'TEST_RESULTS:%', res::text;

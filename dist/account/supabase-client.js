@@ -250,7 +250,7 @@ export async function getPublicIdentityByQr(token) {
   return rows?.[0] || null;
 }
 
-const CONNECTABLE_PROVIDERS = new Set(["discord"]);
+const CONNECTABLE_PROVIDERS = new Set(["discord", "steam"]);
 
 export async function getMyConnections() {
   return (await rpc("get_my_connections")) || [];

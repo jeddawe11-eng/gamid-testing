@@ -30,6 +30,13 @@ export function renderPublicSections(panel, sections) {
     block.append(node("span", "public-chip", "CONNECTED"));
     blocks.push(block);
   }
+  // Steam: only the SteamID64 the owner chose to show, as text. It says the account is connected - nothing about any game.
+  const steam = sections?.steam;
+  if (steam && typeof steam.steam_id === "string" && /^[0-9]{17}$/.test(steam.steam_id)) {
+    const block = node("section", "public-section");
+    block.append(node("p", "public-section-label", "STEAM"), node("strong", "", steam.steam_id), node("span", "public-section-sub", "SteamID64"), node("span", "public-chip", "CONNECTED"));
+    blocks.push(block);
+  }
   const league = sections?.league;
   if (league && league.game_name) {
     const block = node("section", "public-section");

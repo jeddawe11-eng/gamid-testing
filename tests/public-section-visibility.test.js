@@ -138,7 +138,9 @@ test("one generic 'Show on my GamID' control is used by all three sections, next
   assert.match(controller, /button\.setAttribute\("role", "switch"\)/);
   assert.match(controller, /button\.setAttribute\("aria-checked", String\(on\)\)/);
   assert.match(controller, /button\.type = "button"/, "it can never submit the profile form");
-  assert.match(controller, /changeSectionVisibility\("discord", next, showConnectionsMessage, loadConnections\)/);
+  // Connection cards (Discord, and since the Steam Connection Foundation, Steam) share the one control, keyed by the row's own provider.
+  assert.match(controller, /row\.provider_key === "discord" \|\| row\.provider_key === "steam"/);
+  assert.match(controller, /changeSectionVisibility\(row\.provider_key, next, showConnectionsMessage, loadConnections\)/);
   assert.match(controller, /changeSectionVisibility\("league", next, showLeagueMessage, loadLeague\)/);
   assert.match(controller, /changeSectionVisibility\("education_work", next, showEducationVisibilityMessage, loadSectionVisibility\)/);
   assert.match(accountHtml, /id="educationVisibility"/);
@@ -202,6 +204,7 @@ test("the Intro and its iframe are not modified by this phase (the panel lives o
 
 test("nothing else was started: no other game, no Cinematic Profile Engine, no Production reference", () => {
   const everything = migration + controller + publicJs;
-  assert.doesNotMatch(everything, /marvel rivals|valorant|steam|cinematic profile|production/i);
+  // (Steam is now a legitimate connection provider - see tests/steam-connection.test.js for its own boundaries.)
+  assert.doesNotMatch(everything, /marvel rivals|valorant|cinematic profile|production/i);
   assert.doesNotMatch(migration + publicJs, /supabase\.co/);
 });

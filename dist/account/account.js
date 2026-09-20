@@ -454,8 +454,23 @@ document.getElementById("closeQrDialog").addEventListener("click", () => {
 // ---------------------------------------------------------------------------------------------------------
 // Connections (Gaming Connections Engine — Discord foundation). Connected accounts are private by default.
 // ---------------------------------------------------------------------------------------------------------
-const FRONTEND_CONNECTABLE = new Set(["discord"]);
+const FRONTEND_CONNECTABLE = new Set(["discord", "steam"]);
 const CONNECTION_RETURN_OK = { connected: "Discord connected.", reconnected: "Discord reconnected.", cancelled: "Discord connection cancelled. Nothing was changed." };
+// Provider-specific pieces. Each provider authenticates on its own official page; the browser only ever navigates to the exact
+// official URL prefix below and never handles a provider credential, code, token, or assertion.
+const PROVIDER_AUTH = {
+  discord: { name: "Discord", prefix: "https://discord.com/oauth2/authorize?" },
+  steam: { name: "Steam", prefix: "https://steamcommunity.com/openid/login?" },
+};
+const STEAM_RETURN_OK = { connected: "Steam connected.", reconnected: "Steam reconnected.", cancelled: "Steam connection cancelled. Nothing was changed." };
+const STEAM_ERRORS = {
+  provider_error: "Steam couldn't complete the connection. Please try again.",
+  verification_failed: "Steam couldn't confirm that sign-in, so nothing was connected. Please try again.",
+  account_in_use: "That Steam account is already connected to another GamID.",
+  other_account_connected: "A different Steam account is already connected. Disconnect it first to connect another.",
+  not_configured: "Steam connection isn't available yet on this TESTING site.",
+  server_error: "Something went wrong connecting Steam. Please try again.",
+};
 const DISCOVERY_RETURN = {
   found: "Discord returned a Riot Games connection — see the private discovery result below.",
   absent: "Discord did not return a Riot Games connection — see the private discovery result below.",
@@ -636,7 +651,10 @@ function connectionCard(row) {
 
   const copy = element("div", "connection-copy");
   copy.append(element("strong", "", row.label));
-  if (row.connected) {
+  if (row.connected && row.provider_key === "steam") {
+    // Steam authenticates only a SteamID64; there is no Steam display name/avatar (no Steam Web API is called).
+    if (row.provider_username) copy.append(element("span", "connection-name", `SteamID64 ${row.provider_username}`));
+  } else if (row.connected) {
     const primary = row.provider_display_name || row.provider_username || "";
     if (primary) copy.append(element("span", "connection-name", primary));
     if (row.provider_username && row.provider_username !== primary) copy.append(element("span", "connection-handle", `@${row.provider_username}`));
@@ -646,9 +664,13 @@ function connectionCard(row) {
   card.append(head);
 
   if (row.connected) {
-    card.append(element("p", "connection-privacy", visibilityHint(Boolean(row.is_public))));
-    if (row.provider_key === "discord") {
-      card.append(visibilitySwitch({ on: Boolean(row.is_public), onChange: next => changeSectionVisibility("discord", next, showConnectionsMessage, loadConnections) }));
+    const steamNote = row.provider_key === "steam" ? ` Only your SteamID64 ${row.is_public ? "is" : "would be"} shown.` : "";
+    card.append(element("p", "connection-privacy", `${visibilityHint(Boolean(row.is_public))}${steamNote}`));
+    if (row.provider_key === "discord" || row.provider_key === "steam") {
+      card.append(visibilitySwitch({ on: Boolean(row.is_public), onChange: next => changeSectionVisibility(row.provider_key, next, showConnectionsMessage, loadConnections) }));
+    }
+    if (row.provider_key === "steam") {
+      card.append(element("p", "connection-discovery-note", "Signed in through Steam. This confirms the Steam account only — no games are looked at, and nothing about any game is verified."));
     }
   }
   if (row.connected && row.provider_key === "discord") card.append(discoveryPanel(row));
@@ -699,11 +721,12 @@ async function beginConnection(provider) {
   if (connectingProvider) return;
   connectingProvider = provider;
   confirmingDisconnect = null;
-  showConnectionsMessage("Opening Discord…", false, true);
+  const auth = PROVIDER_AUTH[provider];
+  showConnectionsMessage(`Opening ${auth.name}…`, false, true);
   renderConnections();
   try {
     const { authorization_url: target } = await api.startConnection(provider);
-    if (typeof target !== "string" || !target.startsWith("https://discord.com/oauth2/authorize?")) throw new Error("INVALID_AUTHORIZATION_URL");
+    if (typeof target !== "string" || !target.startsWith(auth.prefix)) throw new Error("INVALID_AUTHORIZATION_URL");
     location.assign(target);
   } catch (error) {
     connectingProvider = null;
@@ -717,19 +740,25 @@ async function finishDisconnect(provider) {
   showConnectionsMessage("Disconnecting…", false, true);
   try {
     await api.disconnectConnection(provider);
-    showConnectionsMessage(`${provider === "discord" ? "Discord" : "Account"} disconnected.`, true);
+    showConnectionsMessage(`${PROVIDER_AUTH[provider]?.name || "Account"} disconnected.`, true);
   } catch { showConnectionsMessage("Couldn't disconnect right now. Please try again."); }
   await loadConnections();
 }
 
 function handleConnectionReturn() {
   const params = new URLSearchParams(location.search);
-  if (params.get("connection") !== "discord") return;
+  const provider = params.get("connection");
+  if (provider !== "discord" && provider !== "steam") return;
   const result = params.get("result");
   const reason = params.get("reason");
   const discovery = params.get("discovery");
   history.replaceState(null, "", `${location.pathname}${location.hash}`);
-  if (result === "error") showConnectionsMessage(CONNECTION_ERRORS[reason] || CONNECTION_ERRORS.server_error, false, true);
+  if (provider === "steam") {
+    // Steam has no discovery step: only the fixed result/reason codes are ever read from the URL.
+    if (result === "error") showConnectionsMessage(STEAM_ERRORS[reason] || CONNECTION_ERRORS[reason] || STEAM_ERRORS.server_error, false, true);
+    else if (STEAM_RETURN_OK[result]) showConnectionsMessage(STEAM_RETURN_OK[result], result !== "cancelled");
+    else return;
+  } else if (result === "error") showConnectionsMessage(CONNECTION_ERRORS[reason] || CONNECTION_ERRORS.server_error, false, true);
   else if (CONNECTION_RETURN_OK[result]) {
     const extra = (result === "connected" || result === "reconnected") && DISCOVERY_RETURN[discovery] ? ` ${DISCOVERY_RETURN[discovery]}` : "";
     showConnectionsMessage(`${CONNECTION_RETURN_OK[result]}${extra}`, result !== "cancelled", Boolean(extra));

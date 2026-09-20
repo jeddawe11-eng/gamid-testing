@@ -212,7 +212,7 @@ begin
   res := res || jsonb_build_object('step', 'user without a GamID identity cannot start (IDENTITY_NOT_FOUND)', 'pass', got = 'IDENTITY_NOT_FOUND', 'got', got);
   perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
   set local role authenticated;
-  begin perform 1 from public.start_connection_attempt('steam'); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
+  begin perform 1 from public.start_connection_attempt('battlenet'); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
   reset role;
   res := res || jsonb_build_object('step', 'a provider that is not in the catalog is rejected (INVALID_PROVIDER)', 'pass', got = 'INVALID_PROVIDER', 'got', got);
 
@@ -232,7 +232,7 @@ begin
   res := res || jsonb_build_object('step', 'disconnect removes the connection (true)', 'pass', ok = true);
   select public.disconnect_my_connection('discord') into ok;
   res := res || jsonb_build_object('step', 'repeated disconnect is safe and idempotent (false)', 'pass', ok = false);
-  begin perform public.disconnect_my_connection('steam'); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
+  begin perform public.disconnect_my_connection('battlenet'); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
   res := res || jsonb_build_object('step', 'disconnecting an unknown provider is rejected', 'pass', got = 'INVALID_PROVIDER', 'got', got);
   select c.connected into ok from public.get_my_connections() c where c.provider_key = 'discord';
   reset role;
