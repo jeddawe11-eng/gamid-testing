@@ -107,7 +107,9 @@ Give owners explicit control over public profile fields, Games, Stats, Connectio
 
 **Phase 1 implemented in TESTING and ACCEPTED by Mazen** — see `PROJECT_HANDOFF.md` section 7l: a generic per-section "Show on my GamID" switch (Discord, League of Legends, Education & Work; OFF by default) and a server-enforced `public_sections` object in the public-safe boundary. The public visual expansion / cinematic profile and additional games remain unstarted and need separate approval.
 
-**Steam Connection Foundation implemented in TESTING (awaiting Mazen's real Steam sign-in)** — see `PROJECT_HANDOFF.md` section 7m: Steam OpenID 2.0 as a second Gaming Connection (the authenticated SteamID64 only; private by default with its own switch). Steam library / game-ownership discovery, Marvel Rivals, and other providers remain unstarted and need separate approval.
+**Steam Connection Foundation implemented in TESTING and ACCEPTED (real Steam sign-in completed by Mazen)** — see `PROJECT_HANDOFF.md` section 7m: Steam OpenID 2.0 as a second Gaming Connection (the authenticated SteamID64 only; private by default with its own switch). Steam library / game-ownership discovery, Marvel Rivals, and other providers remain unstarted and need separate approval.
+
+**Steam My Games implemented in TESTING (blocked on the `STEAM_WEB_API_KEY` secret, then awaiting Mazen's real library check)** — see `PROJECT_HANDOFF.md` section 7n: owner-triggered, private discovery of the connected account's games through Steam's official API, stored provider-neutrally as `DISCOVERED_FROM_STEAM`; Marvel Rivals is only recognized. Marvel account/UID/rank/stats and verification, third-party sources, the generic Games / Game ID system, the Game ID Wall / Profile Canvas, and any public display of games remain unstarted and need separate approval.
 
 ### 11. Team, Organization, Company
 
