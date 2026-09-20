@@ -60,7 +60,7 @@ Initial Job allocation:
 - no GPU, VPC connector, persistent disk, minimum instance, or always-running
   worker
 
-The 2 GiB allocation is conservative headroom for a source capped at 100 MiB,
+The 2 GiB allocation is conservative headroom for a source capped at 150 MiB,
 decoded frames, FFmpeg, Node, and the output. It can be reduced only after
 Cloud Monitoring shows safe peak memory on real TESTING uploads.
 

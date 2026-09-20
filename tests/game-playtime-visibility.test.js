@@ -16,8 +16,8 @@ const account = read("dist/account/account.js");
 const html = read("dist/account/index.html");
 const publicJs = read("dist/public/public.js");
 
-test("the migration is additive, newest, and adds exactly one NOT NULL DEFAULT false column (no backfill, no data-dependent ON)", () => {
-  assert.equal(migrations.at(-1), migrationName);
+test("the migration is additive and adds exactly one NOT NULL DEFAULT false column (no backfill, no data-dependent ON)", () => {
+  assert.ok(migrations.includes(migrationName), "the playtime migration exists");   // narrowed: it was the newest when written; later additive migrations may follow
   assert.match(migration, /alter table public\.profiles add column show_game_playtime boolean not null default false;/);
   assert.doesNotMatch(migration, /\bupdate\s+public\.profiles\s+(p\s+)?set\b(?![^;]*candidate_visible)/i, "the only UPDATE is the owner RPC's, which sets the caller-supplied value");
   assert.doesNotMatch(migration, /\b(drop|truncate|delete\s+from)\b/i);
@@ -89,6 +89,6 @@ test("the switch is provider-neutral in the editor code too: no provider name in
 });
 
 test("no earlier migration or module was rewritten: the previous newest migration is intact and still the one before this", () => {
-  assert.equal(migrations.at(-2), "20260920230000_steam_my_games.sql");
+  assert.equal(migrations[migrations.indexOf(migrationName) - 1], "20260920230000_steam_my_games.sql");
   assert.match(read("supabase/migrations/20260920230000_steam_my_games.sql"), /playtime_minutes integer check \(playtime_minutes is null or playtime_minutes >= 0\)/);
 });

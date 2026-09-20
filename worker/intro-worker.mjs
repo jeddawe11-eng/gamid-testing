@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 
 const run = promisify(execFile);
-const MAX_SOURCE_BYTES = 100 * 1024 * 1024;
+const MAX_SOURCE_BYTES = 150 * 1024 * 1024;   // 150 MiB = 157,286,400 bytes; duration (30 s), D3 settings and the derivative ceiling are unchanged
 const MAX_OUTPUT_BYTES = 15 * 1024 * 1024;
 const MAX_DURATION_SECONDS = 30;
 

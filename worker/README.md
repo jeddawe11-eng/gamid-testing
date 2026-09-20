@@ -53,7 +53,7 @@ node worker/intro-worker.mjs encode INPUT OUTPUT
 
 Recommended initial container allocation is 2 vCPU, 1 GiB RAM (2 GiB gives
 safer concurrency/headroom), and at least 512 MiB ephemeral `/tmp` storage.
-Source uploads are capped at 100 MiB and 30 seconds; derivatives are capped at
+Source uploads are capped at 150 MiB (157,286,400 bytes) and 30 seconds; derivatives are capped at
 15 MiB. Run with concurrency 1 and scale by starting more isolated tasks.
 
 ## Google Cloud Run approval and hosting status

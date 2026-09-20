@@ -1,4 +1,5 @@
 import { uploadResumable } from "./resumable-upload.js";
+import { INTRO_SOURCE_MAX_BYTES } from "./domain.js";
 
 const SUPABASE_PROJECT_ID = "upvtrczefcvigxdyuylw";
 const SUPABASE_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co`;
@@ -209,7 +210,7 @@ export async function getMyIntro() {
 export async function uploadIntroSource(file, userId, jobId) {
   const extension = ({ "video/mp4":"mp4", "video/quicktime":"mov", "video/webm":"webm" })[file.type];
   if (!extension) throw new ApiError("Choose an MP4, MOV, or WebM video.", 400, "INVALID_INTRO_TYPE");
-  if (file.size > 100 * 1024 * 1024) throw new ApiError("Intro video must be 100 MB or smaller.", 400, "INTRO_SOURCE_TOO_LARGE");
+  if (file.size > INTRO_SOURCE_MAX_BYTES) throw new ApiError("Intro video must be 150 MB or smaller.", 400, "INTRO_SOURCE_TOO_LARGE");   // browser-side guard only; the authoritative limits are the bucket, the RPC and the table CHECK
   if (!session?.access_token) throw new ApiError("Sign in again before uploading your Intro.", 401, "AUTH_REQUIRED");
   const path = `${userId}/${jobId}/source.${extension}`;
   await uploadResumable({

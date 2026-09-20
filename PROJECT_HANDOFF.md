@@ -82,7 +82,7 @@ Everything here is TESTING. Production is not started or authorized.
 | Private bucket | Limit | Purpose |
 |---|---:|---|
 | `avatars` | 5 MiB | Avatar images |
-| `intro-sources` | 100 MiB | MP4, QuickTime, or WebM sources |
+| `intro-sources` | 150 MiB (157,286,400 bytes; was 100 MiB — see section 7r) | MP4, QuickTime, or WebM sources |
 | `intro-media` | 15 MiB | Processed WebM D3 derivatives |
 
 RLS protects exposed tables. Public-invoker RPCs call private implementations after server-side user/entity authorization. Direct mutations are restricted. Worker claim/completion/failure RPCs are `service_role` only; the browser cannot invoke them.
@@ -1208,6 +1208,29 @@ Migration applied with `supabase db push` (dry run listed only it; project `upvt
 
 Samsung and PC: open a **landscape** Intro (Preview Intro and the public route). The video should be sharp, centered and fully visible with a soft dark glow in its colours filling the rest (no plain black bars, no visible second image), and on a large or high-DPI PC screen it should be a little smaller than the screen instead of blown up. Check each transition (especially Split Reveal), Skip and Replay, and that a **portrait** Intro looks exactly as before.
 
+## 7r. Intro source upload limit raised from 100 MiB to 150 MiB (TESTING only)
+
+One narrow change requested by Mazen: the maximum accepted Intro **source** upload is now **150 MiB = 157,286,400 bytes** (was 100 MiB = 104,857,600 bytes). **Unit convention (unchanged):** limits are counted in 1024×1024-byte units (MiB) and shown to people as "MB", exactly as before and like the 5 MB avatar limit; nothing was silently switched to decimal MB. The Intro **duration limit (0.5–30 s), the allowed source types, the derivative ceiling (15 MiB), D2/D3 policy, FFmpeg settings, Cloud Run configuration, the landscape/ambient presentation and Portrait behavior are all unchanged.**
+
+| Enforcement point | Change |
+|---|---|
+| Storage bucket `intro-sources` `file_size_limit` (server; Storage rejects a larger object) | 104857600 → **157286400** (new migration #24) |
+| RPC `private.queue_my_intro_impl` (server; refuses to queue a larger source, `INTRO_SOURCE_TOO_LARGE`) | re-declared identically except the constant (test proves the body differs only there); grants/security definer/search_path preserved |
+| Table CHECK `intro_processing_jobs_source_size_bytes_check` (server; last-line limit on any write path) | `<= 157286400` |
+| Worker guard `MAX_SOURCE_BYTES` in `worker/intro-worker.mjs` (`SOURCE_TOO_LARGE`) | 150 MiB in the repository |
+| Browser validation `INTRO_SOURCE_MAX_BYTES` (`dist/account/domain.js`, used by `validateIntroSource`) and the second guard before the resumable upload (`uploadIntroSource` in `supabase-client.js`, now importing the same constant) | 150 MiB; message "Intro video must be 150 MB or smaller." |
+| UI help text (`index.html`) | "MP4, MOV, or WebM · max 150 MB" |
+| TUS/resumable upload (`resumable-upload.js`) | no size constant of its own (chunk size only); nothing to change |
+| Docs | section 4 bucket table, section 11 policy, `worker/README.md`, `worker/cloud-run/README.md` |
+
+The historical migration `20260916170000_slice_3c_intro_identity.sql` is untouched (history is never rewritten); migration `20260921100000_intro_source_limit_150mib.sql` is additive and applied to TESTING only. Existing job rows are unchanged.
+
+**Two things the repository change cannot do by itself (report to Mazen):**
+1. **The deployed Cloud Run worker still runs image `slice-3c-testing-2`, which contains the OLD 100 MiB guard.** Until that image is rebuilt and the Job/Dispatcher are updated (Google Cloud, needs Mazen's authorization — no `gcloud`/Docker access from here and the task said not to change Cloud Run), a source between 100 MiB and 150 MiB passes the browser, Storage, RPC and table but the worker will mark the job failed with `SOURCE_TOO_LARGE`. No behavior other than this constant changes when the image is rebuilt (2 GiB memory is still ample headroom for a 150 MiB source).
+2. **Supabase's project-level Storage upload limit is separate from the bucket limit and could not be read with the available tools.** If the project's global limit (Supabase's Free plan caps it at 50 MB) is lower than the bucket limit, Storage rejects the upload regardless of the bucket setting. This was equally true of the old 100 MiB bucket limit and no >50 MB upload is recorded in this project's history; a real >100 MB upload has not been tested.
+
+**Validation:** `tests/intro-source-limit.test.js` (10) — exact byte boundaries in the browser validation, the second guard, help/error text, duration unchanged in browser/RPC/table/worker, the additive migration, the RPC body differing only in the constant, the worker guard with every D3 setting intact, no remaining old-number enforcement, no unrelated change. Live DB `tests/integration/intro-source-limit-db.sql` — **16/16** (+ summary), self-rolling-back with a disposable user, no job/object created; run wrapped with the migration before applying and again after; **8 SQL mutants** (old bucket limit, old RPC limit, off-by-one, unbounded, old CHECK, CHECK too high, duration changed, derivative bucket touched) all caught. Earlier live suites still pass. The old assertion `size:101 * 1024 * 1024` in `tests/slice-3c-intro-identity.test.js` was narrowed to `151 * 1024 * 1024` (its meaning — a too-large source is refused — is unchanged).
+
 ## 8. Real Samsung / real E2E evidence
 
 A protected Samsung/@BLACK job proved the backend path:
@@ -1297,7 +1320,7 @@ Current FREE D3:
 - `yuv420p`;
 - preserve source resolution, FPS, duration, and timing;
 - Opus approximately 32 kbps VBR/audio mode when audio exists;
-- derivative ceiling 15 MiB; source ceiling 100 MiB; duration 0.5–30 seconds.
+- derivative ceiling 15 MiB; source ceiling **150 MiB** (raised from 100 MiB, section 7r); duration 0.5–30 seconds.
 
 Benchmark using a 576×1024, 20.619s, 30 fps H.264/AAC source:
 

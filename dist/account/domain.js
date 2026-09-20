@@ -2,7 +2,8 @@ export const HANDLE_MIN = 3;
 export const HANDLE_MAX = 24;
 export const BIO_MAX = 160;
 export const PROFILE_CONTEXT_MAX = 120;
-export const INTRO_SOURCE_MAX_BYTES = 100 * 1024 * 1024;
+// Unit convention (unchanged): the limit is counted in 1024*1024-byte units (MiB) and shown to people as "MB", like the 5 MB avatar limit. 150 MiB = 157,286,400 bytes.
+export const INTRO_SOURCE_MAX_BYTES = 150 * 1024 * 1024;
 export const INTRO_MAX_DURATION_MS = 30_000;
 export const INTRO_TRANSITIONS = Object.freeze(["fade", "blur", "shrink", "slide", "split"]);
 export const INTRO_SOURCE_TYPES = Object.freeze(["video/mp4", "video/quicktime", "video/webm"]);
@@ -151,7 +152,7 @@ export const errorMessage = reason => ({
   INSTITUTION_TOO_LONG: `Keep institution to ${PROFILE_CONTEXT_MAX} characters or fewer.`,
   FIELD_OF_STUDY_TOO_LONG: `Keep field of study to ${PROFILE_CONTEXT_MAX} characters or fewer.`,
   INVALID_INTRO_TYPE: "Choose an MP4, MOV, or WebM video.",
-  INTRO_SOURCE_TOO_LARGE: "Intro video must be 100 MB or smaller.",
+  INTRO_SOURCE_TOO_LARGE: "Intro video must be 150 MB or smaller.",
   INTRO_DURATION_INVALID: "Intro video must be between 0.5 and 30 seconds.",
   INTRO_PROCESSING_IN_PROGRESS: "Your previous Intro is still processing.",
   INVALID_INTRO_TRANSITION: "Choose an available Intro transition.",

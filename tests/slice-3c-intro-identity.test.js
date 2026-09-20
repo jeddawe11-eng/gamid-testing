@@ -14,7 +14,7 @@ const worker = await readFile(new URL("../worker/intro-worker.mjs", import.meta.
 test("Slice 3C source limits and canonical Intro dirty state are enforced", () => {
   const file = { type:"video/mp4", size:10 * 1024 * 1024 };
   assert.equal(validateIntroSource(file,20_000).valid,true);
-  assert.equal(validateIntroSource({ ...file,size:101 * 1024 * 1024 },20_000).reason,"INTRO_SOURCE_TOO_LARGE");
+  assert.equal(validateIntroSource({ ...file,size:151 * 1024 * 1024 },20_000).reason,"INTRO_SOURCE_TOO_LARGE");   // limit raised from 100 to 150 MiB (tests/intro-source-limit.test.js holds the exact boundaries)
   assert.equal(validateIntroSource(file,30_001).reason,"INTRO_DURATION_INVALID");
   assert.equal(hasIntroChanges({ transitionKey:"fade" },{ transitionKey:"fade" }),false);
   assert.equal(hasIntroChanges({ transitionKey:"fade" },{ transitionKey:"shrink" }),true);
