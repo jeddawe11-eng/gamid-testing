@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; frame-src https://www.youtube-nocookie.com https://open.spotify.com; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>W0 Embed size lab (test)</title>
+<link rel="stylesheet" href="w0.css?v=w0a">
+</head>
+<body>
+<div class="page">
+  <span class="tag">W0 RISK PROTOTYPE</span><span class="tag cy">MEASUREMENT LAB</span>
+  <h1>Embed size lab</h1>
+  <p>Pick a provider and a box size, then tap <b>Load player</b>. Nothing is requested from YouTube or Spotify before that. Change the size while the player is loaded to see how it reflows. Report what you see: does Spotify keep its layout, crop, letterbox, scroll internally, or refuse to render at a given size?</p>
+  <div id="controls"></div>
+  <div id="stage" class="lab-stage"></div>
+  <pre id="readout" class="out"></pre>
+  <p><a class="pbtn" href="index.html">Back to the W0 hub</a></p>
+</div>
+<pre id="diag" hidden></pre>
+<script type="module" src="js/lab.js?v=w0a"></script>
+</body>
+</html>

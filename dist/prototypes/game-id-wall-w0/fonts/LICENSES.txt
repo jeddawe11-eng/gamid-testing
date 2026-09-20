@@ -1,0 +1,2 @@
+The W0 prototype fonts (Orbitron, Bebas Neue, Russo One, Rajdhani, Chakra Petch) are from Google Fonts and are licensed under the
+SIL Open Font License 1.1 (https://openfontlicense.org). They are used here unmodified (WOFF2 files) for a TESTING prototype.

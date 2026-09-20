@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; frame-src https://www.youtube-nocookie.com https://open.spotify.com; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<title>W0 Editor (test)</title>
+<link rel="stylesheet" href="w0.css?v=w0a">
+</head>
+<body data-mode="edit">
+<div id="app">
+  <header class="topbar">
+    <a class="home" href="index.html">W0</a>
+    <span class="badge">RISK PROTOTYPE - TEST / NOT SAVED</span>
+    <span id="stageLabel"></span>
+    <div id="modebar"></div>
+  </header>
+  <div id="stagebar"></div>
+  <main id="viewport" class="viewport"></main>
+  <div id="sheet" hidden></div>
+  <nav id="dock" aria-label="Editing tools"></nav>
+</div>
+<div id="previewBar" hidden></div>
+<div id="previewRoot" hidden></div>
+<div id="toast" hidden role="status"></div>
+<pre id="diag" hidden></pre>
+<script type="module" src="js/editor.js?v=w0a"></script>
+</body>
+</html>

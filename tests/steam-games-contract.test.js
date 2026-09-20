@@ -261,7 +261,9 @@ test("Discord, League, OpenID, Intro and the public boundary were not modified i
 });
 
 test("nothing beyond discovery was started: no Marvel API/stats/UID, no third-party game source, no Game ID Wall, no other provider, no Production reference", () => {
-  const files = [...walk(join(root, "dist")), ...walk(join(root, "supabase"))].filter(path => /\.(js|ts|html|css|sql|toml)$/.test(path) && !/qrcode\.min\.js$/.test(path));
+  const files = [...walk(join(root, "dist")), ...walk(join(root, "supabase"))].filter(path => /\.(js|ts|html|css|sql|toml)$/.test(path) && !/qrcode\.min\.js$/.test(path)
+    // the isolated W0 throwaway prototype is a separate, unlinked feasibility page (its own isolation is asserted in game-id-wall-w0.test.js)
+    && !/[\\/]dist[\\/]prototypes[\\/]game-id-wall-w0[\\/]/.test(path));
   const all = files.map(path => readFileSync(path, "utf8")).join("\n");
   assert.doesNotMatch(all, /tracker\.gg|rivalsmeta|marvelrivalsapi|mrapi|op\.gg\/marvel|marvel[-_ ]?uid|marvel[-_ ]?rank|marvel[-_ ]?stats|game[-_ ]?id[-_ ]?wall|profile[-_ ]?canvas|xbox live|playstation network|battle\.net|epic games/i);
   assert.doesNotMatch(migration + module + glue, /production|prod\./i);
