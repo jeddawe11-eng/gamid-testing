@@ -670,7 +670,8 @@ function connectionCard(row) {
       card.append(visibilitySwitch({ on: Boolean(row.is_public), onChange: next => changeSectionVisibility(row.provider_key, next, showConnectionsMessage, loadConnections) }));
     }
     if (row.provider_key === "steam") {
-      card.append(element("p", "connection-discovery-note", "Signed in through Steam. This confirms the Steam account only — no games are looked at, and nothing about any game is verified."));
+      card.append(element("p", "connection-discovery-note", "Signed in through Steam. This confirms the Steam account only; nothing about any game is verified."));
+      card.append(steamGamesPanel());
     }
   }
   if (row.connected && row.provider_key === "discord") card.append(discoveryPanel(row));
@@ -714,6 +715,7 @@ async function loadConnections() {
   catch { connectionRows = null; }
   try { discoveryRows = await api.getMyConnectionDiscovery(); }
   catch { discoveryRows = []; }
+  await loadSteamGames();
   renderConnections();
 }
 
@@ -771,6 +773,176 @@ window.addEventListener("pageshow", event => {
   connectingProvider = null;
   loadConnections();
 });
+
+// ---------------------------------------------------------------------------------------------------------
+// Steam "My Games" — DISCOVERY ONLY. Private to the owner (never on the public GamID). Steam's official API is contacted ONLY when
+// the owner presses "Load My Games" / "Refresh Games"; there is no polling and no background work. The only timer below re-enables
+// the button and makes no request. Everything from the server is rendered as text.
+// A game listed here was DISCOVERED through Steam. That is not proof of any in-game profile, character, UID, rank, or stats.
+// ---------------------------------------------------------------------------------------------------------
+const STEAM_GAMES_PREVIEW = 50;
+const STEAM_ICON_BASE = "https://media.steampowered.com/steamcommunity/public/images/apps";
+const STEAM_GAMES_ERRORS = {
+  not_configured: "Steam game lookup isn't set up yet on this TESTING site.",
+  not_connected: "Connect Steam first, then load your games.",
+  unauthenticated: "Please sign in again, then try again.",
+  email_not_verified: "Verify your email before loading your games.",
+  identity_not_found: "We couldn't find your GamID. Please refresh the page.",
+  connection_changed: "Your Steam connection changed while loading. Please try again.",
+  invalid_request: "That request wasn't valid. Please refresh the page and try again.",
+  NETWORK_ERROR: "The games service couldn't be reached. Check your connection and try again.",
+};
+let steamGamesState = null;
+let steamGames = [];
+let steamGamesBusy = false;
+let steamGamesShowAll = false;
+let steamGamesNotice = null;
+let steamGamesTimer;
+
+function steamGamesErrorText(error) {
+  if (error.code === "cooldown") return `Steam was asked very recently. Try again in about ${formatWait(error.retryAfterSeconds)}.`;
+  if (error.code === "rate_limited") return `You've refreshed a lot for now. Try again in about ${formatWait(error.retryAfterSeconds)}.`;
+  return STEAM_GAMES_ERRORS[error.code] || STEAM_GAMES_ERRORS[error.message] || "Couldn't load your games right now. Please try again.";
+}
+
+const gamePlural = count => `${count} game${count === 1 ? "" : "s"}`;
+const gameHours = minutes => (minutes === 0 ? "No playtime recorded" : minutes < 60 ? `${minutes} min` : `${(minutes / 60).toFixed(minutes < 6000 ? 1 : 0)} h`);
+
+// Distinguishes "Steam gave us games" from "Steam could not tell us": an unavailable library is NEVER reported as zero games.
+function steamGamesStatus(state, stored) {
+  if (!state?.last_result) return { tone: "info", text: "Not loaded yet. Press Load My Games to ask Steam which games this account can share." };
+  const when = state.last_success_at ? formatWhen(state.last_success_at) : null;
+  const keep = stored > 0 && when ? ` Still showing your last successful list (${when}).` : "";
+  switch (state.last_result) {
+    case "AVAILABLE": return { tone: "ok", text: `${gamePlural(state.game_count ?? stored)} from Steam${when ? ` · updated ${when}` : ""}.` };
+    case "EMPTY": return { tone: "ok", text: `Steam returned an accessible game library with no games${when ? ` (updated ${when})` : ""}.` };
+    case "UNAVAILABLE": return { tone: "warn", text: `Steam didn't share this account's game list, so GamID can't tell what you own — this does NOT mean you have no games. In Steam, open your profile → Edit Profile → Privacy Settings and set "My profile" and "Game details" to Public, then press Refresh Games (Steam can take a few minutes to apply it). GamID never changes anything in Steam.${keep}` };
+    case "TEMPORARY_ERROR": return { tone: "warn", text: `Steam couldn't be reached or is busy right now, so nothing was changed. Try again in a few minutes.${keep}` };
+    case "SERVICE_ERROR": return { tone: "warn", text: `GamID's connection to Steam's game service isn't working right now (a setup problem on our side, not yours), so nothing was changed.${keep}` };
+    case "MALFORMED": return { tone: "warn", text: `Steam answered in a way GamID couldn't read reliably, so nothing was changed.${keep}` };
+    default: return { tone: "info", text: "" };
+  }
+}
+
+function gameIcon(game) {
+  const box = element("span", "game-icon");
+  const letter = (game.game_name || "?").trim()[0]?.toUpperCase() || "?";
+  if (/^[0-9]{1,10}$/.test(game.external_game_id) && /^[0-9a-f]{40}$/.test(game.icon_ref || "")) {
+    const image = element("img");
+    image.alt = "";
+    image.loading = "lazy";
+    image.decoding = "async";
+    image.referrerPolicy = "no-referrer";
+    image.width = 32;
+    image.height = 32;
+    image.src = `${STEAM_ICON_BASE}/${game.external_game_id}/${game.icon_ref}.jpg`;
+    image.addEventListener("error", () => { image.remove(); box.textContent = letter; });
+    box.append(image);
+  } else box.textContent = letter;
+  return box;
+}
+
+function gameItem(game) {
+  const item = element("li", "game-item");
+  const copy = element("span", "game-copy");
+  const meta = [Number.isInteger(game.playtime_minutes) ? gameHours(game.playtime_minutes) : null, "Discovered via Steam"].filter(Boolean).join(" · ");
+  copy.append(element("span", "game-name", game.game_name || `App ${game.external_game_id}`), element("span", "game-meta", meta));
+  item.append(gameIcon(game), copy);
+  return item;
+}
+
+// Recognition only: Steam lists Marvel Rivals among this account's games. It is not a Marvel account / UID / rank / stats verification.
+function marvelRecognition() {
+  const found = steamGamesState?.recognized_games?.find(item => item.game_key === "marvel_rivals");
+  if (found) {
+    const box = element("div", "steam-recognized");
+    const head = element("div", "steam-recognized-head");
+    head.append(element("strong", "", found.display_name || "Marvel Rivals"), element("span", "connection-chip is-connected", "DISCOVERED VIA STEAM"));
+    box.append(head, element("p", "connection-discovery-note", "Your Steam games include Marvel Rivals. That is all this means — it does not verify a Marvel account, UID, rank, or stats."));
+    return box;
+  }
+  if (steamGamesState?.last_success_at) {
+    return element("p", "connection-discovery-note steam-not-found", "Marvel Rivals: not found in the games Steam returned. (A free-to-play game is listed only once it has been played on this account.)");
+  }
+  return null;
+}
+
+function steamGamesPanel() {
+  clearTimeout(steamGamesTimer);
+  const panel = element("section", "steam-games");
+  panel.setAttribute("aria-label", "My Games");
+  const head = element("div", "connection-discovery-head");
+  head.append(element("p", "eyebrow", "MY GAMES"), element("span", "connection-chip", "PRIVATE"));
+  panel.append(head, element("p", "connection-discovery-note", "Games your Steam account shares with GamID. Private to you — not shown on your public GamID. GamID asks Steam only when you press the button, and saves the game names, IDs and playtime Steam returns (playtime appears only if Steam shares it)."));
+
+  const status = steamGamesStatus(steamGamesState, steamGames.length);
+  if (status.text) {
+    const line = element("p", `steam-games-status is-${status.tone}`, status.text);
+    line.setAttribute("role", "status");
+    panel.append(line);
+  }
+  if (steamGamesNotice) {
+    const line = element("p", `steam-games-status is-${steamGamesNotice.tone}`, steamGamesNotice.text);
+    line.setAttribute("role", "status");
+    panel.append(line);
+  }
+  const marvel = marvelRecognition();
+  if (marvel) panel.append(marvel);
+
+  const availableAt = Date.parse(steamGamesState?.refresh_available_at || "");
+  const waitMs = Number.isNaN(availableAt) ? 0 : availableAt - Date.now();
+  const everLoaded = Boolean(steamGamesState?.last_success_at) || steamGames.length > 0;
+  const label = steamGamesBusy ? "Asking Steam…" : waitMs > 0 ? `Available in ${formatWait(waitMs / 1000)}` : everLoaded ? "Refresh Games" : "Load My Games";
+  const button = element("button", "secondary connection-button", label);
+  button.type = "button";
+  button.disabled = steamGamesBusy || waitMs > 0;
+  button.addEventListener("click", refreshMySteamGames);
+  panel.append(button);
+  // Purely local: re-render once when the cooldown ends so the button re-enables. This makes no request.
+  if (waitMs > 0 && waitMs < 2 ** 31 - 1) steamGamesTimer = setTimeout(renderConnections, waitMs + 250);
+
+  if (steamGames.length) {
+    const shown = steamGamesShowAll ? steamGames : steamGames.slice(0, STEAM_GAMES_PREVIEW);
+    const list = element("ul", "game-list");
+    list.append(...shown.map(gameItem));
+    panel.append(list);
+    if (steamGames.length > STEAM_GAMES_PREVIEW) {
+      const toggle = element("button", "text-button connection-button", steamGamesShowAll ? "Show fewer games" : `Show all ${steamGames.length} games`);
+      toggle.type = "button";
+      toggle.addEventListener("click", () => { steamGamesShowAll = !steamGamesShowAll; renderConnections(); });
+      panel.append(toggle);
+    }
+    if (steamGamesState?.game_count > steamGames.length) panel.append(element("p", "connection-discovery-note", `Showing the ${steamGames.length} most-played of ${steamGamesState.game_count} games.`));
+  }
+  return panel;
+}
+
+async function loadSteamGames() {
+  const connected = Boolean(connectionRows?.some(row => row.provider_key === "steam" && row.connected));
+  if (!connected) { steamGamesState = null; steamGames = []; steamGamesShowAll = false; steamGamesNotice = null; steamGamesBusy = false; return; }
+  try {
+    // Database reads only — this never contacts Steam.
+    [steamGamesState, steamGames] = await Promise.all([api.getMyGameDiscoveryState("steam"), api.getMyDiscoveredGames("steam")]);
+  } catch {
+    steamGamesState = null; steamGames = [];
+    steamGamesNotice = { tone: "warn", text: "Couldn't load your saved games right now." };
+  }
+}
+
+async function refreshMySteamGames() {
+  if (steamGamesBusy) return;
+  steamGamesBusy = true;
+  steamGamesNotice = null;
+  renderConnections();
+  try {
+    await api.refreshSteamGames();
+  } catch (error) {
+    steamGamesNotice = { tone: "warn", text: steamGamesErrorText(error) };
+  }
+  steamGamesBusy = false;
+  await loadSteamGames();
+  renderConnections();
+}
 
 // ---------------------------------------------------------------------------------------------------------
 // League of Legends PROTOTYPE — manual Riot ID + a temporary data source. Private to the owner, unverified by design.

@@ -295,6 +295,41 @@ export async function setSectionVisibility(section, visible) {
   return rows?.[0] || null;
 }
 
+// Steam "My Games" (discovery only). The browser never supplies or sees a SteamID for this: the backend resolves the account from the
+// signed-in owner's own stored Steam connection. Reading the stored list is a database read; Steam is contacted ONLY by
+// refreshSteamGames(), which the owner triggers with a button (there is no polling).
+export async function getMyGameDiscoveryState(provider = "steam") {
+  const rows = await rpc("get_my_game_discovery_state", { candidate_provider: provider });
+  return rows?.[0] || null;
+}
+
+export async function getMyDiscoveredGames(provider = "steam", limit = 1000) {
+  return (await rpc("get_my_discovered_games", { candidate_provider: provider, candidate_limit: limit, candidate_offset: 0 })) || [];
+}
+
+export async function refreshSteamGames() {
+  await restoreSession();
+  if (!session?.access_token) throw new ApiError("Sign in again to load your games.", 401, "unauthenticated");
+  let response;
+  try {
+    response = await fetch(`${SUPABASE_URL}/functions/v1/steam-games-refresh`, {
+      method: "POST",
+      headers: { apikey: PUBLISHABLE_KEY, Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "refresh" }),
+    });
+  } catch {
+    throw new ApiError("The games service could not be reached.", 0, "NETWORK_ERROR");
+  }
+  let payload = null;
+  try { payload = await response.json(); } catch { payload = null; }
+  if (!response.ok) {
+    const error = new ApiError(payload?.error || `Request failed (${response.status})`, response.status, payload?.error || "refresh_failed");
+    error.retryAfterSeconds = payload?.retry_after_seconds;
+    throw error;
+  }
+  return payload;
+}
+
 // League of Legends prototype (manual Riot ID + a temporary data source). Private to the owner. The browser never contacts
 // the data source: it asks the backend, which validates, throttles, looks up, and stores only normalized fields.
 export async function getMyLeagueProfile() {

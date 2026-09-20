@@ -154,7 +154,8 @@ test("YOUR GAMID: Steam is a Gaming Connection with Connect Steam, CONNECTED, a 
   assert.match(card, /confirmingDisconnect === row\.provider_key/, "Disconnect asks for a deliberate confirmation, the same path Discord uses");
   assert.match(card, /`Disconnect \$\{row\.label\} from your GamID\? Your GamID, Intro, and public profile stay exactly as they are\.`/);
   assert.match(card, /SteamID64 \$\{row\.provider_username\}/);
-  assert.match(card, /no games are looked at, and nothing about any game is verified/);
+  // (Steam My Games later added the explicit, owner-triggered discovery; the connection note now only claims what sign-in proves.)
+  assert.match(card, /Signed in through Steam\. This confirms the Steam account only; nothing about any game is verified\./);
   assert.doesNotMatch(card, /provider_account_id|connection_id|entity_id/);
   assert.match(card, /Only your SteamID64 \$\{row\.is_public \? "is" : "would be"\} shown\./);
   assert.match(card, /row\.connected && row\.provider_key === "discord"\) card\.append\(discoveryPanel\(row\)\)/, "the Riot discovery panel stays Discord-only");
@@ -211,11 +212,16 @@ test("Steam code is isolated from Discord code and Discord's own source was not 
   assert.doesNotMatch(read("supabase/functions/_shared/steam-openid.js"), /discord/i);
 });
 
-test("nothing beyond the connection was started: no game library, no Marvel Rivals, no other provider, no Production reference", () => {
+test("scope of the Steam code: the official games API lives in exactly one backend module, Marvel Rivals is only recognized, no other provider, no Production reference", () => {
   const files = [];
   const walk = dir => { for (const entry of readdirSync(dir)) { const full = join(dir, entry); if (statSync(full).isDirectory()) walk(full); else files.push(full); } };
   for (const root of ["dist", "supabase/functions"]) walk(new URL(`../${root}`, import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
   const source = files.filter(path => /\.(js|ts|html|css)$/.test(path) && !/qrcode\.min\.js$/.test(path)).map(path => readFileSync(path, "utf8")).join("\n");
-  assert.doesNotMatch(source, /GetOwnedGames|IPlayerService|marvel ?rivals|api\.steampowered|xbox live|playstation network|battle\.net/i);
+  const filesMatching = pattern => files.filter(path => /\.(js|ts|html|css)$/.test(path) && !/qrcode\.min\.js$/.test(path) && pattern.test(readFileSync(path, "utf8"))).map(path => path.replace(/\\/g, "/").replace(/^.*\/(dist|supabase)\//, "$1/"));
+  // Steam My Games: the official Web API is contacted from ONE backend module only - never from the browser, the public page, or the OpenID module.
+  assert.deepEqual(filesMatching(/GetOwnedGames|IPlayerService|api\.steampowered/i), ["supabase/functions/_shared/steam-games.js"]);
+  // Marvel Rivals is only ever RECOGNIZED (an App ID constant and a "Discovered via Steam" label) - never on the public page, never in the schema of the OpenID/foundation.
+  assert.deepEqual(filesMatching(/marvel ?rivals/i).sort(), ["dist/account/account.js", "supabase/functions/_shared/steam-games.js"]);
+  assert.doesNotMatch(source, /xbox live|playstation network|battle\.net/i);
   assert.doesNotMatch(migration + read("supabase/functions/_shared/steam-openid.js"), /production|prod\./i);
 });

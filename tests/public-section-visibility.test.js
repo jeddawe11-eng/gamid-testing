@@ -205,6 +205,9 @@ test("the Intro and its iframe are not modified by this phase (the panel lives o
 test("nothing else was started: no other game, no Cinematic Profile Engine, no Production reference", () => {
   const everything = migration + controller + publicJs;
   // (Steam is now a legitimate connection provider - see tests/steam-connection.test.js for its own boundaries.)
-  assert.doesNotMatch(everything, /marvel rivals|valorant|cinematic profile|production/i);
+  // (Steam My Games later added a PRIVATE, owner-only "Marvel Rivals - discovered via Steam" label to the account page; the public page and the
+  //  schema/migration of this phase stay free of it, and nothing here may ever mention another game or the profile engine.)
+  assert.doesNotMatch(migration + publicJs, /marvel rivals|valorant|cinematic profile|production/i);
+  assert.doesNotMatch(controller, /valorant|cinematic profile|production/i);
   assert.doesNotMatch(migration + publicJs, /supabase\.co/);
 });

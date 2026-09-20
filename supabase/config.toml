@@ -21,6 +21,11 @@ verify_jwt = true
 [functions.steam-connect-callback]
 verify_jwt = false
 
+# Steam My Games: called by the signed-in owner's browser on an explicit button press. The gateway verifies the user JWT and the
+# database re-authenticates it (auth.uid()), resolves that owner's own Steam connection, and throttles before any outbound request.
+[functions.steam-games-refresh]
+verify_jwt = true
+
 # League prototype: called by the signed-in owner's browser. The gateway verifies the user JWT and the database re-authenticates
 # it (auth.uid()) and throttles the lookup before any outbound request is made.
 [functions.league-lookup]
