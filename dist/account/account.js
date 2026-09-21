@@ -773,11 +773,11 @@ function renderGameDisplay() {
     nodes.push(
       visibilitySwitch({ on, busy: publicGamesBusy, label: "Show ranks & stats on my GamID", onChange: visible => changePublicGamesSetting("stats", visible) }),
       element("p", "section-visibility-hint", on
-        ? `Ranks and stats may be shown in a game's details — only for games shown through Show My Games, and only for stats you already made public (for League of Legends, its own "Show on my GamID" switch too). They keep their PROTOTYPE / UNVERIFIED labels.${notPublished}`
-        : "Hidden. Ranks and stats are never shown in your public game list."),
+        ? `Ranks and stats may be shown anywhere on your public GamID — the League card and a game's details — only for stats you already made public (for League of Legends, its own "Show on my GamID" switch too). They keep their PROTOTYPE / UNVERIFIED labels.${notPublished}`
+        : "Hidden. No rank or stat value is shown anywhere on your public GamID (the League card keeps your Riot ID and region, but not your rank)."),
     );
   }
-  nodes.push(element("p", "section-visibility-hint", "These three settings are separate from each other and apply to your whole library: there is no switch per game. Playtime and ranks & stats never change what you see in your own private lists."));
+  nodes.push(element("p", "section-visibility-hint", "These three settings are separate from each other and apply to your whole GamID: there is no switch per game. Ranks & stats is global (League card and game details); playtime appears only for games shown through Show My Games. None of them changes what you see in your own private lists."));
   slot.replaceChildren(...nodes);
 }
 
@@ -1327,7 +1327,7 @@ function leagueProfileView(profile) {
   }
   const unverifiedNote = "Unverified: your Riot ID was entered manually, so this isn't proof of account ownership.";
   frag.append(element("p", "connection-privacy", profile.is_public
-    ? `${isGamidPublished() ? "Shown on your public GamID" : "Will appear on your public GamID once you publish it"}, marked PROTOTYPE / UNVERIFIED (data: ${LEAGUE_SOURCE_LABELS[profile.data_source] || "a third-party source"}). ${unverifiedNote}`
+    ? `${isGamidPublished() ? "Shown on your public GamID" : "Will appear on your public GamID once you publish it"}, marked PROTOTYPE / UNVERIFIED (data: ${LEAGUE_SOURCE_LABELS[profile.data_source] || "a third-party source"}). Your rank and stats appear there only while “Show ranks & stats on my GamID” (Game display) is ON. ${unverifiedNote}`
     : `Private — not shown on your public GamID. ${unverifiedNote}`));
   frag.append(visibilitySwitch({ on: Boolean(profile.is_public), onChange: next => changeSectionVisibility("league", next, showLeagueMessage, loadLeague) }));
 

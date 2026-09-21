@@ -42,7 +42,10 @@ export function renderPublicSections(panel, sections) {
   const league = sections?.league;
   if (league && league.game_name) {
     const block = node("section", "public-section");
-    block.append(node("p", "public-section-label", "LEAGUE OF LEGENDS"), node("strong", "", `${league.game_name}#${league.tag_line} · ${league.platform_id}`), node("span", "public-section-sub", leagueRankLine(league)));
+    block.append(node("p", "public-section-label", "LEAGUE OF LEGENDS"), node("strong", "", `${league.game_name}#${league.tag_line} · ${league.platform_id}`));
+    // The rank / stat values are their own privacy scope ("Show ranks & stats on my GamID"): while that is OFF the server sends no rank_state at all, so there is
+    // nothing to show and NO rank line is drawn (not even "no ranked rank reported" - that would also be a statement about the stats).
+    if (league.rank_state) block.append(node("span", "public-section-sub", leagueRankLine(league)));
     block.append(node("span", "public-chip is-caution", "PROTOTYPE / UNVERIFIED"));
     const when = league.updated_at ? new Date(league.updated_at) : null;
     const source = LEAGUE_SOURCE_LABELS[league.data_source] || "a third-party source";

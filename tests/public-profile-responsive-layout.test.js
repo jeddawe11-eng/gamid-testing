@@ -213,6 +213,7 @@ test("Public My Games stays ordinary flow content; only its modal is an overlay,
   }
   assert.deepEqual(kinds.sort(), [
     ".pg-icon :: height:.85rem",                                    // the provenance glyph
+    ".pg-icon.is-steam :: height:1rem",                             // the Steam mark is a little larger so the logo stays recognizable
     ".pg-panel :: min-height:0",                                    // flex shrink fixes: the library's list may scroll inside the modal, the page behind it does not
     ".pg-row :: min-height:2.9rem",                                 // touch target
     ".pg-scroll,.pg-detail-body :: min-height:0",

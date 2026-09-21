@@ -401,7 +401,8 @@ begin
   res := res || jsonb_build_object('step', 'OFF again: the library function returns no row and the identity preview loses the section (stats ON would not matter: it needs My Games)', 'pass',
     pg_temp.pm_names('zpmga', null, 30, 0) = 'NOROW' and not ((jq -> 'public_sections') ? 'my_games'));
   got2 := pg_temp.pm_as(ua, $q$ select count(*)::text from public.set_my_public_games_setting('stats', true) $q$);
-  res := res || jsonb_build_object('step', 'STATS ON while My Games is OFF exposes nothing (the stats gate needs My Games)', 'pass', got2 = '1' and not private.public_game_stats_allowed(ent_a));
+  res := res || jsonb_build_object('step', 'STATS ON while My Games is OFF: the library still returns nothing (it needs Show My Games); the stats gate itself is GLOBAL (published + its own switch), since 20260922200000 - it also governs the League card', 'pass',
+    got2 = '1' and pg_temp.pm_names('zpmga', null, 30, 0) = 'NOROW' and private.public_game_stats_allowed(ent_a));
   got := pg_temp.pm_as(ua, $q$ select count(*)::text from public.set_my_public_games_setting('my_games', true) $q$);
   perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
   set local role authenticated; perform 1 from public.set_my_identity_visibility(false); reset role;

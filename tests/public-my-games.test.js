@@ -490,11 +490,11 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
   assert.doesNotMatch(migration, /create table|per_game|show_this_game|game_visibility/i, "no table, and no per-game visibility toggle of any kind");
   assert.doesNotMatch(migration, /show_game_playtime/, "playtime is consulted only through the accepted gate");
   const names = readdirSync(new URL("supabase/migrations/", root)).sort();
-  assert.equal(names.at(-1), migrationName);
-  assert.equal(names.at(-2), "20260922010000_game_catalog_import_key_fix.sql");
+  assert.equal(names[names.indexOf(migrationName) - 1], "20260922010000_game_catalog_import_key_fix.sql");
+  assert.equal(names[names.indexOf(migrationName) + 1], "20260922200000_public_stats_global_scope.sql", "the next migration only makes the stats gate global (see tests/public-stats-global-scope.test.js)");
 });
 
-test("migration: Show My Games is a hard server gate (published AND switched on); stats additionally need Show My Games; both default closed", () => {
+test("migration (as first written): Show My Games is a hard server gate (published AND switched on); both default closed. The stats gate was later made GLOBAL by 20260922200000: it no longer needs Show My Games", () => {
   assert.match(migration, /select p\.show_my_games and e\.visibility = 'PUBLIC'/);
   assert.match(migration, /select p\.show_game_stats and p\.show_my_games and e\.visibility = 'PUBLIC'/);
   assert.match(migration, /if not private\.public_my_games_allowed\(candidate_entity_id\) then return null; end if;/);

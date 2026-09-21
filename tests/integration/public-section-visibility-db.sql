@@ -117,6 +117,9 @@ begin
   -- ------------------------------------------------------------------ 4. PUBLISHED + every section ON: only the approved fields appear
   perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
   set local role authenticated; perform 1 from public.set_my_identity_visibility(true); reset role;
+  -- "Show ranks & stats on my GamID" is a separate, global switch (OFF by default): the League rank fields below are only returned while it is ON. This test is about the
+  -- section switches, so it turns that switch ON for the disposable identity; its OFF behavior is proved in tests/integration/public-stats-global-db.sql.
+  update public.profiles set show_game_stats = true where entity_id = ent_a;
   perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
   set local role anon;
   select to_jsonb(p) into js from public.get_public_identity('zsecta') p;
