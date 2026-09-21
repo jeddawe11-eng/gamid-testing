@@ -53,7 +53,8 @@ test("the PUBLIC boundary and the visibility/section architecture are untouched:
   assert.doesNotMatch(code, /get_public_identity|public_sections|public_section_catalog|set_my_section_visibility|get_my_section_visibility|set_my_identity_visibility/);
   assert.doesNotMatch(code, /\bto\s+anon\b|\bto\s+public\b|grant\s+(select|insert|update|delete|all)\s+on/i);
   assert.doesNotMatch(code, /is_public/);
-  assert.doesNotMatch(read("dist/public/index.html") + publicJs, /discovered_games|get_my_discovered_games|game_discovery|steam-games|My Games/i, "the public page never reads discovered games");
+  // (Public My Games has its own public function now; the page still never reads the discovery tables or the owner's private discovery functions.)
+  assert.doesNotMatch(read("dist/public/index.html") + publicJs, /discovered_games|get_my_discovered_games|game_discovery|steam-games/i, "the public page never reads discovered games");
 });
 
 test("RLS is on for every new table, no client role has any table privilege, and owner policies are read-only", () => {
@@ -194,7 +195,7 @@ test("YOUR GAMID: the Steam card keeps Load My Games / Refresh Games (its games 
   assert.match(panel, /"Load My Games"/);
   assert.match(panel, /"Refresh Games"/);
   assert.match(panel, /"Asking Steam…"/);
-  assert.match(panel, /Private to you — not shown on your public GamID/);
+  assert.match(panel, /The discovery details stay private to you; whether your games appear on your public GamID is your choice under Game display/);
   assert.match(controller, /card\.append\(steamGamesPanel\(\)\)/);
   assert.doesNotMatch(panel, /setInterval|requestAnimationFrame|EventSource|WebSocket/);
   assert.equal([...panel.matchAll(/setTimeout/g)].length, 1, "one local timer that only re-renders when the cooldown ends");

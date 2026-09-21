@@ -734,21 +734,76 @@ function showGameDisplayMessage(text, success = false) {
   el.hidden = !text;
 }
 
+// Public My Games has three independent switches, all library-wide (there is deliberately no per-game switch): Show My Games, Show playtime, Show ranks & stats.
+// Playtime and ranks & stats only ever appear on a game that Show My Games already shows; each of the two is OFF unless the owner turns it on.
+let publicGamesSettings = null;        // {show_my_games, show_game_stats}; null when it could not be read (then its switches are not offered)
+let publicGamesBusy = false;
+
 function renderGameDisplay() {
   const section = document.getElementById("gameDisplaySection");
   const slot = document.getElementById("gameDisplaySlot");
   if (!section || !slot) return;
-  const relevant = Boolean(connectionRows?.some(row => row.connected && GAME_PROVIDERS.has(row.provider_key)));
-  section.hidden = !relevant;
-  if (!relevant || !gameDisplay) { slot.replaceChildren(); return; }
-  const on = Boolean(gameDisplay.show_game_playtime);
-  slot.replaceChildren(
-    visibilitySwitch({ on, busy: gameDisplayBusy, label: "Show playtime on my GamID", onChange: changePlaytimeVisibility }),
-    element("p", "section-visibility-hint", on
-      ? `Hours played may be shown publicly, only where a game is shown and its provider supplied them.${isGamidPublished() ? "" : " Nothing is public until you publish your GamID."}`
-      : "Hidden. Hours played are never shown on your public GamID. You always see your own playtime in your private lists."),
-    element("p", "section-visibility-hint", "This is separate from showing a game, and applies to every connected provider. No game list is shown on your public GamID yet."),
-  );
+  const hasPlaytimeProvider = Boolean(connectionRows?.some(row => row.connected && GAME_PROVIDERS.has(row.provider_key)));
+  const showPlaytime = Boolean(hasPlaytimeProvider && gameDisplay);
+  section.hidden = !identity || !(publicGamesSettings || showPlaytime);
+  if (section.hidden) { slot.replaceChildren(); return; }
+  const published = isGamidPublished();
+  const notPublished = published ? "" : " Nothing is public until you publish your GamID.";
+  const nodes = [];
+  if (publicGamesSettings) {
+    const on = Boolean(publicGamesSettings.show_my_games);
+    nodes.push(
+      visibilitySwitch({ on, busy: publicGamesBusy, label: "Show My Games on my GamID", onChange: visible => changePublicGamesSetting("my_games", visible) }),
+      element("p", "section-visibility-hint", on
+        ? `Your games appear on your public GamID: up to six of them, plus a full list visitors can search. Each one shows only the platforms you play it on and where GamID learned about it (discovered through a connected account, or added by you — never "verified" because of that).${notPublished}`
+        : "Hidden. No game is shown on your public GamID."),
+    );
+  }
+  if (showPlaytime) {
+    const on = Boolean(gameDisplay.show_game_playtime);
+    nodes.push(
+      visibilitySwitch({ on, busy: gameDisplayBusy, label: "Show playtime on my GamID", onChange: changePlaytimeVisibility }),
+      element("p", "section-visibility-hint", on
+        ? `Hours played may be shown in a game's details, only for games shown through Show My Games and only where its provider supplied them.${notPublished}`
+        : "Hidden. Hours played are never shown on your public GamID. You always see your own playtime in your private lists."),
+    );
+  }
+  if (publicGamesSettings) {
+    const on = Boolean(publicGamesSettings.show_game_stats);
+    nodes.push(
+      visibilitySwitch({ on, busy: publicGamesBusy, label: "Show ranks & stats on my GamID", onChange: visible => changePublicGamesSetting("stats", visible) }),
+      element("p", "section-visibility-hint", on
+        ? `Ranks and stats may be shown in a game's details — only for games shown through Show My Games, and only for stats you already made public (for League of Legends, its own "Show on my GamID" switch too). They keep their PROTOTYPE / UNVERIFIED labels.${notPublished}`
+        : "Hidden. Ranks and stats are never shown in your public game list."),
+    );
+  }
+  nodes.push(element("p", "section-visibility-hint", "These three settings are separate from each other and apply to your whole library: there is no switch per game. Playtime and ranks & stats never change what you see in your own private lists."));
+  slot.replaceChildren(...nodes);
+}
+
+async function changePublicGamesSetting(setting, visible) {
+  if (publicGamesBusy) return;
+  publicGamesBusy = true;
+  showGameDisplayMessage("Updating…");
+  renderGameDisplay();
+  try {
+    await api.setMyPublicGamesSetting(setting, visible);
+    publicGamesSettings = { ...(publicGamesSettings || {}), [setting === "my_games" ? "show_my_games" : "show_game_stats"]: visible };
+    showGameDisplayMessage(setting === "my_games"
+      ? (visible ? "Your games can now be shown on your public GamID." : "Your games are hidden from your public GamID.")
+      : (visible ? "Ranks and stats can now be shown in your games' details." : "Ranks and stats are hidden from your public GamID."), true);
+  } catch (error) {
+    showGameDisplayMessage(SECTION_ERRORS[error.message] || SECTION_ERRORS[error.code] || "Couldn't update this setting. Please try again.");
+  }
+  publicGamesBusy = false;
+  try { publicGamesSettings = await api.getMyPublicGamesSettings(); } catch { /* keep what we know */ }
+  renderGameDisplay();
+  renderMyGames();
+}
+
+async function loadPublicGamesSettings() {
+  try { publicGamesSettings = await api.getMyPublicGamesSettings(); }
+  catch { publicGamesSettings = null; }
 }
 
 async function changePlaytimeVisibility(visible) {
@@ -787,6 +842,7 @@ async function loadConnections() {
   await loadManualGames();
   await loadGameProfiles();
   await loadGameDisplay();
+  await loadPublicGamesSettings();
   renderConnections();
 }
 
@@ -959,7 +1015,7 @@ function steamGamesPanel() {
   panel.setAttribute("aria-label", "Steam games");
   const head = element("div", "connection-discovery-head");
   head.append(element("p", "eyebrow", "STEAM GAMES"), element("span", "connection-chip", "PRIVATE"));
-  panel.append(head, element("p", "connection-discovery-note", "Games your Steam account shares with GamID. Private to you — not shown on your public GamID. GamID asks Steam only when you press the button, and saves the game names, IDs and playtime Steam returns (playtime appears only if Steam shares it)."));
+  panel.append(head, element("p", "connection-discovery-note", "Games your Steam account shares with GamID. The discovery details stay private to you; whether your games appear on your public GamID is your choice under Game display. GamID asks Steam only when you press the button, and saves the game names, IDs and playtime Steam returns (playtime appears only if Steam shares it)."));
 
   const status = steamGamesStatus(steamGamesState, steamGames.length);
   if (status.text) {
@@ -1038,8 +1094,9 @@ function ensureMyGames() {
   const root = document.getElementById("myGamesSection");
   if (!root) return null;
   const head = element("div", "connection-discovery-head");
-  head.append(element("p", "eyebrow", "MY GAMES"), element("span", "connection-chip", "PRIVATE"));
-  const note = element("p", "connection-discovery-note", "Games your connected accounts discovered, plus games you add yourself. Private to you — not shown on your public GamID. Games you add are marked as added by you; GamID does not verify them.");
+  const chip = element("span", "connection-chip", "PRIVATE");
+  head.append(element("p", "eyebrow", "MY GAMES"), chip);
+  const note = element("p", "connection-discovery-note", "Games your connected accounts discovered, plus games you add yourself. Private to you unless you switch on “Show My Games on my GamID” under Game display below. Games you add are marked as added by you; GamID does not verify them.");
   const addButton = element("button", "secondary connection-button game-add-button", "+ Add Game");
   addButton.type = "button";
   addButton.setAttribute("aria-expanded", "false");
@@ -1059,7 +1116,7 @@ function ensureMyGames() {
     renderMyGames();
   });
   root.append(head, note, addButton, status, panel.root, host);
-  myGamesView = { root, status, addButton, panel, host };
+  myGamesView = { root, status, addButton, panel, host, chip };
   return myGamesView;
 }
 
@@ -1067,6 +1124,10 @@ function renderMyGames() {
   const view = ensureMyGames();
   if (!view) return;
   view.root.hidden = !identity;
+  // the badge tells the truth about the OWNER'S switch (the server still needs the GamID to be published)
+  const shown = Boolean(publicGamesSettings?.show_my_games);
+  view.chip.textContent = shown ? (isGamidPublished() ? "PUBLIC" : "PUBLIC WHEN PUBLISHED") : "PRIVATE";
+  view.chip.classList.toggle("is-connected", shown);
   const rows = buildLibraryRows(steamGames, manualGames);
   libraryKeys = new Set(rows.map(rowGameKey).filter(Boolean));
   view.status.textContent = myGamesNotice?.text || "";

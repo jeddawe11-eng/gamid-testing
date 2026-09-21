@@ -170,7 +170,8 @@ test("the provider panel and Replay Intro are ordinary content: not fixed, not a
 });
 
 test("no fixed pixel/rem/viewport HEIGHT exists anywhere in the public page stylesheet except the full-viewport overlay the Intro needs", () => {
-  const offenders = rulesOf(publicCss).filter(rule => /(^|;)\s*(min-|max-)?height\s*:/.test(rule.body)).map(rule => `${rule.selector} { ${rule.body.trim()} }`);
+  // (Public My Games' own components are audited by their own test below: they are `.public-games` / `.pg-*`.)
+  const offenders = rulesOf(publicCss).filter(rule => !/^\.public-games|\.pg-/.test(rule.selector)).filter(rule => /(^|;)\s*(min-|max-)?height\s*:/.test(rule.body)).map(rule => `${rule.selector} { ${rule.body.trim()} }`);
   assert.deepEqual(offenders.map(text => text.replace(/\s+/g, " ")), [
     "body { margin:0;min-width:320px;min-height:100svh;background:radial-gradient(circle at 12% 0,#27134e 0,transparent 28rem),var(--bg);color:var(--text) }",   // a FLOOR (the page is never shorter than the viewport), never a cap
     ".site-head { height:4rem;padding:0 1rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07) }",   // the fixed-size header bar
@@ -196,7 +197,35 @@ test("layout modes: the stage is a fixed overlay ONLY while the Intro plays; in 
   assert.match(wrap.body, /position:static/);
   assert.match(wrap.body, /grid-area:1\/1/);
   assert.match(ruleFor(publicCss, '.public-shell[data-mode="flow"] .public-sections').body, /grid-area:2\/1/, "below the profile on narrow screens");
-  assert.match(ruleFor(publicCss, '.public-shell[data-mode="flow"] .replay-button').body, /grid-area:3\/1/, "Replay Intro follows ALL the content");
+  assert.match(ruleFor(publicCss, '.public-shell[data-mode="flow"] .public-games').body, /grid-area:3\/1/, "My Games follows the connections panel");
+  assert.match(ruleFor(publicCss, '.public-shell[data-mode="flow"] .replay-button').body, /grid-area:4\/1/, "Replay Intro follows ALL the content, My Games included");
+});
+
+test("Public My Games stays ordinary flow content; only its modal is an overlay, and no component has a guessed height", () => {
+  const games = ruleFor(publicCss, ".public-games");
+  assert.match(games.body, /position:relative/);
+  assert.doesNotMatch(games.body, /position:\s*(fixed|absolute|sticky)|max-height|overflow|[^-]height:|\d(s|d|l)?vh\b|svh|dvh/, "the compact section has no height of its own and no inner scrolling: it grows with its rows");
+  assert.match(games.body, /width:min\(38rem,calc\(100% - 2rem\)\)/, "sized against its container, never the viewport");
+  // every height-related declaration in a My Games component is one of a few named, bounded kinds
+  const kinds = [];
+  for (const rule of rulesOf(publicCss).filter(item => /^\.public-games|\.pg-/.test(item.selector))) {
+    for (const match of rule.body.matchAll(/(?:^|;)\s*((?:min-|max-)?height)\s*:\s*([^;]+)/g)) kinds.push(`${rule.selector} :: ${match[1]}:${match[2]}`);
+  }
+  assert.deepEqual(kinds.sort(), [
+    ".pg-icon :: height:.85rem",                                    // the provenance glyph
+    ".pg-panel :: min-height:0",                                    // flex shrink fixes: the library's list may scroll inside the modal, the page behind it does not
+    ".pg-row :: min-height:2.9rem",                                 // touch target
+    ".pg-scroll,.pg-detail-body :: min-height:0",
+    ".pg-search-input :: min-height:2.75rem",                       // touch target
+    ".pg-sr :: height:1px",                                         // the visually hidden search label
+    ".pg-view :: min-height:0",
+    ".pg-viewall,.pg-more :: min-height:2.75rem",                   // touch target
+    ".pg-close,.pg-back :: min-height:2.75rem",                     // touch target
+    ".pg-panel :: max-height:min(46rem,90svh)",                     // the desktop modal (inside @media(min-width:40rem)): an overlay bounded by the viewport, like the Intro stage
+  ].sort());
+  assert.match(publicCss, /@media\(min-width:40rem\)\{\.pg-modal\{[^}]*\}\.pg-panel\{[^}]*max-height:min\(46rem,90svh\)/, "the desktop modal is bounded by the viewport (it is an overlay, like the Intro stage)");
+  assert.match(publicCss, /\.pg-modal\{position:fixed;inset:0;/, "on mobile the modal is a full-screen sheet");
+  assert.match(publicCss, /html\.is-games-open\{overflow:hidden\}/, "the page behind the open library does not scroll");
 });
 
 test("desktop composition is kept without overlap: from 80rem the panel sits in the free area beside the identity in the SAME grid row (so its height counts); below that it follows the identity", () => {
@@ -212,7 +241,7 @@ test("long provider values cannot force the page wider: the panel and its text w
   assert.match(publicCss, /\.public-section\{[^}]*min-width:0/);
   assert.match(publicCss, /\.public-section strong\{[^}]*overflow-wrap:anywhere/);
   assert.match(publicCss, /\.public-section-sub\{[^}]*overflow-wrap:anywhere/);
-  assert.doesNotMatch(publicCss, /white-space:\s*nowrap|text-overflow:\s*ellipsis/, "legitimate content is never truncated to fit");
+  assert.doesNotMatch(publicCss.replace(/\.pg-sr\{[^}]*\}/, ""), /white-space:\s*nowrap|text-overflow:\s*ellipsis/, "legitimate content is never truncated to fit (only the visually hidden search label is nowrap)");
 });
 
 // --------------------------------------------------------------------------------------------------------------- intro-preview.css: the profile document

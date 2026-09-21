@@ -320,6 +320,24 @@ export async function setGamePlaytimeVisibility(visible) {
   return rows?.[0] || null;
 }
 
+// Public My Games switches (owner-only): "Show My Games on my GamID" and "Show ranks & stats on my GamID". Both are OFF unless the server says otherwise.
+export async function getMyPublicGamesSettings() {
+  const rows = await rpc("get_my_public_games_settings");
+  return rows?.[0] || { show_my_games: false, show_game_stats: false };
+}
+
+export async function setMyPublicGamesSetting(setting, visible) {
+  const rows = await rpc("set_my_public_games_setting", { candidate_setting: setting, candidate_visible: Boolean(visible) });
+  return rows?.[0] || null;
+}
+
+// A visitor's view of ONE GamID's own game library (anonymous). `query` only ever narrows THAT identity's games; the server returns no row when the GamID is
+// unknown, unpublished or has My Games switched off, and pages of at most 50 games otherwise.
+export async function getPublicMyGames(handle, { query = "", limit = 30, offset = 0 } = {}) {
+  const rows = await rpc("get_public_my_games", { candidate_handle: handle, candidate_query: query ? String(query) : null, candidate_limit: limit, candidate_offset: offset }, { anonymous: true });
+  return rows?.[0] || null;
+}
+
 // Game Profiles (provider-neutral, optional, owner-private): a plain database read of the profiles GamID already holds for the owner. It never contacts
 // any stats provider; profiles are attached by a backend adapter, never by the browser (there is no browser write).
 export async function getMyGameProfiles() {

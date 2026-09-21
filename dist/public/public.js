@@ -1,5 +1,6 @@
-import { getPublicIdentity, getPublicIdentityByQr, loadPublicAvatar, loadPublicIntroMedia } from "../account/supabase-client.js";
+import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, loadPublicIntroMedia } from "../account/supabase-client.js";
 import { createFlowLayout } from "../flow-layout.js";
+import { normalizeLibrary, renderGamesPreview, createGamesLibrary } from "./public-games.js";
 
 const catalogLabel = (catalog, key) => catalog?.find(item => item.key === key)?.label || key || "";
 
@@ -83,8 +84,11 @@ async function render() {
   const frame = document.getElementById("experienceFrame");
   const replayButton = document.getElementById("replayIntroButton");
   const sectionsPanel = document.getElementById("publicSections");
+  const gamesBlock = document.getElementById("publicGames");
   const shell = document.getElementById("publicShell");
   let hasSections = false;
+  let hasGames = false;
+  let gamesLibrary = null;
 
   // Layout mode. While the Intro plays (and before anything is known) the stage is a full-viewport overlay ("experience"). Once the profile shows, the page becomes
   // ordinary document flow ("flow"): the iframe takes exactly the height the profile inside it reports, so the profile, the provider panel and Replay Intro are simply
@@ -114,6 +118,8 @@ async function render() {
       requestMeasure();
       replayButton.hidden = !hasIntro || event.data.state !== "profile";
       sectionsPanel.hidden = !hasSections || event.data.state !== "profile";
+      gamesBlock.hidden = !hasGames || event.data.state !== "profile";
+      if (event.data.state !== "profile") gamesLibrary?.close();
       layout.setProfileShowing(event.data.state === "profile");
     }
     if (event.data?.type === "gamid-intro-preview-height") {
@@ -139,6 +145,18 @@ async function render() {
   if (!identity) { loading.hidden = true; notFound.hidden = false; return; }
 
   hasSections = renderPublicSections(sectionsPanel, identity.public_sections) > 0;
+  // My Games: the server sends the section only when the owner switched it ON (and there is at least one game): the first six games + the true count. The full
+  // library, its search and Game Details load through the same public function, page by page, only when a visitor asks for them.
+  const gamesPreview = normalizeLibrary(identity.public_sections?.my_games, LEAGUE_SOURCE_LABELS);
+  if (gamesPreview && gamesPreview.libraryCount > 0 && gamesPreview.games.length > 0) {
+    gamesLibrary = createGamesLibrary({
+      element: node, handle: identity.gamid_handle, api: { getPublicMyGames }, libraryCount: gamesPreview.libraryCount, sourceLabels: LEAGUE_SOURCE_LABELS,
+      mount: modal => document.body.append(modal),
+      lockScroll: locked => document.documentElement.classList.toggle("is-games-open", locked),
+    });
+    renderGamesPreview({ element: node, container: gamesBlock, library: gamesPreview, onOpenGame: (game, opener) => gamesLibrary.openGame(game, opener), onViewAll: opener => gamesLibrary.openLibrary(opener) });
+    hasGames = true;
+  }
   config = await buildConfig(identity);
   hasIntro = Boolean(config.videoUrl);
   sendInitial();

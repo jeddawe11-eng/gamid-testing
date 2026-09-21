@@ -28,7 +28,11 @@ test("the migration is additive: one function, one table, owner read, backend wr
   assert.doesNotMatch(migration, /\bdrop\b|\btruncate\b|\bdelete\s+from\b|\balter\s+table\s+(?!public\.game_profiles)/i);
   assert.doesNotMatch(migration, /\binsert\s+into\s+public\.game_profiles\b[^;]*values\s*\(\s*'/i.source ? /\binsert\s+into\s+(?!public\.game_profiles as g)/i : /x/, "no seed data");
   assert.doesNotMatch(migration, /\bupdate\s+public\.(?!game_profiles)/i, "no existing table is updated");
-  for (const other of migrations.filter(item => item !== name)) assert.doesNotMatch(stripSql(read(`supabase/migrations/${other}`)), /game_profiles/, `${other} was not rewritten to mention it`);
+  // no EARLIER migration was rewritten to mention it; a LATER one may only consume it through the accepted public gate (private.public_game_profiles), never the table
+  for (const other of migrations.filter(item => item !== name)) {
+    const code = stripSql(read(`supabase/migrations/${other}`));
+    assert.doesNotMatch(other < name ? code : code.replaceAll("private.public_game_profiles", ""), /game_profiles/, `${other} does not touch the table (only the public gate may be called)`);
+  }
 });
 
 test("no data is fabricated: the migration inserts no Game Profile and names no real game, provider API or player identity", () => {

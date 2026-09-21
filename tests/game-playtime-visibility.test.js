@@ -52,9 +52,10 @@ test("the accepted public-safe boundary was NOT modified by this change (no game
   const publicFunctionMigrations = migrations.filter(name => /public/.test(name) && name !== migrationName);
   assert.ok(publicFunctionMigrations.length > 0);
   for (const name of migrations.filter(item => item !== migrationName)) assert.doesNotMatch(stripSqlComments(read(`supabase/migrations/${name}`)), /show_game_playtime/, `${name} does not reference the switch`);
-  // nothing that renders the public profile knows about playtime or games
+  // The public page's own code still has no playtime logic and no access to the owner switches or to discovery data. (Since Public My Games it DOES render a playtime value, but only
+  // inside public-games.js, and only one the server chose to include: see tests/public-my-games.test.js. The server is the gate, not the page.)
   assert.doesNotMatch(publicJs.replace(/\/\/.*$/gm, ""), /playtime|show_game|discovered_games|hours_played|minutes_played/i);
-  for (const path of ["dist/public/index.html", "dist/public/public.css"]) assert.doesNotMatch(read(path), /playtime|discovered_games|show_game/i);
+  for (const path of ["dist/public/index.html", "dist/public/public.css"]) assert.doesNotMatch(read(path), /discovered_games|show_game/i);
 });
 
 test("client: two owner RPCs only; the value is coerced to a boolean; the default answer is OFF", () => {
@@ -72,7 +73,7 @@ test("editor: the switch is shown only when a game-supplying provider is connect
   const calls = [...account.matchAll(/setGamePlaytimeVisibility\(([^)]*)\)/g)].map(match => match[1]);
   assert.deepEqual(calls, ["visible"], "the only caller passes the value the owner just chose");
   assert.match(account, /Hidden\. Hours played are never shown on your public GamID\./);
-  assert.match(account, /No game list is shown on your public GamID yet\./, "honest about today's scope");
+  assert.match(account, /only for games shown through Show My Games/, "honest about the scope: playtime only ever accompanies a game the owner chose to show");
   assert.match(html, /id="gameDisplaySection"[^>]*hidden/);
   assert.match(html, /id="gameDisplaySlot"/);
 });
