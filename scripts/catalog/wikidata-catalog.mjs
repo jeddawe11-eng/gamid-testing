@@ -2,22 +2,14 @@
 // that private.import_game_catalog_batch() understands. Kept separate from the exporter so it can be unit tested.
 //
 // Source: Wikidata (https://www.wikidata.org), structured data released under CC0 (public domain dedication) and served through its documented
-// public SPARQL endpoint. No account, key or scraping is involved. Only the facts GamID needs are read: title, alternative titles, platforms,
-// the number of Wikipedia language editions (a popularity signal), and a few provider identifiers.
+// public interfaces. No account, key or scraping is involved. Only the facts GamID needs are read: title, alternative titles, platforms, publication
+// dates, the number of Wikipedia language editions (a popularity signal), and a few provider identifiers.
+//
+// The SAME rules apply to a game that is already in the catalog and to a new one: the importer matches by identifier, so enrichment and new imports
+// go through exactly this code.
+import { PLATFORM_QIDS } from "./platform-map.mjs";
 
-// Wikidata platform items -> GamID's normalized platform keys (supabase/migrations/20260921210000_game_catalog_manual_games.sql).
-// A platform Wikidata lists that GamID does not model (macOS, Linux, PS3, ...) is simply ignored, never mapped to something else.
-export const PLATFORM_QIDS = Object.freeze({
-  Q1406: "pc",            // Microsoft Windows
-  Q5014725: "ps4",        // PlayStation 4
-  Q63184502: "ps5",       // PlayStation 5
-  Q13361286: "xbox_one",  // Xbox One
-  Q98973368: "xbox_series", // Xbox Series X and Series S
-  Q19610114: "switch",    // Nintendo Switch
-  Q122761124: "switch2",  // Nintendo Switch 2
-  Q48493: "ios",          // iOS
-  Q94: "android",         // Android
-});
+export { PLATFORM_QIDS };
 
 // Wikidata properties read as provider identifiers.
 export const IDENTIFIER_PROPERTIES = Object.freeze({
@@ -29,13 +21,41 @@ export const IDENTIFIER_PROPERTIES = Object.freeze({
 const STEAM_APP_ID = /^[0-9]{1,10}$/;
 const PLAIN_ID = /^[A-Za-z0-9][A-Za-z0-9._~-]{0,126}$/;
 const BARE_QID = /^Q[0-9]+$/;
+export const BARE_TITLE = BARE_QID;
 export const MAX_ALIASES = 12;
+
+// A publication date is only used when Wikidata gives it at year precision or better (precision 9 = year, 10 = month, 11 = day) and the year is
+// plausible for a video game. Nothing is ever inferred from a title, a decade or free text.
+export const MIN_RELEASE_YEAR = 1950;
+export const MAX_RELEASE_YEAR = 2100;
 
 function cleanTitle(value) {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
 }
 
-// input: { qid, label, sitelinks, platformQids: string[], identifiers: [{ property, value }], aliases: string[] }
+// "1996-09-09T00:00:00Z" + precision -> { year, date, precision } or null. The date keeps only what the precision supports (a year-precision date is January 1st).
+export function parseRelease(rawDate, rawPrecision) {
+  const precision = Number(rawPrecision);
+  if (!Number.isInteger(precision) || precision < 9 || precision > 11) return null;
+  const match = typeof rawDate === "string" ? /^(\d{4})-(\d{2})-(\d{2})T/.exec(rawDate) : null;   // a BCE / far-past year has a sign or more digits and never matches
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < MIN_RELEASE_YEAR || year > MAX_RELEASE_YEAR) return null;
+  // a month / day the precision claims to know must be a real one; a year-precision value ignores whatever month/day the source carries
+  if (precision >= 10 && !(month >= 1 && month <= 12)) return null;
+  if (precision >= 11 && !(day >= 1 && day <= 31)) return null;
+  const date = `${match[1]}-${precision >= 10 ? match[2] : "01"}-${precision >= 11 ? match[3] : "01"}`;
+  const check = new Date(Date.UTC(year, Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10))));
+  if (check.getUTCFullYear() !== year || check.getUTCMonth() !== Number(date.slice(5, 7)) - 1 || check.getUTCDate() !== Number(date.slice(8, 10))) return null;   // 1990-02-31 is not a date
+  return { year, date, precision };
+}
+
+const earlier = (a, b) => (!b || a.date < b.date || (a.date === b.date && a.precision > b.precision) ? a : b);
+
+// input: { qid, label, sitelinks, platformQids: string[], identifiers: [{ property, value }], aliases: string[],
+//          releases: [{ date, precision, platformQid|null }] }
 // returns the neutral catalog item, or null when the entry cannot be offered honestly (no usable title, or no platform GamID can name).
 export function buildCatalogItem(input) {
   if (!input || typeof input !== "object") return null;
@@ -43,7 +63,20 @@ export function buildCatalogItem(input) {
   const name = cleanTitle(input.label);
   if (!qid || name.length < 2 || name.length > 120 || BARE_QID.test(name)) return null;   // an unlabelled item shows up as its bare Q-number
 
-  const platforms = new Set();
+  // 1. publication dates: the earliest valid one is the canonical release; a date qualified with a platform is also that platform's release
+  let canonical = null;
+  const byPlatform = new Map();
+  const releasePlatforms = new Set();
+  for (const raw of Array.isArray(input.releases) ? input.releases : []) {
+    const release = parseRelease(raw?.date, raw?.precision);
+    if (!release) continue;
+    canonical = earlier(release, canonical);
+    const key = raw.platformQid ? PLATFORM_QIDS[raw.platformQid] : null;
+    if (key) { releasePlatforms.add(key); byPlatform.set(key, earlier(release, byPlatform.get(key))); }
+  }
+
+  // 2. platforms: what the game is listed on, plus a platform a dated release names; anything GamID does not model is ignored, never re-mapped
+  const platforms = new Set(releasePlatforms);
   for (const id of input.platformQids || []) { const key = PLATFORM_QIDS[id]; if (key) platforms.add(key); }
 
   const ids = [];
@@ -61,6 +94,7 @@ export function buildCatalogItem(input) {
   // A storefront implies the PC context it runs in; the platform is only offered when a store identifier proves the game is sold there.
   if (ids.some(entry => entry.provider === "steam")) { platforms.add("steam"); platforms.add("pc"); }
   if (ids.some(entry => entry.provider === "epic_games")) { platforms.add("epic_games"); platforms.add("pc"); }
+  if (platforms.has("steam") || platforms.has("epic_games")) platforms.add("pc");   // a store listed as a platform value carries the same PC context
   if (!platforms.size) return null;
 
   const lowered = name.toLowerCase();
@@ -73,7 +107,15 @@ export function buildCatalogItem(input) {
   }
 
   const sitelinks = Number.isSafeInteger(input.sitelinks) && input.sitelinks > 0 ? input.sitelinks : 0;
-  return { source: "WIKIDATA", ref: qid, name, popularity: sitelinks, platforms: [...platforms], aliases, ids };
+  return {
+    source: "WIKIDATA", ref: qid, name, popularity: sitelinks,
+    platforms: [...platforms].sort(), aliases, ids,
+    release_year: canonical ? canonical.year : null,
+    release_date: canonical ? canonical.date : null,
+    release_date_precision: canonical ? canonical.precision : null,
+    // sorted, so the same source facts always give the identical item whatever order Wikidata answered in
+    platform_releases: [...byPlatform.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([platform, release]) => ({ platform, year: release.year, date: release.date, precision: release.precision })),
+  };
 }
 
 // English label preferred, then the language-neutral ("mul") label Wikidata increasingly uses for game titles.

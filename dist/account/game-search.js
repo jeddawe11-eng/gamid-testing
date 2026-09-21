@@ -32,7 +32,9 @@ export function normalizeSearchResults(rows, limit = GAME_SEARCH_MAX_RESULTS) {
     if (!name || name.length > 120) continue;
     const alias = typeof row.matched_alias === "string" && row.matched_alias.trim() && row.matched_alias.trim().length <= 120 ? row.matched_alias.trim() : null;
     seen.add(row.game_key);
-    results.push({ gameKey: row.game_key, name, alias });
+    // the canonical release year is secondary information: shown only when the catalog has a plausible one, never as "Unknown" / "N/A" / 0
+    const year = Number.isInteger(row.release_year) && row.release_year >= 1950 && row.release_year <= 2100 ? row.release_year : null;
+    results.push({ gameKey: row.game_key, name, alias, year });
     if (results.length >= limit) break;
   }
   return results;

@@ -180,7 +180,7 @@ test("the catalog import source is documented, keyless and polite: one public ho
 });
 
 test("no provider integration was started: no Xbox / PlayStation / Riot / Discord / Epic connection code, key, or endpoint in the catalog or manual-game files", () => {
-  const files = ["dist/account/manual-games.js", "dist/account/game-platforms.js", "dist/account/game-search.js", "scripts/catalog/wikidata-catalog.mjs", "scripts/catalog/wikidata-export.mjs", migrationPath];
+  const files = ["dist/account/manual-games.js", "dist/account/game-platforms.js", "dist/account/game-search.js", "scripts/catalog/wikidata-catalog.mjs", "scripts/catalog/wikidata-export.mjs", "scripts/catalog/platform-map.mjs", "scripts/catalog/print-platform-seed.mjs", migrationPath, "supabase/migrations/20260922000000_game_catalog_platforms_release_years.sql", "supabase/migrations/20260922010000_game_catalog_import_key_fix.sql"];
   for (const path of files) assert.doesNotMatch(read(path), /xbox live|playstation network|psn\b|battle\.net|riot games api|x-api-key|oauth|openid|client_secret|service_role_key/i, path);
   const supabaseFunctions = walk(join(root, "supabase/functions")).map(path => readFileSync(path, "utf8")).join("\n");
   assert.doesNotMatch(supabaseFunctions, /game_catalog|entity_game_platforms|search_game_catalog|save_my_manual_game/, "no Edge Function was added or changed for the catalog: it is database-only");
@@ -198,10 +198,12 @@ test("the live database test rolls back always and uses only disposable users an
 
 // ------------------------------------------------------------------------------------------------ the import transform
 test("Wikidata platforms map to GamID's normalized platform keys; a platform GamID does not model is ignored, never re-mapped", () => {
-  assert.deepEqual(Object.values(PLATFORM_QIDS).sort(), ["android", "ios", "pc", "ps4", "ps5", "switch", "switch2", "xbox_one", "xbox_series"].sort());
-  const item = buildCatalogItem({ qid: "Q1", label: "A Game", sitelinks: 5, platformQids: ["Q63184502", "Q98973368", "Q14116", "Q388", "Q10683", "Q1406"], identifiers: [], aliases: [] });
-  assert.deepEqual([...item.platforms].sort(), ["pc", "ps5", "xbox_series"], "macOS / Linux / PS3 are simply not offered");
-  assert.equal(buildCatalogItem({ qid: "Q2", label: "Console Only Long Ago", sitelinks: 3, platformQids: ["Q10683", "Q388"], identifiers: [], aliases: [] }), null, "no platform GamID can name -> not offered (fail safe)");
+  // the nine originally accepted mappings are unchanged (the catalog expansion only ADDED platforms: tests/game-catalog-expansion.test.js)
+  const accepted = { Q1406: "pc", Q5014725: "ps4", Q63184502: "ps5", Q13361286: "xbox_one", Q98973368: "xbox_series", Q19610114: "switch", Q122761124: "switch2", Q48493: "ios", Q94: "android" };
+  for (const [qid, key] of Object.entries(accepted)) assert.equal(PLATFORM_QIDS[qid], key, qid);
+  const item = buildCatalogItem({ qid: "Q1", label: "A Game", sitelinks: 5, platformQids: ["Q63184502", "Q98973368", "Q177234", "Q174666", "Q1406"], identifiers: [], aliases: [] });
+  assert.deepEqual([...item.platforms].sort(), ["pc", "ps5", "xbox_series"], "a mainframe computer / a bare cross-platform marker are simply not offered");
+  assert.equal(buildCatalogItem({ qid: "Q2", label: "Only On Nothing We Model", sitelinks: 3, platformQids: ["Q177234", "Q174666"], identifiers: [], aliases: [] }), null, "no platform GamID can name -> not offered (fail safe)");
 });
 
 test("a storefront identifier proves the store AND its PC context; a game with no store proof is not offered a store", () => {
@@ -238,7 +240,8 @@ test("titles: an unlabelled item (its bare Q-number), a blank or oversized title
 
 test("the item is neutral catalog data only: popularity from the source, provenance WIKIDATA + its id, and NO trust, ownership, user or verification field", () => {
   const item = buildCatalogItem({ qid: "Q10", label: "Neutral", sitelinks: 42, platformQids: ["Q1406"], identifiers: [], aliases: [] });
-  assert.deepEqual(Object.keys(item).sort(), ["aliases", "ids", "name", "platforms", "popularity", "ref", "source"]);
+  assert.deepEqual(Object.keys(item).sort(), ["aliases", "ids", "name", "platform_releases", "platforms", "popularity", "ref", "release_date", "release_date_precision", "release_year", "source"]);
+  assert.deepEqual([item.release_year, item.release_date, item.release_date_precision, item.platform_releases], [null, null, null, []], "no date in the source -> no date (never invented)");
   assert.equal(item.source, "WIKIDATA");
   assert.equal(item.ref, "Q10");
   assert.equal(item.popularity, 42);

@@ -190,9 +190,10 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .game-add-hint{margin:.4rem 0 0;color:var(--muted);font-size:.74rem;line-height:1.45;overflow-wrap:anywhere}
 .game-add-results{display:grid;gap:.35rem;margin:.5rem 0 0;padding:0;list-style:none}
 .game-add-results[data-stale="true"]{opacity:.55}
-.game-result{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .6rem;width:100%;min-height:2.75rem;padding:.55rem .8rem;border:1px solid var(--line);border-radius:.7rem;background:rgba(255,255,255,.03);color:var(--text);text-align:left;font:inherit;cursor:pointer;touch-action:manipulation}
+.game-result{display:flex;flex-wrap:wrap;align-items:baseline;gap:.15rem .35rem;width:100%;min-height:2.75rem;padding:.55rem .8rem;border:1px solid var(--line);border-radius:.7rem;background:rgba(255,255,255,.03);color:var(--text);text-align:left;font:inherit;cursor:pointer;touch-action:manipulation}
 .game-result:hover{border-color:#51456e}
 .game-result-name{font-size:.88rem;font-weight:700;overflow-wrap:anywhere}
+.game-result-year{color:var(--muted);font-size:.74rem;font-weight:600;white-space:normal}
 .game-result-alias{flex:0 0 100%;color:var(--muted);font-size:.7rem;font-weight:600;overflow-wrap:anywhere}
 .game-result-badge{margin-left:auto;padding:.1rem .45rem;border:1px solid #27604a;border-radius:999px;background:#10251d;color:var(--green);font-size:.58rem;font-weight:800;letter-spacing:.08em}
 .game-add-title{margin:0;font-size:1rem;overflow-wrap:anywhere}

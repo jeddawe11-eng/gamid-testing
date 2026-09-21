@@ -267,8 +267,8 @@ test("nothing beyond discovery was started: no Marvel API/stats/UID, no third-pa
     // the isolated W0 throwaway prototype is a separate, unlinked feasibility page (its own isolation is asserted in game-id-wall-w0.test.js)
     && !/[\\/]dist[\\/]prototypes[\\/]game-id-wall-w0[\\/]/.test(path)
     // the Game Catalog migration only lists platform NAMES as reference data (e.g. the Epic Games Store as a storefront under PC); it integrates no provider.
-    // That is asserted for it in tests/game-catalog-contract.test.js, which forbids every provider integration pattern in it.
-    && !/20260921210000_game_catalog_manual_games\.sql$/.test(path));
+    // That is asserted for them in tests/game-catalog-contract.test.js, which forbids every provider integration pattern in them (the expansion migration seeds more platform names).
+    && !/_game_catalog_(manual_games|platforms_release_years)\.sql$/.test(path));
   const all = files.map(path => readFileSync(path, "utf8")).join("\n");
   assert.doesNotMatch(all, /tracker\.gg|rivalsmeta|marvelrivalsapi|mrapi|op\.gg\/marvel|marvel[-_ ]?uid|marvel[-_ ]?rank|marvel[-_ ]?stats|game[-_ ]?id[-_ ]?wall|profile[-_ ]?canvas|xbox live|playstation network|battle\.net|epic games/i);
   assert.doesNotMatch(migration + module + glue, /production|prod\./i);

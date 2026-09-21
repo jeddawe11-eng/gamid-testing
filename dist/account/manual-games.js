@@ -105,6 +105,7 @@ export function createAddGamePanel({ element, api, isInLibrary = () => false, on
       const button = element("button", "game-result");
       button.type = "button";
       button.append(element("span", "game-result-name", game.name));
+      if (game.year !== null && game.year !== undefined) button.append(element("span", "game-result-year", `(${game.year})`));
       if (game.alias) button.append(element("span", "game-result-alias", `Also known as ${game.alias}`));
       if (isInLibrary(game.gameKey)) button.append(element("span", "game-result-badge", "In My Games"));
       button.addEventListener("click", () => choose(game.gameKey, game.name, true));

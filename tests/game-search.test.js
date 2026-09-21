@@ -55,7 +55,7 @@ test("the search begins at exactly 3 characters, once, after the debounce - and 
   assert.deepEqual(h.requests[0], { query: "mar", limit: GAME_SEARCH_MAX_RESULTS });
   await h.answer(0, [row("marvel_rivals", "Marvel Rivals")]);
   assert.equal(h.last().status, "results");
-  assert.deepEqual(h.last().results, [{ gameKey: "marvel_rivals", name: "Marvel Rivals", alias: null }]);
+  assert.deepEqual(h.last().results, [{ gameKey: "marvel_rivals", name: "Marvel Rivals", alias: null, year: null }]);
 });
 
 test("debounce: a burst of keystrokes makes ONE request for the final text, not one per keystroke", () => {
@@ -127,7 +127,7 @@ test("alias matches keep the alias the server reported, so the user can see why 
   h.search.input("zorkling");
   h.fireTimers();
   await h.answer(0, [row("qzxplore_saga", "Qzxplore Saga", "Zorkling Chronicles")]);
-  assert.deepEqual(h.last().results, [{ gameKey: "qzxplore_saga", name: "Qzxplore Saga", alias: "Zorkling Chronicles" }]);
+  assert.deepEqual(h.last().results, [{ gameKey: "qzxplore_saga", name: "Qzxplore Saga", alias: "Zorkling Chronicles", year: null }]);
 });
 
 test("results are bounded and sanitized: at most the limit, duplicates and malformed rows dropped, nothing but a canonical key plus text survives", async () => {
