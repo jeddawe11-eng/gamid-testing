@@ -1,0 +1,15 @@
+// GamID TESTING - Cloudflare Workers Static Assets, PHASE 0a (hosting proof only).
+// Static files ONLY: there is no Worker script, no /@handle logic, no run_worker_first, no bindings, no secrets.
+// Run `node scripts/stage-cloudflare.mjs` first: it builds .cloudflare-stage/ from dist/ exactly like the GitHub Pages workflow does.
+// GitHub Pages stays the live TESTING host; this is a parallel deployment on a temporary *.workers.dev hostname.
+{
+  "name": "gamid-testing-static",
+  "compatibility_date": "2026-01-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "./.cloudflare-stage",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

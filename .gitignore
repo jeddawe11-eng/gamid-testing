@@ -2,3 +2,5 @@
 .claude/
 supabase/.temp/
 
+.cloudflare-stage/
+.wrangler/
