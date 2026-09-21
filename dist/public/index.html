@@ -11,14 +11,14 @@
 </head>
 <body>
   <header class="site-head"><a href="../" class="brand" aria-label="GamID">GAM<span>ID</span></a><span class="test-badge">TESTING · TEMPORARY ROUTE</span></header>
-  <main class="public-shell">
+  <main id="publicShell" class="public-shell" data-mode="loading">
     <div id="loadingState" class="state"><div class="loader"></div><p>Loading GamID…</p></div>
     <div id="notFoundState" class="state" hidden><h1>This GamID isn't public.</h1><p>The identity you're looking for doesn't exist, or its owner hasn't published it.</p></div>
     <div id="experienceWrap" class="experience-wrap" hidden>
       <iframe id="experienceFrame" title="GamID public identity" src="../account/intro-preview.html?v=__ASSET_VERSION__" allow="autoplay"></iframe>
-      <button id="replayIntroButton" class="replay-button" type="button" hidden>↻ Replay Intro</button>
     </div>
     <aside id="publicSections" class="public-sections" aria-label="More about this GamID" hidden></aside>
+    <button id="replayIntroButton" class="replay-button" type="button" hidden>↻ Replay Intro</button>
   </main>
   <script type="module" src="public.js?v=__ASSET_VERSION__"></script>
 </body>

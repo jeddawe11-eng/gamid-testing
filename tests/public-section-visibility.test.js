@@ -198,8 +198,10 @@ test("the public League presentation says prototype/unverified and names its sou
 test("the Intro and its iframe are not modified by this phase (the panel lives outside the iframe)", () => {
   assert.doesNotMatch(introPreview + introHtml, /public_sections|publicSections|show_education|visibilitySwitch/);
   assert.match(publicHtml, /<iframe id="experienceFrame" title="GamID public identity" src="\.\.\/account\/intro-preview\.html\?v=__ASSET_VERSION__" allow="autoplay"><\/iframe>/);
-  assert.match(publicCss, /\.public-sections\{[^}]*pointer-events:none/, "the panel never intercepts taps meant for the Intro");
-  assert.match(publicCss, /\.public-sections\{[^}]*z-index:22/);
+  // (was: a position:fixed overlay with pointer-events:none so it could never intercept taps meant for the Intro. The panel is now ordinary flow content placed AFTER the
+  //  profile - see tests/public-profile-responsive-layout.test.js - and is hidden unless the profile is showing, so it can never sit on top of the Intro either.)
+  assert.doesNotMatch(publicCss.match(/\.public-sections\{[^}]*\}/)[0], /position:\s*(fixed|absolute)|max-height|overflow/, "the panel is never an overlay");
+  assert.match(publicJs, /sectionsPanel\.hidden = !hasSections \|\| event\.data\.state !== "profile"/, "and it is not shown while the Intro plays");
 });
 
 test("nothing else was started: no other game, no Cinematic Profile Engine, no Production reference", () => {

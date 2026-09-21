@@ -1,4 +1,5 @@
 import { getPublicIdentity, getPublicIdentityByQr, loadPublicAvatar, loadPublicIntroMedia } from "../account/supabase-client.js";
+import { createFlowLayout } from "../flow-layout.js";
 
 const catalogLabel = (catalog, key) => catalog?.find(item => item.key === key)?.label || key || "";
 
@@ -82,7 +83,16 @@ async function render() {
   const frame = document.getElementById("experienceFrame");
   const replayButton = document.getElementById("replayIntroButton");
   const sectionsPanel = document.getElementById("publicSections");
+  const shell = document.getElementById("publicShell");
   let hasSections = false;
+
+  // Layout mode. While the Intro plays (and before anything is known) the stage is a full-viewport overlay ("experience"). Once the profile shows, the page becomes
+  // ordinary document flow ("flow"): the iframe takes exactly the height the profile inside it reports, so the profile, the provider panel and Replay Intro are simply
+  // stacked content and the PAGE scrolls. Without a reported height the overlay is kept (the old behavior), never a guessed height.
+  const requestMeasure = () => frame.contentWindow?.postMessage({ type: "gamid-intro-preview-measure" }, location.origin);
+  // Entering flow can change the frame's width (a page scrollbar may appear) and so how its text wraps. The profile re-measures on resize by itself; these two bounded
+  // re-checks make the result independent of when the browser delivers that resize (fonts and late layout included). A value that did not change sends nothing.
+  const layout = createFlowLayout({ shell, frame, root: document.documentElement, scrollToTop: () => scrollTo(0, 0), onEnterFlow: () => { setTimeout(requestMeasure, 250); setTimeout(requestMeasure, 1200); } });
 
   let frameReady = false;
   let config = null;
@@ -99,11 +109,20 @@ async function render() {
       // The child only ever broadcasts a state after play() has actually applied a config, so this is
       // the proof (not a guess) that the iframe now shows this identity rather than its raw placeholder markup.
       if (!revealed) { revealed = true; loading.hidden = true; experienceWrap.hidden = false; }
+      document.documentElement.classList.add("is-public-live");
+      // a hidden (display:none) frame has no layout, so a height measured before the reveal is 0: ask for a fresh measurement now that the stage is showing
+      requestMeasure();
       replayButton.hidden = !hasIntro || event.data.state !== "profile";
       sectionsPanel.hidden = !hasSections || event.data.state !== "profile";
+      layout.setProfileShowing(event.data.state === "profile");
+    }
+    if (event.data?.type === "gamid-intro-preview-height") {
+      // the profile reports how tall its content really is (initially, and again whenever wrapping / fonts / content change); flow-layout.js ignores anything but a sane number
+      layout.setHeight(event.data.height);
     }
   });
   frame.addEventListener("load", () => { frameReady = true; sendInitial(); });
+  replayButton.addEventListener("click", layout.enterExperience);   // the Intro needs the full viewport again (registered first, so it runs before the config is sent)
   replayButton.addEventListener("click", sendReplay);
 
   const params = new URLSearchParams(location.search);

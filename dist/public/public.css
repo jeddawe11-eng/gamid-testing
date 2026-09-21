@@ -10,10 +10,25 @@ body{margin:0;min-width:320px;min-height:100svh;background:radial-gradient(circl
 .state h1{color:#fff;font-size:1.5rem;letter-spacing:-.03em;margin:0 0 .6rem}
 .loader{width:2.3rem;height:2.3rem;border:3px solid #292438;border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1.2rem}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* LAYOUT MODES (data-mode on .public-shell, set by public.js):
+   loading / experience - the Intro (and its transition) needs the whole viewport, so the stage is a fixed full-viewport overlay and the page does not scroll;
+   flow                 - the Intro is over: the profile is ordinary document content. The iframe is exactly as tall as the profile inside it (public.js applies the
+                          height the profile reports), the provider panel and Replay Intro are normal blocks after it, and the PAGE scrolls. Nothing here has a height of its own. */
 .experience-wrap{position:fixed;inset:0;z-index:20;background:#07060b}
 .experience-wrap iframe{display:block;width:100%;height:100%;border:0}
-.replay-button{position:fixed;z-index:21;left:max(1rem,env(safe-area-inset-left));bottom:max(1rem,env(safe-area-inset-bottom));min-height:2.6rem;padding:.6rem 1rem;border:1px solid rgba(255,255,255,.25);border-radius:999px;background:rgba(10,8,16,.72);backdrop-filter:blur(10px);color:#fff;font-size:.78rem;font-weight:750}
-.public-sections{position:fixed;z-index:22;right:max(1rem,env(safe-area-inset-right));bottom:max(4.4rem,calc(env(safe-area-inset-bottom) + 3.9rem));display:grid;gap:.6rem;width:min(21rem,calc(100vw - 2rem));max-height:40svh;overflow:auto;padding:.85rem 1rem;border:1px solid rgba(255,255,255,.2);border-radius:1rem;background:rgba(10,8,16,.78);backdrop-filter:blur(10px);pointer-events:none}
+html.is-public-live:not(.is-public-flow){overflow:hidden}
+html.is-public-flow{scrollbar-gutter:stable}
+.is-public-live .site-head{display:none}
+.is-public-live .public-shell{display:block;min-height:0;padding:0}
+.public-shell[data-mode="flow"]{display:grid;grid-template-columns:minmax(0,1fr);align-content:start;justify-items:stretch;align-items:start;place-items:stretch;background:#090811}
+.public-shell[data-mode="flow"] .experience-wrap{position:static;grid-area:1/1;align-self:start;z-index:auto;background:transparent}
+.public-shell[data-mode="flow"] .public-sections{grid-area:2/1}
+.public-shell[data-mode="flow"] .replay-button{grid-area:3/1}
+/* wide screens keep the desktop composition: the provider panel sits in the free area to the right of the identity column, aligned with it, and its height still
+   counts (the grid row is as tall as the taller of the two). Below this width the identity column and the panel would overlap, so the panel simply follows it. */
+@media(min-width:80rem){.public-shell[data-mode="flow"] .public-sections{grid-area:1/1;justify-self:end;align-self:start;width:21rem;margin:6rem max(1.5rem,env(safe-area-inset-right)) 1.5rem 0}}
+.replay-button{position:relative;z-index:1;justify-self:start;margin:1.25rem max(1rem,env(safe-area-inset-left)) calc(1.25rem + env(safe-area-inset-bottom));min-height:2.6rem;padding:.6rem 1rem;border:1px solid rgba(255,255,255,.25);border-radius:999px;background:rgba(10,8,16,.72);color:#fff;font-size:.78rem;font-weight:750}
+.public-sections{position:relative;z-index:1;display:grid;gap:.6rem;width:min(38rem,calc(100% - 2rem));margin:1rem auto 0;padding:.85rem 1rem;border:1px solid rgba(255,255,255,.2);border-radius:1rem;background:rgba(10,8,16,.78)}
 .public-sections[hidden]{display:none}
 .public-section{display:grid;gap:.2rem;min-width:0}
 .public-section+.public-section{padding-top:.6rem;border-top:1px solid rgba(255,255,255,.1)}

@@ -212,7 +212,8 @@ test("the Intro page implements the ambient from the SAME video: one video eleme
 
 test("CSS: wide sources only - a contained foreground box, the ambient behind it, split clips aligned to the same box; portrait rules untouched", () => {
   const css = read("dist/account/intro-preview.css");
-  const wide = css.slice(css.indexOf("/* LANDSCAPE / square sources"));
+  // the wide-source block ends where the separate, public-route-only "PUBLIC FLOW" block begins (see tests/public-profile-responsive-layout.test.js)
+  const wide = css.slice(css.indexOf("/* LANDSCAPE / square sources"), css.indexOf("/* PUBLIC FLOW"));
   assert.match(wide, /\.preview-only \.experience\[data-orient="wide"\] \.intro-ambient\{display:block/);
   assert.match(wide, /\.media-stage>video\{[^}]*width:var\(--fg-w,100%\);height:var\(--fg-h,100%\)[^}]*object-fit:contain/);
   assert.match(wide, /\.split-left video\{left:calc\(100% - var\(--fg-w,200%\) \/ 2\)/);

@@ -21,3 +21,11 @@
 .preview-only .experience[data-orient="wide"] .split-right video{left:calc(0px - var(--fg-w,200%) / 2);right:auto}
 .preview-only .experience[data-orient="wide"] .intro-ambient,.preview-only .experience[data-orient="wide"] .intro-ambient-shade{transition:opacity .35s ease}
 .preview-only .experience[data-state="transitioning"][data-orient="wide"] .preset-split .intro-ambient,.preview-only .experience[data-state="transitioning"][data-orient="wide"] .preset-split .intro-ambient-shade{opacity:0}
+
+/* PUBLIC FLOW (config.publicMode sets html[data-flow="on"]; see intro-preview.js). While the Intro plays this document is exactly as before (a full-viewport experience).
+   Once it is over the profile is plain content: no height, min-height or overflow is tied to the viewport, so the frame can be exactly as tall as the content and the host
+   page scrolls. The hero keeps its old vertical offset, but measured against the HOST viewport (--pvh) so it can never depend on this frame's own height. */
+html[data-flow="on"] .preview-only .hero-card{margin-top:clamp(1rem,calc(var(--pvh,1vh) * 9),6rem)}
+html[data-flow="on"] .preview-only:not(.is-experiencing) .prototype-shell{min-height:0}
+html[data-flow="on"] .preview-only:not(.is-experiencing) .experience{height:auto;min-height:0}
+html[data-flow="on"] .preview-only:not(.is-experiencing) .profile{height:auto;min-height:0;overflow:visible}
