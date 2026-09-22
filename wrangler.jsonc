@@ -1,15 +1,20 @@
-// GamID TESTING - Cloudflare Workers Static Assets, PHASE 0a (hosting proof only).
-// Static files ONLY: there is no Worker script, no /@handle logic, no run_worker_first, no bindings, no secrets.
+// GamID TESTING - Cloudflare Workers Static Assets. Phase 0a (accepted): static files only, byte-identical to GitHub Pages. Phase 1 (this): adds two dynamic
+// routes (cf-worker/worker.mjs) - /@<handle> and /@<handle>/intro.webm - run first so they see the request before Cloudflare's own asset routing (which
+// 307-redirects a literal "/@black" to "/%40black" - observed in Phase 0a). Every other path is completely unchanged: no Worker code runs, the accepted static
+// behavior (incl. the accepted 404) applies.
 // Run `node scripts/stage-cloudflare.mjs` first: it builds .cloudflare-stage/ from dist/ exactly like the GitHub Pages workflow does.
-// GitHub Pages stays the live TESTING host; this is a parallel deployment on a temporary *.workers.dev hostname.
+// GitHub Pages stays the live TESTING fallback; this is a parallel deployment on a temporary *.workers.dev hostname. No secrets, no KV/R2/Durable Objects.
 {
   "name": "gamid-testing-static",
   "compatibility_date": "2026-01-01",
+  "main": "./cf-worker/worker.mjs",
   "workers_dev": true,
   "preview_urls": false,
   "assets": {
     "directory": "./.cloudflare-stage",
+    "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "404-page"
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/@*"]
   }
 }

@@ -80,6 +80,18 @@ async function buildConfig(identity) {
   };
 }
 
+// The temporary `?handle=` route (GitHub Pages, via the 404.html client-side redirect) stays the primary source, so its exact prior behavior is unchanged. The
+// permanent `/@<handle>` route, served directly (no redirect) by the Phase 1 Cloudflare Worker, carries the handle in the path instead - used only when no query
+// handle is present. A malformed percent-encoding in the path never throws: it is simply treated as no handle, same as an empty query.
+export function resolveHandle(search, pathname) {
+  const params = new URLSearchParams(search);
+  const queryHandle = (params.get("handle") || "").trim();
+  if (queryHandle) return queryHandle.replace(/^@/, "");
+  const match = /^\/@([^/]+)\/?$/.exec(pathname);
+  if (!match) return "";
+  try { return decodeURIComponent(match[1]).trim().replace(/^@/, ""); } catch { return ""; }
+}
+
 async function render() {
   const loading = document.getElementById("loadingState");
   const notFound = document.getElementById("notFoundState");
@@ -135,7 +147,7 @@ async function render() {
   replayButton.addEventListener("click", sendReplay);
 
   const params = new URLSearchParams(location.search);
-  const handle = (params.get("handle") || "").trim().replace(/^@/, "");
+  const handle = resolveHandle(location.search, location.pathname);
   const qrToken = (params.get("qr") || "").trim();
 
   let identity = null;

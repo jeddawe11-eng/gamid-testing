@@ -30,3 +30,10 @@ verify_jwt = true
 # it (auth.uid()) and throttles the lookup before any outbound request is made.
 [functions.league-lookup]
 verify_jwt = true
+
+# Social Identity Preview card (PHASE 2 / Architecture C): fetched by social-media crawlers (Discord, WhatsApp, etc.) via a bare
+# og:image URL, so it cannot present a GamID session JWT - same reasoning as discord-connect-callback above. Safe because the
+# function itself only ever reads through the same anonymous, RLS-gated public.get_public_identity RPC and avatar storage path
+# an ordinary anonymous visitor's browser already reads; it grants no additional access.
+[functions.social-card]
+verify_jwt = false
