@@ -1418,6 +1418,84 @@ Starting point: accepted checkpoint `30e55f2` (Public Profile responsive height 
 **ACCEPTANCE RECORD — Public My Games is IMPLEMENTED — MANUALLY TESTED — ACCEPTED BY MAZEN.** Accepted implementation checkpoint: `006b97375a30d0be248d22e021b3588d673e1ee7` (feature `42eedfa` + the acceptance fixes above; the global rank / stats privacy correction and the recognizable Steam icon are included and were manually accepted). Automated baseline at that checkpoint: **738 / 738** tests. Mazen tested the real TESTING identity `@black` and verified: (1) Show My Games ON exposes the library with the real count; (2) with the real library at 7 games the profile shows exactly 6 and the button "View all 7 games"; (3) the seven real games are Manual: Crash Bandicoot (1996, PlayStation (PS1)), Grand Theft Auto: San Andreas (2004, PlayStation 2), League of Legends (2009, PC), Sonic Adventure (1998, Sega Dreamcast), Tetris (1984, Game Boy) and Steam-discovered: Dota 2 (2013), Marvel Rivals (2024); GTA San Andreas and Sonic Adventure were first added to exercise the more-than-six behavior, but Mazen confirmed he really played both, so they are legitimate Manual declarations and must be kept; (4) View all shows all seven with provenance visible; (5) search filters only the owner's library (MA -> Marvel Rivals, SON -> Sonic Adventure), never catalog results; (6) Sonic Adventure details: Platforms Sega Dreamcast, Source "Added manually - Not verified", no playtime / rank / stats; (7) GTA San Andreas details likewise (PlayStation 2); (8) Dota 2 and Marvel Rivals show the recognizable Steam icon beside "Steam - Discovered", never Verified, no checkmark; (9) Show playtime OFF hides Steam playtime in Game Details, ON shows Dota 2 20.9 hours and Marvel Rivals 4.3 hours; (10) "Show ranks & stats on my GamID" is a global public control: with it OFF the public League card keeps its identity (per its own visibility switch) but hides rank / LP / W-L, and the protected fields are absent from the server response, not hidden by CSS; (11) trust is unchanged: Manual = Added manually - Not verified, Steam = Discovered (not ownership verification), League / OP.GG = PROTOTYPE / UNVERIFIED; (12) the section stays in normal page flow (no regression of the accepted responsive-height fix, no inner vertical scrolling of the main profile), View all / Game Details / Back / Close work, and Replay Intro stays naturally after the content. Not started and not authorized by this acceptance: Game ID Wall W1, Xbox, PlayStation integration, Marvel provider, IGDB, Cinematic Profile Engine, further Public My Games features, per-game visibility.
 **Not built (by design):** per-game switches, Xbox / PlayStation / IGDB / Marvel stats, filters (All / Steam / Manual / platform: deliberately skipped, not needed for the core feature), typo-tolerant search, game artwork, Wall W1, Cinematic Profile Engine.
 
+## 7x. Universal Social Identity Preview / Share Engine — research, Phase 0a hosting proof, Phase 0b social-preview validation lab (TESTING only; CLOSED — AWAITING MAZEN'S ACCEPTANCE BEFORE PHASE 1)
+
+Trigger: sharing the real permanent URL (`https://jeddawe11-eng.github.io/gamid-testing/@black`) into a real Discord channel produced only a raw link, no rich card. This section documents the research and the two validation phases that followed, all TESTING-only and none of them touching `/@black`, Supabase, Auth/OAuth, Google Cloud, DNS, a domain, or any paid Cloudflare feature.
+
+**Why `@black` has no Discord preview today (confirmed).** GitHub Pages answers `/@black` with **HTTP 404** and no Open Graph/Twitter tags; the redirect to the real profile (`dist/404.html`) runs in client-side JavaScript, which crawlers never execute. Confirmed later in Phase 0b: a 404-with-full-tags page (`n1`) got **no rich preview on either Discord or WhatsApp**, and a same-URL 302 redirect to a direct-200 page (`r1`) **did** get the full preview on both. This is the concrete, tested reason the eventual `/@handle` architecture must answer with a direct HTTP 200, not rely on today's 404 + JS redirect.
+
+**Architecture decision (research only, current official docs).** Cloudflare's own docs now say "Start new projects with Workers" over Pages+Functions; Workers Static Assets covers every capability GamID needs (dynamic `/@handle` via `run_worker_first`, static hosting, custom domains later) and adds observability, gradual deployments and Rate Limiting that Pages lacks. Decision: **Workers + Static Assets**, not Pages. No file was changed for this research step.
+
+### Phase 0a — Cloudflare Workers Static Assets hosting proof (ACCEPTED)
+
+A parallel, temporary deployment of the exact staged `dist/` (same exclusion of `assets/gamid-intro.mp4` and the same `__ASSET_VERSION__` stamping the GitHub Pages workflow does) to a **separate Cloudflare Worker**, `gamid-testing-static`, on the `gamid` workers.dev subdomain (registered with Mazen's explicit authorization; free, no paid feature). GitHub Pages stayed live throughout and was never modified.
+
+- **Added:** `wrangler.jsonc` (assets-only: no Worker script, no bindings, no secrets, no `/@*` logic), `scripts/stage-cloudflare.mjs` (stages `dist/` → `.cloudflare-stage/`, normalizes any CRLF line endings introduced by a Windows checkout to LF so the artifact is byte-identical to what GitHub Pages publishes), `.gitignore` entries for `.cloudflare-stage/` and `.wrangler/`.
+- **Validated:** all 61 published files byte-identical on Cloudflare, on the staged artifact and on GitHub Pages; anonymous browsing (landing, `/account/` sign-in/register, the public `@black` profile with Discord/Steam/League/My Games/Replay Intro) verified in a real browser; 738/738 tests before and after.
+- **One accepted limitation, left unpatched on purpose (belongs to the future `/@*` Worker, not to this static-only phase):** `/@black` 404s on the Cloudflare host too — Cloudflare's default `html_handling` redirects `/@black` to `/%40black`, and the client-side redirect script looks for a literal `@`, so it never fires there. GitHub Pages remains the link people should share until Phase 1.
+- **Accepted implementation checkpoint: `270df4b6e45ea9c73fffed12be83fd4a8a1b43a6`.**
+
+### Phase 0b — social-preview validation lab (manual testing complete; Telegram testing cancelled, not required)
+
+A second, fully isolated Worker, **`gamid-social-lab`**, on the same `gamid` workers.dev subdomain, kept in an **untracked** `social-lab/` folder until this closing checkpoint. It has no Supabase calls, no secrets, no real profile data and no real Intro; every media file is synthetic (ffmpeg test patterns with a burned-in running clock, so "the poster only" and "it actually played" are visually distinguishable), including a made-up 4K VP9/WebM clip built to the same *shape* as the accepted Intro D3 derivative (3840×2160, 30 fps, ~14 MiB) — never the real Intro itself.
+
+**Method.** Seventeen hand-written pages (`/x/<id>`) each return explicit Open Graph/Twitter metadata in the *first* HTTP response (no JavaScript), so what a crawler does can be told apart from what a browser does. Every request was logged (`wrangler tail`, JSON) with method, path, User-Agent, Range header and network operator.
+
+**Test matrix (what each experiment isolates):**
+
+| Group | id | Varies |
+|---|---|---|
+| static image | s1 | Baseline: 1200×630 PNG, `twitter:card=summary_large_image` |
+| static image | s2 | Square 600×600, `twitter:card=summary` |
+| redirect | s3 | `og:image` URL itself 302s to the real image |
+| redirect | r1 | The **page URL** 302s to `s1` |
+| redirect | r2 | The page URL 301s to `s1` |
+| redirect | r3 | HTTP 200 with tags + a client-side meta-refresh (the `404.html` pattern, but with tags present) |
+| status | n1 | Full tags, but **HTTP 404** (today's real `/@handle` shape) |
+| status | n2 | Full tags + `<meta name=robots content=noindex>` (today's real public shell carries this) |
+| video | v1 | Baseline MP4 H.264/AAC 720p, `og:video`+`:url`+`:secure_url`+`:type`+dimensions, `og:type=video.other` |
+| video | v2 | v1 + `twitter:card=player` (no player URL) |
+| video | v3 | Same content as v1, WebM/VP9/Opus instead of MP4 |
+| video | v4 | v1's video tags kept, but `og:type=website` (tests whether `video.other` is actually required) |
+| video | v5 | ~9.2 MiB MP4 (above the ~8 MB figure quoted for Discord's own uploads) |
+| video | v6 | `og:video` URL itself 302s to the real MP4 |
+| video | v7 | Synthetic 3840×2160 VP9/Opus WebM, ~14.3 MiB — same shape as the accepted D3 derivative |
+| video | v8 | X/Twitter player-card markup: `twitter:player` iframe + `twitter:player:stream` |
+| cache | c1 | `Cache-Control: no-store`, a fresh random token in the title on every fetch (refetch/cache probe) |
+
+**Manually observed results (Mazen, real platforms).**
+
+*Discord:* s1 — rich image card. v1–v8 — all rendered as a **playable video embed**; **no autoplay**; a click on Play was required; playback then worked correctly (video and audio). n1 (404 + tags) — **no rich preview**. r1 (302 → s1) — Discord followed the redirect and rendered the full s1 card.
+
+*WhatsApp:* preview generation was noticeably slower than Discord (an initial text-only state before the card populated). s1 — image/title/description rendered after waiting. v1 — rendered as a **static fallback** (poster image + title/description); the video **did not** play inline. n1 (404 + tags) — no rich preview, only bare link/domain text. r1 (302 → s1) — WhatsApp followed the redirect and rendered the full s1 card.
+
+*Telegram, X, Facebook, iMessage, LinkedIn, Slack:* **NOT TESTED.** Telegram testing was planned as the one remaining minimum test but was explicitly cancelled by Mazen and is **not required for Phase 0b acceptance**. Nothing about these platforms is claimed.
+
+**Available crawler-log evidence, and its real limits.** The `wrangler tail` capture process ran only in a background shell tied to this session and did not survive across the gap to Mazen's actual test session, so it captured a short window immediately after deployment, not the manual test run itself. What it did capture (independently confirms part of the Discord result): a real Discordbot UA (`Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)`) fetched `/x/s1`'s page and image, and fetched `/x/v1`'s page, poster and the **entire MP4 with a plain, non-ranged GET** (consistent with Discord's crawler ingesting/transcoding server-side); a few seconds later a separate fetch arrived over Cloudflare's own network with a spoofed old Firefox/Mac User-Agent doing **incremental HTTP Range requests** (`bytes=0-`, then `bytes=65536-`) — the signature of a video player, not a crawler, consistent with "had to press Play, then it played". **No log data exists for v2–v8 individually or for any WhatsApp fetch** — those results rest on Mazen's direct visual observation only, not on log corroboration.
+
+**Distinguishing CONFIRMED / MANUALLY OBSERVED / NOT TESTED:**
+- **CONFIRMED (log + observation), Discord s1 and v1 only:** crawler fetches page + media in full; playback is click-to-play, never automatic; a Range-based re-fetch follows a user's Play press.
+- **MANUALLY OBSERVED (Mazen, real platforms, no independent log corroboration):** Discord v2–v8 behave the same as v1 (embed, click-to-play, plays correctly) regardless of `twitter:card` value, container/codec, `og:type`, file size to ~9.2 MiB, a redirecting video URL, or the 4K/14 MiB D3-shaped WebM; Discord n1 fails, r1 succeeds; WhatsApp s1 succeeds (slowly), v1 falls back to a static poster with no inline playback, n1 fails, r1 succeeds.
+- **NOT TESTED:** Telegram (cancelled), X, Facebook, iMessage, LinkedIn, Slack; the `c1` cache/refetch probe was deployed but never exercised on a real platform; `s2`/`s3`/`n2`/`r2`/`r3` were deployed but not part of Mazen's reported results.
+
+**Cloudflare Range/Content-Length finding (lab-only, applies to Phase 3 planning).** Cloudflare Workers Static Assets served through `env.ASSETS.fetch()` answers every request with **HTTP 200 and no `Content-Length`**, ignoring an incoming `Range` header entirely (GitHub Pages, by contrast, answers a byte range with 206 and `Content-Range`). The lab Worker works around this by buffering each asset (all ≤ 15 MiB) and implementing 206 partial content / 416 out-of-range itself. A future production media path serving larger or real Intro-derived video through a Worker will need the same handling (or a different serving strategy) — this was not a problem in Phase 0a because Phase 0a serves no video.
+
+**Architectural conclusions to carry into Phase 1 design:**
+1. The permanent GamID URL must ultimately answer **HTTP 200 directly** with crawler-readable metadata; it must not depend on today's 404 + client-side-redirect.
+2. A redirect *can* produce a preview (confirmed on both tested platforms), but that is not the target design — direct 200 remains preferred.
+3. Progressive enhancement holds: a rich static Identity Card is the reliable baseline everywhere; video is an enhancement only where a platform is proven to support it.
+4. Discord: click-to-play video preview is available (proven).
+5. WhatsApp: treat as static-poster/image only; do not depend on inline video there (proven).
+6. No autoplay assumption anywhere (Discord explicitly requires a click; nothing tested autoplayed).
+7. Telegram, X, Facebook, iMessage, LinkedIn and Slack remain **UNTESTED** — none may be claimed as validated in any future design document.
+8. The accepted Intro/D3 pipeline is unchanged and untouched; social-preview media stays an additive concern (a possible future MP4/H.264 derivative, decided in a later phase, not this one).
+
+**Preserved for future phases.** The `social-lab/` folder (Worker, staging script, `wrangler.jsonc`) is committed at this checkpoint so the validation is reproducible; the generated synthetic media files are git-ignored (`social-lab/assets/`, regenerate with `social-lab/generate-assets.ps1`, requires a local `ffmpeg`) rather than committed, to keep the repository small. The `gamid-social-lab` Worker itself is left deployed (free plan) as a live reference; it can be removed at any time with `wrangler delete --name gamid-social-lab`.
+
+**Validation of this closing checkpoint.** `npm run build`: **738/738** tests, unchanged — Phase 0a/0b added no application code and no migration, so no test was added or modified. GitHub Pages and the accepted Phase 0a Worker (`gamid-testing-static.gamid.workers.dev`) both re-verified healthy (200 on the landing page, `/account/`, and the public `@black` profile) after this checkpoint was pushed. Supabase, Auth/OAuth, Google Cloud, DNS, the domain, the Intro pipeline and real user data were not touched by any part of this section. Production was never accessed.
+
+**Status: CLOSED, awaiting Mazen's acceptance before Phase 1** (the `/@*` dynamic Worker, which will resolve the accepted `/@black` limitation from Phase 0a).
+
 ## 8. Real Samsung / real E2E evidence
 
 A protected Samsung/@BLACK job proved the backend path:
@@ -1492,6 +1570,7 @@ Do not ask for another upload or resume these automatically. Discuss the next pr
 | Marvel Rivals stats (Game Profile) | **NOT INTEGRATED — waiting on a permitted, reachable provider** | MarvelRivalsAPI.com was down (Cloudflare 502) and is unofficial/unsanctioned; Tracker.gg is never to be scraped; no key requested, no fake data. The provider-neutral Game Profile foundation (section 7s) is ready to receive a real adapter. Marvel Rivals stays a compact "Discovered via Steam" row with no arrow |
 | Public My Games (compact six-game list, View all, own-library search, Game Details, Steam / Manual source states, playtime and ranks & stats privacy) | **IMPLEMENTED — MANUALLY TESTED — ACCEPTED BY MAZEN (section 7w; accepted implementation checkpoint `006b97375a30d0be248d22e021b3588d673e1ee7`, including the global rank / stats privacy correction and the real Steam icon)** | Default OFF for everyone; three library-wide switches (no per-game switch); Discord is not a game source; nothing is ever labelled VERIFIED; hidden values are absent from the server response, not hidden by CSS. Xbox / PlayStation / IGDB / Marvel stats / W1 not started. |
 | Public Profile responsive height / overflow (desktop + mobile) | **ACCEPTED by Mazen (section 7v)** | The profile now sizes to its content (iframe height = height reported by the profile; panel and Replay Intro are ordinary flow blocks; the page scrolls). The fixed viewport stage exists only while the Intro plays. No magic height. The older "Mobile optional-card / Bio overlap" row above is a separate account-side item and was not re-verified here. |
+| Universal Social Identity Preview / Share Engine — architecture research + Phase 0a Cloudflare hosting proof + Phase 0b social-preview validation lab | **PHASE 0a ACCEPTED (checkpoint `270df4b`); PHASE 0b CLOSED, AWAITING MAZEN'S ACCEPTANCE BEFORE PHASE 1 (section 7x)** | Architecture: Workers + Static Assets (not Pages). Confirmed: Discord click-to-play video, WhatsApp static-poster-only, both need a direct HTTP 200 (a 404 kills the preview on both; a redirect works but isn't the target design). Telegram/X/Facebook/iMessage/LinkedIn/Slack NOT TESTED. `/@black` itself is unchanged; no dynamic Worker, no domain, no paid feature. |
 | Game Catalog completeness (27,182 games, 102 platforms, 95.65 % with a release year; source Wikidata) | **EXPANDED IN TESTING (section 7u); AWAITING MAZEN'S MANUAL ACCEPTANCE** | Notable games only (at least 2 Wikipedia editions); games with fewer editions, 1,182 games without a source date and 365 unmapped platform values are not covered (fail safe). Extend with the resumable exporter + loader (sections 7t, 7u); better platform data would need IGDB (a key Mazen would create). No typo tolerance. |
 | Manual game add / edit / remove in My Games (canonical catalog, multi-platform, MANUAL only) | **IMPLEMENTED AND DEPLOYED TO TESTING; AWAITING MAZEN'S MANUAL ACCEPTANCE** | See section 7t. The library moved out of the Steam card into one provider-neutral My Games region. Xbox / PlayStation / Discord discovery, Marvel stats and W1 not started. |
 | Spotify/YouTube usable-layout minimums for the Wall | **FINDING FOR W1** | Provider acceptance ≠ good layout (Spotify compresses/crops at ~200×80; YouTube 200×200 is a square crop). W1 needs a product minimum / variants and aspect-preserving defaults. See section 7o |

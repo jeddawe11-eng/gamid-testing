@@ -1,0 +1,16 @@
+// GamID Phase 0b - SOCIAL PREVIEW VALIDATION LAB (TESTING only, disposable). A separate Worker from the accepted Phase 0a static-assets Worker.
+// Deploy: npx wrangler@4.86.0 deploy -c social-lab/wrangler.jsonc     Remove: npx wrangler@4.86.0 delete --name gamid-social-lab
+// Free plan only: no KV / R2 / Durable Objects / Supabase / secrets. Media is served as static assets THROUGH the Worker (run_worker_first) so every fetch is logged.
+{
+  "name": "gamid-social-lab",
+  "main": "./worker.mjs",
+  "compatibility_date": "2026-01-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": "./assets",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "observability": { "enabled": true }
+}
