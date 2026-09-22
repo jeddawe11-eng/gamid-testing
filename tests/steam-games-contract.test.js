@@ -267,6 +267,10 @@ test("nothing beyond discovery was started: no Marvel API/stats/UID, no third-pa
   const files = [...walk(join(root, "dist")), ...walk(join(root, "supabase"))].filter(path => /\.(js|ts|html|css|sql|toml)$/.test(path) && !/qrcode\.min\.js$/.test(path)
     // the isolated W0 throwaway prototype is a separate, unlinked feasibility page (its own isolation is asserted in game-id-wall-w0.test.js)
     && !/[\\/]dist[\\/]prototypes[\\/]game-id-wall-w0[\\/]/.test(path)
+    // Game ID Wall W1 (the versioned document/validation/renderer foundation) is separately, explicitly authorized product work - not scope creep from
+    // this Steam slice. It has no live route and is provider-neutral by construction (its own isolation/no-provider-dependency is asserted in
+    // game-id-wall-w1.test.js); this guard still applies to every other file, so a stray Wall reference inside an actual Steam file is still caught.
+    && !/[\\/]dist[\\/]wall[\\/]/.test(path)
     // the Game Catalog migration only lists platform NAMES as reference data (e.g. the Epic Games Store as a storefront under PC); it integrates no provider.
     // That is asserted for them in tests/game-catalog-contract.test.js, which forbids every provider integration pattern in them (the expansion migration seeds more platform names).
     && !/_game_catalog_(manual_games|platforms_release_years)\.sql$/.test(path));
