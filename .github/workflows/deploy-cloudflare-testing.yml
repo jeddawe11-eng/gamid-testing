@@ -86,6 +86,8 @@ jobs:
         run: npm run build
 
       - name: Stage Cloudflare artifact
+        env:
+          GITHUB_SHA: ${{ steps.source.outputs.actual_sha }}
         run: node scripts/stage-cloudflare.mjs
 
       - name: Verify staged artifact
@@ -134,19 +136,36 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
           const base = process.env.TESTING_URL;
+          const attempts = 12;
+          const retryDelayMs = 5000;
+          const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+          async function fetchAfterPropagation(path) {
+            let lastStatus = "network error";
+            for (let attempt = 1; attempt <= attempts; attempt += 1) {
+              try {
+                const response = await fetch(new URL(path, base));
+                lastStatus = response.status;
+                if (response.ok) return response;
+              } catch (error) {
+                lastStatus = error instanceof Error ? error.message : "network error";
+              }
+              if (attempt < attempts) await sleep(retryDelayMs);
+            }
+            throw new Error(`${path} returned ${lastStatus} after ${attempts} attempts`);
+          }
+
           for (const path of ["/", "/account/", "/play-together/", "/@black"]) {
-            const response = await fetch(new URL(path, base));
-            if (!response.ok) throw new Error(`${path} returned ${response.status}`);
+            await fetchAfterPropagation(path);
           }
           const pageUrl = new URL("/play-together/", base);
-          const page = await fetch(pageUrl);
+          const page = await fetchAfterPropagation("/play-together/");
           const html = await page.text();
           if (html.includes("__ASSET_VERSION__")) throw new Error("Play Together still contains an unstamped asset version");
           const assets = [...html.matchAll(/(?:href|src)="([^"]+\?v=[0-9a-f]{7})"/g)].map(match => new URL(match[1], pageUrl));
           if (assets.length < 3) throw new Error("Expected versioned Play Together assets were not found");
           for (const url of assets) {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`${url.pathname} returned ${response.status}`);
+            await fetchAfterPropagation(`${url.pathname}${url.search}`);
           }
           NODE
 

@@ -82,6 +82,15 @@ test("workflow reports deployment identity and prepares the approved TESTING smo
   assert.match(workflow, /\?v=\[0-9a-f\]\{7\}/);
 });
 
+test("staging stamps the selected source SHA and smoke checks tolerate bounded deployment propagation", () => {
+  assert.match(workflow, /Stage Cloudflare artifact\s+env:\s+GITHUB_SHA: \$\{\{ steps\.source\.outputs\.actual_sha \}\}/);
+  assert.match(workflow, /const attempts = 12;/);
+  assert.match(workflow, /const retryDelayMs = 5000;/);
+  assert.match(workflow, /async function fetchAfterPropagation\(path\)/);
+  assert.match(workflow, /if \(attempt < attempts\) await sleep\(retryDelayMs\);/);
+  assert.match(workflow, /after \$\{attempts\} attempts/);
+});
+
 test("workflow has no Production target, credential, environment, or automatic trigger", () => {
   assert.doesNotMatch(workflow, /name:\s*PRODUCTION/i);
   assert.doesNotMatch(workflow, /CLOUDFLARE_[A-Z_]*PRODUCTION|PRODUCTION_[A-Z_]*CLOUDFLARE/i);
