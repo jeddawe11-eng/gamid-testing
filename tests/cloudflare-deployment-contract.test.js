@@ -4,10 +4,11 @@ import { readFile } from "node:fs/promises";
 
 const root = new URL("../", import.meta.url);
 const read = path => readFile(new URL(path, root), "utf8");
-const [wrangler, staging, workflow] = await Promise.all([
+const [wrangler, staging, workflow, pagesWorkflow] = await Promise.all([
   read("wrangler.jsonc"),
   read("scripts/stage-cloudflare.mjs"),
   read(".github/workflows/deploy-cloudflare-testing.yml"),
+  read(".github/workflows/deploy-pages.yml"),
 ]);
 const config = JSON.parse(wrangler.replace(/^\s*\/\/.*$/gm, ""));
 
@@ -88,4 +89,11 @@ test("workflow has no Production target, credential, environment, or automatic t
   assert.doesNotMatch(workflow, /CLOUDFLARE_ENV/);
   assert.doesNotMatch(workflow, /--env\s+production/i);
   assert.doesNotMatch(workflow, /^\s+(push|pull_request|schedule):/m);
+});
+
+test("legacy GitHub Pages is preserved but cannot deploy automatically from a main push", () => {
+  assert.match(pagesWorkflow, /^on:\s*\n\s+workflow_dispatch:/m);
+  assert.doesNotMatch(pagesWorkflow, /^\s+(push|pull_request|schedule):/m);
+  assert.match(pagesWorkflow, /name: github-pages/);
+  assert.match(pagesWorkflow, /uses: actions\/deploy-pages@v4/);
 });
