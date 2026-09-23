@@ -1,12 +1,13 @@
 import { restoreSession, rpc, ApiError } from "../account/supabase-client.js";
 import { DEFAULT_LANGUAGES, MAX_LANGUAGES, humanMic, maxSeatsForQueue, queuesForExperience, validateDraft } from "./domain.js";
+import { resolvePlayTogetherStartup } from "./startup.js";
 
 const $ = id => document.getElementById(id);
 let catalog = null;
 let activeSession = null;
 
 function show(name) {
-  for (const id of ["loadingPanel","authPanel","activePanel","createPanel"]) $(id).hidden = id !== name;
+  for (const id of ["loadingPanel","authPanel","loadErrorPanel","activePanel","createPanel"]) $(id).hidden = id !== name;
 }
 function message(text, ok=false) { $("pageMessage").textContent=text; $("pageMessage").classList.toggle("success",ok); $("pageMessage").hidden=!text; }
 function errorText(error) {
@@ -61,5 +62,19 @@ $("createForm").addEventListener("submit",async event=>{
   try{await rpc("create_play_together_session",{candidate_queue_key:queue.key,candidate_region_key:draft.regionKey,candidate_seats_wanted:draft.seatsWanted,candidate_language_keys:languageKeys,candidate_mic_preference:draft.micPreference});await refresh();message("Session created.",true);}catch(error){message(errorText(error));}finally{$("createButton").disabled=false;}
 });
 $("cancelButton").addEventListener("click",async()=>{if(!activeSession)return; $("cancelButton").disabled=true;message("");try{await rpc("cancel_my_play_together_session",{candidate_session_id:activeSession.session_id});activeSession=null;show("createPanel");message("Session cancelled. You can create another one.",true);}catch(error){message(errorText(error));}finally{$("cancelButton").disabled=false;}});
+$("retryButton").addEventListener("click",()=>location.reload());
 
-(async()=>{try{const session=await restoreSession();if(!session){show("authPanel");return;}catalog=await getCatalog();if(!catalog)throw new ApiError("Play Together catalog is unavailable.",500,"CATALOG_UNAVAILABLE");renderCatalog();await refresh();}catch(error){show("authPanel");message(errorText(error));}})();
+(async()=>{
+  const startup=await resolvePlayTogetherStartup({
+    restoreSession,
+    loadAuthenticated:async()=>{
+      const loadedCatalog=await getCatalog();
+      if(!loadedCatalog)throw new ApiError("Play Together catalog is unavailable.",500,"CATALOG_UNAVAILABLE");
+      const loadedSession=await getActive();
+      return {catalog:loadedCatalog,activeSession:loadedSession};
+    },
+  });
+  if(startup.state==="AUTH_REQUIRED"){show("authPanel");if(startup.error)message(errorText(startup.error));return;}
+  if(startup.state==="LOAD_ERROR"){show("loadErrorPanel");message(errorText(startup.error));return;}
+  catalog=startup.value.catalog;activeSession=startup.value.activeSession;renderCatalog();if(activeSession)renderActive();else show("createPanel");
+})();
