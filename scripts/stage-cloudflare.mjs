@@ -1,6 +1,6 @@
 // Stages dist/ for Cloudflare Workers Static Assets EXACTLY the way .github/workflows/deploy-pages.yml stages it for GitHub Pages:
 //   1. copy dist/ without /assets/gamid-intro.mp4 (the deferred video is never published)
-//   2. replace __ASSET_VERSION__ with the first 7 characters of the commit SHA in the three pages that carry it
+//   2. replace __ASSET_VERSION__ with the first 7 characters of the commit SHA in every page that carries it
 // The result (.cloudflare-stage/, git-ignored) is what wrangler.jsonc points at. This is a hosting step only: no application file is edited in the repo.
 import { cp, rm, readFile, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
@@ -10,7 +10,7 @@ import { join, resolve } from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const source = join(root, "dist");
 const target = join(root, ".cloudflare-stage");
-const STAMPED = ["public/index.html", "account/index.html", "account/intro-preview.html"];
+const STAMPED = ["public/index.html", "account/index.html", "account/intro-preview.html", "play-together/index.html"];
 const EXCLUDED = new Set([resolve(source, "assets", "gamid-intro.mp4")]);
 
 const sha = (process.env.GITHUB_SHA || execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim()).slice(0, 7);

@@ -1,0 +1,156 @@
+name: Deploy Cloudflare TESTING
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: "Feature branch to deploy to Cloudflare TESTING"
+        required: true
+        type: string
+      expected_sha:
+        description: "Exact 40-character commit SHA expected at source_ref"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-testing
+  cancel-in-progress: false
+
+jobs:
+  deploy-testing:
+    environment:
+      name: TESTING
+      url: https://gamid-testing-static.gamid.workers.dev
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ACCEPTED_BASELINE_SHA: 1bbec1b4c00b0a4189a6d77f42608c058de49317
+      INITIAL_PLAY_TOGETHER_SHA: 3f1e78c2aa61a59607187a132c7fbddf7b932c7d
+      INITIAL_PLAY_TOGETHER_TREE: 7a1a6063e71d7140cf78a0dcfe94e213d365b24a
+      TESTING_WORKER_NAME: gamid-testing-static
+      TESTING_URL: https://gamid-testing-static.gamid.workers.dev
+      WRANGLER_VERSION: 4.86.0
+
+    steps:
+      - name: Validate requested source
+        env:
+          SOURCE_REF: ${{ inputs.source_ref }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_REF" =~ ^feature/[A-Za-z0-9._/-]+$ ]] || { echo "source_ref must name a feature/* branch" >&2; exit 1; }
+          [[ "$SOURCE_REF" != *".."* && "$SOURCE_REF" != */ && "$SOURCE_REF" != */. && "$SOURCE_REF" != *.lock ]] || { echo "source_ref is not a safe branch name" >&2; exit 1; }
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "expected_sha must be a lowercase full Git SHA" >&2; exit 1; }
+
+      - name: Checkout explicitly requested source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify commit, ancestry, tree, and TESTING-only config
+        id: source
+        env:
+          SOURCE_REF: ${{ inputs.source_ref }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          TREE_SHA="$(git rev-parse HEAD^{tree})"
+          [[ "$ACTUAL_SHA" == "$EXPECTED_SHA" ]] || { echo "source_ref resolved to $ACTUAL_SHA, expected $EXPECTED_SHA" >&2; exit 1; }
+          git merge-base --is-ancestor "$ACCEPTED_BASELINE_SHA" "$ACTUAL_SHA" || { echo "Selected commit does not descend from the accepted baseline" >&2; exit 1; }
+          if [[ "$EXPECTED_SHA" == "$INITIAL_PLAY_TOGETHER_SHA" ]]; then
+            [[ "$TREE_SHA" == "$INITIAL_PLAY_TOGETHER_TREE" ]] || { echo "Initial Play Together tree mismatch" >&2; exit 1; }
+          fi
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          const text = readFileSync("wrangler.jsonc", "utf8");
+          const config = JSON.parse(text.replace(/^\s*\/\/.*$/gm, ""));
+          if (config.name !== process.env.TESTING_WORKER_NAME) throw new Error("Unexpected Worker name");
+          if (config.assets?.directory !== "./.cloudflare-stage") throw new Error("Unexpected assets directory");
+          if (config.workers_dev !== true) throw new Error("TESTING Worker must use workers.dev");
+          if (config.env || config.routes || config.route || config.custom_domain) throw new Error("Environment, route, or custom-domain config is forbidden");
+          if (/production/i.test(JSON.stringify(config))) throw new Error("Production configuration is forbidden");
+          NODE
+          echo "actual_sha=$ACTUAL_SHA" >> "$GITHUB_OUTPUT"
+          echo "tree_sha=$TREE_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Install project dependencies deterministically
+        run: npm ci
+
+      - name: Run complete project validation
+        run: npm run build
+
+      - name: Stage Cloudflare artifact
+        run: node scripts/stage-cloudflare.mjs
+
+      - name: Verify staged artifact
+        run: |
+          set -euo pipefail
+          test -f .cloudflare-stage/play-together/index.html
+          test -f .cloudflare-stage/play-together/play-together.js
+          test -f .cloudflare-stage/play-together/play-together.css
+          test ! -e .cloudflare-stage/assets/gamid-intro.mp4
+          if grep -RIl -- '__ASSET_VERSION__' .cloudflare-stage | grep -q .; then
+            echo "Unstamped __ASSET_VERSION__ placeholder remains in the staged artifact" >&2
+            exit 1
+          fi
+
+      - name: Record pre-deployment summary
+        env:
+          SOURCE_REF: ${{ inputs.source_ref }}
+        run: |
+          {
+            echo "## Cloudflare TESTING deployment"
+            echo "- Requested source: \`$SOURCE_REF\`"
+            echo "- Resolved source SHA: \`${{ steps.source.outputs.actual_sha }}\`"
+            echo "- Root tree SHA: \`${{ steps.source.outputs.tree_sha }}\`"
+            echo "- Worker: \`$TESTING_WORKER_NAME\`"
+            echo "- Wrangler: \`$WRANGLER_VERSION\`"
+            echo "- Staged artifact: verified"
+            echo "- TESTING URL: $TESTING_URL"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Deploy existing Cloudflare TESTING Worker
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if npx --yes "wrangler@$WRANGLER_VERSION" deploy --config wrangler.jsonc; then
+            echo "result=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=failure" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Smoke-check deployed TESTING site
+        if: steps.deploy.outputs.result == 'success'
+        run: |
+          node --input-type=module <<'NODE'
+          const base = process.env.TESTING_URL;
+          for (const path of ["/", "/account/", "/play-together/", "/@black"]) {
+            const response = await fetch(new URL(path, base));
+            if (!response.ok) throw new Error(`${path} returned ${response.status}`);
+          }
+          const pageUrl = new URL("/play-together/", base);
+          const page = await fetch(pageUrl);
+          const html = await page.text();
+          if (html.includes("__ASSET_VERSION__")) throw new Error("Play Together still contains an unstamped asset version");
+          const assets = [...html.matchAll(/(?:href|src)="([^"]+\?v=[0-9a-f]{7})"/g)].map(match => new URL(match[1], pageUrl));
+          if (assets.length < 3) throw new Error("Expected versioned Play Together assets were not found");
+          for (const url of assets) {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`${url.pathname} returned ${response.status}`);
+          }
+          NODE
+
+      - name: Record deployment result
+        if: always()
+        run: |
+          echo "- Deployment result: \`${{ steps.deploy.outputs.result || 'not-run-or-failed' }}\`" >> "$GITHUB_STEP_SUMMARY"
