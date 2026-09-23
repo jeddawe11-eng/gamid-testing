@@ -120,9 +120,13 @@ test("migration: the rest of the public boundary is byte-for-byte what it was (1
   assert.match(next, /private\.public_my_games\(e\.entity_id, null, 6, 0\)/);
 });
 
-test("migration: additive - it replaces two functions, drops nothing, writes no data, and is the newest migration", () => {
+test("migration: additive - it replaces two functions, drops nothing, writes no data, and later slices do not rewrite its public boundary", () => {
   assert.doesNotMatch(scopeSql, /\bdrop\b|\btruncate\b|\bdelete\b|\binsert\b|\bupdate\b|\balter\b|create table/i);
-  assert.equal(readdirSync(new URL("supabase/migrations/", root)).sort().at(-1), scopeName);
+  const later = readdirSync(new URL("supabase/migrations/", root)).sort().filter(name => name > scopeName);
+  for (const name of later) {
+    const sql = stripSql(read(`supabase/migrations/${name}`));
+    assert.doesNotMatch(sql, /create or replace function private\.get_public_identity_impl|create or replace function private\.public_game_stats_allowed/, `${name} leaves the accepted public stats boundary intact`);
+  }
   assert.doesNotMatch(scopeSql, /'VERIFIED'|verified/i, "League stays prototype / unverified");
 });
 

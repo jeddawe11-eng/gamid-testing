@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#08070d" />
+  <meta name="description" content="Create a GamID Play Together squad session." />
+  <title>GamID — Play Together</title>
+  <link rel="stylesheet" href="../account/account.css?v=__ASSET_VERSION__" />
+  <link rel="stylesheet" href="play-together.css?v=__ASSET_VERSION__" />
+</head>
+<body>
+  <header class="site-head"><a href="../" class="brand">GAM<span>ID</span></a><span class="test-badge">TESTING</span></header>
+  <main class="pt-shell">
+    <nav class="pt-nav"><a href="../account/">← Your GamID</a><span>PLAY TOGETHER</span></nav>
+    <section class="pt-hero"><p class="eyebrow">CREATE SQUAD</p><h1>Need players?<br><span>Build your session.</span></h1><p>GamID finds candidates later. You remain the host, and nobody joins without your approval.</p></section>
+
+    <section id="loadingPanel" class="pt-card pt-loading" aria-live="polite"><div class="loader"></div><p>Loading your Play Together session…</p></section>
+    <section id="authPanel" class="pt-card" hidden><p class="eyebrow">SIGN IN REQUIRED</p><h2>Enter your GamID first</h2><p>Play Together is available to authenticated GamID members.</p><a class="primary pt-action-link" href="../account/">GO TO SIGN IN</a></section>
+
+    <section id="activePanel" class="pt-card" hidden aria-live="polite">
+      <div class="pt-title-row"><div><p class="eyebrow">MY ACTIVE SESSION</p><h2>Matching</h2></div><span class="pt-status">PLAY NOW</span></div>
+      <dl id="activeDetails" class="pt-summary"></dl>
+      <p class="pt-host-note">Host approval is required. Accepted, ready, and joined are separate future steps.</p>
+      <button id="cancelButton" class="secondary danger" type="button">CANCEL SESSION</button>
+    </section>
+
+    <section id="createPanel" class="pt-card" hidden>
+      <div class="pt-locks" aria-label="This slice's fixed choices"><span>NEED PLAYERS</span><span>ME</span><span>PLAY NOW</span></div>
+      <form id="createForm" novalidate>
+        <label>Game<select id="gameSelect" disabled><option>League of Legends</option></select></label>
+        <label>Experience<select id="experienceSelect" required></select></label>
+        <label>Mode / Queue<select id="queueSelect" required></select><small id="queueNote"></small></label>
+        <label>Riot region / server<select id="regionSelect" required></select><small>Official Riot platform routing identity—not free text.</small></label>
+        <label>Seats Wanted<select id="seatsSelect" required disabled></select><small id="seatsHelp">Choose a queue first.</small></label>
+        <fieldset class="pt-languages"><legend>Languages <span>Choose up to two</span></legend><div id="languageChoices"></div><small>English is selected by default. Future matching needs at least one shared language.</small></fieldset>
+        <fieldset class="pt-mic"><legend>Mic preference</legend><div>
+          <label><input type="radio" name="mic" value="REQUIRED" /> Required</label>
+          <label><input type="radio" name="mic" value="PREFERRED" checked /> Preferred</label>
+          <label><input type="radio" name="mic" value="NO_PREFERENCE" /> No preference</label>
+        </div></fieldset>
+        <div class="pt-approval"><strong>HOST APPROVAL</strong><span>Matching can recommend players. It never auto-admits them.</span></div>
+        <button id="createButton" class="primary" type="submit">CREATE PLAY NOW SESSION</button>
+      </form>
+    </section>
+    <p id="pageMessage" class="form-message" role="alert" hidden></p>
+  </main>
+  <script type="module" src="play-together.js?v=__ASSET_VERSION__"></script>
+</body>
+</html>

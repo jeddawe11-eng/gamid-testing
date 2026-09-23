@@ -1,0 +1,38 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const root=new URL("../",import.meta.url);
+const migration=await readFile(new URL("supabase/migrations/20260922173758_play_together_vertical_slice_1.sql",root),"utf8");
+const indexes=await readFile(new URL("supabase/migrations/20260922174129_play_together_fk_indexes.sql",root),"utf8");
+const html=await readFile(new URL("dist/play-together/index.html",root),"utf8");
+const js=await readFile(new URL("dist/play-together/play-together.js",root),"utf8");
+const css=await readFile(new URL("dist/play-together/play-together.css",root),"utf8");
+const account=await readFile(new URL("dist/account/index.html",root),"utf8");
+
+test("account exposes the Play Together entry without changing Wall",()=>assert.match(account,/href="\.\.\/play-together\/"/));
+test("first UI is locked to Need Players, Me, Play Now",()=>{for(const text of ["NEED PLAYERS","ME","PLAY NOW"])assert.match(html,new RegExp(text));});
+test("UI has structured experience, queue, region, seats, language and mic controls",()=>{for(const id of ["experienceSelect","queueSelect","regionSelect","seatsSelect","languageChoices"])assert.match(html,new RegExp(`id="${id}"`));for(const value of ["REQUIRED","PREFERRED","NO_PREFERENCE"])assert.match(html,new RegExp(value));});
+test("UI supports active state, cancel, and persistence RPC reads",()=>{assert.match(html,/MY ACTIVE SESSION/);assert.match(js,/get_my_active_play_together_session/);assert.match(js,/cancel_my_play_together_session/);});
+test("UI states mandatory host approval and never auto admission",()=>{assert.match(html,/HOST APPROVAL/);assert.match(html,/never auto-admits/);assert.doesNotMatch(`${html}${js}${migration}`,/AUTO_MATCH|AUTO_JOIN/);});
+test("responsive contract has phone and desktop layouts",()=>{assert.match(css,/@media\(min-width:42rem\)/);assert.match(css,/@media\(max-width:23rem\)/);});
+test("core session table is multi-game and references canonical game catalog",()=>{assert.match(migration,/game_key text not null references public\.game_catalog/);assert.match(migration,/create table public\.play_together_sessions/);assert.doesNotMatch(migration,/league_sessions/);});
+test("catalog is structured and versioned with Riot provenance",()=>{for(const table of ["play_together_rule_sets","play_together_experiences","play_together_queues","play_together_regions"])assert.match(migration,new RegExp(`create table public\\.${table}`));assert.match(migration,/verified_on date not null/);assert.match(migration,/official_source_url text not null/);});
+test("TFT is an independent experience beneath League",()=>{assert.match(migration,/\('teamfight_tactics','league_of_legends','Teamfight Tactics','GAME_EXPERIENCE'/);assert.doesNotMatch(migration,/\('teamfight_tactics','summoners_rift'/);});
+test("current Riot catalog includes core, rotating, region-dependent and disabled entries",()=>{for(const key of ["sr_draft","sr_ranked_solo_duo","sr_ranked_flex","sr_swiftplay","sr_quickplay","aram_standard","aram_mayhem","arena_current","classic_current","ranked_fives_current","tft_normal","tft_ranked","tft_double_up","tft_hyper_roll","tft_choncc"])assert.match(migration,new RegExp(`'${key}'`));for(const state of ["ACTIVE","ROTATING","DISABLED","REGION_DEPENDENT","UNVERIFIED"])assert.match(migration,new RegExp(`'${state}'`));});
+test("historical Riot queues are not blindly imported",()=>{assert.doesNotMatch(migration,/Twisted Treeline|Dominion|Odyssey Extraction|Nexus Blitz games/);});
+test("all 16 official Riot platform routing IDs are seeded",()=>{for(const id of ["BR1","EUN1","EUW1","JP1","KR","LA1","LA2","NA1","OC1","TR1","RU","PH2","SG2","TH2","TW2","VN2"])assert.match(migration,new RegExp(`'${id}'`));});
+test("language catalog has exactly ten initial languages and English first",()=>{const block=migration.match(/insert into public\.play_together_languages values([\s\S]*?)insert into public\.play_together_settings/)[1];assert.equal(block.split("\n").filter(line=>/^\s*\('[a-z-]+',/.test(line)).length,10);assert.match(block,/\('en','English','English',10,true/);});
+test("database enforces max two languages",()=>{assert.match(migration,/cardinality\(language_keys\) between 1 and 2/);assert.match(migration,/INVALID_LANGUAGES/);});
+test("seats wanted is separate and server checked against verified party size",()=>{assert.match(migration,/current_group_size integer/);assert.match(migration,/seats_wanted integer/);assert.match(migration,/1\+candidate_seats_wanted>q\.max_premade_party_size/);assert.doesNotMatch(migration,/party_size between 2 and 20/);});
+test("timing concepts remain separate and horizon is configurable",()=>{for(const field of ["scheduled_start_at","matching_expires_at","ready_check_deadline_at"])assert.match(migration,new RegExp(field));assert.match(migration,/scheduled_horizon_minutes/);});
+test("session state avoids redundant FULL",()=>{assert.doesNotMatch(migration,/'FULL'/);for(const state of ["MATCHING","READY_CHECK","ROOM_OPEN","IN_PLAY","COMPLETED","CANCELLED","EXPIRED"])assert.match(migration,new RegExp(`'${state}'`));});
+test("duplicate active host sessions are prevented server-side",()=>{assert.match(migration,/create unique index play_together_one_active_host_idx/);assert.match(migration,/pg_advisory_xact_lock/);assert.match(migration,/ACTIVE_SESSION_EXISTS/);});
+test("expiry is performed server-side before active reads and creates",()=>assert.ok((migration.match(/set status='EXPIRED'/g)||[]).length>=2));
+test("authorization uses auth.uid and owner membership",()=>{assert.match(migration,/auth\.uid\(\)/);assert.match(migration,/m\.role='OWNER'/);assert.doesNotMatch(migration,/candidate_user_id/);});
+test("all tables use RLS and direct authenticated writes are revoked",()=>{assert.equal((migration.match(/enable row level security/g)||[]).length,8);assert.match(migration,/revoke all on table[\s\S]*from public, anon, authenticated/);});
+test("RPC pattern uses private definer implementations and public invoker wrappers",()=>{assert.match(migration,/private\.create_play_together_session_impl[\s\S]*security definer set search_path = ''/);assert.match(migration,/public\.create_play_together_session[\s\S]*security invoker set search_path=''/);});
+test("cancel is owner-scoped",()=>assert.match(migration,/s\.session_id=candidate_session_id and s\.creator_entity_id=owned_entity_id/));
+test("rule version is persisted on each session",()=>{assert.match(migration,/rule_set_id uuid not null references public\.play_together_rule_sets/);assert.match(migration,/q\.rule_set_id/);});
+test("Discord and future participant concepts are not coupled into Slice 1",()=>{assert.doesNotMatch(migration,/discord_id|discord_channel|play_together_participants|join_request|ready_state/);});
+test("every advisor-identified Play Together foreign key has a covering index",()=>{for(const name of ["experiences_game","queue_regions_region","queues_rule_set","sessions_game","sessions_experience","sessions_queue","sessions_rule_set","sessions_region"])assert.match(indexes,new RegExp(`play_together_${name}_idx`));assert.doesNotMatch(indexes,/drop|delete|update|alter table/i);});

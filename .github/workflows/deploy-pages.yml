@@ -35,7 +35,7 @@ jobs:
       - name: Stamp deterministic asset version
         run: |
           VERSION="${GITHUB_SHA:0:7}"
-          for f in public/index.html account/index.html account/intro-preview.html; do
+          for f in public/index.html account/index.html account/intro-preview.html play-together/index.html; do
             sed -i "s/__ASSET_VERSION__/${VERSION}/g" "${RUNNER_TEMP}/gamid-pages/${f}"
           done
 
