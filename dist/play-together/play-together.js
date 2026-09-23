@@ -1,6 +1,7 @@
 import { restoreSession, rpc, ApiError } from "../account/supabase-client.js";
 import { DEFAULT_LANGUAGES, MAX_LANGUAGES, humanMic, maxSeatsForQueue, queuesForExperience, validateDraft } from "./domain.js";
 import { resolvePlayTogetherStartup } from "./startup.js";
+import { legacyAccountHandoffUrl } from "../account/testing-auth-handoff.js";
 
 const $ = id => document.getElementById(id);
 let catalog = null;
@@ -74,7 +75,11 @@ $("retryButton").addEventListener("click",()=>location.reload());
       return {catalog:loadedCatalog,activeSession:loadedSession};
     },
   });
-  if(startup.state==="AUTH_REQUIRED"){show("authPanel");if(startup.error)message(errorText(startup.error));return;}
+  if(startup.state==="AUTH_REQUIRED"){
+    const handoffUrl=legacyAccountHandoffUrl(location);
+    if(handoffUrl){location.replace(handoffUrl);return;}
+    show("authPanel");if(startup.error)message(errorText(startup.error));return;
+  }
   if(startup.state==="LOAD_ERROR"){show("loadErrorPanel");message(errorText(startup.error));return;}
   catalog=startup.value.catalog;activeSession=startup.value.activeSession;renderCatalog();if(activeSession)renderActive();else show("createPanel");
 })();
