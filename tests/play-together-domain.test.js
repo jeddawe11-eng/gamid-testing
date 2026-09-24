@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_LANGUAGES, MAX_LANGUAGES, MIC_VALUES, humanMic, maxSeatsForQueue, normalizeLanguages, queuesForExperience, validateDraft } from "../dist/play-together/domain.js";
+import { DEFAULT_LANGUAGES, MAX_LANGUAGES, MIC_VALUES, humanMic, maxSeatsForQueue, normalizeLanguages, queueOptionLabel, queuesForExperience, validateDraft } from "../dist/play-together/domain.js";
 
 const enabledQueue = { key:"aram_standard", experience_key:"aram", enabled:true, max_party_size:5 };
 
@@ -11,6 +11,10 @@ test("mic labels are human readable",()=>assert.equal(humanMic("NO_PREFERENCE"),
 test("ME seats are separate from official party capacity",()=>assert.equal(maxSeatsForQueue(enabledQueue),4));
 test("unverified or disabled queues allow no seats",()=>assert.equal(maxSeatsForQueue({enabled:false,max_party_size:5}),0));
 test("queues are selected through their structured experience key",()=>assert.deepEqual(queuesForExperience({queues:[enabledQueue,{key:"x",experience_key:"arena"}]},"aram"),[enabledQueue]));
+test("active queues without verified creation limits explain why they are disabled",()=>{
+  assert.equal(queueOptionLabel({name:"Normal",availability:"ACTIVE",enabled:false,note:"Premade party capacity is not officially verified."}),"Normal · ACTIVE · Not available for creation — Premade party capacity is not officially verified.");
+  assert.equal(queueOptionLabel({name:"Double Up",availability:"ACTIVE",enabled:true}),"Double Up");
+});
 test("valid draft passes",()=>assert.equal(validateDraft({queue:enabledQueue,regionKey:"sg2",seatsWanted:2,languageKeys:["en"],micPreference:"PREFERRED"}),null));
 test("draft rejects disabled queue",()=>assert.match(validateDraft({queue:{enabled:false},regionKey:"sg2",seatsWanted:1,languageKeys:["en"],micPreference:"PREFERRED"}),/available/));
 test("draft rejects missing region",()=>assert.match(validateDraft({queue:enabledQueue,regionKey:"",seatsWanted:1,languageKeys:["en"],micPreference:"PREFERRED"}),/region/));

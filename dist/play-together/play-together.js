@@ -1,7 +1,8 @@
 import { restoreSession, rpc, ApiError } from "../account/supabase-client.js";
-import { DEFAULT_LANGUAGES, MAX_LANGUAGES, humanMic, maxSeatsForQueue, queuesForExperience, validateDraft } from "./domain.js";
+import { DEFAULT_LANGUAGES, MAX_LANGUAGES, humanMic, maxSeatsForQueue, queueOptionLabel, queuesForExperience, validateDraft } from "./domain.js";
 import { resolvePlayTogetherStartup } from "./startup.js";
 import { legacyAccountHandoffUrl } from "../account/testing-auth-handoff.js";
+import { createStatusMessage } from "./status-message.js";
 
 const $ = id => document.getElementById(id);
 let catalog = null;
@@ -10,7 +11,7 @@ let activeSession = null;
 function show(name) {
   for (const id of ["loadingPanel","authPanel","loadErrorPanel","activePanel","createPanel"]) $(id).hidden = id !== name;
 }
-function message(text, ok=false) { $("pageMessage").textContent=text; $("pageMessage").classList.toggle("success",ok); $("pageMessage").hidden=!text; }
+const message = createStatusMessage($("pageMessage"));
 function errorText(error) {
   const code = `${error?.code || ""} ${error?.message || ""}`;
   if (code.includes("ACTIVE_SESSION_EXISTS")) return "You already have an active Play Together session.";
@@ -37,7 +38,7 @@ function renderCatalog() {
 }
 function renderQueues() {
   const select=$("queueSelect"); select.replaceChildren(); option(select,"","Choose a mode / queue");
-  for (const queue of queuesForExperience(catalog,$("experienceSelect").value)) option(select,queue.key,`${queue.name}${queue.enabled ? "" : ` · ${queue.availability}`}`,!queue.enabled);
+  for (const queue of queuesForExperience(catalog,$("experienceSelect").value)) option(select,queue.key,queueOptionLabel(queue),!queue.enabled);
   renderQueueRules();
 }
 function selectedQueue(){return catalog?.queues.find(queue=>queue.key===$("queueSelect").value)||null;}

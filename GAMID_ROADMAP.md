@@ -4,6 +4,14 @@ This is the readable product roadmap. `PROJECT_HANDOFF.md` is the authoritative 
 
 Nothing marked **Approved direction**, **Idea only**, or **Requires Mazen approval** is implementation authorization.
 
+## Play Together — approved future requirements (not current Slice 1 scope)
+
+- **Team vs Team / Squad vs Squad:** Play Together must distinguish filling a squad (`NEED_PLAYERS` / `seats_wanted`) from finding a complete opponent squad. The opponent-squad path is game- and mode-driven, so formats such as 5v5 or 3v3 come from versioned rules rather than League-specific application logic.
+- **Riot catalog and availability synchronization:** queue and regional availability can change over time. Future maintenance must model `Game → Experience → Queue → Region → Availability / Restrictions → Rule Version → Official Source → Last Verified`, prefer official Riot-supported sources, and avoid requiring an application deployment for ordinary catalog changes. If automation cannot verify a current state, GamID must not invent `ACTIVE` availability.
+- The existing availability vocabulary remains suitable for this future work: `ACTIVE`, `ROTATING`, `DISABLED`, `REGION_DEPENDENT`, and `UNVERIFIED`.
+
+These requirements do not authorize Team vs Team, live Riot synchronization, matching, participants, or any later Play Together slice.
+
 ## CREATE → WOW → SHARE
 
 GamID is a gaming identity platform:

@@ -6,6 +6,11 @@ export function queuesForExperience(catalog, experienceKey) {
   return (catalog?.queues || []).filter(queue => queue.experience_key === experienceKey);
 }
 
+export function queueOptionLabel(queue) {
+  if (queue?.enabled) return queue.name;
+  return `${queue?.name || "Unknown queue"} · ${queue?.availability || "UNVERIFIED"} · Not available for creation — ${queue?.note || "verified creation rules are unavailable"}`;
+}
+
 export function maxSeatsForQueue(queue) {
   return queue?.enabled && Number.isInteger(queue.max_party_size) ? Math.max(0, queue.max_party_size - 1) : 0;
 }
