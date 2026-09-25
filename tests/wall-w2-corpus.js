@@ -1,0 +1,136 @@
+// The shared W1 <-> database contract corpus. Every entry is run through the REAL W1 validator (dist/wall/validate.js) by tests/game-id-wall-w2.test.js and
+// through the database's private.wall_document_errors() by tests/integration/wall-w2-db.sql (generated from this file by
+// scripts/generate-wall-w2-db-contract.mjs). The two must return the same error set for every entry - that is what keeps the narrow SQL port from drifting
+// away from W1. Add a case here whenever W1 validation gains behavior; the drift guard then forces the database side to be taught the same thing.
+import { createDocument } from "../dist/wall/schema.js";
+
+const rect = (id, over = {}) => ({ id, type: "rect", x: 10, y: 10, width: 100, height: 100, z: 0, payload: { fill: "#aabbcc" }, ...over });
+const docWith = (...elements) => { const d = createDocument(); d.stages[0].elements = elements; return d; };
+const rectWithPayload = payload => docWith(rect("r1", { payload: { fill: "#aabbcc", ...payload } }));
+const withStages = stages => ({ ...createDocument(), stages });
+
+export const CORPUS = [
+  // ---- valid ----
+  { name: "default createDocument()", doc: createDocument() },
+  { name: "multi-stage empty document", doc: createDocument({ stageCount: 5 }) },
+  { name: "single rect", doc: docWith(rect("r1")) },
+  { name: "several rects with negative, fractional and equal z", doc: docWith(rect("a", { z: -3 }), rect("b", { z: 0.5 }), rect("c", { z: 0.5 })) },
+  { name: "rect exactly filling the canvas", doc: docWith(rect("full", { x: 0, y: 0, width: 1000, height: 1778 })) },
+  { name: "rect with extra harmless payload data", doc: rectWithPayload({ label: "Hello there", nested: { a: [1, 2, "three"] }, ok: true, none: null }) },
+  { name: "unsafe-looking payload KEY is not scanned (values only)", doc: rectWithPayload({ "<script>": "fine" }) },
+  { name: "elements spread across stages", doc: withStages([{ id: "s1", elements: [rect("a")] }, { id: "s2", elements: [rect("b")] }]) },
+  { name: "custom canvas size", doc: { schemaVersion: 1, canvas: { width: 300.5, height: 700 }, stages: [{ id: "s", elements: [rect("a", { x: 0, y: 0, width: 300.5, height: 700 })] }] } },
+  { name: "unknown top-level property is ignored", doc: { ...createDocument(), note: "extra" } },
+
+  // ---- top-level shape ----
+  { name: "null", doc: null },
+  { name: "string", doc: "a wall" },
+  { name: "number", doc: 7 },
+  { name: "boolean", doc: true },
+  { name: "empty array", doc: [] },
+  { name: "empty object", doc: {} },
+  { name: "schemaVersion 2", doc: { ...createDocument(), schemaVersion: 2 } },
+  { name: "schemaVersion 0", doc: { ...createDocument(), schemaVersion: 0 } },
+  { name: 'schemaVersion "1" (string)', doc: { ...createDocument(), schemaVersion: "1" } },
+  { name: "schemaVersion null", doc: { ...createDocument(), schemaVersion: null } },
+  { name: "schemaVersion missing", doc: (() => { const d = createDocument(); delete d.schemaVersion; return d; })() },
+  { name: "canvas missing", doc: (() => { const d = createDocument(); delete d.canvas; return d; })() },
+  { name: "canvas width zero", doc: { ...createDocument(), canvas: { width: 0, height: 1778 } } },
+  { name: "canvas height negative", doc: { ...createDocument(), canvas: { width: 1000, height: -1 } } },
+  { name: "canvas width string", doc: { ...createDocument(), canvas: { width: "1000", height: 1778 } } },
+  { name: "canvas is an array", doc: { ...createDocument(), canvas: [1000, 1778] } },
+  { name: "stages missing", doc: (() => { const d = createDocument(); delete d.stages; return d; })() },
+  { name: "stages empty", doc: { ...createDocument(), stages: [] } },
+  { name: "stages is an object", doc: { ...createDocument(), stages: {} } },
+  { name: "bad canvas AND bad stages report both", doc: { schemaVersion: 1, canvas: { width: 0, height: 0 }, stages: [] } },
+
+  // ---- stages ----
+  { name: "stage without id", doc: withStages([{ elements: [] }]) },
+  { name: "stage with empty id", doc: withStages([{ id: "", elements: [] }]) },
+  { name: "stage with numeric id", doc: withStages([{ id: 1, elements: [] }]) },
+  { name: "stage that is null", doc: withStages([null]) },
+  { name: "stage that is a string", doc: withStages(["s1"]) },
+  { name: "duplicate stage id", doc: withStages([{ id: "s", elements: [] }, { id: "s", elements: [] }]) },
+  { name: "stage elements missing", doc: withStages([{ id: "s" }]) },
+  { name: "stage elements not an array", doc: withStages([{ id: "s", elements: {} }]) },
+
+  // ---- elements ----
+  { name: "element null", doc: docWith(null) },
+  { name: "element string", doc: docWith("r1") },
+  { name: "element number", doc: docWith(3) },
+  { name: "element array", doc: docWith([]) },
+  { name: "element without id", doc: docWith(rect(undefined)) },
+  { name: "element empty id", doc: docWith(rect("")) },
+  { name: "element numeric id", doc: docWith(rect(5)) },
+  { name: "x is a string", doc: docWith(rect("r1", { x: "10" })) },
+  { name: "y is null", doc: docWith(rect("r1", { y: null })) },
+  { name: "x missing", doc: docWith((() => { const e = rect("r1"); delete e.x; return e; })()) },
+  { name: "width zero", doc: docWith(rect("r1", { width: 0 })) },
+  { name: "height negative", doc: docWith(rect("r1", { height: -5 })) },
+  { name: "width string", doc: docWith(rect("r1", { width: "100" })) },
+  { name: "z string", doc: docWith(rect("r1", { z: "1" })) },
+  { name: "z missing", doc: docWith((() => { const e = rect("r1"); delete e.z; return e; })()) },
+  { name: "position AND dimensions AND z all bad", doc: docWith(rect("r1", { x: "a", width: 0, z: null })) },
+  { name: "unknown element type", doc: docWith(rect("r1", { type: "video" })) },
+  { name: "type missing", doc: docWith(rect("r1", { type: undefined })) },
+  { name: "type is a number", doc: docWith(rect("r1", { type: 5 })) },
+  { name: "unknown type with unsafe payload is not scanned", doc: docWith(rect("r1", { type: "video", payload: { src: "<script>x</script>" } })) },
+  { name: "duplicate element id in one stage", doc: docWith(rect("d"), rect("d", { x: 200 })) },
+  { name: "duplicate element id across stages", doc: withStages([{ id: "s1", elements: [rect("d")] }, { id: "s2", elements: [rect("d")] }]) },
+  { name: "negative x", doc: docWith(rect("r1", { x: -1 })) },
+  { name: "negative y", doc: docWith(rect("r1", { y: -0.5 })) },
+  { name: "overflows canvas width", doc: docWith(rect("r1", { x: 901, width: 100 })) },
+  { name: "overflows canvas height", doc: docWith(rect("r1", { y: 1700, height: 100 })) },
+  { name: "float edge: 0.1 + 0.2 exceeds a 0.3 canvas", doc: { schemaVersion: 1, canvas: { width: 0.3, height: 10 }, stages: [{ id: "s", elements: [rect("r1", { x: 0.1, y: 0, width: 0.2, height: 1 })] }] } },
+  { name: "float edge: exact fit at 0.5 + 0.5", doc: { schemaVersion: 1, canvas: { width: 1, height: 10 }, stages: [{ id: "s", elements: [rect("r1", { x: 0.5, y: 0, width: 0.5, height: 1 })] }] } },
+
+  // ---- rect payload ----
+  { name: "rect payload missing", doc: docWith(rect("r1", { payload: undefined })) },
+  { name: "rect payload null", doc: docWith(rect("r1", { payload: null })) },
+  { name: "rect payload array", doc: docWith(rect("r1", { payload: [] })) },
+  { name: "rect payload string", doc: docWith(rect("r1", { payload: "#aabbcc" })) },
+  { name: "rect payload number", doc: docWith(rect("r1", { payload: 0 })) },
+  { name: "rect fill missing", doc: docWith(rect("r1", { payload: {} })) },
+  { name: "rect fill short hex", doc: docWith(rect("r1", { payload: { fill: "#fff" } })) },
+  { name: "rect fill named colour", doc: docWith(rect("r1", { payload: { fill: "red" } })) },
+  { name: "rect fill number", doc: docWith(rect("r1", { payload: { fill: 123456 } })) },
+  { name: "rect fill with trailing text", doc: docWith(rect("r1", { payload: { fill: "#aabbccd" } })) },
+  { name: "rect fill upper-case hex is valid", doc: docWith(rect("r1", { payload: { fill: "#AABBCC" } })) },
+
+  // ---- embed (no provider is registered anywhere yet) ----
+  { name: "embed payload missing", doc: docWith(rect("e1", { type: "embed", payload: undefined })) },
+  { name: "embed payload array", doc: docWith(rect("e1", { type: "embed", payload: [] })) },
+  { name: "embed without providerKey", doc: docWith(rect("e1", { type: "embed", payload: { data: {} } })) },
+  { name: "embed empty providerKey", doc: docWith(rect("e1", { type: "embed", payload: { providerKey: "", data: {} } })) },
+  { name: "embed numeric providerKey", doc: docWith(rect("e1", { type: "embed", payload: { providerKey: 4, data: {} } })) },
+  { name: "embed unregistered provider", doc: docWith(rect("e1", { type: "embed", payload: { providerKey: "acme", data: {} } })) },
+  { name: "embed unregistered provider with markup in data", doc: docWith(rect("e1", { type: "embed", payload: { providerKey: "acme", data: { html: "<iframe src=x>" } } })) },
+
+  // ---- unsafe payload content (rejected, never sanitized) ----
+  { name: "<script> tag", doc: rectWithPayload({ note: "<script>alert(1)</script>" }) },
+  { name: "< script with whitespace", doc: rectWithPayload({ note: "<   script>" }) },
+  { name: "<SCRIPT upper-case", doc: rectWithPayload({ note: "<SCRIPT src=x>" }) },
+  { name: "<iframe", doc: rectWithPayload({ note: "<iframe src='x'></iframe>" }) },
+  { name: "unicode whitespace before script (NBSP)", doc: rectWithPayload({ note: "< script" }) },
+  { name: "unicode whitespace before script (U+2003)", doc: rectWithPayload({ note: "< script" }) },
+  { name: "newline between < and script", doc: rectWithPayload({ note: "<\nscript" }) },
+  { name: "generic tag <b>", doc: rectWithPayload({ note: "hello <b>bold</b>" }) },
+  { name: "closing tag", doc: rectWithPayload({ note: "</div>" }) },
+  { name: "tag spanning a newline", doc: rectWithPayload({ note: "<img\nsrc=x>" }) },
+  { name: "plain comparison that looks like a tag is rejected (W1 is strict)", doc: rectWithPayload({ note: "a < b and c > d" }) },
+  { name: "lone < or > is fine", doc: rectWithPayload({ note: "1 < 2 and 3 > 2 is not markup" }) },
+  { name: "javascript: URI", doc: rectWithPayload({ href: "javascript:alert(1)" }) },
+  { name: "JaVaScRiPt: mixed case", doc: rectWithPayload({ href: "JaVaScRiPt:void(0)" }) },
+  { name: "inline event handler onclick=", doc: rectWithPayload({ note: "x onclick=steal()" }) },
+  { name: "inline event handler with spaces onload =", doc: rectWithPayload({ note: 'a onload   = b' }) },
+  { name: "event handler at string start", doc: rectWithPayload({ note: "onerror=1" }) },
+  { name: "'on' inside a word is fine (conditions = 5)", doc: rectWithPayload({ note: "conditions = 5" }) },
+  { name: "'on' plus letters after a non-word char is rejected", doc: rectWithPayload({ note: "(onset=1)" }) },
+  { name: "unsafe string in nested object", doc: rectWithPayload({ a: { b: { c: "<script>" } } }) },
+  { name: "unsafe string in array (index in path)", doc: rectWithPayload({ list: ["ok", "fine", "<iframe>"] }) },
+  { name: "unsafe string in nested array of objects", doc: rectWithPayload({ list: [{ x: "1" }, { y: ["javascript:1"] }] }) },
+  { name: "unsafe strings in several places all reported", doc: rectWithPayload({ a: "<script>", b: "javascript:x", c: { d: "onclick=1" } }) },
+  { name: "unsafe payload string as the whole payload", doc: docWith(rect("r1", { payload: "<script>" })) },
+  { name: "unsafe content plus bad fill both reported", doc: docWith(rect("r1", { payload: { fill: "nope", note: "<script>" } })) },
+  { name: "unsafe content in a second stage element", doc: withStages([{ id: "s1", elements: [rect("a")] }, { id: "s2", elements: [rect("b", { payload: { fill: "#000000", t: "<iframe>" } })] }]) },
+];

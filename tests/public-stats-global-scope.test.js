@@ -122,7 +122,10 @@ test("migration: the rest of the public boundary is byte-for-byte what it was (1
 
 test("migration: additive - it replaces two functions, drops nothing, writes no data, and is the newest migration", () => {
   assert.doesNotMatch(scopeSql, /\bdrop\b|\btruncate\b|\bdelete\b|\binsert\b|\bupdate\b|\balter\b|create table/i);
-  assert.equal(readdirSync(new URL("supabase/migrations/", root)).sort().at(-1), scopeName);
+  // "newest" originally meant nothing later redefined these functions; later, unrelated migrations (e.g. Wall persistence) are fine
+  const later = readdirSync(new URL("supabase/migrations/", root)).sort().filter(name => name > scopeName);
+  assert.ok(readdirSync(new URL("supabase/migrations/", root)).includes(scopeName));
+  for (const name of later) assert.doesNotMatch(stripSql(read(`supabase/migrations/${name}`)), /get_public_identity_impl|public_game_stats_allowed/, `${name} must not redefine the scoped public functions`);
   assert.doesNotMatch(scopeSql, /'VERIFIED'|verified/i, "League stays prototype / unverified");
 });
 
