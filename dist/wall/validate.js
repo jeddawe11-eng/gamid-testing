@@ -3,6 +3,7 @@
 // check fails, since a malformed top-level shape makes it unsafe to even iterate stages/elements.
 import { SUPPORTED_SCHEMA_VERSIONS } from "./schema.js";
 import { elementRegistry } from "./elements.js";
+import { isSet } from "./fields.js";
 
 // Never allow arbitrary user-supplied HTML, JavaScript, iframe markup, or executable embed code anywhere in a payload - a Wall-CORE guarantee, applied
 // to every element's payload regardless of type or provider, so no current or future element/provider implementation can accidentally (or maliciously)
@@ -18,6 +19,9 @@ function scanForUnsafeContent(value, path, errors) {
   if (value && typeof value === "object") { for (const [key, item] of Object.entries(value)) scanForUnsafeContent(item, `${path}.${key}`, errors); }
 }
 
+export const GROUP_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const isGroupId = value => typeof value === "string" && GROUP_ID.test(value);
+
 function validateElement(element, errors) {
   if (!element || typeof element !== "object") { errors.push("MALFORMED_ELEMENT"); return; }
   const { id, type, x, y, width, height, z, payload } = element;
@@ -25,6 +29,11 @@ function validateElement(element, errors) {
   if (!Number.isFinite(x) || !Number.isFinite(y)) errors.push(`INVALID_POSITION:${id}`);
   if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(height) || height <= 0) errors.push(`INVALID_DIMENSIONS:${id}`);
   if (!Number.isFinite(z)) errors.push(`INVALID_Z_ORDER:${id}`);
+  // Two OPTIONAL, type-neutral element properties (W3). Absent = unchanged W1 behavior, so every earlier document stays valid.
+  //   rotation: degrees, any finite number (containment below still uses the unrotated box; the editor keeps rotated bounds inside the stage itself).
+  //   groupId: elements of one stage sharing a groupId form a group (no nesting; groups never span stages - checked in validateDocument).
+  if (isSet(element.rotation) && !Number.isFinite(element.rotation)) errors.push(`INVALID_ROTATION:${id}`);
+  if (isSet(element.groupId) && !isGroupId(element.groupId)) errors.push(`INVALID_GROUP_ID:${id}`);
 
   const definition = elementRegistry.get(type);
   if (!definition) { errors.push(`UNKNOWN_ELEMENT_TYPE:${id}`); return; }   // unsupported type: nothing further about this element can be trusted
@@ -52,6 +61,7 @@ export function validateDocument(doc) {
 
   const seenElementIds = new Set();
   const seenStageIds = new Set();
+  const groupStages = new Map();
   for (const stage of doc.stages) {
     if (!stage || typeof stage.id !== "string" || !stage.id) { errors.push("INVALID_STAGE_ID"); continue; }
     if (seenStageIds.has(stage.id)) errors.push(`DUPLICATE_STAGE_ID:${stage.id}`);
@@ -62,6 +72,11 @@ export function validateDocument(doc) {
       if (element && typeof element.id === "string" && element.id) {
         if (seenElementIds.has(element.id)) errors.push(`DUPLICATE_ELEMENT_ID:${element.id}`);
         seenElementIds.add(element.id);
+        if (isSet(element.groupId) && isGroupId(element.groupId)) {
+          const firstStage = groupStages.get(element.groupId);
+          if (firstStage === undefined) groupStages.set(element.groupId, stage.id);
+          else if (firstStage !== stage.id) errors.push(`GROUP_SPANS_STAGES:${element.groupId}`);
+        }
         if (Number.isFinite(element.x) && Number.isFinite(element.y) && Number.isFinite(element.width) && Number.isFinite(element.height) && !fitsCanvas(element, doc.canvas)) {
           errors.push(`OUTSIDE_CANVAS:${element.id}`);
         }

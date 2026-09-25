@@ -1,0 +1,10 @@
+/* Wall painting base: the bundled typefaces (served from this site, OFL - see fonts/LICENSES.txt) and the neutral stage/element rules. */
+@font-face { font-family: "GamID Orbitron"; src: url("fonts/Orbitron.woff2") format("woff2"); font-weight: 400 900; font-display: swap; }
+@font-face { font-family: "GamID Bebas"; src: url("fonts/BebasNeue.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "GamID Russo"; src: url("fonts/RussoOne.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "GamID Rajdhani"; src: url("fonts/Rajdhani.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "GamID Chakra"; src: url("fonts/ChakraPetch.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+.wall-stage { background: #0d0b14; -webkit-user-select: none; user-select: none; }
+.wall-el { pointer-events: none; }
+.wall-text { width: 100%; height: 100%; margin: 0; padding: 0; }
