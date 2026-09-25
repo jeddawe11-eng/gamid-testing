@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#08070d" />
   <meta name="robots" content="noindex" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://upvtrczefcvigxdyuylw.supabase.co; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://upvtrczefcvigxdyuylw.supabase.co; frame-src https://open.spotify.com https://platform.twitter.com https://player.twitch.tv https://clips.twitch.tv https://store.steampowered.com https://www.instagram.com https://www.tiktok.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'none'; form-action 'none'" />
   <title>GamID — Wall Editor</title>
   <link rel="stylesheet" href="../wall-kit/wall-kit.css" />
   <link rel="stylesheet" href="editor.css" />
 </head>
-<body data-sheet="">
+<body data-tool="add">
   <header class="ed-top">
-    <a class="ed-back" href="../account/" aria-label="Back to your account">&larr;</a>
-    <div class="ed-title"><strong>Wall</strong><span class="ed-badge">TESTING &middot; PRIVATE DRAFT</span></div>
+    <a class="ed-back" href="../account/" aria-label="Back to your GamID">&larr;</a>
+    <div class="ed-title"><strong>My Wall</strong><span class="ed-badge">PRIVATE DRAFT</span></div>
     <div class="ed-top-actions">
       <button id="undoBtn" class="ed-btn ed-icon" type="button" aria-label="Undo" disabled>&#8630;</button>
       <button id="redoBtn" class="ed-btn ed-icon" type="button" aria-label="Redo" disabled>&#8631;</button>
@@ -41,18 +41,76 @@
   </main>
 
   <div id="workspace" class="ed-workspace" hidden>
-    <aside id="leftPanel" class="ed-panel ed-left" aria-label="Add, stages and layers">
-      <section id="secAdd" class="ed-section" data-sheet-name="add">
+    <nav id="rail" class="ed-rail" aria-label="Editor tools">
+      <button type="button" data-tool="add"><i aria-hidden="true">+</i><span>Add</span></button>
+      <button type="button" data-tool="text"><i aria-hidden="true">T</i><span>Text</span></button>
+      <button type="button" data-tool="media"><i aria-hidden="true">&#9654;</i><span>Media &amp; Links</span></button>
+      <button type="button" data-tool="shapes"><i aria-hidden="true">&#9632;</i><span>Shapes</span></button>
+      <button type="button" data-tool="background"><i aria-hidden="true">&#9638;</i><span>Background</span></button>
+      <button type="button" data-tool="gamid"><i aria-hidden="true">G</i><span>GamID</span></button>
+      <button type="button" data-tool="layout"><i aria-hidden="true">&#9776;</i><span>Layout</span></button>
+      <button type="button" data-tool="assets"><i aria-hidden="true">&#9635;</i><span>Assets</span></button>
+      <button type="button" data-tool="templates"><i aria-hidden="true">&#10022;</i><span>Templates</span></button>
+      <button type="button" data-tool="props" class="ed-rail-edit"><i aria-hidden="true">&#9998;</i><span>Edit</span></button>
+    </nav>
+
+    <aside id="drawer" class="ed-panel ed-drawer" aria-label="Tool panel">
+      <section class="ed-section" data-tool-panel="add">
         <h2>Add</h2>
-        <div class="ed-add-grid">
-          <button class="ed-btn" type="button" data-add="text"><b>T</b> Text</button>
-          <button class="ed-btn" type="button" data-add="rect"><b>&#9632;</b> Rectangle</button>
-          <button class="ed-btn" type="button" data-add="rounded"><b>&#9635;</b> Rounded</button>
-          <button class="ed-btn" type="button" data-add="circle"><b>&#9679;</b> Circle</button>
+        <div class="ed-add-list">
+          <button class="ed-btn" type="button" data-add-action="text"><b>T</b><span>Text<small>Headings, names, captions</small></span></button>
+          <button class="ed-btn" type="button" data-add-action="shape"><b>&#9632;</b><span>Shape<small>Rectangle, rounded, circle</small></span></button>
+          <button class="ed-btn" type="button" data-add-action="image"><b>&#9635;</b><span>Image<small>Upload your own picture</small></span></button>
+          <button class="ed-btn" type="button" data-add-action="embed"><b>&#9654;</b><span>Link / Embed<small>Paste a link to media</small></span></button>
+          <button class="ed-btn" type="button" data-add-action="gamid"><b>G</b><span>GamID block<small>Real profile, roles, games</small></span></button>
         </div>
-        <p class="ed-hint">Images, backgrounds and media come in a later phase.</p>
       </section>
-      <section id="secStages" class="ed-section" data-sheet-name="stages">
+
+      <section class="ed-section" data-tool-panel="text">
+        <h2>Text</h2>
+        <div class="ed-add-list" id="textPresets"></div>
+        <h2 class="ed-sub">Fonts</h2>
+        <p class="ed-hint">Select a text element, then choose a font. Size, weight, colour, alignment, direction and effects are in <b>Edit</b>.</p>
+        <div id="fontList" class="ed-fonts"></div>
+      </section>
+
+      <section class="ed-section" data-tool-panel="media">
+        <h2>Media &amp; Links</h2>
+        <label class="ed-stack"><span>Paste a link</span><input id="mediaUrl" class="ed-text-line" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="Paste a video, post, profile or invite link" /></label>
+        <div id="mediaResult" class="ed-media-result" aria-live="polite"></div>
+        <p id="mediaSupported" class="ed-hint"></p>
+        <p class="ed-hint">A pasted link is Wall content. Your connected accounts (identity) are managed in your GamID under My connections.</p>
+      </section>
+
+      <section class="ed-section" data-tool-panel="shapes">
+        <h2>Shapes</h2>
+        <div class="ed-add-list">
+          <button class="ed-btn" type="button" data-shape="rect"><b>&#9632;</b><span>Rectangle</span></button>
+          <button class="ed-btn" type="button" data-shape="rounded"><b>&#9635;</b><span>Rounded</span></button>
+          <button class="ed-btn" type="button" data-shape="circle"><b>&#9679;</b><span>Circle</span></button>
+        </div>
+        <p class="ed-hint">Fill, gradient, border, corner radius and opacity are in <b>Edit</b> once a shape is selected.</p>
+      </section>
+
+      <section class="ed-section" data-tool-panel="background">
+        <h2>Background</h2>
+        <div class="ed-seg" role="group" aria-label="Where the background applies">
+          <button type="button" data-bg-scope="wall" aria-pressed="true">Whole Wall</button>
+          <button type="button" data-bg-scope="stage" aria-pressed="false">This stage only</button>
+        </div>
+        <div id="bgKinds" class="ed-seg" role="group" aria-label="Background type"></div>
+        <div id="bgControls"></div>
+        <p id="bgNote" class="ed-hint"></p>
+      </section>
+
+      <section class="ed-section" data-tool-panel="gamid">
+        <h2>GamID blocks</h2>
+        <p class="ed-hint">Real data from your GamID, never sample content. Private information stays private: blocks show only what your GamID already allows to be shown.</p>
+        <div id="gamidBlocks" class="ed-add-list"></div>
+        <p id="gamidStatus" class="ed-hint"></p>
+      </section>
+
+      <section class="ed-section" data-tool-panel="layout">
         <h2>Stages</h2>
         <div id="stageChips" class="ed-chips" role="tablist"></div>
         <div class="ed-row ed-wrap">
@@ -65,10 +123,27 @@
           <p id="stageConfirmText"></p>
           <div class="ed-row"><button id="stageConfirmYes" class="ed-btn ed-danger" type="button">Delete</button><button id="stageConfirmNo" class="ed-btn" type="button">Cancel</button></div>
         </div>
-      </section>
-      <section id="secLayers" class="ed-section" data-sheet-name="layers">
-        <h2>Layers <small>(top first)</small></h2>
+        <h2 class="ed-sub">Layers <small>(top first)</small></h2>
         <ul id="layerList" class="ed-layers"></ul>
+      </section>
+
+      <section class="ed-section" data-tool-panel="assets">
+        <h2>Assets</h2>
+        <div class="ed-row ed-wrap">
+          <button id="assetUpload" class="ed-btn ed-primary" type="button">Upload image</button>
+          <input id="assetFile" type="file" accept="image/jpeg,image/png,image/webp,image/avif" hidden />
+        </div>
+        <p id="assetMessage" class="ed-hint" role="status"></p>
+        <div id="assetGrid" class="ed-assets"></div>
+        <p class="ed-hint">JPG, PNG, WebP or AVIF, up to 5 MB each. Your images are private to you.</p>
+      </section>
+
+      <section class="ed-section" data-tool-panel="templates">
+        <h2>Templates</h2>
+        <div class="ed-reserved">
+          <p><b>Coming later.</b></p>
+          <p>Ready-made Wall layouts and gaming themes will live here. Your Wall is already built so that a template can be applied without changing anything you make today.</p>
+        </div>
       </section>
     </aside>
 
@@ -82,20 +157,18 @@
       <div id="viewport" class="ed-viewport"><div id="stageHost" class="ed-stage-host"></div></div>
     </section>
 
-    <aside id="props" class="ed-panel ed-right" aria-label="Properties" data-sheet-name="props">
+    <aside id="props" class="ed-panel ed-right" aria-label="Properties">
       <section class="ed-section"><h2 id="propsTitle">Properties</h2><div id="propsBody"></div></section>
     </aside>
   </div>
 
-  <nav id="mobileBar" class="ed-mobile-bar" aria-label="Editor tools" hidden>
-    <button type="button" data-sheet="add">Add</button>
-    <button type="button" data-sheet="layers">Layers</button>
-    <button type="button" data-sheet="stages">Stages</button>
-    <button type="button" data-sheet="props">Edit</button>
-  </nav>
-
   <div id="preview" class="ed-preview" hidden>
-    <div class="ed-preview-bar"><strong>Preview</strong><span>How a visitor would see this Wall. Nothing is published.</span><button id="previewClose" class="ed-btn ed-primary" type="button">Back to editing</button></div>
+    <div class="ed-preview-bar">
+      <strong>Preview</strong>
+      <div class="ed-seg" role="group" aria-label="Preview size"><button type="button" id="previewMobile" aria-pressed="true">Mobile</button><button type="button" id="previewDesktop" aria-pressed="false">Desktop</button></div>
+      <span>How a visitor would see this Wall. Nothing is published.</span>
+      <button id="previewClose" class="ed-btn ed-primary" type="button">Back to editing</button>
+    </div>
     <div id="previewScroll" class="ed-preview-scroll"><div id="previewColumn" class="ed-preview-column"></div></div>
   </div>
 

@@ -13,6 +13,7 @@ import { validateDocument } from "../wall/validate.js";
 import { elementRegistry } from "../wall/elements.js";
 import { createElement } from "../wall/schema.js";
 import { createTextPayload } from "./text.js";
+import "./register.js";   // every element type, background kind and embed provider the kit provides
 
 export const MIN_SIZE = 10;
 export const DUPLICATE_OFFSET = 24;
@@ -213,6 +214,52 @@ export function addElement(doc, stageId, kind, { x, y } = {}) {
   return finish(doc, next, { ids: [id] });
 }
 
+// Adds an element of any registered type with a ready payload (image, embed, GamID block, ...), centred (or at x/y), on top. Larger than the stage -> shrunk to fit.
+export function addCustomElement(doc, stageId, { type, payload, width, height, x, y }) {
+  const stage = findStage(doc, stageId);
+  if (!stage) return fail(doc, "STAGE_NOT_FOUND");
+  if (!elementRegistry.get(type)) return fail(doc, `UNKNOWN_ELEMENT_TYPE:${type}`);
+  const next = clone(doc);
+  const target = findStage(next, stageId);
+  const fitScale = Math.min(1, next.canvas.width / width, next.canvas.height / height);
+  const w = Math.max(MIN_SIZE, Math.round(width * fitScale)), h = Math.max(MIN_SIZE, Math.round(height * fitScale));
+  const id = nextId(doc, "el");
+  const element = createElement({ id, type, x: Math.round(x ?? (next.canvas.width - w) / 2), y: Math.round(y ?? (next.canvas.height - h) / 2), width: w, height: h, z: target.elements.length, payload: clone(payload) });
+  clampToCanvas(element, next.canvas);
+  target.elements.push(element);
+  normalizeStageZ(target);
+  return finish(doc, next, { ids: [id] });
+}
+
+// The Wall-wide background (scope "wall") or one stage's own background (scope = stage id); `background` null removes it.
+export function setBackground(doc, scope, background) {
+  const next = clone(doc);
+  const holder = scope === "wall" ? next : findStage(next, scope);
+  if (!holder) return fail(doc, "STAGE_NOT_FOUND");
+  if (background === null || background === undefined) delete holder.background; else holder.background = clone(background);
+  return finish(doc, next);
+}
+
+// Every uploaded asset the document uses (image elements and image backgrounds): what may not be deleted from the Assets area while in use.
+export function assetsInUse(doc) {
+  const used = new Set();
+  const scan = value => { if (value && typeof value === "object") { if (typeof value.assetId === "string") used.add(value.assetId); for (const child of Object.values(value)) scan(child); } };
+  scan(doc.background);
+  for (const stage of doc.stages) { scan(stage.background); for (const element of stage.elements) scan(element.payload); }
+  return used;
+}
+
+// A fixed aspect ratio (width / height) an element should keep while it is resized, or null. Embeds keep their provider's real ratio (video is never stretched);
+// pictures keep the proportions of their source unless they are drawn cover/fill (which crop or stretch by intent).
+export function lockedAspect(element) {
+  if (element.type === "embed") {
+    const ratio = elementRegistry.get("embed")?.render?.(element.payload)?.content?.aspect;
+    const match = /^(\d+):(\d+)$/.exec(ratio ?? "");
+    return match ? Number(match[1]) / Number(match[2]) : null;
+  }
+  if (element.type === "image" && element.payload.fit === "contain" && element.payload.aw && element.payload.ah) return element.payload.aw / element.payload.ah;
+  return null;
+}
 // ---- editing ----------------------------------------------------------------------------------------------------------------------------------------
 // Merges a partial payload into the element's type-owned payload. A key set to `undefined` is removed (that is how an optional effect is switched off).
 export function updatePayload(doc, id, patch) {
@@ -299,6 +346,8 @@ function resizeGeometry(start, handle, dx, dy, keepAspect, canvas) {
   if (keepAspect && sx !== 0 && sy !== 0) {
     const factor = Math.max(width / start.width, height / start.height);
     width = start.width * factor; height = start.height * factor;
+  } else if (keepAspect && sx !== 0) {
+    height = start.height * (width / start.width);   // a side handle on a proportion-locked element scales the whole element
   }
   width = Math.max(MIN_SIZE, width); height = Math.max(MIN_SIZE, height);
   // keep the opposite edge/corner fixed in world space

@@ -25,7 +25,7 @@ const el = (tag, className, styles = {}) => {
 };
 const px = value => `${Math.round(value * 100) / 100}px`;
 
-export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, onEditText }) {
+export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, onEditText, getPaintContext = () => ({}) }) {
   let scale = 0.3;
   let liveDoc = null;          // the in-progress gesture result (never stored in the session)
   let guides = [];
@@ -53,7 +53,7 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
     const tree = renderDocument(source, { viewportWidth: source.canvas.width * scale });
     if (!tree.ok) return;
     const index = source.stages.findIndex(stage => stage.id === session.state.stageId);
-    const stageNode = paintStage(tree.stages[index], tree.scale);
+    const stageNode = paintStage(tree.stages[index], tree.scale, undefined, { ...getPaintContext(), mode: "edit", wallBackground: tree.background ?? null, stageIndex: index, stageCount: tree.stages.length });
     const overlay = el("div", "ed-overlay");
     host.style.setProperty("width", px(tree.stages[index].width));
     host.style.setProperty("height", px(tree.stages[index].height));
@@ -188,7 +188,7 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
       }
     } else if (gesture.kind === "resize") {
       const multi = gesture.ids.length > 1 || locateGrouped(gesture.startDoc, gesture.ids[0]);
-      result = multi ? ops.resizeGroup(gesture.startDoc, gesture.ids, gesture.handle, dx, dy) : ops.resizeElement(gesture.startDoc, gesture.ids[0], gesture.handle, dx, dy, { keepAspect: event.shiftKey });
+      result = multi ? ops.resizeGroup(gesture.startDoc, gesture.ids, gesture.handle, dx, dy) : ops.resizeElement(gesture.startDoc, gesture.ids[0], gesture.handle, dx, dy, { keepAspect: event.shiftKey || !!ops.lockedAspect(ops.locate(gesture.startDoc, gesture.ids[0]).element) });
     } else if (gesture.kind === "rotate") {
       const found = ops.locate(gesture.startDoc, gesture.ids[0]);
       const rect = host.getBoundingClientRect();

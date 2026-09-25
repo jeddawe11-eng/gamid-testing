@@ -150,17 +150,20 @@ const html = read("dist/wall-editor/index.html");
 const editorFiles = [...sources("dist/wall-editor"), ...sources("dist/wall-kit"), ...sources("dist/wall")].map(norm);
 const codeOf = file => read(file).replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
 
-test("security: the page carries a strict CSP - same-origin scripts/styles/fonts, no inline code, no eval, network only to the project's Supabase", () => {
+test("security: the page carries a strict CSP - same-origin scripts/styles/fonts, no inline code, no eval, network only to the project's Supabase, frames only from the provider adapters", async () => {
   const csp = html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)[1];
   assert.match(csp, /default-src 'self'/);
   assert.match(csp, /script-src 'self'(;|$)/);
   assert.match(csp, /style-src 'self'(;|$)/);
   assert.doesNotMatch(csp, /unsafe-inline|unsafe-eval|\*/);
   assert.equal((csp.match(/data:/g) ?? []).length, 1, "data: is allowed for images only");
-  assert.match(csp, /img-src 'self' data:/);
+  assert.match(csp, /img-src 'self' data: blob:/);
   assert.match(csp, /connect-src 'self' https:\/\/upvtrczefcvigxdyuylw\.supabase\.co(;|$)/);
   assert.match(csp, /object-src 'none'/);
-  assert.match(csp, /frame-src 'none'/);
+  const frameSrc = csp.match(/frame-src ([^;]+)/)[1].split(" ").sort();
+  const { frameOrigins } = await import("../dist/wall-kit/embed/index.js");
+  assert.deepEqual(frameSrc, frameOrigins(), "frame-src is EXACTLY the union of the provider adapters' frame origins - nothing else may be framed");
+  assert.doesNotMatch(csp, /script-src[^;]*(https|blob|data)/);
   assert.match(csp, /base-uri 'none'/);
   assert.match(csp, /form-action 'none'/);
 });
@@ -179,14 +182,16 @@ test("security: the editor code never turns a string into markup or code (no inn
   }
 });
 test("security: no external script or host is referenced anywhere in the editor/kit/core sources", () => {
-  for (const file of editorFiles.filter(file => !file.endsWith("index.html"))) {
+  // provider adapters name the ONE place each provider lives (hosts, frame origins): they are checked separately in wall-w4-embeds.test.js against the page CSP
+  for (const file of editorFiles.filter(file => !file.endsWith("index.html") && !file.startsWith("dist/wall-kit/embed/providers/"))) {
     const code = codeOf(file);
-    const urls = [...code.matchAll(/https?:\/\/[^\s"'`)]+/g)].map(match => match[0]).filter(url => !url.includes("openfontlicense.org") && !url.includes("w3.org"));
+    const urls = [...code.matchAll(/https?:\/\/[^\s"'`)]+/g)].map(match => match[0]).filter(url => !url.includes("openfontlicense.org") && !url.includes("w3.org") && !url.includes("${"));
     assert.deepEqual(urls, [], file);
   }
 });
 test("generic core: no provider names or logic in the Wall core, the kit or the editor", () => {
-  for (const file of editorFiles.filter(file => file.endsWith(".js"))) assert.doesNotMatch(codeOf(file), /youtube|spotify|twitch|\bkick\b|tiktok|vimeo|soundcloud/i, file);
+  // provider names live ONLY in the provider adapters (dist/wall-kit/embed/providers/*): the Wall core, the engine, the player, the painter and the editor are provider-neutral
+  for (const file of editorFiles.filter(file => file.endsWith(".js") && !file.startsWith("dist/wall-kit/embed/providers/") && file !== "dist/wall-kit/embed/index.js" && file !== "dist/wall-editor/gamid-data.js")) assert.doesNotMatch(codeOf(file), /youtube|spotify|twitch|\bkick\b|tiktok|instagram|discord|steam|vimeo|soundcloud/i, file);
 });
 test("architecture: the core (dist/wall) never names the text type or typography; validate/render never branch on a literal type", () => {
   const core = editorFiles.filter(file => file.startsWith("dist/wall/") && file.endsWith(".js")).map(codeOf).join("\n");

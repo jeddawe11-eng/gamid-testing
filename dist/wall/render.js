@@ -3,6 +3,8 @@
 // output is a later phase's job; this file only computes WHAT to draw and WHERE, never HOW to draw it into markup.
 import { validateDocument } from "./validate.js";
 import { elementRegistry } from "./elements.js";
+import { backgroundRegistry } from "./backgrounds.js";
+import { isSet } from "./fields.js";
 
 // Deterministic order within a stage: by z ascending, then by id ascending on ties. Re-rendering the SAME document always produces the SAME order, and
 // two elements sharing a z value never depend on array/insertion order, which persistence or an editor could reorder without changing z.
@@ -43,11 +45,13 @@ export function renderDocument(doc, { viewportWidth } = {}) {
   if (!Number.isFinite(viewportWidth) || viewportWidth <= 0) return { ok: false, errors: ["INVALID_VIEWPORT_WIDTH"] };
 
   const scale = computeScale(doc.canvas, viewportWidth);
+  const renderBackground = background => (isSet(background) ? backgroundRegistry.get(background.kind).render(background) : null);   // kinds always exist: the document is valid
   const stages = doc.stages.map(stage => ({
     id: stage.id,
     width: doc.canvas.width * scale,
     height: doc.canvas.height * scale,
+    ...(isSet(stage.background) ? { background: renderBackground(stage.background) } : {}),
     elements: orderedElements(stage).map(element => renderElement(element, scale)),
   }));
-  return { ok: true, scale, stages };
+  return { ok: true, scale, ...(isSet(doc.background) ? { background: renderBackground(doc.background) } : {}), stages };
 }

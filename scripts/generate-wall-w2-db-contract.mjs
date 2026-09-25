@@ -51,8 +51,9 @@ declare
   doc_two jsonb := '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"stage_1","elements":[{"id":"r1","type":"rect","x":50,"y":60,"width":300,"height":200,"z":2,"payload":{"fill":"#112233"}},{"id":"r2","type":"rect","x":0,"y":0,"width":10,"height":10,"z":0,"payload":{"fill":"#ffffff"}}]},{"id":"stage_2","elements":[]}]}';
   doc_b jsonb := '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"only","elements":[{"id":"b1","type":"rect","x":1,"y":1,"width":5,"height":5,"z":0,"payload":{"fill":"#000000"}}]}]}';
 begin
-  select count(*) into rows_before from public.wall_drafts;
-  res := res || jsonb_build_object('step', 'no Wall rows exist before the test (nothing seeded, no real identity has a Wall)', 'pass', rows_before = 0);
+  -- real identities may already have their own private Walls; the test only ever looks at (and creates) rows for its own disposable identities
+  select count(*) into rows_before from public.wall_drafts d join public.entities e on e.entity_id = d.entity_id where e.gamid_handle like 'zw2%';
+  res := res || jsonb_build_object('step', 'no Wall rows exist for the disposable test identities before the test (nothing seeded)', 'pass', rows_before = 0);
 
   -- helper: run one statement as anon / authenticated the way PostgREST does, returning its first column or the error as ERR:sqlstate:message[:detail]
   execute $fn$
@@ -221,6 +222,94 @@ begin
   out := pg_temp.w2_run(ua, 'authenticated', 'select (select to_jsonb(d)::text from public.get_my_wall_draft() d)');
   res := res || jsonb_build_object('step', 'the draft works for a private (unpublished) identity too and survives unpublishing', 'pass', (out::jsonb)->'document' = doc_two and ((out::jsonb)->>'revision')::bigint = 3);
 
+  -- ===== Wall assets: private bucket, owner-only registry, saving only what the owner has =====
+  select count(*) into cnt from storage.buckets b where b.id = 'wall-media' and b.public = false and b.file_size_limit = 5242880 and b.allowed_mime_types @> array['image/jpeg','image/png','image/webp','image/avif'] and cardinality(b.allowed_mime_types) = 4;
+  res := res || jsonb_build_object('step', 'the wall-media bucket is private, 5 MiB, and allows only jpeg/png/webp/avif (no SVG)', 'pass', cnt = 1);
+  select count(*) into cnt from pg_policies p where p.schemaname = 'storage' and p.tablename = 'objects' and p.policyname in ('users upload wall media to their folder', 'users read their wall media', 'users delete their wall media') and p.roles = array['authenticated']::name[];
+  res := res || jsonb_build_object('step', 'wall-media has exactly the three owner-only policies, all for authenticated (no public or anon read)', 'pass', cnt = 3);
+  select count(*) into cnt from pg_policies p where p.schemaname = 'storage' and p.tablename = 'objects' and (coalesce(p.qual, '') || coalesce(p.with_check, '')) like '%wall-media%' and (p.roles && array['anon', 'public']::name[]);
+  res := res || jsonb_build_object('step', 'no storage policy exposes wall-media to anon/public', 'pass', cnt = 0);
+  select relrowsecurity into flag from pg_class where oid = 'public.wall_assets'::regclass;
+  res := res || jsonb_build_object('step', 'RLS is enabled on wall_assets and no client role has a table privilege', 'pass', coalesce(flag, false) and not (has_table_privilege('anon', 'public.wall_assets', 'select') or has_table_privilege('authenticated', 'public.wall_assets', 'select') or has_table_privilege('authenticated', 'public.wall_assets', 'insert') or has_table_privilege('authenticated', 'public.wall_assets', 'delete')));
+  res := res || jsonb_build_object('step', 'asset RPCs: authenticated may execute, anon may not; wrappers are SECURITY INVOKER',
+    'pass', has_function_privilege('authenticated', 'public.register_my_wall_asset(text,text,integer,integer,integer)', 'execute') and has_function_privilege('authenticated', 'public.list_my_wall_assets()', 'execute') and has_function_privilege('authenticated', 'public.delete_my_wall_asset(uuid)', 'execute')
+      and not has_function_privilege('anon', 'public.register_my_wall_asset(text,text,integer,integer,integer)', 'execute') and not has_function_privilege('anon', 'public.list_my_wall_assets()', 'execute') and not has_function_privilege('anon', 'public.delete_my_wall_asset(uuid)', 'execute')
+      and not exists (select 1 from pg_proc p join pg_namespace s on s.oid = p.pronamespace where s.nspname = 'public' and p.proname in ('register_my_wall_asset', 'list_my_wall_assets', 'delete_my_wall_asset') and p.prosecdef));
+  out := pg_temp.w2_run(null, 'anon', 'select count(*)::text from public.list_my_wall_assets()');
+  res := res || jsonb_build_object('step', 'anon cannot list assets', 'pass', out like 'ERR:42501:%', 'got', out);
+
+  -- objects as if uploaded through the storage API (owned by the uploader, inside their own folder)
+  insert into storage.objects (bucket_id, name, owner_id, metadata) values
+    ('wall-media', ua::text || '/11111111-1111-4111-8111-111111111111.png', ua::text, '{"size": 2048}'),
+    ('wall-media', ub::text || '/22222222-2222-4222-8222-222222222222.png', ub::text, '{"size": 4096}');
+  out := pg_temp.w2_run(ua, 'authenticated', 'select count(*)::text from storage.objects where bucket_id = ''wall-media''');
+  res := res || jsonb_build_object('step', 'storage RLS: a user only sees their own wall-media objects', 'pass', out = '1', 'got', out);
+  out := pg_temp.w2_run(null, 'anon', 'select count(*)::text from storage.objects where bucket_id = ''wall-media''');
+  res := res || jsonb_build_object('step', 'storage RLS: anon sees no wall-media objects', 'pass', out = '0' or out like 'ERR:%', 'got', out);
+
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 640, 360) a', ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  res := res || jsonb_build_object('step', 'registering an uploaded asset works and returns its row', 'pass', out not like 'ERR:%' and (out::jsonb ->> 'width') = '640' and (out::jsonb ->> 'byte_size') = '2048', 'got', out);
+  n := 0;
+  j := out::jsonb;
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 640, 360) a', ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  res := res || jsonb_build_object('step', 'registering the same upload again is idempotent (same asset id)', 'pass', (out::jsonb ->> 'asset_id') = (j ->> 'asset_id'), 'got', out);
+  select count(*) into cnt from public.wall_assets where entity_id = ent_a;
+  res := res || jsonb_build_object('step', 'exactly one registry row exists for that upload', 'pass', cnt = 1);
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 640, 360) a', ub::text || '/22222222-2222-4222-8222-222222222222.png'));
+  res := res || jsonb_build_object('step', 'a path in ANOTHER user''s folder cannot be registered', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_PATH%', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 640, 360) a', ua::text || '/33333333-3333-4333-8333-333333333333.png'));
+  res := res || jsonb_build_object('step', 'registering an upload that does not exist in storage is refused', 'pass', out like 'ERR:P0002:WALL_ASSET_UPLOAD_NOT_FOUND%', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 640, 360) a', ua::text || '/../x.png'));
+  res := res || jsonb_build_object('step', 'a traversal-looking path is refused', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_PATH%', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/svg+xml'', 2048, 640, 360) a', ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  res := res || jsonb_build_object('step', 'SVG (or any non-raster type) is refused', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_TYPE%', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 5242881, 640, 360) a', ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  res := res || jsonb_build_object('step', 'an oversized asset is refused', 'pass', out like 'ERR:22023:WALL_ASSET_TOO_LARGE%', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 8193, 360) a', ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  res := res || jsonb_build_object('step', 'an asset larger than 8192 pixels on a side is refused', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_SIZE%', 'got', out);
+  out := pg_temp.w2_run(ub, 'authenticated', 'select coalesce((select count(*)::text from public.list_my_wall_assets()), ''0'')');
+  res := res || jsonb_build_object('step', 'another user sees none of the owner''s assets', 'pass', out = '0', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', 'select count(*)::text from public.list_my_wall_assets()');
+  res := res || jsonb_build_object('step', 'the owner lists their asset', 'pass', out = '1', 'got', out);
+
+  -- a Wall may only use the owner's assets (image elements AND backgrounds)
+  out := pg_temp.w2_run(ua, 'authenticated', 'select (select to_jsonb(d)::text from public.get_my_wall_draft() d)');
+  rev := ((out::jsonb) ->> 'revision')::bigint;
+  out := pg_temp.w2_run(ub, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, 2) d',
+    jsonb_build_object('schemaVersion', 1, 'canvas', jsonb_build_object('width', 1000, 'height', 1778), 'stages', jsonb_build_array(jsonb_build_object('id', 's', 'elements', jsonb_build_array(jsonb_build_object('id', 'i', 'type', 'image', 'x', 0, 'y', 0, 'width', 10, 'height', 10, 'z', 0, 'payload', jsonb_build_object('assetId', j ->> 'asset_id', 'fit', 'cover', 'posX', 50, 'posY', 50, 'opacity', 1))))))::text));
+  res := res || jsonb_build_object('step', 'another user cannot save a Wall that uses the owner''s asset', 'pass', out like 'ERR:22023:WALL_ASSET_NOT_FOUND%', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d',
+    jsonb_build_object('schemaVersion', 1, 'canvas', jsonb_build_object('width', 1000, 'height', 1778), 'stages', jsonb_build_array(jsonb_build_object('id', 's', 'elements', jsonb_build_array(jsonb_build_object('id', 'i', 'type', 'image', 'x', 0, 'y', 0, 'width', 10, 'height', 10, 'z', 0, 'payload', jsonb_build_object('assetId', '99999999-9999-4999-8999-999999999999', 'fit', 'cover', 'posX', 50, 'posY', 50, 'opacity', 1))))))::text, rev));
+  res := res || jsonb_build_object('step', 'a Wall naming an asset that does not exist is refused (typed, with the missing ids)', 'pass', out like 'ERR:22023:WALL_ASSET_NOT_FOUND:%99999999-9999-4999-8999-999999999999%', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d',
+    jsonb_build_object('schemaVersion', 1, 'canvas', jsonb_build_object('width', 1000, 'height', 1778), 'background', jsonb_build_object('kind', 'image', 'assetId', '99999999-9999-4999-8999-999999999999', 'fit', 'cover', 'posX', 50, 'posY', 50, 'opacity', 1), 'stages', jsonb_build_array(jsonb_build_object('id', 's', 'elements', jsonb_build_array())))::text, rev));
+  res := res || jsonb_build_object('step', 'a background naming an asset the owner does not have is refused too', 'pass', out like 'ERR:22023:WALL_ASSET_NOT_FOUND%', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d',
+    jsonb_build_object('schemaVersion', 1, 'canvas', jsonb_build_object('width', 1000, 'height', 1778), 'background', jsonb_build_object('kind', 'image', 'assetId', j ->> 'asset_id', 'fit', 'cover', 'posX', 50, 'posY', 50, 'opacity', 1), 'stages', jsonb_build_array(jsonb_build_object('id', 's', 'elements', jsonb_build_array(jsonb_build_object('id', 'i', 'type', 'image', 'x', 0, 'y', 0, 'width', 10, 'height', 10, 'z', 0, 'payload', jsonb_build_object('assetId', j ->> 'asset_id', 'fit', 'cover', 'posX', 50, 'posY', 50, 'opacity', 1))))))::text, rev));
+  res := res || jsonb_build_object('step', 'the owner can save a Wall that uses their own asset (element and background)', 'pass', out not like 'ERR:%', 'got', left(out, 200));
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.delete_my_wall_asset(%L::uuid) a', j ->> 'asset_id'));
+  res := res || jsonb_build_object('step', 'deleting an asset the saved Wall still uses is refused (nothing is deleted from under a Wall)', 'pass', out like 'ERR:PT409:WALL_ASSET_IN_USE%', 'got', out);
+  select count(*) into cnt from public.wall_assets where entity_id = ent_a;
+  res := res || jsonb_build_object('step', 'the asset row is still there after the refused delete', 'pass', cnt = 1);
+  out := pg_temp.w2_run(ub, 'authenticated', format('select to_jsonb(a)::text from public.delete_my_wall_asset(%L::uuid) a', j ->> 'asset_id'));
+  res := res || jsonb_build_object('step', 'another user cannot delete the owner''s asset', 'pass', out like 'ERR:P0002:WALL_ASSET_NOT_FOUND%', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', 'select (select to_jsonb(d)::text from public.get_my_wall_draft() d)');
+  rev := ((out::jsonb) ->> 'revision')::bigint;
+  out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d', doc_two::text, rev));
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.delete_my_wall_asset(%L::uuid) a', j ->> 'asset_id'));
+  res := res || jsonb_build_object('step', 'once the Wall no longer uses it, the owner can delete the asset (the storage path comes back for the API delete)', 'pass', out not like 'ERR:%' and (out::jsonb #>> '{}') like ua::text || '/%', 'got', out);
+  select count(*) into cnt from public.wall_assets where entity_id = ent_a;
+  res := res || jsonb_build_object('step', 'the registry row is gone', 'pass', cnt = 0);
+  -- per-owner limit of 60
+  insert into public.wall_assets (entity_id, storage_path, mime_type, byte_size, width, height)
+    select ent_a, ua::text || '/' || gen_random_uuid() || '.png', 'image/png', 100, 10, 10 from generate_series(1, 60);
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 640, 360) a', ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  res := res || jsonb_build_object('step', 'more than 60 assets per owner is refused', 'pass', out like 'ERR:54000:WALL_ASSET_LIMIT%', 'got', out);
+  delete from public.wall_assets where entity_id = ent_a;
+
+  -- the asset the corpus documents use (a fixed id), owned by the first user, so valid corpus documents can be persisted
+  insert into public.wall_assets (asset_id, entity_id, storage_path, mime_type, byte_size, width, height)
+  values ('3f2b8c1e-5a4d-4e7b-9c60-1d2e3f4a5b6c', ent_a, ua::text || '/3f2b8c1e-5a4d-4e7b-9c60-1d2e3f4a5b6c.png', 'image/png', 1000, 100, 100);
   -- ===== W1 <-> database contract corpus =====
   res := res || jsonb_build_object('step', 'corpus size is ${corpus.length} entries (${validCount} valid)', 'pass', jsonb_array_length(corpus) = ${corpus.length});
   bad := 0;

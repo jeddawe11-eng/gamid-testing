@@ -1,5 +1,6 @@
 // Wall Editor - boot and wiring. Owner-only: it needs a signed-in GamID session (the same session the account app keeps), and every Wall read/write goes
-// through the W2 owner RPCs, which resolve the owner on the server. The editor edits the W1 Wall Document directly; there is no second document format.
+// through the W2 owner RPCs, which resolve the owner on the server. The editor edits the Wall Document directly; there is no second document format.
+import * as api from "../account/supabase-client.js";
 import { restoreSession, rpc } from "../account/supabase-client.js";
 import { createWallPersistence } from "../wall/persistence.js";
 import { createEditorSession } from "../wall-kit/session.js";
@@ -7,13 +8,20 @@ import * as ops from "../wall-kit/ops.js";
 import { paintDocument } from "../wall-kit/paint.js";
 import { describeCode, describeErrors } from "../wall-kit/messages.js";
 import { resolveEditorSession, planAuth, gateFor } from "../wall-kit/auth-gate.js";
+import { elementRegistry } from "../wall/elements.js";
+import { GAMID_BLOCK_INFO } from "../wall-kit/gamid.js";
+import { createPlayerManager } from "../wall-kit/embed/player.js";
 import { createCanvas } from "./canvas.js";
 import { createPropertiesPanel } from "./controls.js";
+import { createTools } from "./tools.js";
+import { createAssetStore } from "./assets.js";
+import { loadGamidSnapshot } from "./gamid-data.js";
 import { legacyAccountHandoffUrl } from "../account/testing-auth-handoff.js";
 import { rememberReturnTo } from "../account/post-auth-return.js";
 
 const $ = id => document.getElementById(id);
 const make = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
+const isPhone = () => window.matchMedia("(max-width: 899px)").matches;
 
 // ---- persistence over the account session ---------------------------------------------------------------------------------------------------------
 // The session is refreshed before every call (a long editing session outlives an access token); an expired session surfaces as AUTH_REQUIRED.
@@ -27,6 +35,8 @@ const persistence = createWallPersistence({
 let multi = false;
 let workspaceVisible = false;
 let pendingStageDelete = null;
+let gamidSnapshot = null;
+let renderQueued = false;
 const session = createEditorSession({ persistence, onChange: () => renderAll() });
 
 // Applies an operation result to the session. A failed operation changes nothing and tells the owner why.
@@ -41,6 +51,17 @@ function notify(message) {
   $("errorBanner").hidden = !message;
 }
 $("errorDismiss").addEventListener("click", () => notify(""));
+
+// ---- assets and GamID data --------------------------------------------------------------------------------------------------------------------------
+// (setTimeout, not requestAnimationFrame: a hidden or backgrounded tab pauses animation frames, and an image that finished loading must still appear when the tab returns)
+const scheduleRender = () => { if (renderQueued) return; renderQueued = true; setTimeout(() => { renderQueued = false; if (workspaceVisible) renderAll(); }, 16); };
+const assetStore = createAssetStore({ api, userId: null, onChange: scheduleRender });
+async function refreshGamid() {
+  gamidSnapshot = null;
+  scheduleRender();
+  gamidSnapshot = await loadGamidSnapshot(api);
+  scheduleRender();
+}
 
 // ---- text box helper --------------------------------------------------------------------------------------------------------------------------------
 // Sizes the box to its text: measures the painted text with an auto height, converts back to stage units.
@@ -60,30 +81,58 @@ const canvas = createCanvas({
   viewport: $("viewport"),
   session,
   isMulti: () => multi,
-  onSelectedTap: () => { if (window.matchMedia("(max-width: 899px)").matches) setSheet("props"); },
+  getPaintContext: () => ({ assets: assetStore, gamid: gamidSnapshot }),
+  onSelectedTap: () => { if (isPhone()) openTool("props"); },
   onEditText: () => {
-    if (window.matchMedia("(max-width: 899px)").matches) setSheet("props");
+    if (isPhone()) openTool("props");
     requestAnimationFrame(() => $("propsBody").querySelector("textarea")?.focus());
   },
 });
-const properties = createPropertiesPanel({ body: $("propsBody"), title: $("propsTitle"), session, run, fitTextHeight });
+const properties = createPropertiesPanel({ body: $("propsBody"), title: $("propsTitle"), session, run, fitTextHeight, assets: assetStore, refreshGamid });
 
-// ---- panels ------------------------------------------------------------------------------------------------------------------------------------------
+// ---- tools: one rail, one drawer ------------------------------------------------------------------------------------------------------------------
 // On a phone a bottom sheet covers the lower part of the stage: scroll the selection up into the part that stays visible above it.
 function revealSelection() {
-  if (!window.matchMedia("(max-width: 899px)").matches || !document.body.dataset.sheet) return;
+  if (!isPhone() || !document.body.classList.contains("is-sheet-open")) return;
   const box = $("stageHost").querySelector(".ed-sel");
   if (!box) return;
   const viewport = $("viewport");
-  const sheet = document.body.dataset.sheet === "props" ? $("props") : $("leftPanel");
+  const sheet = document.body.dataset.tool === "props" ? $("props") : $("drawer");
   const sheetTop = sheet.getBoundingClientRect().top;
   const overshoot = box.getBoundingClientRect().bottom - (sheetTop - 16);
   if (overshoot > 0) viewport.scrollTop += overshoot;
   const above = viewport.getBoundingClientRect().top + 8 - box.getBoundingClientRect().top;
   if (above > 0) viewport.scrollTop -= above;
 }
-function setSheet(name) { document.body.dataset.sheet = document.body.dataset.sheet === name ? "" : name; requestAnimationFrame(() => { canvas.render(); setTimeout(revealSelection, 220); }); }
-for (const button of document.querySelectorAll("#mobileBar [data-sheet]")) button.addEventListener("click", () => setSheet(button.dataset.sheet));
+function afterToolChange() { setTimeout(() => { canvas.render(); setTimeout(revealSelection, 220); }, 16); }
+// Opens a tool (desktop: the drawer always shows one tool and the Edit inspector is always visible; phone: the tool opens as a bottom sheet).
+function openTool(name) {
+  if (!isPhone() && name === "props") return;
+  document.body.dataset.tool = name;
+  document.body.classList.add("is-sheet-open");
+  tools?.update();
+  afterToolChange();
+}
+function toggleTool(name) {
+  const open = document.body.classList.contains("is-sheet-open") && document.body.dataset.tool === name;
+  if (isPhone() && open) { document.body.classList.remove("is-sheet-open"); afterToolChange(); return; }
+  openTool(name);
+}
+for (const button of document.querySelectorAll("#rail [data-tool]")) button.addEventListener("click", () => toggleTool(button.dataset.tool));
+
+const assetFile = $("assetFile");
+let placeNextUpload = false;
+const tools = createTools({
+  session, run, notify, assets: assetStore, getGamid: () => gamidSnapshot, refreshGamid, setTool: openTool,
+  pickImage: () => { placeNextUpload = true; assetFile.click(); },
+});
+$("assetUpload").addEventListener("click", () => { placeNextUpload = false; assetFile.click(); });
+assetFile.addEventListener("change", async () => {
+  const file = assetFile.files?.[0];
+  assetFile.value = "";
+  if (file) await tools.uploadFile(file, { place: placeNextUpload });
+  placeNextUpload = false;
+});
 
 const STATUS_TEXT = { loading: "Loading…", saved: "Saved", unsaved: "Unsaved changes", saving: "Saving…", error: "Save failed", conflict: "Newer version exists", blocked: "Editing blocked" };
 let lastStatus = null;
@@ -105,6 +154,7 @@ function updateChrome() {
   $("multiBtn").setAttribute("aria-pressed", String(multi));
 }
 
+// ---- layout: stages and layers ----------------------------------------------------------------------------------------------------------------------
 function renderStages() {
   const chips = $("stageChips");
   chips.replaceChildren();
@@ -128,13 +178,16 @@ function renderStages() {
 function layerName(element) {
   if (element.type === "text") return `Text: ${element.payload.text.replace(/\s+/g, " ").slice(0, 24) || "(empty)"}`;
   if (element.type === "rect") return element.payload.radius >= Math.min(element.width, element.height) / 2 && element.width === element.height ? "Circle" : element.payload.radius ? "Rounded rectangle" : "Rectangle";
+  if (element.type === "image") return element.payload.alt ? `Image: ${element.payload.alt.slice(0, 22)}` : "Image";
+  if (element.type === "embed") { const descriptor = elementRegistry.get("embed").render(element.payload).content; return `${descriptor?.providerLabel ?? "Link"} ${descriptor?.contentLabel?.toLowerCase() ?? ""}`.trim(); }
+  if (element.type === "gamid") return `GamID: ${GAMID_BLOCK_INFO[element.payload.block]?.label ?? "block"}`;
   return element.type;
 }
 function renderLayers() {
   const list = $("layerList");
   list.replaceChildren();
   const stage = session.stage;
-  if (!stage || !stage.elements.length) { const empty = make("li", "ed-empty", "This stage is empty. Use Add to place text or a shape."); list.append(empty); return; }
+  if (!stage || !stage.elements.length) { list.append(make("li", "ed-empty", "This stage is empty. Use Add to place text, a shape, an image, a link or a GamID block.")); return; }
   const selected = new Set(session.state.selection);
   for (const element of ops.layerList(stage)) {
     const row = make("li", `ed-layer${selected.has(element.id) ? " is-selected" : ""}`);
@@ -161,23 +214,15 @@ function renderAll() {
   renderStages();
   renderLayers();
   properties.update();
+  tools.update();
   const key = session.state.selection.join(",");
   if (key !== lastSelectionKey) { lastSelectionKey = key; if (key) requestAnimationFrame(revealSelection); }
 }
 
 // ---- actions -----------------------------------------------------------------------------------------------------------------------------------------
-for (const button of document.querySelectorAll("[data-add]")) {
-  button.addEventListener("click", () => {
-    const result = run(ops.addElement(session.doc, session.state.stageId, button.dataset.add), { keepResultSelection: true });
-    if (result.ok && button.dataset.add === "text") {
-      if (window.matchMedia("(max-width: 899px)").matches) document.body.dataset.sheet = "props";
-      requestAnimationFrame(() => { $("propsBody").querySelector("textarea")?.select(); setTimeout(revealSelection, 220); });
-    } else if (result.ok) document.body.dataset.sheet = "";
-  });
-}
 $("multiBtn").addEventListener("click", () => { multi = !multi; updateChrome(); });
-$("undoBtn").addEventListener("click", () => session.undo());
-$("redoBtn").addEventListener("click", () => session.redo());
+$("undoBtn").addEventListener("click", () => { session.undo(); tools.invalidate(); });
+$("redoBtn").addEventListener("click", () => { session.redo(); tools.invalidate(); });
 
 $("stageAdd").addEventListener("click", () => {
   const result = run(ops.addStage(session.doc, { afterIndex: ops.stageIndex(session.doc, session.state.stageId) }));
@@ -205,21 +250,29 @@ async function save() {
   await session.save();
 }
 $("saveBtn").addEventListener("click", save);
-$("conflictReload").addEventListener("click", async () => { await session.reloadLatest(); });
+$("conflictReload").addEventListener("click", async () => { await session.reloadLatest(); tools.invalidate(); });
 $("conflictOverwrite").addEventListener("click", async () => {
   if (window.confirm("Overwrite the newer saved version of your Wall with what you have here? The newer version will be replaced.")) await session.overwriteWithMine();
 });
 
-// ---- preview (visitor-style, uses the real render pipeline; never touches the document) -----------------------------------------------------------
-$("previewBtn").addEventListener("click", () => {
+// ---- preview (visitor-style, the real render pipeline in VIEW mode; never touches the document) ------------------------------------------------------
+let previewMode = "mobile";
+let players = null;
+function renderPreview() {
   const scroll = $("previewScroll");
-  $("preview").hidden = false;
-  const width = Math.min(560, scroll.clientWidth || window.innerWidth);
-  const painted = paintDocument(session.doc, width);
+  players?.destroyAll();
+  players = createPlayerManager();
+  const available = Math.max(280, (scroll.clientWidth || window.innerWidth) - 16);
+  const width = previewMode === "mobile" ? Math.min(390, available) : Math.min(900, available);
+  const painted = paintDocument(session.doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players });
   $("previewColumn").replaceChildren(...(painted.ok ? painted.stages : [make("p", "ed-empty", "This Wall cannot be previewed: " + describeErrors(painted.errors).join(" "))]));
-  scroll.scrollTop = 0;
-});
-$("previewClose").addEventListener("click", () => { $("preview").hidden = true; $("previewColumn").replaceChildren(); });
+  $("previewMobile").setAttribute("aria-pressed", String(previewMode === "mobile"));
+  $("previewDesktop").setAttribute("aria-pressed", String(previewMode === "desktop"));
+}
+$("previewBtn").addEventListener("click", () => { $("preview").hidden = false; renderPreview(); $("previewScroll").scrollTop = 0; });
+$("previewMobile").addEventListener("click", () => { previewMode = "mobile"; renderPreview(); });
+$("previewDesktop").addEventListener("click", () => { previewMode = "desktop"; renderPreview(); });
+$("previewClose").addEventListener("click", () => { players?.destroyAll(); players = null; $("preview").hidden = true; $("previewColumn").replaceChildren(); });
 
 // ---- keyboard (desktop) ------------------------------------------------------------------------------------------------------------------------------
 document.addEventListener("keydown", event => {
@@ -228,8 +281,8 @@ document.addEventListener("keydown", event => {
   if (mod && event.key.toLowerCase() === "s") { event.preventDefault(); if (!$("saveBtn").disabled) save(); return; }
   if (typing || !workspaceVisible || !$("preview").hidden) return;
   const ids = session.state.selection;
-  if (mod && event.key.toLowerCase() === "z") { event.preventDefault(); if (event.shiftKey) session.redo(); else session.undo(); return; }
-  if (mod && event.key.toLowerCase() === "y") { event.preventDefault(); session.redo(); return; }
+  if (mod && event.key.toLowerCase() === "z") { event.preventDefault(); if (event.shiftKey) session.redo(); else session.undo(); tools.invalidate(); return; }
+  if (mod && event.key.toLowerCase() === "y") { event.preventDefault(); session.redo(); tools.invalidate(); return; }
   if (!ids.length) return;
   if (mod && event.key.toLowerCase() === "d") { event.preventDefault(); run(ops.duplicateElements(session.doc, ids), { keepResultSelection: true }); return; }
   if (mod && event.key.toLowerCase() === "g") { event.preventDefault(); run(event.shiftKey ? ops.ungroupElements(session.doc, ids) : ops.groupElements(session.doc, ids), { keepResultSelection: true }); return; }
@@ -252,13 +305,12 @@ if (typeof ResizeObserver === "function") {
 function gate({ title, text, loader = false, link = false, retry = false }) {
   $("gate").hidden = false;
   $("workspace").hidden = true;
-  $("mobileBar").hidden = true;
   workspaceVisible = false;
   $("gateLoader").hidden = !loader;
   $("gateTitle").textContent = title;
   $("gateText").textContent = text;
   $("gateLink").hidden = !link;
- $("gateRetry").hidden = !retry;
+  $("gateRetry").hidden = !retry;
   updateChrome();
 }
 const sessionStorageOrNull = () => { try { return window.sessionStorage; } catch { return null; } };
@@ -282,10 +334,14 @@ async function boot() {
   }
   $("gate").hidden = true;
   $("workspace").hidden = false;
-  $("mobileBar").hidden = false;
   workspaceVisible = true;
+  document.body.dataset.tool = document.body.dataset.tool || "add";
   renderAll();
   requestAnimationFrame(() => canvas.render());
+  // the owner's own images and GamID data load in the background; the Wall is usable immediately
+  assetStore.setUserId(api.userIdFromToken());
+  assetStore.refresh().catch(() => { /* Assets shows an empty state; the Wall itself is unaffected */ });
+  refreshGamid().catch(() => { /* blocks show a plain "not available" note */ });
 }
 $("gateRetry").addEventListener("click", boot);
 boot();

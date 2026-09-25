@@ -60,6 +60,8 @@ elementRegistry.register("embed", {
     // Only reachable for an already-validated element (render.js never renders an invalid document), so the adapter is guaranteed to exist here; the
     // `unavailable` fallback exists purely so this function still fails safe - never throws, never renders raw data - if ever called out of that order.
     if (!adapter) return { kind: "embed", providerKey: payload.providerKey, unavailable: true };
-    return { kind: "embed", providerKey: payload.providerKey, content: adapter.render ? adapter.render(payload.data) : null };
+    // One provider failing must never take the Wall down: a throwing adapter renders as an "unavailable" embed and every other element still draws.
+    try { return { kind: "embed", providerKey: payload.providerKey, content: adapter.render ? adapter.render(payload.data) : null }; }
+    catch { return { kind: "embed", providerKey: payload.providerKey, unavailable: true }; }
   },
 });

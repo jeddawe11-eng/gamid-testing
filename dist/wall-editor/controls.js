@@ -1,9 +1,13 @@
 // The contextual Properties panel. Built entirely with createElement/textContent (never innerHTML). The panel is rebuilt only when the SELECTION changes
 // (which controls apply); on every other change the existing controls are just re-synced, so typing in a field is never interrupted.
 import * as ops from "../wall-kit/ops.js";
+import { elementRegistry } from "../wall/elements.js";
 import { FONT_CATALOG, fontKnown } from "../wall-kit/fonts.js";
 import { TEXT_LIMITS, WEIGHTS } from "../wall-kit/text.js";
 import { describeErrors } from "../wall-kit/messages.js";
+import { PROVIDERS, isAllowedOpenUrl } from "../wall-kit/embed/engine.js";
+import { IMAGE_FITS, ALT_MAX } from "../wall-kit/image.js";
+import { GAMID_LAYOUTS, GAMES_INITIAL } from "../wall-kit/gamid.js";
 
 const h = (tag, attributes = {}, ...children) => {
   const node = document.createElement(tag);
@@ -19,9 +23,9 @@ const h = (tag, attributes = {}, ...children) => {
 };
 
 const WEIGHT_NAMES = { 100: "Thin", 200: "Extra light", 300: "Light", 400: "Regular", 500: "Medium", 600: "Semi-bold", 700: "Bold", 800: "Extra bold", 900: "Black" };
-const TYPE_LABEL = { text: "Text", rect: "Shape", embed: "Embed" };
+const TYPE_LABEL = { text: "Text", rect: "Shape", embed: "Link / Embed", image: "Image", gamid: "GamID block" };
 
-export function createPropertiesPanel({ body, title, session, run, fitTextHeight }) {
+export function createPropertiesPanel({ body, title, session, run, fitTextHeight, assets = null, refreshGamid = () => {} }) {
   let builtKey = null;
   let syncers = [];
   let errorBox = null;
@@ -188,6 +192,60 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     return wrap;
   }
 
+  function textInput({ label, get, set, key, max }) {
+    const input = h("input", { type: "text", maxlength: max, autocomplete: "off" });
+    input.addEventListener("input", () => exec(set(input.value), { coalesce: key }));
+    input.addEventListener("blur", () => { input.value = get(selectedElements()[0]) ?? ""; showErrors([]); });
+    syncers.push(targets => { if (document.activeElement !== input) input.value = get(targets[0]) ?? ""; });
+    return field(label, input);
+  }
+
+  function imageControls(root) {
+    root.append(h("div", { class: "ed-group-title", text: "Image" }));
+    root.append(selectField({ label: "Fit", options: [{ value: "cover", label: "Fill the box (crop)" }, { value: "contain", label: "Show whole picture" }, { value: "fill", label: "Stretch" }], get: element => element.payload.fit, set: value => patchAll({ fit: value }), key: "imgFit" }));
+    root.append(numberSlider({ label: "Position X %", min: 0, max: 100, step: 1, get: element => element.payload.posX, set: value => patchAll({ posX: value }), key: "imgX" }));
+    root.append(numberSlider({ label: "Position Y %", min: 0, max: 100, step: 1, get: element => element.payload.posY, set: value => patchAll({ posY: value }), key: "imgY" }));
+    root.append(numberSlider({ label: "Opacity %", min: 0, max: 100, step: 1, get: element => Math.round(element.payload.opacity * 100), set: value => patchAll({ opacity: value / 100 }), key: "imgOpacity" }));
+    root.append(numberSlider({ label: "Corner radius", min: 0, max: 1000, sliderMax: 300, step: 1, get: element => element.payload.radius ?? 0, set: value => patchAll({ radius: value === 0 ? undefined : value }), key: "imgRadius" }));
+    root.append(textInput({ label: "Description", max: ALT_MAX, get: element => element.payload.alt ?? "", set: value => patchAll({ alt: value === "" ? undefined : value }), key: "imgAlt" }));
+    root.append(h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn", type: "button", text: "Original proportions", onclick: () => {
+      const element = selectedElements()[0];
+      const size = (element.payload.aw && element.payload.ah) ? { width: element.payload.aw, height: element.payload.ah } : assets?.dimensionsOf(element.payload.assetId);
+      if (!size) return;
+      exec(ops.updateGeometry(session.doc, element.id, { height: Math.max(10, Math.round(element.width * size.height / size.width)) }));
+    } })));
+  }
+
+  function embedControls(root) {
+    const element = selectedElements()[0];
+    const provider = PROVIDERS.get(element.payload.providerKey);
+    const kind = provider?.kinds[element.payload.data?.kind];
+    root.append(h("div", { class: "ed-group-title", text: "Link / Embed" }));
+    root.append(h("p", { class: "ed-hint", text: `${provider?.label ?? "Link"} · ${kind?.label ?? ""}. Nothing loads from ${provider?.label ?? "the provider"} while you edit; use Preview to try it.` }));
+    const patchData = patch => ops.updatePayload(session.doc, session.state.selection[0], { data: { ...selectedElements()[0].payload.data, ...patch } });
+    const presentations = [{ value: "card", label: "Card" }, { value: "link", label: "Link" }, ...(kind?.inline ? [{ value: "embed", label: "Player" }] : [])];
+    root.append(selectField({ label: "Show as", options: presentations, get: item => item.payload.data.presentation, set: value => patchData({ presentation: value }), key: "embedShow" }));
+    if ((kind?.aspects?.length ?? 0) > 1) root.append(selectField({ label: "Shape", options: kind.aspects.map(value => ({ value, label: value })), get: item => item.payload.data.aspect ?? kind.aspect, set: value => patchData({ aspect: value === kind.aspect ? undefined : value }), key: "embedAspect" }));
+    root.append(textInput({ label: "Caption", max: 80, get: item => item.payload.data.caption ?? "", set: value => patchData({ caption: value === "" ? undefined : value }), key: "embedCaption" }));
+    const descriptor = elementRegistry.get("embed").render(element.payload).content;
+    if (descriptor && isAllowedOpenUrl(descriptor.providerKey, descriptor.openUrl)) {
+      root.append(h("div", { class: "ed-btn-row" }, h("a", { class: "ed-btn", href: descriptor.openUrl, target: "_blank", rel: "noopener noreferrer nofollow", text: `Open on ${descriptor.providerLabel} ↗` })));
+    }
+  }
+
+  function gamidControls(root) {
+    const element = selectedElements()[0];
+    root.append(h("div", { class: "ed-group-title", text: "GamID block" }));
+    root.append(h("p", { class: "ed-hint", text: "This block shows your real GamID data and updates with it. Private information stays private." }));
+    root.append(selectField({ label: "Layout", options: GAMID_LAYOUTS.map(value => ({ value, label: value === "card" ? "Card" : "Compact" })), get: item => item.payload.layout ?? "card", set: value => patchAll({ layout: value }), key: "gamidLayout" }));
+    if (element.payload.block === "games") {
+      root.append(numberSlider({ label: "Shown first", min: GAMES_INITIAL.min, max: GAMES_INITIAL.max, step: 1, get: item => item.payload.initial ?? GAMES_INITIAL.default, set: value => patchAll({ initial: Math.round(value) }), key: "gamidInitial" }));
+      root.append(h("div", { class: "ed-btn-row" }, toggleButton({ label: "Show hours played", get: item => item.payload.showPlaytime === true, set: on => patchAll({ showPlaytime: on ? true : undefined }), key: "gamidHours" })));
+      root.append(h("p", { class: "ed-hint", text: "Hours are hidden unless you turn them on here AND your GamID playtime setting allows them." }));
+    }
+    root.append(h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn", type: "button", text: "Refresh GamID data", onclick: () => refreshGamid() })));
+  }
+
   function geometryControls(root) {
     root.append(h("div", { class: "ed-group-title", text: "Position and size" }));
     const box = h("div");
@@ -249,6 +307,9 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     body.append(errorBox);
     if (types.length === 1 && types[0] === "text") textControls(body);
     else if (types.length === 1 && types[0] === "rect") shapeControls(body);
+    else if (types.length === 1 && types[0] === "image") imageControls(body);
+    else if (types.length === 1 && types[0] === "embed" && single) embedControls(body);
+    else if (types.length === 1 && types[0] === "gamid") gamidControls(body);
     if (single && !groupedSelection) geometryControls(body);
     else body.append(h("p", { class: "ed-hint", text: groupedSelection ? "Groups move and resize as one unit. Ungroup to edit an element on its own." : "Multiple elements selected. Move and resize them together on the canvas." }));
     actionControls(body, targets, single);

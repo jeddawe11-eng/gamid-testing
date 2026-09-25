@@ -3,7 +3,8 @@
 // check fails, since a malformed top-level shape makes it unsafe to even iterate stages/elements.
 import { SUPPORTED_SCHEMA_VERSIONS } from "./schema.js";
 import { elementRegistry } from "./elements.js";
-import { isSet } from "./fields.js";
+import { isSet, isPlainObject } from "./fields.js";
+import { backgroundRegistry } from "./backgrounds.js";
 
 // Never allow arbitrary user-supplied HTML, JavaScript, iframe markup, or executable embed code anywhere in a payload - a Wall-CORE guarantee, applied
 // to every element's payload regardless of type or provider, so no current or future element/provider implementation can accidentally (or maliciously)
@@ -21,6 +22,17 @@ function scanForUnsafeContent(value, path, errors) {
 
 export const GROUP_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const isGroupId = value => typeof value === "string" && GROUP_ID.test(value);
+
+// A Wall background (scope "wall") or a stage background (scope = the stage id): a plain object whose `kind` names a REGISTERED kind, validated by that kind. The universal
+// unsafe-content scan applies to every string inside it, like every element payload.
+function backgroundErrors(background, scope) {
+  if (!isPlainObject(background) || typeof background.kind !== "string" || !background.kind) return [`INVALID_BACKGROUND:${scope}`];
+  const definition = backgroundRegistry.get(background.kind);
+  if (!definition) return [`UNKNOWN_BACKGROUND_KIND:${scope}`];
+  const errors = (definition.validate ? definition.validate(background) : []).map(code => `BACKGROUND:${code}:${scope}`);
+  scanForUnsafeContent(background, `${scope}.background`, errors);
+  return errors;
+}
 
 function validateElement(element, errors) {
   if (!element || typeof element !== "object") { errors.push("MALFORMED_ELEMENT"); return; }
@@ -59,6 +71,7 @@ export function validateDocument(doc) {
   if (!Array.isArray(doc.stages) || doc.stages.length < 1) errors.push("INVALID_STAGE_COUNT");
   if (errors.length) return { valid: false, errors };   // the top-level shape itself is untrustworthy; do not attempt to inspect stages/elements
 
+  if (isSet(doc.background)) errors.push(...backgroundErrors(doc.background, "wall"));
   const seenElementIds = new Set();
   const seenStageIds = new Set();
   const groupStages = new Map();
@@ -66,6 +79,7 @@ export function validateDocument(doc) {
     if (!stage || typeof stage.id !== "string" || !stage.id) { errors.push("INVALID_STAGE_ID"); continue; }
     if (seenStageIds.has(stage.id)) errors.push(`DUPLICATE_STAGE_ID:${stage.id}`);
     seenStageIds.add(stage.id);
+    if (isSet(stage.background)) errors.push(...backgroundErrors(stage.background, stage.id));
     if (!Array.isArray(stage.elements)) { errors.push(`INVALID_STAGE_ELEMENTS:${stage.id}`); continue; }
     for (const element of stage.elements) {
       validateElement(element, errors);

@@ -252,6 +252,42 @@ export async function loadAvatar(path) {
   return URL.createObjectURL(blob);
 }
 
+// ---- Wall assets (the owner's own pictures for the Wall: image elements and image backgrounds) ---------------------------------------------------
+// Same pattern as avatars: a private bucket, the owner's own folder, the owner's own token; a small registry RPC records each accepted upload. Nothing here is public.
+const WALL_ASSET_TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" };
+export const WALL_ASSET_MAX_BYTES = 5 * 1024 * 1024;
+
+export async function listWallAssets() {
+  return (await rpc("list_my_wall_assets")) || [];
+}
+
+export async function uploadWallAsset(file, userId, { width, height }) {
+  const extension = WALL_ASSET_TYPES[file.type];
+  if (!extension) throw new ApiError("Choose a JPG, PNG, WebP, or AVIF image.", 400, "INVALID_FILE_TYPE");
+  if (file.size > WALL_ASSET_MAX_BYTES) throw new ApiError("Images must be 5 MB or smaller.", 400, "FILE_TOO_LARGE");
+  const path = `${userId}/${crypto.randomUUID()}.${extension}`;
+  await request(`/storage/v1/object/wall-media/${path}`, { method: "POST", token: session?.access_token, body: file, headers: { "Content-Type": file.type, "x-upsert": "false" } });
+  try {
+    const rows = await rpc("register_my_wall_asset", { candidate_path: path, candidate_mime: file.type, candidate_bytes: file.size, candidate_width: width, candidate_height: height });
+    return rows?.[0] ?? null;
+  } catch (error) {
+    try { await request(`/storage/v1/object/wall-media/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* the orphan is private and only the owner can reach it */ }
+    throw error;
+  }
+}
+
+export async function loadWallAsset(path) {
+  if (!path) return null;
+  const blob = await requestBlob(`/storage/v1/object/authenticated/wall-media/${encodeStoragePath(path)}`, session?.access_token, "WALL_ASSET_READ_FAILED");
+  return URL.createObjectURL(blob);
+}
+
+export async function deleteWallAsset(assetId) {
+  const rows = await rpc("delete_my_wall_asset", { candidate_asset_id: assetId });
+  const path = rows?.[0]?.storage_path;
+  if (path) { try { await request(`/storage/v1/object/wall-media/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* the registry row is gone; the private object is unreachable by anyone else */ } }
+  return true;
+}
 export async function getMyIntro() {
   const rows = await rpc("get_my_intro");
   return rows?.[0] || null;

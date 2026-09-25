@@ -15,7 +15,8 @@ const read = path => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 const MIGRATION = "supabase/migrations/20260925120000_wall_persistence_foundation.sql";
 // W3 (the editor) taught the database validator the new element types in a forward migration; the SQL port is the union of the Wall migrations
 const EDITOR_MIGRATION = "supabase/migrations/20260925140000_wall_editor_element_types.sql";
-const migration = read(MIGRATION) + "\n" + read(EDITOR_MIGRATION);
+// every Wall migration (persistence, editor types, revision status, assets, media/blocks/backgrounds): the SQL port is their union
+const migration = readdirSync("supabase/migrations").filter(name => /_wall_/.test(name)).sort().map(name => read(`supabase/migrations/${name}`)).join("\n");
 // the migration text without SQL comments, for "does the code do X" assertions
 const migrationCode = migration.replace(/--.*$/gm, "");
 
@@ -41,12 +42,18 @@ test("corpus: names are unique and both valid and invalid documents are covered"
 // neither can occur; the forward migration that registers a real provider must teach the database validator both (and add corpus cases).
 const PROVIDER_ONLY = new Set(["PROVIDER", "PROVIDER_DATA_NOT_OBJECT"]);
 const w1Codes = () => {
-  const w1Source = read("dist/wall/validate.js") + read("dist/wall/elements.js") + read("dist/wall-kit/text.js");
-  return new Set([...w1Source.matchAll(/["`]([A-Z][A-Z_]{5,})(?::|["`])/g)].map(match => match[1]).filter(code => !PROVIDER_ONLY.has(code)));
+  const w1Source = ["dist/wall/validate.js", "dist/wall/elements.js", "dist/wall-kit/text.js", "dist/wall-kit/image.js", "dist/wall-kit/gamid.js", "dist/wall-kit/background.js"].map(read).join("\n");
+  const codes = new Set([...w1Source.matchAll(/["`]([A-Z][A-Z_]{5,})(?::|["`])/g)].map(match => match[1]).filter(code => !PROVIDER_ONLY.has(code)));
+  // the embed engine also holds vocabulary that is not a validation code (capability names, detection reasons): only its validator's codes count
+  const validator = read("dist/wall-kit/embed/engine.js");
+  const body = validator.slice(validator.indexOf("export function validateEmbedData"), validator.indexOf("// The plain, JSON-serializable descriptor"));
+  for (const match of body.matchAll(/["`]([A-Z][A-Z_]{5,})["`]/g)) codes.add(match[1]);
+  return codes;
 };
 
 test("corpus: every W1 error code family is exercised, so the database port is checked against all of them", () => {
-  const seen = new Set(CORPUS.flatMap(entry => validateDocument(entry.doc).errors.map(code => code.split(":")[0])));
+  // codes can be wrapped (BACKGROUND:<code>:<scope>, PROVIDER:<code>:<id>): every segment counts as produced
+  const seen = new Set(CORPUS.flatMap(entry => validateDocument(entry.doc).errors.flatMap(code => code.split(":"))));
   for (const code of w1Codes()) assert.ok(seen.has(code), `corpus never produces W1 error ${code}`);
 });
 
@@ -82,7 +89,7 @@ test("migration: additive only, TESTING-safe, and fresh timestamps after the Pla
   assert.equal(versions.filter(v => v === "20260925140000").length, 1);
   assert.ok(!/\b(drop|truncate)\s+(table|schema|function)\b/i.test(migrationCode), "no destructive statements");
   assert.ok(!/\balter\s+table\s+public\.(entities|entity_memberships|profiles)\b/i.test(migrationCode), "no change to existing tables");
-  assert.ok(!/\bdelete\s+from\b|\binsert\s+into\s+public\.(entities|profiles)|\bupdate\s+public\.(?!wall_drafts)/i.test(migrationCode), "touches no existing data");
+  assert.ok(!/\bdelete\s+from\s+(?!public\.wall_assets)|\binsert\s+into\s+public\.(entities|profiles)|\bupdate\s+public\.(?!wall_drafts|wall_assets)/i.test(migrationCode), "touches no existing data (only the Wall's own tables)");
   assert.ok(!/game[-_ ]?id[-_ ]?wall/i.test(migration), "the Steam-slice scope guard reserves that phrase");
 });
 
@@ -92,9 +99,10 @@ test("migration: RLS on, no client table grant, RPC-only access for authenticate
   assert.ok(!/grant\s+[^;]*\bon\s+table\b/i.test(migrationCode), "no table grant of any kind");
   assert.ok(!/\bto\b[^;]*\banon\b[^;]*;/i.test(migrationCode.replace(/revoke[^;]*;/gi, "")), "nothing is granted to anon");
   const grants = [...migrationCode.matchAll(/grant execute on function([^;]*?)to ([^;]*);/gi)];
-  assert.equal(grants.length, 1);
-  assert.equal(grants[0][2].trim(), "authenticated");
-  assert.ok(!/wall_document_errors|wall_string_is_unsafe|wall_scan_unsafe|wall_element_payload_errors|wall_new_document|wall_owned_entity_id/.test(grants[0][1]), "helpers are not client-executable");
+  assert.equal(grants.length, 2, "the owner Wall RPCs and the owner asset RPCs");
+  for (const grant of grants) assert.equal(grant[2].trim(), "authenticated");
+  const grantedTo = grants.map(grant => grant[1]).join(" ");
+  assert.ok(!/wall_document_errors|wall_string_is_unsafe|wall_scan_unsafe|wall_element_payload_errors|wall_new_document|wall_owned_entity_id|wall_embed_specs|wall_document_asset_ids|wall_background_errors/.test(grantedTo), "helpers are not client-executable");
 });
 
 test("migration: definer functions pin an empty search_path; public wrappers are security invoker", () => {
@@ -113,7 +121,7 @@ test("migration: ownership comes from auth.uid() through the membership architec
   assert.match(migrationCode, /public\.entity_memberships m/);
   assert.match(migrationCode, /m\.role = 'OWNER' and e\.entity_type = 'SOLO'/);
   const signatures = [...migrationCode.matchAll(/create function public\.(\w+)\(([^)]*)\)/g)];
-  assert.equal(signatures.length, 3);
+  assert.equal(signatures.length, 6, "three Wall RPCs + three asset RPCs");
   for (const [, name, args] of signatures) assert.ok(!/entity|owner|user|profile/i.test(args), `${name} takes no owner/identity argument`);
   assert.ok(!/\bvisibility\b|is_public|published/.test(migrationCode), "the draft does not depend on publish state");
 });
