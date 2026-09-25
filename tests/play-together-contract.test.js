@@ -14,9 +14,9 @@ const css=await readFile(new URL("dist/play-together/play-together.css",root),"u
 const account=await readFile(new URL("dist/account/index.html",root),"utf8");
 
 test("account exposes the Play Together entry without changing Wall",()=>assert.match(account,/href="\.\.\/play-together\/"/));
-test("first UI is locked to Need Players, Me, Play Now",()=>{for(const text of ["NEED PLAYERS","ME","PLAY NOW"])assert.match(html,new RegExp(text));});
+test("accepted Need Players, Me, Play Now path remains present",()=>{for(const text of ["NEED PLAYERS","ME","PLAY NOW"])assert.match(html,new RegExp(text));});
 test("UI has structured experience, queue, region, seats, language and mic controls",()=>{for(const id of ["experienceSelect","queueSelect","regionSelect","seatsSelect","languageChoices"])assert.match(html,new RegExp(`id="${id}"`));for(const value of ["REQUIRED","PREFERRED","NO_PREFERENCE"])assert.match(html,new RegExp(value));});
-test("UI supports active state, cancel, and persistence RPC reads",()=>{assert.match(html,/MY ACTIVE SESSION/);assert.match(js,/get_my_active_play_together_session/);assert.match(js,/cancel_my_play_together_session/);});
+test("UI supports active state, cancel, and the expanded persistent dashboard",()=>{assert.match(html,/MY ACTIVE SESSION/);assert.match(js,/get_play_together_dashboard/);assert.match(js,/cancel_my_play_together_session/);});
 test("Play Together distinguishes missing authentication from post-authenticated load failures",()=>{assert.match(js,/resolvePlayTogetherStartup/);assert.match(html,/id="loadErrorPanel"/);assert.match(startup,/if \(!session\) return \{ state: "AUTH_REQUIRED"/);assert.match(startup,/return \{ state: "LOAD_ERROR"/);});
 test("UI states mandatory host approval and never auto admission",()=>{assert.match(html,/HOST APPROVAL/);assert.match(html,/never auto-admits/);assert.doesNotMatch(`${html}${js}${migration}`,/AUTO_MATCH|AUTO_JOIN/);});
 test("responsive contract has phone and desktop layouts",()=>{assert.match(css,/@media\(min-width:42rem\)/);assert.match(css,/@media\(max-width:23rem\)/);});

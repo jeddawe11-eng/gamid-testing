@@ -1,51 +1,29 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#08070d" />
-  <meta name="description" content="Create a GamID Play Together squad session." />
-  <title>GamID — Play Together</title>
-  <link rel="stylesheet" href="../account/account.css?v=__ASSET_VERSION__" />
-  <link rel="stylesheet" href="play-together.css?v=__ASSET_VERSION__" />
-</head>
-<body>
-  <header class="site-head"><a href="../" class="brand">GAM<span>ID</span></a><span class="test-badge">TESTING</span></header>
-  <main class="pt-shell">
-    <nav class="pt-nav"><a href="../account/">← Your GamID</a><span>PLAY TOGETHER</span></nav>
-    <section class="pt-hero"><p class="eyebrow">CREATE SQUAD</p><h1>Need players?<br><span>Build your session.</span></h1><p>GamID finds candidates later. You remain the host, and nobody joins without your approval.</p></section>
-
-    <section id="loadingPanel" class="pt-card pt-loading" aria-live="polite"><div class="loader"></div><p>Loading your Play Together session…</p></section>
-    <section id="authPanel" class="pt-card" hidden><p class="eyebrow">SIGN IN REQUIRED</p><h2>Enter your GamID first</h2><p>Play Together is available to authenticated GamID members.</p><a class="primary pt-action-link" href="../account/">GO TO SIGN IN</a></section>
-    <section id="loadErrorPanel" class="pt-card" hidden><p class="eyebrow">COULDN'T LOAD PLAY TOGETHER</p><h2>Your GamID session is still signed in</h2><p>We couldn't load Play Together data. Refresh to try again.</p><button id="retryButton" class="primary" type="button">TRY AGAIN</button></section>
-
-    <section id="activePanel" class="pt-card" hidden aria-live="polite">
-      <div class="pt-title-row"><div><p class="eyebrow">MY ACTIVE SESSION</p><h2>Matching</h2></div><span class="pt-status">PLAY NOW</span></div>
-      <dl id="activeDetails" class="pt-summary"></dl>
-      <p class="pt-host-note">Host approval is required. Accepted, ready, and joined are separate future steps.</p>
-      <button id="cancelButton" class="secondary danger" type="button">CANCEL SESSION</button>
-    </section>
-
-    <section id="createPanel" class="pt-card" hidden>
-      <div class="pt-locks" aria-label="This slice's fixed choices"><span>NEED PLAYERS</span><span>ME</span><span>PLAY NOW</span></div>
-      <form id="createForm" novalidate>
-        <label>Game<select id="gameSelect" disabled><option>League of Legends</option></select></label>
-        <label>Experience<select id="experienceSelect" required></select></label>
-        <label>Mode / Queue<select id="queueSelect" required></select><small id="queueNote"></small></label>
-        <label>Riot region / server<select id="regionSelect" required></select><small>Official Riot platform routing identity—not free text.</small></label>
-        <label>Seats Wanted<select id="seatsSelect" required disabled></select><small id="seatsHelp">Choose a queue first.</small></label>
-        <fieldset class="pt-languages"><legend>Languages <span>Choose up to two</span></legend><div id="languageChoices"></div><small>English is selected by default. Future matching needs at least one shared language.</small></fieldset>
-        <fieldset class="pt-mic"><legend>Mic preference</legend><div>
-          <label><input type="radio" name="mic" value="REQUIRED" /> Required</label>
-          <label><input type="radio" name="mic" value="PREFERRED" checked /> Preferred</label>
-          <label><input type="radio" name="mic" value="NO_PREFERENCE" /> No preference</label>
-        </div></fieldset>
-        <div class="pt-approval"><strong>HOST APPROVAL</strong><span>Matching can recommend players. It never auto-admits them.</span></div>
-        <button id="createButton" class="primary" type="submit">CREATE PLAY NOW SESSION</button>
-      </form>
-    </section>
-    <p id="pageMessage" class="form-message" role="alert" hidden></p>
-  </main>
-  <script type="module" src="play-together.js?v=__ASSET_VERSION__"></script>
-</body>
-</html>
+<!doctype html><html lang="en"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><meta name="theme-color" content="#08070d"/>
+<meta name="description" content="Create or find a GamID Play Together squad."/><title>GamID — Play Together</title>
+<link rel="stylesheet" href="../account/account.css?v=__ASSET_VERSION__"/><link rel="stylesheet" href="play-together.css?v=__ASSET_VERSION__"/>
+</head><body><header class="site-head"><a href="../" class="brand">GAM<span>ID</span></a><span class="test-badge">TESTING</span></header>
+<main class="pt-shell"><nav class="pt-nav"><a href="../account/">← Your GamID</a><span>PLAY TOGETHER</span></nav>
+<section class="pt-hero"><p class="eyebrow">PLAY TOGETHER</p><h1>Find your people.<br><span>Get ready. Play.</span></h1><p>Create a squad, find a host, or match a complete team. GamID owns matching, approval, readiness, and the canonical room.</p></section>
+<section id="loadingPanel" class="pt-card pt-loading" aria-live="polite"><div class="loader"></div><p>Loading your Play Together state…</p></section>
+<section id="authPanel" class="pt-card" hidden><p class="eyebrow">SIGN IN REQUIRED</p><h2>Enter your GamID first</h2><p>Play Together is available to authenticated GamID members.</p><a class="primary pt-action-link" href="../account/">GO TO SIGN IN</a></section>
+<section id="loadErrorPanel" class="pt-card" hidden><p class="eyebrow">COULDN'T LOAD PLAY TOGETHER</p><h2>Your GamID session is still signed in</h2><p>We couldn't load Play Together data. Refresh to try again.</p><button id="retryButton" class="primary" type="button">TRY AGAIN</button></section>
+<section id="invitationPanel" class="pt-card" hidden><p class="eyebrow">GROUP INVITATIONS</p><h2>Fresh acceptance required</h2><div id="invitationList" class="pt-stack"></div></section>
+<section id="activePanel" class="pt-card" hidden aria-live="polite"><div class="pt-title-row"><div><p id="activeIntent" class="eyebrow">MY ACTIVE SESSION / INTENT</p><h2 id="activeHeading">Matching</h2></div><span id="activeTiming" class="pt-status">PLAY NOW</span></div>
+<dl id="activeDetails" class="pt-summary"></dl><div id="memberSection"><h3>Group</h3><div id="memberList" class="pt-stack"></div></div>
+<div id="matchingSection" hidden><h3 id="matchingHeading">Compatible sessions</h3><p class="pt-help">Eligibility is enforced first; compatibility then ranks region, queue, role, language, and mic.</p><button id="refreshMatchesButton" class="secondary" type="button">REFRESH MATCHES</button><div id="matchList" class="pt-stack"></div></div>
+<div id="requestSection" hidden><h3>Requests for host approval</h3><div id="requestList" class="pt-stack"></div></div>
+<div id="readySection" hidden><h3>Ready Check</h3><p id="readyDeadline" class="pt-help"></p><div id="readyList" class="pt-stack"></div></div>
+<div id="scheduledSection" hidden><h3>Scheduled squad is formed</h3><p class="pt-help">Ready Check can begin when the scheduled start arrives.</p><button id="beginReadyButton" class="primary" type="button">BEGIN READY CHECK</button></div>
+<div id="roomSection" hidden><h3>GamID Session Room</h3><p>The squad passed Ready Check. This GamID room is canonical; Discord can be attached later without owning session state.</p><div class="pt-actions"><button id="startPlayButton" class="primary" type="button">START PLAY</button><button id="completeButton" class="secondary" type="button">MARK COMPLETED</button></div></div>
+<p class="pt-host-note">Host approval, member acceptance, and Ready are separate. Matching never auto-admits anyone.</p><button id="cancelButton" class="secondary danger" type="button">CANCEL ACTIVE INTENT</button></section>
+<section id="createPanel" class="pt-card" hidden><div class="pt-flow-tabs" role="tablist" aria-label="Play Together direction"><button type="button" data-flow="NEED_PLAYERS" class="is-active">CREATE SQUAD</button><button type="button" data-flow="FIND_SQUAD">FIND SQUAD</button><button type="button" data-flow="TEAM_VS_TEAM">TEAM VS TEAM</button></div>
+<div class="pt-title-row"><div><p id="flowEyebrow" class="eyebrow">NEED PLAYERS</p><h2 id="flowTitle">Create your squad</h2></div><button id="lastSetupButton" class="secondary compact" type="button" hidden>USE LAST SETUP</button></div>
+<form id="createForm" novalidate><fieldset class="pt-choice"><legend>Who is with you?</legend><div><label><input type="radio" name="groupKind" value="ME" checked/> Me</label><label><input type="radio" name="groupKind" value="US"/> Us</label></div></fieldset>
+<fieldset class="pt-choice"><legend>When?</legend><div><label><input type="radio" name="timingKind" value="PLAY_NOW" checked/> Play Now</label><label><input type="radio" name="timingKind" value="SCHEDULED"/> Scheduled</label></div></fieldset>
+<label id="scheduledLabel" hidden>Start within 3 hours<input id="scheduledStart" type="datetime-local"/></label><label>Game<select id="gameSelect" disabled><option>League of Legends</option></select></label><label>Experience<select id="experienceSelect" required></select></label><label>Mode / Queue<select id="queueSelect" required></select><small id="queueNote"></small></label><label>Riot region / server<select id="regionSelect" required></select><small>Managed Riot platform identity—not free text.</small></label><label id="positionLabel" hidden>Preferred in-game position<select id="positionSelect"></select><small>Separate from GamID profile roles.</small></label><label id="seatsLabel">Seats Wanted<select id="seatsSelect" required disabled></select><small id="seatsHelp">Choose a queue first.</small></label>
+<section id="groupBuilder" class="pt-builder" hidden><div><h3>Build your current group</h3><p>GamID members must accept this new invitation. Guests stay Manual / Unverified.</p></div><label>Find a GamID member<input id="memberSearch" type="search" minlength="3" placeholder="Name or @GamID (3+ characters)" autocomplete="off"/></label><div id="memberSearchResults" class="pt-stack"></div><div class="pt-guest-row"><label>Guest name<input id="guestName" maxlength="40" placeholder="Manual guest"/></label><label>Guest position<select id="guestPosition"></select></label><button id="addGuestButton" type="button" class="secondary">ADD GUEST</button></div><div id="draftMemberList" class="pt-stack"></div></section>
+<fieldset class="pt-languages"><legend>Languages <span>Choose up to two total</span></legend><div id="languageChoices"></div><small>English is selected by default. Matching requires at least one shared language.</small></fieldset><fieldset class="pt-mic"><legend>Mic preference</legend><div><label><input type="radio" name="mic" value="REQUIRED"/> Required</label><label><input type="radio" name="mic" value="PREFERRED" checked/> Preferred</label><label><input type="radio" name="mic" value="NO_PREFERENCE"/> No preference</label></div></fieldset><div class="pt-approval"><strong>HOST APPROVAL</strong><span>Recommendations are automatic. Admission never is.</span></div><button id="createButton" class="primary" type="submit">CREATE PLAY NOW SESSION</button></form></section>
+<section id="avoidPanel" class="pt-card" hidden><p class="eyebrow">AVOID PLAYING WITH</p><h2>Directional, per game</h2><p class="pt-help">Up to two League players. This is not Block or Report.</p><label>Find player<input id="avoidSearch" type="search" minlength="3" placeholder="Name or @GamID"/></label><div id="avoidSearchResults" class="pt-stack"></div><div id="avoidList" class="pt-stack"></div></section>
+<section id="historyPanel" class="pt-card" hidden><p class="eyebrow">PLAY TOGETHER HISTORY</p><h2>Recent attempts and formed sessions</h2><div id="historyList" class="pt-stack"></div></section><p id="pageMessage" class="form-message" role="status" aria-live="polite" hidden></p>
+</main><script type="module" src="play-together.js?v=__ASSET_VERSION__"></script></body></html>

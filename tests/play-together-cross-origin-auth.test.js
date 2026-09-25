@@ -65,5 +65,5 @@ test("both deployed controllers wire the handoff while preserving the ordinary u
   assert.match(account, /location\.replace\(target\)/);
   assert.match(playTogether, /legacyAccountHandoffUrl\(location\)/);
   assert.match(playTogether, /if\(handoffUrl\)\{location\.replace\(handoffUrl\);return;\}/);
-  assert.match(playTogether, /show\("authPanel"\)/);
+  assert.match(playTogether, /hidden\("authPanel",false\)/);
 });

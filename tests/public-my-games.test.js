@@ -498,6 +498,9 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20260922174129_play_together_fk_indexes.sql",
       "20260922200000_public_stats_global_scope.sql",
       "20260924120909_play_together_me1_region.sql",
+      "20260925090000_play_together_complete_milestone.sql",
+      "20260925093000_play_together_complete_fk_indexes.sql",
+      "20260925094500_play_together_dashboard_join_fix.sql",
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

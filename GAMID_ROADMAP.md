@@ -4,13 +4,13 @@ This is the readable product roadmap. `PROJECT_HANDOFF.md` is the authoritative 
 
 Nothing marked **Approved direction**, **Idea only**, or **Requires Mazen approval** is implementation authorization.
 
-## Play Together — approved future requirements (not current Slice 1 scope)
+## Play Together — complete milestone awaiting TESTING acceptance
 
-- **Team vs Team / Squad vs Squad:** Play Together must distinguish filling a squad (`NEED_PLAYERS` / `seats_wanted`) from finding a complete opponent squad. The opponent-squad path is game- and mode-driven, so formats such as 5v5 or 3v3 come from versioned rules rather than League-specific application logic.
-- **Riot catalog and availability synchronization:** queue and regional availability can change over time. Future maintenance must model `Game → Experience → Queue → Region → Availability / Restrictions → Rule Version → Official Source → Last Verified`, prefer official Riot-supported sources, and avoid requiring an application deployment for ordinary catalog changes. If automation cannot verify a current state, GamID must not invent `ACTIVE` availability.
-- The existing availability vocabulary remains suitable for this future work: `ACTIVE`, `ROTATING`, `DISABLED`, `REGION_DEPENDENT`, and `UNVERIFIED`.
+The complete Play Together milestone is implemented on `feature/play-together-slice-1` from the accepted Vertical Slice 1 foundation. It now covers Create Squad / Need Players, Find Squad, Team vs Team, ME/US registered-member invitations and manual guests, Play Now and scheduled starts (maximum three hours from configurable policy), host approval, eligibility and compatibility matching, directional per-game Avoid, Ready Check, canonical GamID Session Rooms, Last Setup / Play Again, and history / Played With foundations.
 
-These requirements do not authorize Team vs Team, live Riot synchronization, matching, participants, or any later Play Together slice.
+The core remains multi-game and the current active pilot remains the versioned Riot-backed League catalog. Team format and capacity come from verified queue rules rather than a League-specific engine. Discord remains an optional future communication adapter after a GamID room opens; it is not session state or matchmaking authority.
+
+Still intentionally deferred: live Riot catalog/availability synchronization, Discord bot/server provisioning, punitive no-show policy, reports/blocks, payments, and any Production release. Riot maintenance must continue to model `Game → Experience → Queue → Region → Availability / Restrictions → Rule Version → Official Source → Last Verified`; if an official source cannot verify a changing fact, retain `UNVERIFIED` or `REGION_DEPENDENT` rather than inventing `ACTIVE`.
 
 ## CREATE → WOW → SHARE
 
@@ -34,6 +34,7 @@ The current entity is **SOLO**. Team, Organization, and Company are future direc
 | Public GamID Profile — Slice 1/2 (Foundation + Public-Safe Data) | **Implemented, not formally accepted** |
 | Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions) | **Implemented, not formally accepted** |
 | Permanent Public GamID URL + QR + Sharing | **Implemented, not formally accepted** |
+| Play Together complete milestone | **Implemented, TESTING technical validation complete; awaiting Mazen manual acceptance** |
 
 Current implementation checkpoint: see `PROJECT_HANDOFF.md` section 16 for the exact commit — a verified public-Intro reliability fix (retry/ack handshake + deterministic asset versioning), built on top of Permanent Public GamID URL + QR + Sharing, Public GamID Profile Slice 2/2, Slice 1/2, the accepted Split Reveal Intro-visibility fix, and the Slice 3C backend/timer checkpoint; see `PROJECT_HANDOFF.md` section 7g.
 

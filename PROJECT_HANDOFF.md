@@ -1688,11 +1688,34 @@ Claude Code or another agent must:
 
 ## 16. START HERE
 
-### Play Together future architecture decisions (recorded 2026-09-24; not implementation authorization)
+### Play Together complete milestone (implemented 2026-09-25; awaiting manual TESTING acceptance)
 
-Play Together must eventually support **Team vs Team / Squad vs Squad** discovery as a separate intent from filling the host's squad. A complete squad seeking an opponent does not use `seats_wanted`; opponent format and squad size must come from versioned game/mode rules (for example 5v5 or 3v3), never from League-specific core logic.
+The earlier Slice 1-only limitation is superseded by Mazen's authorization to complete Play Together from accepted checkpoint `6769c91dd362ee4dceafe15a2961614af218d9e3`. The implementation remains on `feature/play-together-slice-1`; do not merge or extend it before Mazen accepts the complete milestone.
 
-Riot queue availability is both region-dependent and time-dependent. A later catalog-maintenance capability must represent `Game → Experience → Queue → Region → Availability / Restrictions → Rule Version → Official Source → Last Verified` and should ingest official Riot-supported sources where possible without an application-code deployment for routine rotations or restrictions. If an official source cannot verify current state, preserve `UNVERIFIED`/`REGION_DEPENDENT` rather than inventing `ACTIVE`. Do not implement this synchronization engine, Team vs Team, matching, or later Play Together lifecycle behavior as part of Slice 1.
+Implemented product paths:
+
+- `NEED_PLAYERS`, `FIND_SQUAD`, and game-rule-driven `TEAM_VS_TEAM` (no hard-coded 5v5).
+- `ME` and `US`; US supports fresh invitations to real GamID identities plus mixed manual/unverified guests. Registered members must accept each new attempt. The leader represents guest readiness.
+- `PLAY_NOW` and `SCHEDULED`; scheduled starts are future-only within the configurable three-hour horizon, with matching expiry and Ready Check deadlines kept separate.
+- Exact game/queue/region technical eligibility followed by compatibility scoring in the approved order: region, mode/queue plus verified game eligibility, position, shared language, mic. No universal rank-distance rule was invented.
+- Mandatory host approval with locked/versioned request transitions. Matching recommends; it never admits automatically.
+- One active intent reservation per registered entity across hosting, searching, invitations, accepted participation, and matched state.
+- Directional, per-game Avoid (maximum two); it is deliberately separate from Block, Report, and rejection.
+- Race-safe Ready Check. Every registered participant responds for themselves; the leader responds for guests. Only unanimous readiness opens a canonical GamID Session Room.
+- Canonical room lifecycle (`OPEN` → `IN_PLAY` → completion), immutable lifecycle events, history / Played With foundations, and player-level Last Setup written only after successful formation. Host-only fields such as `seats_wanted` are not copied into reusable player preferences.
+- Discord is represented only by a generic empty future communication boundary on the room. No Discord IDs, bot, credentials, or canonical state were added.
+
+Database/security:
+
+- Migration `20260925090000_play_together_complete_milestone.sql` adds positions, participants/guests, active-entity reservations, join requests, Ready Checks/responses, rooms, directional avoids, lifecycle events, and private Last Setup; it extends the existing generic session model rather than adding League-specific core tables.
+- Migration `20260925093000_play_together_complete_fk_indexes.sql` adds covering indexes for every new foreign key identified by the Supabase performance advisor.
+- Migration `20260925094500_play_together_dashboard_join_fix.sql` corrects an applied dashboard join ambiguity without changing product behavior.
+- All new exposed tables have RLS enabled. Anonymous and authenticated direct table access is revoked. Public RPCs are security-invoker wrappers over fixed-search-path private security-definer implementations, derive identity through `auth.uid()` → membership → entity, lock transition rows, and return typed domain errors.
+- These three migrations were applied only to Supabase TESTING project `upvtrczefcvigxdyuylw`. Disposable behavior fixtures ran inside explicit `BEGIN`/`ROLLBACK`; no real account/session fixture was created and `@black` was not modified.
+
+Technical validation included the complete browser/domain contract suite and a transactional end-to-end database scenario: Create/Find, recommendation, request, host approval, Ready Check, room opening/completion, Last Setup, US member acceptance plus guest, Avoid cap, history, and Played With. Final exact test counts and checkpoint SHAs are recorded in the completion report for this branch.
+
+Intentionally deferred: live Riot rules/availability synchronization, external Discord provisioning, a punitive no-show policy, ratings, reports/blocks, payments, and Production deployment. Riot changes must retain source/version/verification provenance and must use `UNVERIFIED`/`REGION_DEPENDENT` rather than invented availability.
 
 Current exact implementation checkpoint: `37c2699bc1152cfcbd6922600b8c2ba7a1907929` — fix: retry/ack Intro handshake + deterministic asset versioning (Opera reliability), section 7g. Built on top of the `/@handle` redirect race fix `08f516087fa61fe54025dc16b3e715d338f73f5e` (section 7f), the Permanent Public GamID URL + QR + Sharing implementation `b1caefacf4652e090d134e9e50851572e9a088eb` (section 7f), the mobile Publish-button manual-acceptance fix `5f7f380ab08608630ee4e3e59d45181766083f39` (section 7e), Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) `ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7` (section 7d), Slice 1/2 (Foundation + Public-Safe Data) `697b6e3773233d4b403becb63a6857893dbe0ea2` (section 7b), the `check_handle_availability_impl` sign-up permission drift fix `6bad4d583735d1e8c589642911f3decd52d7eff2` (section 7c), the accepted Split Reveal Intro-visibility fix `d7466f99e6f5398c5c0e83c029f1d09715c1321f` (section 7a), and the Slice 3C backend/timer checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
