@@ -47,6 +47,12 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .qr-card strong{margin-top:.5rem;font-size:1.05rem}
 .qr-handle{color:var(--muted);font-size:.8rem}
 .connections-section{margin:1.5rem 0 0;padding:1rem;border:1px solid rgba(255,255,255,.08);border-radius:1rem;background:rgba(255,255,255,.025)}
+.play-together-entry{display:grid;gap:.9rem;margin:1.5rem 0 0;padding:1rem;border:1px solid rgba(98,231,255,.28);border-radius:1rem;background:linear-gradient(135deg,rgba(98,231,255,.07),rgba(139,93,255,.08))}
+.play-together-entry .eyebrow,.play-together-entry h3,.play-together-entry p{margin:0}
+.play-together-entry h3{font-size:1.15rem}
+.play-together-entry p{margin-top:.3rem;color:var(--muted);font-size:.8rem;line-height:1.5}
+.play-together-link{display:flex;align-items:center;justify-content:center;margin:0;text-decoration:none;text-align:center}
+@media(min-width:42rem){.play-together-entry{grid-template-columns:minmax(0,1fr) auto;align-items:center}.play-together-link{min-width:12rem}}
 .connections-lede{margin:.1rem 0 .9rem;color:var(--muted);font-size:.8rem;line-height:1.5}
 .connection-list{display:grid;gap:.7rem}
 .connections-empty{margin:0;color:var(--muted);font-size:.8rem}

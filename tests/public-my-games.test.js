@@ -491,7 +491,19 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
   assert.doesNotMatch(migration, /show_game_playtime/, "playtime is consulted only through the accepted gate");
   const names = readdirSync(new URL("supabase/migrations/", root)).sort();
   assert.equal(names[names.indexOf(migrationName) - 1], "20260922010000_game_catalog_import_key_fix.sql");
-  assert.equal(names[names.indexOf(migrationName) + 1], "20260922200000_public_stats_global_scope.sql", "the next migration only makes the stats gate global (see tests/public-stats-global-scope.test.js)");
+  assert.deepEqual(
+    names.slice(names.indexOf(migrationName) + 1),
+    [
+      "20260922173758_play_together_vertical_slice_1.sql",
+      "20260922174129_play_together_fk_indexes.sql",
+      "20260922200000_public_stats_global_scope.sql",
+      "20260924120909_play_together_me1_region.sql",
+      "20260925090000_play_together_complete_milestone.sql",
+      "20260925093000_play_together_complete_fk_indexes.sql",
+      "20260925094500_play_together_dashboard_join_fix.sql",
+    ],
+    "later additive features may sit between Public My Games and the migration that makes the stats gate global",
+  );
 });
 
 test("migration (as first written): Show My Games is a hard server gate (published AND switched on); both default closed. The stats gate was later made GLOBAL by 20260922200000: it no longer needs Show My Games", () => {
