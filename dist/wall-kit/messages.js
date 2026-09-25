@@ -22,6 +22,8 @@ const BY_CODE = {
   WALL_DRAFT_NOT_FOUND: "Your Wall draft could not be found.",
   INVALID_WALL_DOCUMENT: "The Wall was rejected as invalid, so nothing was saved.",
   WALL_DOCUMENT_TOO_LARGE: "The Wall is too large to save (1 MiB limit).",
+  WALL_ASSET_NOT_FOUND: "A picture on your Wall is no longer in your Assets, so nothing was saved. Remove it from the Wall or upload it again.",
+  WALL_ASSET_IN_USE: "That image is still used on your Wall. Remove it from the Wall first.",
   STORED_DOCUMENT_INVALID: "The saved Wall could not be opened safely, so editing is blocked to protect it.",
   WALL_PERSISTENCE_FAILED: "Could not reach the server. Your edits are kept here; try again.",
   WALL_SAVE_FAILED: "Saving failed. Your edits are kept here; try again.",
