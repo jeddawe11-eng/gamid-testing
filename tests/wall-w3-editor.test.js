@@ -220,6 +220,8 @@ test("route: nothing else links to or serves the editor - it is not wired into A
   for (const file of [...walk("dist"), ...walk("cf-worker"), "scripts/stage-cloudflare.mjs"].map(norm).filter(file => /\.(js|mjs|html)$/.test(file) && !file.startsWith("dist/wall-editor/") && !file.startsWith("dist/wall-kit/") && !file.startsWith("dist/wall/"))) {
     // the ONE deliberate reference: the shared return note may send an owner back to /wall-editor/ (a fixed, known page, same tab, minutes-long)
     const text = readFileSync(file, "utf8");
+    // the ONE product entry point: the authenticated Account identity view links to the editor (plain link - no script, no auth code, no second login)
+    if (file === "dist/account/index.html") { assert.match(text, /<a class="primary play-together-link" href="\.\.\/wall-editor\/">EDIT WALL<\/a>/); assert.equal((text.match(/wall-editor/g) ?? []).length, 1); continue; }
     if (file === "dist/account/post-auth-return.js") { assert.match(text, /ALLOWED_RETURN_PATHS = Object\.freeze\(\["\/wall-editor\/"\]\)/); continue; }
     assert.doesNotMatch(text, /wall-editor|wall-kit/, file);
   }
