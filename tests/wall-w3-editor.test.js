@@ -218,7 +218,10 @@ test("route: the editor's imports are limited to the Wall core, the kit, its own
 });
 test("route: nothing else links to or serves the editor - it is not wired into Account, the public profile, the Worker, or any public path", () => {
   for (const file of [...walk("dist"), ...walk("cf-worker"), "scripts/stage-cloudflare.mjs"].map(norm).filter(file => /\.(js|mjs|html)$/.test(file) && !file.startsWith("dist/wall-editor/") && !file.startsWith("dist/wall-kit/") && !file.startsWith("dist/wall/"))) {
-    assert.doesNotMatch(readFileSync(file, "utf8"), /wall-editor|wall-kit/, file);
+    // the ONE deliberate reference: the shared sign-in handoff may return an owner to /wall-editor/ (a fixed, known page on the Cloudflare TESTING origin)
+    const text = readFileSync(file, "utf8");
+    if (file === "dist/account/testing-auth-handoff.js") { assert.match(text, /wall_editor_cloudflare: "\/wall-editor\/"/); continue; }
+    assert.doesNotMatch(text, /wall-editor|wall-kit/, file);
   }
   const worker = read("cf-worker/worker.mjs");
   assert.doesNotMatch(worker, /get_public_wall|public.?wall|wall_drafts/i);

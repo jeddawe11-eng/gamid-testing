@@ -83,23 +83,69 @@ export function consumeRedirectSession() {
   return persist(next);
 }
 
-export async function restoreSession() {
-  consumeRedirectSession();
-  if (!session) {
-    try { session = JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { persist(null); }
-  }
-  if (!session?.access_token) return null;
-  if (session.expires_at > Math.floor(Date.now() / 1000) + 60) return session;
-  if (!session.refresh_token) return persist(null);
+// ---- shared session lifecycle -------------------------------------------------------------------------------------------------------------------
+// One session is shared by every same-origin surface (Account, Play Together, Wall Editor) through localStorage. Each tab also keeps it in memory, and Supabase
+// refresh tokens are SINGLE USE (rotating). The rules below keep those copies from destroying each other:
+//   - the stored session is adopted whenever it is newer than the in-memory one (another tab or a handoff refreshed it);
+//   - a token refresh runs once per tab at a time, and across tabs under a Web Lock, re-reading storage inside the lock (a tab that lost the race adopts the
+//     winner's session instead of replaying a spent refresh token);
+//   - a failed refresh only forgets the session when the server DEFINITIVELY rejected it (400/401/403) AND storage holds nothing newer; a network or server
+//     error leaves the session in place;
+//   - a removal from another tab (sign-out, or a dead session) is followed here.
+const REFRESH_LOCK = "gamid.testing.auth.refresh";
+const nowSeconds = () => Math.floor(Date.now() / 1000);
+const isFresh = candidate => !!candidate?.access_token && candidate.expires_at > nowSeconds() + 60;
+
+function readStored() {
   try {
-    const refreshed = await request("/auth/v1/token?grant_type=refresh_token", { method: "POST", body: { refresh_token: session.refresh_token } });
-    return persist(withExpiry(refreshed));
-  } catch (error) {
-    persist(null);
-    throw error;
+    const stored = JSON.parse(localStorage.getItem(SESSION_KEY));
+    return stored?.access_token ? stored : null;
+  } catch {
+    return undefined;   // unreadable value
   }
 }
+function adoptStored() {
+  const stored = readStored();
+  if (stored === undefined) { persist(null); return; }   // a corrupt stored value is discarded, as before
+  if (stored && (!session || stored.access_token !== session.access_token) && (!session || (stored.expires_at || 0) >= (session.expires_at || 0))) session = stored;
+}
 
+if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+  window.addEventListener("storage", event => {
+    if (event.key !== SESSION_KEY) return;
+    try { session = event.newValue ? JSON.parse(event.newValue) : null; } catch { session = null; }
+  });
+}
+
+let refreshInFlight = null;
+async function refreshSession() {
+  const attempt = async () => {
+    adoptStored();
+    if (isFresh(session)) return session;   // another tab already renewed it
+    const refreshToken = session?.refresh_token;
+    if (!refreshToken) return persist(null);
+    try {
+      const refreshed = await request("/auth/v1/token?grant_type=refresh_token", { method: "POST", body: { refresh_token: refreshToken } });
+      return persist(withExpiry(refreshed));
+    } catch (error) {
+      adoptStored();
+      if (isFresh(session) && session.refresh_token !== refreshToken) return session;   // lost the race to another tab: use the winner's session
+      if ([400, 401, 403].includes(error?.status)) persist(null);                           // the server says this session is dead
+      throw error;
+    }
+  };
+  return typeof navigator !== "undefined" && navigator.locks?.request ? navigator.locks.request(REFRESH_LOCK, attempt) : attempt();
+}
+
+export async function restoreSession() {
+  consumeRedirectSession();
+  adoptStored();
+  if (!session?.access_token) return null;
+  if (isFresh(session)) return session;
+  if (!session.refresh_token) return persist(null);
+  if (!refreshInFlight) refreshInFlight = refreshSession().finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
+}
 export const currentSession = () => session;
 
 export async function signUp(email, password) {

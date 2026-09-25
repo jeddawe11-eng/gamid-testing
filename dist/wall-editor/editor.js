@@ -9,6 +9,7 @@ import { describeCode, describeErrors } from "../wall-kit/messages.js";
 import { resolveEditorSession, gateForSessionState, SESSION_STATES } from "../wall-kit/auth-gate.js";
 import { createCanvas } from "./canvas.js";
 import { createPropertiesPanel } from "./controls.js";
+import { legacyAccountHandoffUrl } from "../account/testing-auth-handoff.js";
 
 const $ = id => document.getElementById(id);
 const make = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
@@ -247,7 +248,7 @@ if (typeof ResizeObserver === "function") {
 }
 
 // ---- gate + boot -------------------------------------------------------------------------------------------------------------------------------------
-function gate({ title, text, loader = false, link = false, retry = false }) {
+function gate({ title, text, loader = false, link = false, retry = false, recoverUrl = null }) {
   $("gate").hidden = false;
   $("workspace").hidden = true;
   $("mobileBar").hidden = true;
@@ -256,6 +257,8 @@ function gate({ title, text, loader = false, link = false, retry = false }) {
   $("gateTitle").textContent = title;
   $("gateText").textContent = text;
   $("gateLink").hidden = !link;
+  $("gateRecover").hidden = !recoverUrl;
+  if (recoverUrl) $("gateRecover").href = recoverUrl;
   $("gateRetry").hidden = !retry;
   updateChrome();
 }
@@ -263,7 +266,7 @@ async function boot() {
   gate({ title: "Opening your Wall…", text: "Checking your GamID session.", loader: true });
   // The established account session (same localStorage session the Account page uses) - the editor keeps no session of its own.
   const check = await resolveEditorSession(restoreSession);
-  if (check.state !== SESSION_STATES.READY) { const shown = gateForSessionState(check, location.host); gate(shown); $("gateText").append(document.createElement("br"), Object.assign(document.createElement("small"), { textContent: `Session check: ${shown.reason}` })); return; }
+  if (check.state !== SESSION_STATES.READY) { const shown = gateForSessionState(check, location.host, legacyAccountHandoffUrl(location)); gate(shown); $("gateText").append(document.createElement("br"), Object.assign(document.createElement("small"), { textContent: `Session check: ${shown.reason}` })); return; }
   const loaded = await session.load();
   if (!loaded) {
     const code = session.state.errorCode;

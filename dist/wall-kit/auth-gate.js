@@ -18,13 +18,15 @@ export async function resolveEditorSession(restoreSession) {
   }
 }
 
-export function gateForSessionState(result, host = "") {
+// `recoverUrl` is the ESTABLISHED Account handoff (dist/account/testing-auth-handoff.js): it brings an existing sign-in held by the legacy TESTING origin back to
+// this page, exactly like Play Together does.
+export function gateForSessionState(result, host = "", recoverUrl = null) {
   const where = host ? ` (${host})` : "";
   if (result.state === SESSION_STATES.NO_STORED_SESSION) {
-    return { title: "Sign in to edit your Wall", text: `No signed-in GamID session was found on this address${where}. Sign in at your account on this same address, then open the Wall Editor again.`, link: true, retry: true, reason: result.state };
+    return { title: "Sign in to edit your Wall", text: `No signed-in GamID session was found on this address${where}. Recover your existing sign-in, or sign in at your account on this same address.`, link: true, retry: true, reason: result.state, recoverUrl };
   }
   if (result.state === SESSION_STATES.SESSION_REFRESH_REJECTED) {
-    return { title: "Your sign-in needs renewing", text: `Your saved sign-in could not be renewed${result.status ? ` (${result.status})` : ""}. Sign in again at your account on this same address, then come back.`, link: true, retry: true, reason: result.state };
+    return { title: "Your sign-in needs renewing", text: `Your saved sign-in could not be renewed${result.status ? ` (${result.status})` : ""}. Recover your existing sign-in, or sign in again at your account on this same address.`, link: true, retry: true, reason: result.state, recoverUrl };
   }
-  return { title: "Could not check your sign-in", text: "The sign-in service could not be reached, so your session was left untouched. Try again in a moment.", link: false, retry: true, reason: result.state };
+  return { title: "Could not check your sign-in", text: "The sign-in service could not be reached, so your session was left untouched. Try again in a moment.", link: false, retry: true, reason: result.state, recoverUrl: null };
 }
