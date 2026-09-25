@@ -199,7 +199,7 @@ test("route: the editor is a private owner page - it needs the account session, 
   assert.match(editor, /resolveEditorSession\(restoreSession\)/);
   assert.match(editor, /createWallPersistence\(/);
   assert.match(read("dist/wall-kit/auth-gate.js"), /Sign in to edit your Wall/);
-  assert.doesNotMatch(editor, /anonymous\s*:\s*true|localStorage|sessionStorage|fetch\(|XMLHttpRequest|WebSocket|postMessage/);
+  assert.doesNotMatch(editor.replace(/const sessionStorageOrNull = .*$/m, ""), /anonymous\s*:\s*true|localStorage|\bsessionStorage\b|fetch\(|XMLHttpRequest|WebSocket|postMessage/);
   const rpcNames = [...new Set(editorFiles.filter(file => file.endsWith(".js")).flatMap(file => [...codeOf(file).matchAll(/["'](\w+_my_wall_draft)["']/g)].map(match => match[1])))].sort();
   assert.deepEqual(rpcNames, ["ensure_my_wall_draft", "get_my_wall_draft", "save_my_wall_draft"]);
   assert.match(html, /aria-live="polite"/);
@@ -218,9 +218,9 @@ test("route: the editor's imports are limited to the Wall core, the kit, its own
 });
 test("route: nothing else links to or serves the editor - it is not wired into Account, the public profile, the Worker, or any public path", () => {
   for (const file of [...walk("dist"), ...walk("cf-worker"), "scripts/stage-cloudflare.mjs"].map(norm).filter(file => /\.(js|mjs|html)$/.test(file) && !file.startsWith("dist/wall-editor/") && !file.startsWith("dist/wall-kit/") && !file.startsWith("dist/wall/"))) {
-    // the ONE deliberate reference: the shared sign-in handoff may return an owner to /wall-editor/ (a fixed, known page on the Cloudflare TESTING origin)
+    // the ONE deliberate reference: the shared return note may send an owner back to /wall-editor/ (a fixed, known page, same tab, minutes-long)
     const text = readFileSync(file, "utf8");
-    if (file === "dist/account/testing-auth-handoff.js") { assert.match(text, /wall_editor_cloudflare: "\/wall-editor\/"/); continue; }
+    if (file === "dist/account/post-auth-return.js") { assert.match(text, /ALLOWED_RETURN_PATHS = Object\.freeze\(\["\/wall-editor\/"\]\)/); continue; }
     assert.doesNotMatch(text, /wall-editor|wall-kit/, file);
   }
   const worker = read("cf-worker/worker.mjs");

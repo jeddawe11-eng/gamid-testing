@@ -1,5 +1,6 @@
 import { uploadResumable } from "./resumable-upload.js";
 import { INTRO_SOURCE_MAX_BYTES } from "./domain.js";
+import { takeReturnTo } from "./post-auth-return.js";
 
 const SUPABASE_PROJECT_ID = "upvtrczefcvigxdyuylw";
 const SUPABASE_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co`;
@@ -80,7 +81,10 @@ export function consumeRedirectSession() {
     type: params.get("type"),
   });
   history.replaceState(null, "", location.pathname + location.search);
-  return persist(next);
+  const stored = persist(next);
+  // A session handed over from the legacy TESTING origin that a page asked to be returned from (see post-auth-return.js): go back to that page.
+  if (next.type === "gamid_testing_handoff") { const back = takeReturnTo(); if (back && typeof location.replace === "function") location.replace(back); }
+  return stored;
 }
 
 // ---- shared session lifecycle -------------------------------------------------------------------------------------------------------------------

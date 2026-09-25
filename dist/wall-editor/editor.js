@@ -6,7 +6,7 @@ import { createEditorSession } from "../wall-kit/session.js";
 import * as ops from "../wall-kit/ops.js";
 import { paintDocument } from "../wall-kit/paint.js";
 import { describeCode, describeErrors } from "../wall-kit/messages.js";
-import { resolveEditorSession, gateForSessionState, SESSION_STATES } from "../wall-kit/auth-gate.js";
+import { resolveEditorSession, planAuth, gateFor } from "../wall-kit/auth-gate.js";
 import { createCanvas } from "./canvas.js";
 import { createPropertiesPanel } from "./controls.js";
 import { legacyAccountHandoffUrl } from "../account/testing-auth-handoff.js";
@@ -248,7 +248,7 @@ if (typeof ResizeObserver === "function") {
 }
 
 // ---- gate + boot -------------------------------------------------------------------------------------------------------------------------------------
-function gate({ title, text, loader = false, link = false, retry = false, recoverUrl = null }) {
+function gate({ title, text, loader = false, link = false, retry = false }) {
   $("gate").hidden = false;
   $("workspace").hidden = true;
   $("mobileBar").hidden = true;
@@ -257,16 +257,22 @@ function gate({ title, text, loader = false, link = false, retry = false, recove
   $("gateTitle").textContent = title;
   $("gateText").textContent = text;
   $("gateLink").hidden = !link;
-  $("gateRecover").hidden = !recoverUrl;
-  if (recoverUrl) $("gateRecover").href = recoverUrl;
-  $("gateRetry").hidden = !retry;
+ $("gateRetry").hidden = !retry;
   updateChrome();
 }
+const sessionStorageOrNull = () => { try { return window.sessionStorage; } catch { return null; } };
 async function boot() {
   gate({ title: "Opening your Wall…", text: "Checking your GamID session.", loader: true });
   // The established account session (same localStorage session the Account page uses) - the editor keeps no session of its own.
   const check = await resolveEditorSession(restoreSession);
-  if (check.state !== SESSION_STATES.READY) { const shown = gateForSessionState(check, location.host, legacyAccountHandoffUrl(location)); gate(shown); $("gateText").append(document.createElement("br"), Object.assign(document.createElement("small"), { textContent: `Session check: ${shown.reason}` })); return; }
+  const plan = planAuth(check, { attempts: sessionStorageOrNull(), handoffUrl: legacyAccountHandoffUrl({ origin: location.origin, pathname: "/play-together/" }) });
+  if (plan.action === "HANDOFF") {
+    // Owner signed in on the legacy TESTING origin only: use the established handoff, and come back here when the session arrives. Nothing is shown.
+    rememberReturnTo("/wall-editor/");
+    location.replace(plan.url);
+    return;
+  }
+  if (plan.action !== "OPEN") { document.documentElement.dataset.authReason = plan.reason; gate(gateFor(plan.action)); return; }
   const loaded = await session.load();
   if (!loaded) {
     const code = session.state.errorCode;

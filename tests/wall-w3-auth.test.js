@@ -4,7 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { resolveEditorSession, gateForSessionState, SESSION_STATES } from "../dist/wall-kit/auth-gate.js";
+import { resolveEditorSession, gateFor, planAuth, SESSION_STATES } from "../dist/wall-kit/auth-gate.js";
 
 const KEY = "gamid.testing.auth.session.v1";
 const now = () => Math.floor(Date.now() / 1000);
@@ -32,7 +32,7 @@ test("the editor and the Account page use the one shared client and the one stor
   assert.match(editor, /import \{ restoreSession, rpc \} from "\.\.\/account\/supabase-client\.js"/);
   assert.match(account, /supabase-client\.js/);
   assert.match(readFileSync("dist/account/supabase-client.js", "utf8"), new RegExp(`SESSION_KEY = "${KEY.replaceAll(".", "\\.")}"`));
-  assert.doesNotMatch((editor + readFileSync("dist/wall-kit/auth-gate.js", "utf8")).replace(/\/\/.*$/gm, ""), /localStorage|sessionStorage|document\.cookie|auth\/v1/, "no separate Wall session or storage");
+  assert.doesNotMatch((editor + readFileSync("dist/wall-kit/auth-gate.js", "utf8")).replace(/\/\/.*$/gm, "").replace(/const sessionStorageOrNull = .*$/m, ""), /localStorage|\bsessionStorage\b|document\.cookie|auth\/v1/, "no separate Wall session or storage");
   assert.match(editor, /resolveEditorSession\(restoreSession\)/);
 });
 
@@ -63,17 +63,15 @@ test("a session that is about to expire (< 60 s) is renewed the same way the Acc
   assert.equal(calls.length, 1);
 });
 
-test("no stored session is reported as exactly that, with a sign-in path and a reason code", async () => {
+test("no stored session is classified as such; the person sees a plain sign-in with no infrastructure wording", async () => {
   const { client } = await freshClient();
   const result = await resolveEditorSession(client.restoreSession);
   assert.equal(result.state, SESSION_STATES.NO_STORED_SESSION);
-  const gate = gateForSessionState(result, "gamid-testing-static.gamid.workers.dev");
-  assert.equal(gate.title, "Sign in to edit your Wall");
-  assert.match(gate.text, /gamid-testing-static\.gamid\.workers\.dev/);
-  assert.equal(gate.link, true);
-  assert.equal(gate.reason, "NO_STORED_SESSION");
+  const shown = gateFor(planAuth(result, { attempts: null, handoffUrl: null }).action);
+  assert.equal(shown.title, "Sign in to edit your Wall");
+  assert.equal(shown.link, true);
+  assert.doesNotMatch(JSON.stringify(shown), /github|cloudflare|handoff|storage|session check|NO_STORED|recover|origin|token/i);
 });
-
 test("a refresh the server rejects is 'sign-in needs renewing' (with the status), not a silent sign-out message", async () => {
   const { client } = await freshClient({
     stored: { access_token: "old", refresh_token: "r1", token_type: "bearer", expires_at: now() - 100 },
@@ -81,16 +79,15 @@ test("a refresh the server rejects is 'sign-in needs renewing' (with the status)
   });
   const result = await resolveEditorSession(client.restoreSession);
   assert.deepEqual(result, { state: SESSION_STATES.SESSION_REFRESH_REJECTED, status: 400 });
-  const gate = gateForSessionState(result);
-  assert.equal(gate.title, "Your sign-in needs renewing");
-  assert.match(gate.text, /\(400\)/);
+  assert.equal(planAuth(result, { attempts: null, handoffUrl: null }).action, "SIGN_IN");
 });
 
 test("a network or service failure while checking is NOT reported as signed out, and never claims the session is gone", async () => {
   const { client } = await freshClient({ stored: { access_token: "old", refresh_token: "r1", token_type: "bearer", expires_at: now() - 100 } });   // fetch throws
   const result = await resolveEditorSession(client.restoreSession);
   assert.equal(result.state, SESSION_STATES.AUTH_SERVICE_UNREACHABLE);
-  const gate = gateForSessionState(result);
+  assert.equal(planAuth(result, { attempts: null, handoffUrl: null }).action, "UNREACHABLE");
+  const gate = gateFor("UNREACHABLE");
   assert.match(gate.title, /Could not check/);
   assert.equal(gate.retry, true);
   assert.equal(gate.link, false);

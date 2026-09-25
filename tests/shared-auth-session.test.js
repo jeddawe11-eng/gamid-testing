@@ -4,8 +4,12 @@
 // NO_STORED_SESSION. These tests run the REAL client, as several tabs, against a fake Supabase that enforces rotating single-use refresh tokens.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolveEditorSession, SESSION_STATES } from "../dist/wall-kit/auth-gate.js";
+import { resolveEditorSession, planAuth, SESSION_STATES } from "../dist/wall-kit/auth-gate.js";
 import { legacyAccountHandoffUrl, transferredSessionUrl, isRequestedTestingHandoff } from "../dist/account/testing-auth-handoff.js";
+import { rememberReturnTo, takeReturnTo } from "../dist/account/post-auth-return.js";
+import { createWallPersistence } from "../dist/wall/persistence.js";
+import { createEditorSession } from "../dist/wall-kit/session.js";
+import { createDocument } from "../dist/wall/schema.js";
 
 const KEY = "gamid.testing.auth.session.v1";
 const realNow = Date.now;
@@ -119,28 +123,113 @@ test("Account, Play Together and the Wall Editor read the same key through the s
   }
 });
 
-test("recovery: the established handoff can bring an existing legacy-origin sign-in back to the Wall Editor, and only to a fixed known page", async () => {
-  const ROOT = "https://gamid-testing-static.gamid.workers.dev";
-  const url = legacyAccountHandoffUrl({ origin: ROOT, pathname: "/wall-editor/" });
-  assert.equal(url, "https://jeddawe11-eng.github.io/gamid-testing/account/?gamid_testing_handoff=wall_editor_cloudflare");
-  assert.equal(legacyAccountHandoffUrl({ origin: ROOT, pathname: "/play-together/" }), "https://jeddawe11-eng.github.io/gamid-testing/account/?gamid_testing_handoff=play_together_cloudflare", "Play Together's handoff is unchanged");
-  assert.equal(legacyAccountHandoffUrl({ origin: ROOT, pathname: "/account/" }), null);
-  assert.equal(legacyAccountHandoffUrl({ origin: "https://evil.example", pathname: "/wall-editor/" }), null);
+// ---- the REAL cross-origin lifecycle ------------------------------------------------------------------------------------------------------------------
+const ROOT = "https://gamid-testing-static.gamid.workers.dev";
+const LEGACY = "https://jeddawe11-eng.github.io";
+const memoryStorage = (seed = {}) => { const map = new Map(Object.entries(seed)); return { map, getItem: k => (map.has(k) ? map.get(k) : null), setItem: (k, v) => map.set(k, String(v)), removeItem: k => map.delete(k) }; };
+const jsonReply = (status, body) => ({ ok: status < 400, status, headers: { get: () => "application/json" }, json: async () => body, text: async () => JSON.stringify(body) });
 
-  const legacy = new URL(url);
-  const legacyLocation = { origin: legacy.origin, pathname: legacy.pathname, search: legacy.search };
-  assert.equal(isRequestedTestingHandoff(legacyLocation), true);
-  assert.equal(isRequestedTestingHandoff({ ...legacyLocation, search: "?gamid_testing_handoff=elsewhere" }), false);
-  assert.equal(isRequestedTestingHandoff({ ...legacyLocation, search: "?gamid_testing_handoff=__proto__" }), false);
-  const target = transferredSessionUrl(legacyLocation, sessionAt("R1", 3000));
-  assert.ok(target.startsWith(`${ROOT}/wall-editor/#`));
-  assert.equal(transferredSessionUrl(legacyLocation, { access_token: "x" }), null, "no refresh token, no handoff");
+// Visits a page: swaps in that origin's storage and location (as a browser does) and loads a fresh copy of the client (a page load).
+async function visit({ origin, pathname, search = "", hash = "", local, tabStore, fetchImpl }) {
+  const replaced = [];
+  globalThis.localStorage = local;
+  globalThis.sessionStorage = tabStore;
+  globalThis.location = { origin, pathname, search, hash, host: new URL(origin).host, replace: url => replaced.push(url) };
+  globalThis.history = { replaceState: (_s, _t, url) => { globalThis.location.hash = ""; void url; } };
+  if (fetchImpl) globalThis.fetch = fetchImpl;
+  return { client: await import(`../dist/account/supabase-client.js?tab=${counter++}`), replaced };
+}
 
-  // the lifecycle: the editor page loads with the handoff fragment, the client persists it, and the editor then finds the session
-  const env = environment();
-  globalThis.location = { ...globalThis.location, pathname: "/wall-editor/", hash: new URL(target).hash };
-  const editor = await env.tab();
-  assert.equal((await resolveEditorSession(editor.restoreSession)).state, SESSION_STATES.READY);
-  assert.equal(env.storedSession().refresh_token, "R1", "persisted for every same-origin surface");
-  assert.equal(globalThis.location.hash === "" || true, true);
+test("REAL LIFECYCLE: valid session only on the legacy origin -> the Wall Editor hands off automatically -> Cloudflare stores the session -> the editor is restored and loads the owner's Wall", async () => {
+  const legacyStore = memoryStorage({ [KEY]: JSON.stringify(sessionAt("R1", 3000)) });   // the legacy origin still has @black's valid session
+  const cloudflareStore = memoryStorage();                                                // the Cloudflare origin has nothing stored
+  const cloudflareTab = memoryStorage();                                                  // this browser tab's sessionStorage on Cloudflare
+  let rpcAuthorization = null;
+  const cloudflareFetch = async (url, init) => {
+    if (String(url).includes("/rpc/ensure_my_wall_draft")) {
+      rpcAuthorization = init.headers.Authorization;
+      return jsonReply(200, [{ document: createDocument(), revision: 1, created_at: "t0", updated_at: "t0" }]);
+    }
+    return jsonReply(404, {});
+  };
+
+  // 1. Mazen opens the Wall Editor on Cloudflare: no stored session there.
+  let page = await visit({ origin: ROOT, pathname: "/wall-editor/", local: cloudflareStore, tabStore: cloudflareTab, fetchImpl: cloudflareFetch });
+  const first = await resolveEditorSession(page.client.restoreSession);
+  assert.equal(first.state, SESSION_STATES.NO_STORED_SESSION);
+  const handoffUrl = legacyAccountHandoffUrl({ origin: ROOT, pathname: "/play-together/" });   // the ESTABLISHED, already-deployed handoff value
+  const plan = planAuth(first, { attempts: cloudflareTab, handoffUrl });
+  assert.deepEqual([plan.action, plan.url], ["HANDOFF", handoffUrl]);
+  assert.equal(handoffUrl, `${LEGACY}/gamid-testing/account/?gamid_testing_handoff=play_together_cloudflare`);
+  assert.equal(rememberReturnTo("/wall-editor/", cloudflareTab), true);
+  assert.equal(planAuth(first, { attempts: cloudflareTab, handoffUrl }).action, "SIGN_IN", "the automatic handoff is attempted once - never a redirect loop");
+
+  // 2. The legacy Account page (already deployed) recognises the request, restores its own session and produces the transfer URL.
+  const legacyUrl = new URL(handoffUrl);
+  page = await visit({ origin: legacyUrl.origin, pathname: legacyUrl.pathname, search: legacyUrl.search, local: legacyStore, tabStore: memoryStorage() });
+  assert.equal(isRequestedTestingHandoff(globalThis.location), true);
+  await page.client.restoreSession();
+  const transferUrl = transferredSessionUrl(globalThis.location, page.client.currentSession());
+  assert.ok(transferUrl.startsWith(`${ROOT}/play-together/#`), "the existing Play Together return page - the only one the deployed legacy side knows");
+
+  // 3. Cloudflare receives the session on that page (whatever page consumes it first), persists it, and the shared client returns the person to the editor.
+  page = await visit({ origin: ROOT, pathname: "/play-together/", hash: new URL(transferUrl).hash, local: cloudflareStore, tabStore: cloudflareTab, fetchImpl: cloudflareFetch });
+  const received = await page.client.restoreSession();
+  assert.equal(received.refresh_token, "R1");
+  assert.equal(JSON.parse(cloudflareStore.map.get(KEY)).refresh_token, "R1", "stored on the Cloudflare origin for every same-origin surface");
+  assert.deepEqual(page.replaced, ["/wall-editor/"], "and the person is returned to where they were going");
+  assert.equal(globalThis.location.hash, "", "the tokens are removed from the address bar");
+
+  // 4. The Wall Editor loads again: authenticated, owner-only data through the W2 RPC with the transferred session.
+  page = await visit({ origin: ROOT, pathname: "/wall-editor/", local: cloudflareStore, tabStore: cloudflareTab, fetchImpl: cloudflareFetch });
+  const second = await resolveEditorSession(page.client.restoreSession);
+  assert.equal(second.state, SESSION_STATES.READY);
+  assert.equal(planAuth(second, { attempts: cloudflareTab, handoffUrl }).action, "OPEN");
+  assert.equal(cloudflareTab.map.has("gamid.testing.auth.handoff.attempt.v1"), false, "the attempt marker is cleared once it worked");
+  const editor = createEditorSession({ persistence: createWallPersistence({ rpc: (name, body) => page.client.rpc(name, body) }) });
+  assert.equal(await editor.load(), true);
+  assert.equal(rpcAuthorization, "Bearer access-R1", "the owner's own transferred session authenticated the request");
+});
+
+test("the return note is safe: only known pages, same tab, short-lived, single use - and a handoff nobody asked a return for behaves exactly as before (Play Together)", async () => {
+  const tab = memoryStorage();
+  assert.equal(rememberReturnTo("/evil/", tab), false);
+  assert.equal(rememberReturnTo("https://evil.example/", tab), false);
+  assert.equal(rememberReturnTo("//evil.example/", tab), false);
+  assert.equal(rememberReturnTo("/wall-editor/", tab, 1000), true);
+  assert.equal(takeReturnTo(tab, 1000 + 6 * 60 * 1000), null, "expired");
+  rememberReturnTo("/wall-editor/", tab, 1000);
+  assert.equal(takeReturnTo(tab, 2000), "/wall-editor/");
+  assert.equal(takeReturnTo(tab, 2000), null, "single use");
+  tab.setItem("gamid.testing.auth.return.v1", JSON.stringify({ path: "https://evil.example/", at: 1 }));
+  assert.equal(takeReturnTo(tab, 2), null, "a tampered note is ignored");
+  assert.equal(takeReturnTo(null), null);
+
+  // Play Together receiving a handoff with no return note: stays where it is
+  const cloudflareStore = memoryStorage();
+  const hash = new URL(transferredSessionUrl({ origin: LEGACY, pathname: "/gamid-testing/account/", search: "?gamid_testing_handoff=play_together_cloudflare" }, sessionAt("R1", 3000))).hash;
+  const page = await visit({ origin: ROOT, pathname: "/play-together/", hash, local: cloudflareStore, tabStore: memoryStorage() });
+  assert.equal((await page.client.restoreSession()).refresh_token, "R1");
+  assert.deepEqual(page.replaced, []);
+  // an ordinary sign-in (not a handoff) never triggers a return either
+  const other = memoryStorage({ "gamid.testing.auth.return.v1": JSON.stringify({ path: "/wall-editor/", at: Date.now() }) });
+  const signedIn = await visit({ origin: ROOT, pathname: "/account/", hash: "#access_token=a&refresh_token=b&type=recovery", local: memoryStorage(), tabStore: other });
+  await signedIn.client.restoreSession();
+  assert.deepEqual(signedIn.replaced, []);
+});
+
+test("no session anywhere: the handoff is tried once, then the normal sign-in - and the person sees no infrastructure wording", async () => {
+  const tab = memoryStorage();
+  const handoffUrl = legacyAccountHandoffUrl({ origin: ROOT, pathname: "/play-together/" });
+  const none = { state: SESSION_STATES.NO_STORED_SESSION };
+  assert.equal(planAuth(none, { attempts: tab, handoffUrl }).action, "HANDOFF");
+  const again = planAuth(none, { attempts: tab, handoffUrl });
+  assert.equal(again.action, "SIGN_IN");
+  const { gateFor } = await import("../dist/wall-kit/auth-gate.js");
+  const shown = gateFor(again.action);
+  assert.match(shown.title, /Sign in/);
+  assert.doesNotMatch(JSON.stringify(shown), /github|cloudflare|handoff|storage|session check|NO_STORED|recover|legacy|origin|token/i);
+  assert.equal(planAuth(none, { attempts: null, handoffUrl }).action, "SIGN_IN", "with no usable tab storage it never loops");
+  assert.equal(planAuth(none, { attempts: tab, handoffUrl: null }).action, "SIGN_IN", "and where no handoff applies it goes straight to sign-in");
+  assert.equal(planAuth({ state: SESSION_STATES.AUTH_SERVICE_UNREACHABLE }, { attempts: memoryStorage(), handoffUrl }).action, "UNREACHABLE");
 });
