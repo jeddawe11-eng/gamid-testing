@@ -196,9 +196,9 @@ test("architecture: the core (dist/wall) never names the text type or typography
 });
 test("route: the editor is a private owner page - it needs the account session, uses only the three W2 owner RPCs and no anonymous call", () => {
   const editor = codeOf("dist/wall-editor/editor.js");
-  assert.match(editor, /restoreSession\(\)/);
+  assert.match(editor, /resolveEditorSession\(restoreSession\)/);
   assert.match(editor, /createWallPersistence\(/);
-  assert.match(editor, /Sign in to edit your Wall/);
+  assert.match(read("dist/wall-kit/auth-gate.js"), /Sign in to edit your Wall/);
   assert.doesNotMatch(editor, /anonymous\s*:\s*true|localStorage|sessionStorage|fetch\(|XMLHttpRequest|WebSocket|postMessage/);
   const rpcNames = [...new Set(editorFiles.filter(file => file.endsWith(".js")).flatMap(file => [...codeOf(file).matchAll(/["'](\w+_my_wall_draft)["']/g)].map(match => match[1])))].sort();
   assert.deepEqual(rpcNames, ["ensure_my_wall_draft", "get_my_wall_draft", "save_my_wall_draft"]);

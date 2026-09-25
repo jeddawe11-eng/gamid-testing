@@ -6,6 +6,7 @@ import { createEditorSession } from "../wall-kit/session.js";
 import * as ops from "../wall-kit/ops.js";
 import { paintDocument } from "../wall-kit/paint.js";
 import { describeCode, describeErrors } from "../wall-kit/messages.js";
+import { resolveEditorSession, gateForSessionState, SESSION_STATES } from "../wall-kit/auth-gate.js";
 import { createCanvas } from "./canvas.js";
 import { createPropertiesPanel } from "./controls.js";
 
@@ -260,9 +261,9 @@ function gate({ title, text, loader = false, link = false, retry = false }) {
 }
 async function boot() {
   gate({ title: "Opening your Wall…", text: "Checking your GamID session.", loader: true });
-  let account = null;
-  try { account = await restoreSession(); } catch { account = null; }
-  if (!account) { gate({ title: "Sign in to edit your Wall", text: "The Wall Editor is private to you. Sign in to your GamID account first, then open this page again.", link: true }); return; }
+  // The established account session (same localStorage session the Account page uses) - the editor keeps no session of its own.
+  const check = await resolveEditorSession(restoreSession);
+  if (check.state !== SESSION_STATES.READY) { const shown = gateForSessionState(check, location.host); gate(shown); $("gateText").append(document.createElement("br"), Object.assign(document.createElement("small"), { textContent: `Session check: ${shown.reason}` })); return; }
   const loaded = await session.load();
   if (!loaded) {
     const code = session.state.errorCode;
