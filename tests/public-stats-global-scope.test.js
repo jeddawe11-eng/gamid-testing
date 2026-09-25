@@ -122,6 +122,7 @@ test("migration: the rest of the public boundary is byte-for-byte what it was (1
 
 test("migration: additive - it replaces two functions, drops nothing, writes no data, and later slices do not rewrite its public boundary", () => {
   assert.doesNotMatch(scopeSql, /\bdrop\b|\btruncate\b|\bdelete\b|\binsert\b|\bupdate\b|\balter\b|create table/i);
+  assert.ok(readdirSync(new URL("supabase/migrations/", root)).includes(scopeName));
   const later = readdirSync(new URL("supabase/migrations/", root)).sort().filter(name => name > scopeName);
   for (const name of later) {
     const sql = stripSql(read(`supabase/migrations/${name}`));
