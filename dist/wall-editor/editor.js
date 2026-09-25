@@ -10,6 +10,7 @@ import { resolveEditorSession, planAuth, gateFor } from "../wall-kit/auth-gate.j
 import { createCanvas } from "./canvas.js";
 import { createPropertiesPanel } from "./controls.js";
 import { legacyAccountHandoffUrl } from "../account/testing-auth-handoff.js";
+import { rememberReturnTo } from "../account/post-auth-return.js";
 
 const $ = id => document.getElementById(id);
 const make = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };

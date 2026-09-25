@@ -266,3 +266,18 @@ test("mobile ergonomics: touch-action none on the stage and handles, >= 44px tou
   assert.match(canvas, /pinch/);
   assert.match(canvas, /setPointerCapture/);
 });
+
+test("integrity: every helper the editor scripts call from the Wall kit / account modules is actually imported (a missing import passes a syntax check but breaks boot)", async () => {
+  const modules = ["dist/wall-kit/auth-gate.js", "dist/wall-kit/messages.js", "dist/wall-kit/paint.js", "dist/wall-kit/session.js", "dist/wall/persistence.js", "dist/account/post-auth-return.js", "dist/account/testing-auth-handoff.js", "dist/account/supabase-client.js"];
+  const exported = new Set();
+  for (const module of modules) for (const name of Object.keys(await import(`../${module}`))) exported.add(name);
+  for (const file of ["dist/wall-editor/editor.js", "dist/wall-editor/canvas.js", "dist/wall-editor/controls.js"]) {
+    const code = codeOf(file);
+    const imported = new Set([...code.matchAll(/import\s*\{([^}]+)\}\s*from/g)].flatMap(match => match[1].split(",").map(name => name.trim().split(/\s+as\s+/).pop())));
+    const local = new Set([...code.matchAll(/(?:function|const|let|class)\s+([A-Za-z_$][\w$]*)/g)].map(match => match[1]));
+    for (const name of exported) {
+      if (!new RegExp(`(?<![\\w$.])${name}\\s*\\(`).test(code) || local.has(name)) continue;
+      assert.ok(imported.has(name), `${file} calls ${name}() but does not import it`);
+    }
+  }
+});
