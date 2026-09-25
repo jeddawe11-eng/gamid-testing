@@ -138,9 +138,9 @@ begin
   res := res || jsonb_build_object('step', 'an update persists a modified valid document and advances the revision again', 'pass', j->'document' = doc_two and (j->>'revision')::bigint = 3, 'got', out);
 
   out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, 1) d', doc_one::text));
-  res := res || jsonb_build_object('step', 'a stale revision (1, current is 3) is rejected with WALL_REVISION_CONFLICT carrying the current revision', 'pass', out like 'ERR:40001:WALL_REVISION_CONFLICT:3', 'got', out);
+  res := res || jsonb_build_object('step', 'a stale revision (1, current is 3) is rejected with WALL_REVISION_CONFLICT carrying the current revision', 'pass', out like 'ERR:PT409:WALL_REVISION_CONFLICT:3', 'got', out);
   out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, 99) d', doc_one::text));
-  res := res || jsonb_build_object('step', 'a revision from the future is rejected as well', 'pass', out like 'ERR:40001:WALL_REVISION_CONFLICT%', 'got', out);
+  res := res || jsonb_build_object('step', 'a revision from the future is rejected as well', 'pass', out like 'ERR:PT409:WALL_REVISION_CONFLICT%', 'got', out);
   out := pg_temp.w2_run(ua, 'authenticated', 'select (select to_jsonb(d)::text from public.get_my_wall_draft() d)');
   res := res || jsonb_build_object('step', 'the rejected stale saves changed nothing', 'pass', (out::jsonb)->'document' = doc_two and ((out::jsonb)->>'revision')::bigint = 3);
   out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, 0) d', doc_one::text));
