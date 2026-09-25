@@ -492,7 +492,8 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
   const names = readdirSync(new URL("supabase/migrations/", root)).sort();
   assert.equal(names[names.indexOf(migrationName) - 1], "20260922010000_game_catalog_import_key_fix.sql");
   assert.deepEqual(
-    names.slice(names.indexOf(migrationName) + 1),
+    // Wall migrations (persistence, editor types) are unrelated later additions; everything else after this migration stays pinned exactly
+    names.slice(names.indexOf(migrationName) + 1).filter(name => !/_wall_/.test(name)),
     [
       "20260922173758_play_together_vertical_slice_1.sql",
       "20260922174129_play_together_fk_indexes.sql",
