@@ -1,26 +1,44 @@
 // The Wall's element-type extension point. A "supported foundational element-type architecture": every type - foundational or future - is registered
-// the same way, through the same registry, with the same two-function shape ({ validatePayload, render }). validate.js and render.js dispatch through
-// this registry; neither file ever branches on a literal type name. A future phase adds text/image/background/live-data element types by registering
-// them here (or in their own module) - never by adding another `if (type === "...")` to the Wall core.
+// the same way, through the same registry, with the same shape ({ validatePayload, render } plus the optional `scale` hook). validate.js and render.js
+// dispatch through this registry; neither file ever branches on a literal type name. A later phase adds text/image/background/live-data element types by
+// registering them here (or in their own module) - never by adding another `if (type === "...")` to the Wall core.
 //
-// W1 registers exactly two types, deliberately minimal:
-//   - "rect": the smallest possible non-embed visual element, proving the extension mechanism for an ordinary type (not a special case).
+// Registered here, deliberately minimal:
+//   - "rect": a rectangle. W1 shipped it as a bare fill; W3 makes it a useful shape (optional opacity, border, corner radius, gradient) as COMPATIBLE optional
+//     payload fields: every document that was valid before is still valid and renders the same.
 //   - "embed": the universal, provider-neutral embed contract (see providers.js) - proves the SAME mechanism also carries the provider extension point.
-// Neither is a real product content type. Real types (text, image, live GamID blocks, ...) are later-phase work.
+// The `text` type lives in ../wall-kit/text.js and registers itself into this same registry; the core never names it.
+//
+// The optional `scale(payload, factor)` hook lets a type-owned payload follow a uniform resize of a group (type sizes, border widths, ...): the editor calls
+// it without knowing what any payload contains.
 import { createRegistry } from "./registry.js";
 import { providerRegistry } from "./providers.js";
+import { HEX_COLOR, isSet, isHex, inRange, isGradient, isPlainObject } from "./fields.js";
 
 export const elementRegistry = createRegistry();
 
-const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
-
 elementRegistry.register("rect", {
   validatePayload(payload) {
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) return ["PAYLOAD_NOT_OBJECT"];
-    return HEX_COLOR.test(payload.fill) ? [] : ["INVALID_FILL"];
+    if (!isPlainObject(payload)) return ["PAYLOAD_NOT_OBJECT"];
+    const errors = [];
+    if (!HEX_COLOR.test(payload.fill)) errors.push("INVALID_FILL");
+    if (isSet(payload.opacity) && !inRange(payload.opacity, 0, 1)) errors.push("INVALID_OPACITY");
+    if (isSet(payload.stroke) && !isHex(payload.stroke)) errors.push("INVALID_STROKE");
+    if (isSet(payload.strokeWidth) && !inRange(payload.strokeWidth, 0, 100)) errors.push("INVALID_STROKE_WIDTH");
+    if (isSet(payload.radius) && !inRange(payload.radius, 0, 1000)) errors.push("INVALID_RADIUS");
+    if (isSet(payload.gradient) && !isGradient(payload.gradient)) errors.push("INVALID_GRADIENT");
+    return errors;
   },
   render(payload) {
-    return { kind: "rect", fill: payload.fill };
+    const content = { kind: "rect", fill: payload.fill };
+    for (const key of ["opacity", "stroke", "strokeWidth", "radius", "gradient"]) if (isSet(payload[key])) content[key] = payload[key];
+    return content;
+  },
+  scale(payload, factor) {
+    const next = { ...payload };
+    if (typeof next.strokeWidth === "number") next.strokeWidth = Math.min(100, Math.round(next.strokeWidth * factor * 10) / 10);
+    if (typeof next.radius === "number") next.radius = Math.min(1000, Math.round(next.radius * factor));
+    return next;
   },
 });
 

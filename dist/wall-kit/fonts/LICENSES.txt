@@ -1,0 +1,4 @@
+The bundled Wall fonts (Orbitron, Bebas Neue, Russo One, Rajdhani, Chakra Petch) are from Google Fonts and are licensed under the SIL Open Font License 1.1
+(https://openfontlicense.org). They are served from this site, unmodified (WOFF2 latin subsets), so no font is ever loaded from a third-party host at runtime.
+The remaining catalog entries are system font stacks: no font file is shipped or fetched for them.
+Adding a bundled font requires its licence to be recorded here first.

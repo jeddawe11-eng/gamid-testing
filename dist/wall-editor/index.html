@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#08070d" />
+  <meta name="robots" content="noindex" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://upvtrczefcvigxdyuylw.supabase.co; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'" />
+  <title>GamID — Wall Editor</title>
+  <link rel="stylesheet" href="../wall-kit/wall-kit.css" />
+  <link rel="stylesheet" href="editor.css" />
+</head>
+<body data-sheet="">
+  <header class="ed-top">
+    <a class="ed-back" href="../account/" aria-label="Back to your account">&larr;</a>
+    <div class="ed-title"><strong>Wall</strong><span class="ed-badge">TESTING &middot; PRIVATE DRAFT</span></div>
+    <div class="ed-top-actions">
+      <button id="undoBtn" class="ed-btn ed-icon" type="button" aria-label="Undo" disabled>&#8630;</button>
+      <button id="redoBtn" class="ed-btn ed-icon" type="button" aria-label="Redo" disabled>&#8631;</button>
+      <button id="previewBtn" class="ed-btn" type="button" disabled>Preview</button>
+      <button id="saveBtn" class="ed-btn ed-primary" type="button" disabled>Save</button>
+    </div>
+  </header>
+
+  <section id="conflict" class="ed-banner" hidden role="alert">
+    <p><strong>Your Wall changed somewhere else.</strong> A newer saved version exists, so nothing was overwritten.</p>
+    <div class="ed-row">
+      <button id="conflictReload" class="ed-btn" type="button">Load the latest (discard my edits)</button>
+      <button id="conflictOverwrite" class="ed-btn ed-danger" type="button">Keep mine and overwrite</button>
+    </div>
+  </section>
+  <section id="errorBanner" class="ed-banner ed-banner-error" hidden role="alert"><p id="errorText"></p><button id="errorDismiss" class="ed-btn" type="button">Dismiss</button></section>
+
+  <main id="gate" class="ed-gate">
+    <div class="ed-gate-card">
+      <div class="ed-loader" id="gateLoader"></div>
+      <h1 id="gateTitle">Opening your Wall&hellip;</h1>
+      <p id="gateText">Checking your GamID session.</p>
+      <div class="ed-row"><a id="gateLink" class="ed-btn ed-primary" href="../account/" hidden>Go to your account</a><button id="gateRetry" class="ed-btn" type="button" hidden>Try again</button></div>
+    </div>
+  </main>
+
+  <div id="workspace" class="ed-workspace" hidden>
+    <aside id="leftPanel" class="ed-panel ed-left" aria-label="Add, stages and layers">
+      <section id="secAdd" class="ed-section" data-sheet-name="add">
+        <h2>Add</h2>
+        <div class="ed-add-grid">
+          <button class="ed-btn" type="button" data-add="text"><b>T</b> Text</button>
+          <button class="ed-btn" type="button" data-add="rect"><b>&#9632;</b> Rectangle</button>
+          <button class="ed-btn" type="button" data-add="rounded"><b>&#9635;</b> Rounded</button>
+          <button class="ed-btn" type="button" data-add="circle"><b>&#9679;</b> Circle</button>
+        </div>
+        <p class="ed-hint">Images, backgrounds and media come in a later phase.</p>
+      </section>
+      <section id="secStages" class="ed-section" data-sheet-name="stages">
+        <h2>Stages</h2>
+        <div id="stageChips" class="ed-chips" role="tablist"></div>
+        <div class="ed-row ed-wrap">
+          <button id="stageAdd" class="ed-btn" type="button">+ Add stage</button>
+          <button id="stageLeft" class="ed-btn" type="button" aria-label="Move stage earlier">&larr; Move</button>
+          <button id="stageRight" class="ed-btn" type="button" aria-label="Move stage later">Move &rarr;</button>
+          <button id="stageDelete" class="ed-btn ed-danger" type="button">Delete stage</button>
+        </div>
+        <div id="stageConfirm" class="ed-confirm" hidden>
+          <p id="stageConfirmText"></p>
+          <div class="ed-row"><button id="stageConfirmYes" class="ed-btn ed-danger" type="button">Delete</button><button id="stageConfirmNo" class="ed-btn" type="button">Cancel</button></div>
+        </div>
+      </section>
+      <section id="secLayers" class="ed-section" data-sheet-name="layers">
+        <h2>Layers <small>(top first)</small></h2>
+        <ul id="layerList" class="ed-layers"></ul>
+      </section>
+    </aside>
+
+    <section class="ed-center" aria-label="Wall canvas">
+      <div class="ed-canvas-bar">
+        <span id="stageLabel" class="ed-stage-label">Stage 1 of 1</span>
+        <button id="multiBtn" class="ed-btn" type="button" aria-pressed="false">Multi-select</button>
+        <span id="saveState" class="ed-state" role="status" aria-live="polite" data-state="loading">Loading&hellip;</span>
+        <span id="selInfo" class="ed-sel-info"></span>
+      </div>
+      <div id="viewport" class="ed-viewport"><div id="stageHost" class="ed-stage-host"></div></div>
+    </section>
+
+    <aside id="props" class="ed-panel ed-right" aria-label="Properties" data-sheet-name="props">
+      <section class="ed-section"><h2 id="propsTitle">Properties</h2><div id="propsBody"></div></section>
+    </aside>
+  </div>
+
+  <nav id="mobileBar" class="ed-mobile-bar" aria-label="Editor tools" hidden>
+    <button type="button" data-sheet="add">Add</button>
+    <button type="button" data-sheet="layers">Layers</button>
+    <button type="button" data-sheet="stages">Stages</button>
+    <button type="button" data-sheet="props">Edit</button>
+  </nav>
+
+  <div id="preview" class="ed-preview" hidden>
+    <div class="ed-preview-bar"><strong>Preview</strong><span>How a visitor would see this Wall. Nothing is published.</span><button id="previewClose" class="ed-btn ed-primary" type="button">Back to editing</button></div>
+    <div id="previewScroll" class="ed-preview-scroll"><div id="previewColumn" class="ed-preview-column"></div></div>
+  </div>
+
+  <script type="module" src="editor.js"></script>
+</body>
+</html>

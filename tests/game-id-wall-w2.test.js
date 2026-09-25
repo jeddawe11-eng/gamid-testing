@@ -13,7 +13,9 @@ import { createWallPersistence, WallPersistenceError, toPersistenceError } from 
 
 const read = path => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 const MIGRATION = "supabase/migrations/20260925120000_wall_persistence_foundation.sql";
-const migration = read(MIGRATION);
+// W3 (the editor) taught the database validator the new element types in a forward migration; the SQL port is the union of the Wall migrations
+const EDITOR_MIGRATION = "supabase/migrations/20260925140000_wall_editor_element_types.sql";
+const migration = read(MIGRATION) + "\n" + read(EDITOR_MIGRATION);
 // the migration text without SQL comments, for "does the code do X" assertions
 const migrationCode = migration.replace(/--.*$/gm, "");
 
@@ -39,7 +41,7 @@ test("corpus: names are unique and both valid and invalid documents are covered"
 // neither can occur; the forward migration that registers a real provider must teach the database validator both (and add corpus cases).
 const PROVIDER_ONLY = new Set(["PROVIDER", "PROVIDER_DATA_NOT_OBJECT"]);
 const w1Codes = () => {
-  const w1Source = read("dist/wall/validate.js") + read("dist/wall/elements.js");
+  const w1Source = read("dist/wall/validate.js") + read("dist/wall/elements.js") + read("dist/wall-kit/text.js");
   return new Set([...w1Source.matchAll(/["`]([A-Z][A-Z_]{5,})(?::|["`])/g)].map(match => match[1]).filter(code => !PROVIDER_ONLY.has(code)));
 };
 
@@ -71,14 +73,16 @@ test("drift guard: the database's starting document equals the W1 createDocument
 });
 
 // ---------- migration security shape ----------
-test("migration: additive only, TESTING-safe, and a fresh timestamp after the Play Together migrations", () => {
-  assert.ok(existsSync(MIGRATION));
+test("migration: additive only, TESTING-safe, and fresh timestamps after the Play Together migrations", () => {
+  assert.ok(existsSync(MIGRATION) && existsSync(EDITOR_MIGRATION));
   const versions = readdirSync("supabase/migrations").map(name => name.slice(0, 14)).sort();
-  assert.equal(versions[versions.length - 1], "20260925120000", "W2 is the newest migration");
-  assert.ok(versions.filter(v => v === "20260925120000").length === 1);
+  assert.ok(versions.indexOf("20260925120000") > versions.indexOf("20260925094500") || !versions.includes("20260925094500"), "W2 sorts after the Play Together migrations");
+  assert.ok(versions.indexOf("20260925140000") > versions.indexOf("20260925120000"), "the editor migration follows W2");
+  assert.equal(versions.filter(v => v === "20260925120000").length, 1);
+  assert.equal(versions.filter(v => v === "20260925140000").length, 1);
   assert.ok(!/\b(drop|truncate)\s+(table|schema|function)\b/i.test(migrationCode), "no destructive statements");
   assert.ok(!/\balter\s+table\s+public\.(entities|entity_memberships|profiles)\b/i.test(migrationCode), "no change to existing tables");
-  assert.ok(!/\bdelete\s+from\b|\binsert\s+into\s+public\.(entities|profiles)/i.test(migrationCode), "touches no existing data");
+  assert.ok(!/\bdelete\s+from\b|\binsert\s+into\s+public\.(entities|profiles)|\bupdate\s+public\.(?!wall_drafts)/i.test(migrationCode), "touches no existing data");
   assert.ok(!/game[-_ ]?id[-_ ]?wall/i.test(migration), "the Steam-slice scope guard reserves that phrase");
 });
 
@@ -94,8 +98,8 @@ test("migration: RLS on, no client table grant, RPC-only access for authenticate
 });
 
 test("migration: definer functions pin an empty search_path; public wrappers are security invoker", () => {
-  const functions = migrationCode.split(/\ncreate function /).slice(1);
-  assert.ok(functions.length >= 12);
+  const functions = migrationCode.split(/\ncreate (?:or replace )?function /).slice(1);
+  assert.ok(functions.length >= 19);
   for (const body of functions) {
     const name = body.slice(0, body.indexOf("("));
     assert.ok(/set search_path = ''/.test(body), `${name} pins search_path`);

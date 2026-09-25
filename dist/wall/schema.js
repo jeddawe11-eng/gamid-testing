@@ -21,8 +21,9 @@ export function createStage(id, elements = []) {
   return { id, elements: [...elements] };
 }
 
-export function createElement({ id, type, x, y, width, height, z = 0, payload = {} }) {
-  return { id, type, x, y, width, height, z, payload };
+export function createElement({ id, type, x, y, width, height, z = 0, payload = {}, rotation, groupId }) {
+  // rotation / groupId are optional generic properties: set only when given, so a plain element is byte-identical to a W1 element
+  return { id, type, x, y, width, height, z, payload, ...(rotation !== undefined ? { rotation } : {}), ...(groupId !== undefined ? { groupId } : {}) };
 }
 
 // A new, empty, already-valid document: one stage, the canonical canvas, no elements. A real starting point for tests and for whatever creates the

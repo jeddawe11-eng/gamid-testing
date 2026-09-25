@@ -28,6 +28,9 @@ function renderElement(element, scale) {
     width: element.width * scale,
     height: element.height * scale,
     content: definition.render ? definition.render(element.payload) : null,
+    // optional generic properties are carried only when the document sets them, so a document without them renders exactly as it did in W1
+    ...(element.rotation !== undefined && element.rotation !== null ? { rotation: element.rotation } : {}),
+    ...(element.groupId !== undefined && element.groupId !== null ? { groupId: element.groupId } : {}),
   };
 }
 
