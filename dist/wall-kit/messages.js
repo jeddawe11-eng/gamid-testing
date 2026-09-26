@@ -16,6 +16,8 @@ const BY_CODE = {
   GROUP_ROTATION_UNSUPPORTED: "Groups can be moved and resized; rotate the elements before grouping them.",
   GROUP_ELEMENT_RESIZE_UNSUPPORTED: "Ungroup first to resize a single element of a group.",
   SELECTION_INVALID: "Select elements on one stage first.",
+  NOT_AN_EMBED: "Select a link or media element first.",
+  EMBED_KEPT_ON_TOP: "A video or music player always stays in front of anything it overlaps (nothing may be drawn over a player), so it was kept on top. Elements can sit behind it.",
   WALL_REVISION_CONFLICT: "A newer version of your Wall exists.",
   AUTH_REQUIRED: "Your session ended. Sign in again from your account, then come back.",
   IDENTITY_NOT_FOUND: "Create your GamID first, then come back to build your Wall.",

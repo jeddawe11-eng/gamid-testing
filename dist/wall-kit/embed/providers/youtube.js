@@ -11,8 +11,9 @@ export const youtube = defineProvider({
   hosts: ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be", "youtube-nocookie.com", "www.youtube-nocookie.com"],
   frameOrigins: ["https://www.youtube-nocookie.com"],
   kinds: {
-    video: { label: "Video", id: VIDEO, inline: true, aspect: "16:9", aspects: ["16:9", "9:16", "1:1", "4:3"], size: { width: 800, height: 450 }, minInline: { w: 200, h: 112 } },
-    playlist: { label: "Playlist", id: "^[A-Za-z0-9_-]{13,64}$", inline: true, aspect: "16:9", aspects: ["16:9", "4:3"], size: { width: 800, height: 450 }, minInline: { w: 200, h: 112 } },
+    // minTile: YouTube's documented smallest thumbnail/tile that may start playback (120 x 70 CSS px) - the Wall's minimum size for a YouTube player element
+    video: { label: "Video", id: VIDEO, inline: true, aspect: "16:9", aspects: ["16:9", "9:16", "1:1", "4:3"], size: { width: 800, height: 450 }, minInline: { w: 200, h: 112 }, minTile: { w: 120, h: 70 } },
+    playlist: { label: "Playlist", id: "^[A-Za-z0-9_-]{13,64}$", inline: true, aspect: "16:9", aspects: ["16:9", "4:3"], size: { width: 800, height: 450 }, minInline: { w: 200, h: 112 }, minTile: { w: 120, h: 70 } },
     channel: { label: "Channel", id: CHANNEL, inline: false, profile: true, aspect: "auto", size: { width: 800, height: 240 } },
   },
   parse(url) {

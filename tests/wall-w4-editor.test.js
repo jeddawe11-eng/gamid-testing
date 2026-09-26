@@ -113,7 +113,8 @@ test("desktop and mobile: a left tool rail + drawer + inspector on desktop; a bo
   assert.match(html, /id="previewMobile"[\s\S]*id="previewDesktop"/, "Desktop/Mobile preview are two views of the ONE Wall");
   const editor = read("dist/wall-editor/editor.js");
   assert.match(editor, /previewMode === "mobile" \? Math\.min\(390, available\) : Math\.min\(900, available\)/);
-  assert.match(editor, /paintDocument\(session\.doc, width, undefined, \{ mode: "view"/);
+  // the session document itself, with the player-layering rule applied to a copy (a Wall saved before that rule existed never shows anything over a player)
+  assert.match(editor, /paintDocument\(ops\.normalizeEmbedLayering\(session\.doc\)\.doc, width, undefined, \{ mode: "view"/);
 });
 test("Preview uses the real renderer in view mode, is torn down on close, and never touches the saved document or the session", () => {
   const editor = read("dist/wall-editor/editor.js");

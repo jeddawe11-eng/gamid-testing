@@ -11,8 +11,10 @@
 //   - Layer order is stage-local, dense (0..n-1 after any ordering operation) and never depends on array/insertion order.
 import { validateDocument } from "../wall/validate.js";
 import { elementRegistry } from "../wall/elements.js";
-import { createElement } from "../wall/schema.js";
+import { createElement, CANONICAL_CANVAS } from "../wall/schema.js";
 import { createTextPayload } from "./text.js";
+import { GAMID_BLOCK_INFO } from "./gamid.js";
+import { PROVIDERS } from "./embed/engine.js";
 import "./register.js";   // every element type, background kind and embed provider the kit provides
 
 export const MIN_SIZE = 10;
@@ -22,6 +24,50 @@ export const SNAP_THRESHOLD = 8;
 const clone = value => structuredClone(value);
 const zThenId = (a, b) => a.z - b.z || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 const EPS = 1e-6;
+
+// ---- per-type minimum sizes -------------------------------------------------------------------------------------------------------------------------------
+// Minimums are in canonical units, judged on the NARROWEST supported column (360 CSS px, W0's worst case: 1 unit = 0.36 px), so a minimum holds on every phone.
+//   shapes, text, images   MIN_SIZE (10 units): decorative pieces stay fully flexible.
+//   embed player           the provider's documented tile minimum when it declares one (YouTube: a thumbnail that starts playback must be at least 120x70 px ->
+//                          334 x 195 units, turned to match a portrait player). Below the provider's INLINE minimum a tile is still valid: a tap opens the larger
+//                          in-page player (W0 finding). Providers that declare no tile minimum use the touch-target floor below.
+//   embed link / card      the WCAG 2.2 AA touch-target floor, 24 x 24 CSS px -> 67 x 67 units, so it can always be tapped.
+//   GamID block            the block's own smallest readable layout (GAMID_BLOCK_INFO[block].minSize: its title plus a first row of real content).
+export const NARROWEST_COLUMN_PX = 360;
+export const TOUCH_TARGET_PX = 24;
+export const pxToMinUnits = cssPx => Math.ceil(cssPx * CANONICAL_CANVAS.width / NARROWEST_COLUMN_PX);
+const BASE_MIN = Object.freeze({ width: MIN_SIZE, height: MIN_SIZE });
+const TOUCH_MIN = Object.freeze({ width: pxToMinUnits(TOUCH_TARGET_PX), height: pxToMinUnits(TOUCH_TARGET_PX) });
+
+const embedDescriptor = element => elementRegistry.get("embed")?.render?.(element.payload)?.content ?? null;
+const ratioOf = aspect => { const match = /^(\d+):(\d+)$/.exec(aspect ?? ""); return match ? Number(match[1]) / Number(match[2]) : null; };
+
+export function minSizeOf(element) {
+  if (element.type === "embed") {
+    const descriptor = embedDescriptor(element);
+    if (!descriptor || !descriptor.inline) return TOUCH_MIN;
+    const tile = PROVIDERS.get(descriptor.providerKey)?.kinds?.[descriptor.contentKind]?.minTile;
+    if (!tile) return TOUCH_MIN;
+    const long = pxToMinUnits(Math.max(tile.w, tile.h)), short = pxToMinUnits(Math.min(tile.w, tile.h));
+    const portrait = (ratioOf(descriptor.aspect) ?? 1) < 1;
+    return { width: portrait ? short : long, height: portrait ? long : short };
+  }
+  if (element.type === "gamid") return GAMID_BLOCK_INFO[element.payload?.block]?.minSize ?? BASE_MIN;
+  return BASE_MIN;
+}
+
+// The smallest scale factor a uniform resize (pinch, Bigger/Smaller, group handles) may apply to a set of elements. Never above 1: an element that is already below
+// its minimum (a document made before minimums existed) can still grow, it just cannot shrink further.
+function shrinkFloor(elements) {
+  let floor = 0;
+  for (const element of elements) { const min = minSizeOf(element); floor = Math.max(floor, min.width / element.width, min.height / element.height); }
+  return Math.min(1, floor);
+}
+// Per-member floor after rounding a uniform resize: the element's minimum, but never more than its size before the resize (an older, smaller element is not enlarged).
+function minFloorFor(element) {
+  const min = minSizeOf(element);
+  return { width: Math.max(MIN_SIZE, Math.min(min.width, element.width)), height: Math.max(MIN_SIZE, Math.min(min.height, element.height)) };
+}
 
 export const ordered = stage => [...stage.elements].sort(zThenId);
 export const findStage = (doc, stageId) => doc.stages.find(stage => stage.id === stageId) ?? null;
@@ -38,7 +84,47 @@ export const stageIndex = (doc, stageId) => doc.stages.findIndex(stage => stage.
 const fail = (doc, ...errors) => ({ ok: false, doc, errors });
 function finish(previous, next, extras = {}) {
   const { valid, errors } = validateDocument(next);
-  return valid ? { ok: true, doc: next, ...extras } : fail(previous, ...errors);
+  if (!valid) return fail(previous, ...errors);
+  const lifts = next.stages.flatMap(stage => liftPlayers(stage));   // z-only: a valid document stays valid
+  return { ok: true, doc: next, ...extras, ...(lifts.length ? { embedLifts: lifts } : {}) };
+}
+
+// ---- embed layering -----------------------------------------------------------------------------------------------------------------------------------------
+// Invariant (W0's embed rule, expressed on z-order): a provider PLAYER (an embed shown as "Player") is never painted below another element whose box overlaps it.
+// Nothing can then cover part of a player (providers forbid drawing over their player) or sit in front of its facade and take the tap that starts it. Only the
+// player's z moves, just above whatever overlapped it; every other layer choice is left exactly as the owner made it, elements may still sit BEHIND a player, and
+// links / cards (ordinary anchors) are arranged freely. Two players are not reordered against each other. z-only, so documents stay valid for the W1 validator.
+const isPlayer = element => element.type === "embed" && embedDescriptor(element)?.inline === true;
+function boxesOverlap(a, b) {
+  const A = elementBounds(a), B = elementBounds(b);
+  return A.x < B.x + B.width - 0.5 && B.x < A.x + A.width - 0.5 && A.y < B.y + B.height - 0.5 && B.y < A.y + A.height - 0.5;
+}
+// Mutates the stage's z-order; returns [{ stageId, player, above }] for every lift made.
+function liftPlayers(stage) {
+  if (!stage.elements.some(isPlayer)) return [];
+  const list = ordered(stage);
+  const player = new Map(list.map(element => [element.id, isPlayer(element)]));
+  const lifts = [];
+  for (let guard = 0; guard < list.length * list.length + 1; guard += 1) {
+    let found = null;
+    for (let i = 0; i < list.length && !found; i += 1) {
+      if (!player.get(list[i].id)) continue;
+      for (let j = list.length - 1; j > i; j -= 1) if (!player.get(list[j].id) && boxesOverlap(list[i], list[j])) { found = [i, j]; break; }
+    }
+    if (!found) break;
+    const [i, j] = found;
+    const [moved] = list.splice(i, 1);
+    list.splice(j, 0, moved);   // j is now the slot just above the top-most element that overlapped it
+    lifts.push({ stageId: stage.id, player: moved.id, above: list[j - 1].id });
+  }
+  if (lifts.length) assignZ(stage, list);
+  return lifts;
+}
+// The same invariant applied to a document that was saved before it existed (Preview uses this, so a visitor-style view never shows anything over a player).
+export function normalizeEmbedLayering(doc) {
+  const next = clone(doc);
+  const lifts = next.stages.flatMap(stage => liftPlayers(stage));
+  return lifts.length ? { doc: next, lifts } : { doc, lifts };
 }
 
 // ---- geometry ---------------------------------------------------------------------------------------------------------------------------------------
@@ -79,16 +165,18 @@ export function unionContain(elements) {
 const inside = (box, canvas) => box.x >= -EPS && box.y >= -EPS && box.x + box.width <= canvas.width + EPS && box.y + box.height <= canvas.height + EPS;
 
 // Puts an element back inside the canvas (shrinking an unrotated one that is too large). Returns false only when a rotated element cannot fit at all.
-function clampToCanvas(element, canvas) {
+// `min` is the size floor to apply: the generic floor for moves/alignment (so an older, smaller element is never silently enlarged), the element's own
+// per-type minimum where its SIZE is being set (numeric size fields, adding an element).
+function clampToCanvas(element, canvas, min = BASE_MIN) {
   if (!element.rotation) {
-    element.width = Math.min(Math.max(MIN_SIZE, Math.round(element.width)), canvas.width);
-    element.height = Math.min(Math.max(MIN_SIZE, Math.round(element.height)), canvas.height);
+    element.width = Math.min(Math.max(min.width, Math.round(element.width)), canvas.width);
+    element.height = Math.min(Math.max(min.height, Math.round(element.height)), canvas.height);
     element.x = Math.min(Math.max(0, Math.round(element.x)), canvas.width - element.width);
     element.y = Math.min(Math.max(0, Math.round(element.y)), canvas.height - element.height);
     return true;
   }
-  element.width = Math.max(MIN_SIZE, Math.round(element.width));
-  element.height = Math.max(MIN_SIZE, Math.round(element.height));
+  element.width = Math.max(min.width, Math.round(element.width));
+  element.height = Math.max(min.height, Math.round(element.height));
   const box = containBounds(element);
   if (box.width > canvas.width + EPS || box.height > canvas.height + EPS) return false;
   // shift the centre so the rotated bounds sit inside, on whole units
@@ -225,7 +313,7 @@ export function addCustomElement(doc, stageId, { type, payload, width, height, x
   const w = Math.max(MIN_SIZE, Math.round(width * fitScale)), h = Math.max(MIN_SIZE, Math.round(height * fitScale));
   const id = nextId(doc, "el");
   const element = createElement({ id, type, x: Math.round(x ?? (next.canvas.width - w) / 2), y: Math.round(y ?? (next.canvas.height - h) / 2), width: w, height: h, z: target.elements.length, payload: clone(payload) });
-  clampToCanvas(element, next.canvas);
+  clampToCanvas(element, next.canvas, minSizeOf(element));
   target.elements.push(element);
   normalizeStageZ(target);
   return finish(doc, next, { ids: [id] });
@@ -249,16 +337,60 @@ export function assetsInUse(doc) {
   return used;
 }
 
-// A fixed aspect ratio (width / height) an element should keep while it is resized, or null. Embeds keep their provider's real ratio (video is never stretched);
-// pictures keep the proportions of their source unless they are drawn cover/fill (which crop or stretch by intent).
+// The aspect ratio (width / height) an element is held to while it is resized, or null for a free resize. The value itself is the lock - resizing never falls back
+// to whatever shape the box happens to have:
+//   - a PLAYER keeps the aspect SELECTED for it (the provider's default, or the owner's choice from the adapter's own list): a 9:16 player stays 9:16 (video is never
+//     stretched); providers with an "auto" layout (Spotify, ...) resize freely;
+//   - a link / card of fixed-ratio content keeps the proportions of its own card box (the video's ratio does not apply to a card);
+//   - a picture drawn "show whole picture" keeps its source proportions; cover/fill crop or stretch by intent.
 export function lockedAspect(element) {
   if (element.type === "embed") {
-    const ratio = elementRegistry.get("embed")?.render?.(element.payload)?.content?.aspect;
-    const match = /^(\d+):(\d+)$/.exec(ratio ?? "");
-    return match ? Number(match[1]) / Number(match[2]) : null;
+    const descriptor = embedDescriptor(element);
+    const ratio = ratioOf(descriptor?.aspect);
+    if (!ratio) return null;
+    return descriptor.inline ? ratio : element.width / element.height;
   }
   if (element.type === "image" && element.payload.fit === "contain" && element.payload.aw && element.payload.ah) return element.payload.aw / element.payload.ah;
   return null;
+}
+
+// Refits a box to `ratio` keeping its centre and (about) its area - so 16:9 -> 9:16 turns a landscape player into a portrait one of similar size rather than a
+// giant or a sliver - then keeps it inside the stage and at least its minimum size. Whole units; the height follows the rounded width exactly.
+function refitToRatio(element, ratio, canvas) {
+  const min = minSizeOf(element);
+  const cx = element.x + element.width / 2, cy = element.y + element.height / 2;
+  let width = Math.sqrt(element.width * element.height * ratio), height = width / ratio;
+  const fit = Math.min(1, canvas.width / width, canvas.height / height);
+  width *= fit; height *= fit;
+  const grow = Math.max(1, min.width / width, min.height / height);
+  width = Math.min(canvas.width, Math.round(width * grow));
+  height = Math.round(width / ratio);
+  if (height > canvas.height) { height = canvas.height; width = Math.round(height * ratio); }
+  element.width = width; element.height = height;
+  element.x = Math.round(cx - width / 2); element.y = Math.round(cy - height / 2);
+}
+
+// Changes an embed's own data (presentation, aspect, caption) from the editor. When the result is a PLAYER whose aspect or presentation changed, the box is refitted
+// to the selected aspect in the same step (one undo step), so what the owner sees is the shape that will play. A key set to `undefined` is removed.
+export function setEmbedData(doc, id, patch) {
+  const found = locate(doc, id);
+  if (!found) return fail(doc, "ELEMENT_NOT_FOUND");
+  if (found.element.type !== "embed") return fail(doc, "NOT_AN_EMBED");
+  const next = clone(doc);
+  const element = locate(next, id).element;
+  const before = embedDescriptor(element);
+  const data = { ...element.payload.data };
+  for (const [key, value] of Object.entries(patch)) { if (value === undefined) delete data[key]; else data[key] = value; }
+  element.payload = { ...element.payload, data };
+  const { valid, errors } = validateDocument(next);
+  if (!valid) return fail(doc, ...errors);
+  const after = embedDescriptor(element);
+  const ratio = ratioOf(after?.aspect);
+  if (after?.inline && ratio && (after.aspect !== before?.aspect || !before?.inline)) {
+    refitToRatio(element, ratio, next.canvas);
+    if (!clampToCanvas(element, next.canvas, minSizeOf(element))) return fail(doc, "OUTSIDE_CANVAS");
+  }
+  return finish(doc, next);
 }
 // ---- editing ----------------------------------------------------------------------------------------------------------------------------------------
 // Merges a partial payload into the element's type-owned payload. A key set to `undefined` is removed (that is how an optional effect is switched off).
@@ -296,7 +428,8 @@ export function updateGeometry(doc, id, patch) {
     if (rotation === 0) delete element.rotation; else element.rotation = rotation;
   }
   if ([element.x, element.y, element.width, element.height].some(value => !Number.isFinite(value))) return fail(doc, `INVALID_DIMENSIONS:${id}`);
-  if (!clampToCanvas(element, next.canvas)) return fail(doc, "OUTSIDE_CANVAS");
+  const sizing = patch.width !== undefined || patch.height !== undefined;
+  if (!clampToCanvas(element, next.canvas, sizing ? minSizeOf(element) : BASE_MIN)) return fail(doc, "OUTSIDE_CANVAS");
   return finish(doc, next);
 }
 
@@ -337,19 +470,25 @@ export const HANDLES = Object.freeze({
   nw: [-1, -1], ne: [1, -1], se: [1, 1], sw: [-1, 1], e: [1, 0], w: [-1, 0],
 });
 
-function resizeGeometry(start, handle, dx, dy, keepAspect, canvas) {
+// `keepAspect`: false (free), true (keep the box's current proportions - Shift), or a ratio number (width / height) the result is held to exactly - the element's
+// locked aspect (lockedAspect), so a 9:16 player stays 9:16 whatever shape its box had. `min` is the element's minimum size (minSizeOf); a locked resize reaches its
+// minimum by scaling, so it never breaks the ratio to get there.
+function resizeGeometry(start, handle, dx, dy, keepAspect, min = BASE_MIN) {
   const [sx, sy] = HANDLES[handle];
   const angle = radians(start.rotation), cos = Math.cos(angle), sin = Math.sin(angle);
   // pointer delta in the element's own (rotated) axes
   const localX = dx * cos + dy * sin, localY = -dx * sin + dy * cos;
   let width = start.width + sx * localX, height = start.height + sy * localY;
-  if (keepAspect && sx !== 0 && sy !== 0) {
-    const factor = Math.max(width / start.width, height / start.height);
-    width = start.width * factor; height = start.height * factor;
-  } else if (keepAspect && sx !== 0) {
-    height = start.height * (width / start.width);   // a side handle on a proportion-locked element scales the whole element
+  const ratio = typeof keepAspect === "number" && keepAspect > 0 ? keepAspect : keepAspect ? start.width / start.height : null;
+  if (ratio) {
+    // a corner follows whichever axis was dragged further; a side handle on a locked element scales the whole element
+    width = sy !== 0 ? Math.max(width, height * ratio, EPS) : Math.max(width, EPS);
+    height = width / ratio;
+    const grow = Math.max(1, min.width / width, min.height / height);
+    width *= grow; height *= grow;
+  } else {
+    width = Math.max(min.width, width); height = Math.max(min.height, height);
   }
-  width = Math.max(MIN_SIZE, width); height = Math.max(MIN_SIZE, height);
   // keep the opposite edge/corner fixed in world space
   const anchorLocal = [-sx * start.width / 2, -sy * start.height / 2];
   const centre = [start.x + start.width / 2, start.y + start.height / 2];
@@ -365,26 +504,27 @@ export function resizeElement(doc, id, handle, dx, dy, { keepAspect = false } = 
   if (!found || !HANDLES[handle]) return fail(doc, !found ? "ELEMENT_NOT_FOUND" : "UNKNOWN_HANDLE");
   if (found.element.groupId) return fail(doc, "GROUP_ELEMENT_RESIZE_UNSUPPORTED");
   const start = found.element;
+  const min = minSizeOf(start);
   let geometry = null;
   // shrink the gesture toward zero until it fits: exact for unrotated elements after the first pass below, fine-stepped for rotated ones
   for (let step = 40; step >= 0; step -= 1) {
     const t = step / 40;
-    const candidate = resizeGeometry(start, handle, dx * t, dy * t, keepAspect, doc.canvas);
+    const candidate = resizeGeometry(start, handle, dx * t, dy * t, keepAspect, min);
     if (inside(containBounds({ ...start, ...candidate }), doc.canvas)) { geometry = candidate; break; }
   }
   if (!geometry) return { ok: true, doc };
   if (!start.rotation) {
     // exact edge stop for the common (unrotated) case: clamp the dragged edges onto the stage instead of the 1/40 stepping above
     const [sx, sy] = HANDLES[handle];
-    const free = resizeGeometry(start, handle, dx, dy, keepAspect, doc.canvas);
+    const free = resizeGeometry(start, handle, dx, dy, keepAspect, min);
     const fits = candidate => inside(candidate, doc.canvas);
     if (fits(free)) geometry = free;
     else if (!keepAspect) {
       const right = start.x + start.width, bottom = start.y + start.height;
-      const left = sx < 0 ? Math.max(0, Math.min(free.x, right - MIN_SIZE)) : start.x;
-      const top = sy < 0 ? Math.max(0, Math.min(free.y, bottom - MIN_SIZE)) : start.y;
-      const farRight = sx > 0 ? Math.min(doc.canvas.width, Math.max(free.x + free.width, start.x + MIN_SIZE)) : right;
-      const farBottom = sy > 0 ? Math.min(doc.canvas.height, Math.max(free.y + free.height, start.y + MIN_SIZE)) : bottom;
+      const left = sx < 0 ? Math.max(0, Math.min(free.x, right - min.width)) : start.x;
+      const top = sy < 0 ? Math.max(0, Math.min(free.y, bottom - min.height)) : start.y;
+      const farRight = sx > 0 ? Math.min(doc.canvas.width, Math.max(free.x + free.width, start.x + min.width)) : right;
+      const farBottom = sy > 0 ? Math.min(doc.canvas.height, Math.max(free.y + free.height, start.y + min.height)) : bottom;
       geometry = { x: left, y: top, width: farRight - left, height: farBottom - top };
     }
   }
@@ -407,8 +547,7 @@ export function resizeGroup(doc, ids, handle, dx, dy) {
   const members = nextStage.elements.filter(element => moving.has(element.id));
   const box = unionContain(members);
   let factor = Math.max((box.width + sx * dx) / box.width, (box.height + sy * dy) / box.height);
-  const smallest = Math.min(...members.map(element => Math.min(element.width, element.height)));
-  factor = Math.max(factor, MIN_SIZE / smallest);
+  factor = Math.max(factor, shrinkFloor(members));   // no member goes below its own minimum (a player, a GamID block, ...)
   const anchor = { x: sx > 0 ? box.x : box.x + box.width, y: sy > 0 ? box.y : box.y + box.height };
   const room = {
     x: sx > 0 ? next.canvas.width - anchor.x : anchor.x,
@@ -420,8 +559,9 @@ export function resizeGroup(doc, ids, handle, dx, dy) {
   for (const element of members) {
     const centre = [element.x + element.width / 2, element.y + element.height / 2];
     const newCentre = [anchor.x + (centre[0] - anchor.x) * factor, anchor.y + (centre[1] - anchor.y) * factor];
-    element.width = Math.max(MIN_SIZE, Math.round(element.width * factor));
-    element.height = Math.max(MIN_SIZE, Math.round(element.height * factor));
+    const floor = minFloorFor(element);
+    element.width = Math.max(floor.width, Math.round(element.width * factor));
+    element.height = Math.max(floor.height, Math.round(element.height * factor));
     element.x = Math.round(newCentre[0] - element.width / 2);
     element.y = Math.round(newCentre[1] - element.height / 2);
     const scale = elementRegistry.get(element.type)?.scale;
@@ -442,12 +582,13 @@ export function scaleSelection(doc, ids, factor) {
   const box = unionContain(members);
   const centre = [box.x + box.width / 2, box.y + box.height / 2];
   const maxFactor = Math.min(next.canvas.width / box.width, next.canvas.height / box.height);
-  const applied = Math.min(factor, maxFactor);
+  const applied = Math.max(Math.min(factor, maxFactor), Math.min(shrinkFloor(members), maxFactor));   // pinch / Smaller stop at each member's minimum
   for (const element of members) {
     const elementCentre = [element.x + element.width / 2, element.y + element.height / 2];
     const newCentre = [centre[0] + (elementCentre[0] - centre[0]) * applied, centre[1] + (elementCentre[1] - centre[1]) * applied];
-    element.width = Math.max(MIN_SIZE, Math.round(element.width * applied));
-    element.height = Math.max(MIN_SIZE, Math.round(element.height * applied));
+    const floor = minFloorFor(element);
+    element.width = Math.max(floor.width, Math.round(element.width * applied));
+    element.height = Math.max(floor.height, Math.round(element.height * applied));
     element.x = Math.round(newCentre[0] - element.width / 2);
     element.y = Math.round(newCentre[1] - element.height / 2);
     const scale = elementRegistry.get(element.type)?.scale;

@@ -7,13 +7,16 @@
 // The Games block reuses the accepted provider-neutral collapsible list (account/game-list.js): a bounded initial count, the total always shown, and an explicit
 // control to expand - it never renders hundreds of games by default.
 import { buildGameLibrary, gameListView } from "../account/game-list.js";
+import { markInteractive } from "./interaction.js";
 
 export const BLOCK_TITLES = Object.freeze({ profile: "GAMID", roles: "GAMING ROLES", games: "GAMES", connections: "CONNECTIONS" });
 
 export const hoursLabel = minutes => (Number.isFinite(minutes) && minutes > 0 ? (minutes >= 600 ? `${Math.round(minutes / 60)} h` : `${(Math.round(minutes / 6) / 10).toString()} h`) : "");
 export const roleLabel = key => String(key).replace(/[_-]+/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
 
-export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onChange = () => {} } = {}) {
+// `interactive` (view mode only): the block's own controls opt in to taps through the shared policy in interaction.js. In the editor it is false, so the canvas keeps
+// every tap for selecting and dragging.
+export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onChange = () => {}, interactive = false } = {}) {
   const el = (tag, className, text) => { const node = createNode(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
   const root = el("div", `wall-gamid wall-gamid-${content.block} is-${content.layout}`);
   const px = value => `${Math.round(value * scale * 100) / 100}px`;
@@ -62,6 +65,8 @@ export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onCh
           onToggle: () => { state.expanded = !state.expanded; root.replaceChildren(head, mount()); onChange(); },
           renderItem: game => { const li = el("li", "wall-game"); li.append(el("span", "wall-game-name", game.name)); if (showHours && hoursLabel(game.minutes)) li.append(el("span", "wall-game-hours", hoursLabel(game.minutes))); return li; },
         });
+        // the list scrolls inside the block and holds Show all / Show fewer: the whole list region takes taps and scrolling (re-marked on every re-mount)
+        if (interactive) markInteractive(lib);
         return lib;
       };
       root.append(mount());

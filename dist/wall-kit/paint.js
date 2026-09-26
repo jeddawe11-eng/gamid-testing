@@ -6,6 +6,7 @@ import { HEX_COLOR } from "../wall/fields.js";
 import { fontCss } from "./fonts.js";
 import { isAllowedOpenUrl } from "./embed/engine.js";
 import { paintGamidBlock } from "./gamid-blocks.js";
+import { markInteractive, markPassThrough } from "./interaction.js";
 import "./register.js";   // makes sure every element type, background kind and provider is registered wherever documents are painted
 
 const num = value => (Number.isFinite(value) ? String(Math.round(value * 1000) / 1000) : "0");
@@ -129,7 +130,8 @@ function paintEmbed(node, descriptor, scale, item, createNode, ctx) {
   node.setAttribute("data-provider", descriptor.providerKey);
   node.setAttribute("data-presentation", descriptor.presentation);
   const facade = view && openable && descriptor.presentation !== "embed" ? make("a", "wall-embed") : make("div", "wall-embed");
-  if (facade.tag === "a" || (view && openable && descriptor.presentation !== "embed")) {
+  if (view && openable && descriptor.presentation !== "embed") {
+    markInteractive(facade);
     facade.setAttribute("href", descriptor.openUrl);
     facade.setAttribute("target", "_blank");
     facade.setAttribute("rel", "noopener noreferrer nofollow");
@@ -152,6 +154,7 @@ function paintEmbed(node, descriptor, scale, item, createNode, ctx) {
     facade.style.setProperty("align-items", "center");
     facade.style.setProperty("text-align", "center");
     if (view && ctx.players) {
+      markInteractive(facade);
       facade.setAttribute("role", "button");
       facade.setAttribute("tabindex", "0");
       facade.setAttribute("aria-label", `Play ${descriptor.providerLabel} ${descriptor.contentLabel}`);
@@ -165,6 +168,12 @@ function paintEmbed(node, descriptor, scale, item, createNode, ctx) {
   node.append(facade);
 }
 
+// What an element's box clips, by content kind. Text effects (glow, shadow, outline) are meant to spread past the text box, so text is never clipped by its own box
+// (the stage still clips at its edge). Pictures, shapes, provider surfaces and GamID blocks keep their exact geometry. Clipping is only visual: every wrapper is
+// pass-through for taps (interaction.js), so a visible glow never widens what a tap can hit, and the editor's selection box is always the element's real box.
+export const ELEMENT_OVERFLOW = Object.freeze({ text: "visible" });
+export const overflowFor = kind => ELEMENT_OVERFLOW[kind] ?? "hidden";
+
 // One element -> one absolutely positioned node. `order` gives its stacking position (the render tree is already in deterministic z-then-id order).
 export function paintElement(item, scale, order, createNode, ctx = {}) {
   const node = createNode("div");
@@ -177,15 +186,15 @@ export function paintElement(item, scale, order, createNode, ctx = {}) {
   style.setProperty("width", px(item.width));
   style.setProperty("height", px(item.height));
   style.setProperty("z-index", String(order + 1));
-  style.setProperty("overflow", "hidden");
-  if (ctx.mode === "view") style.setProperty("pointer-events", "auto");
+  style.setProperty("overflow", overflowFor(item.content?.kind));
+  markPassThrough(node);   // the box itself never takes a tap; only controls marked inside it do (view mode only)
   if (item.rotation) { style.setProperty("transform", `rotate(${num(item.rotation)}deg)`); style.setProperty("transform-origin", "center center"); }
   const content = item.content;
   if (content?.kind === "rect") paintRect(node, content, scale, item);
   else if (content?.kind === "text") paintText(node, content, scale, createNode);
   else if (content?.kind === "image") paintImage(node, content, scale, item, createNode, ctx);
   else if (content?.kind === "embed" && content.content?.kind === "embed") paintEmbed(node, content.content, scale, item, createNode, ctx);
-  else if (content?.kind === "gamid") node.append(paintGamidBlock(content, ctx.gamid ?? null, createNode, { scale }));
+  else if (content?.kind === "gamid") node.append(paintGamidBlock(content, ctx.gamid ?? null, createNode, { scale, interactive: ctx.mode === "view" }));
   return node;
 }
 

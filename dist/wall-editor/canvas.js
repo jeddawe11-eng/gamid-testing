@@ -188,7 +188,8 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
       }
     } else if (gesture.kind === "resize") {
       const multi = gesture.ids.length > 1 || locateGrouped(gesture.startDoc, gesture.ids[0]);
-      result = multi ? ops.resizeGroup(gesture.startDoc, gesture.ids, gesture.handle, dx, dy) : ops.resizeElement(gesture.startDoc, gesture.ids[0], gesture.handle, dx, dy, { keepAspect: event.shiftKey || !!ops.lockedAspect(ops.locate(gesture.startDoc, gesture.ids[0]).element) });
+      // an element with a locked aspect (a player's selected aspect, a whole picture) is held to exactly that ratio; Shift keeps any other box's proportions
+      result = multi ? ops.resizeGroup(gesture.startDoc, gesture.ids, gesture.handle, dx, dy) : ops.resizeElement(gesture.startDoc, gesture.ids[0], gesture.handle, dx, dy, { keepAspect: ops.lockedAspect(ops.locate(gesture.startDoc, gesture.ids[0]).element) ?? event.shiftKey });
     } else if (gesture.kind === "rotate") {
       const found = ops.locate(gesture.startDoc, gesture.ids[0]);
       const rect = host.getBoundingClientRect();

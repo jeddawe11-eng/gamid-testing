@@ -222,7 +222,8 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     const kind = provider?.kinds[element.payload.data?.kind];
     root.append(h("div", { class: "ed-group-title", text: "Link / Embed" }));
     root.append(h("p", { class: "ed-hint", text: `${provider?.label ?? "Link"} · ${kind?.label ?? ""}. Nothing loads from ${provider?.label ?? "the provider"} while you edit; use Preview to try it.` }));
-    const patchData = patch => ops.updatePayload(session.doc, session.state.selection[0], { data: { ...selectedElements()[0].payload.data, ...patch } });
+    // one operation: the data change and, for a player, the box refitted to the selected aspect (one undo step)
+    const patchData = patch => ops.setEmbedData(session.doc, session.state.selection[0], patch);
     const presentations = [{ value: "card", label: "Card" }, { value: "link", label: "Link" }, ...(kind?.inline ? [{ value: "embed", label: "Player" }] : [])];
     root.append(selectField({ label: "Show as", options: presentations, get: item => item.payload.data.presentation, set: value => patchData({ presentation: value }), key: "embedShow" }));
     if ((kind?.aspects?.length ?? 0) > 1) root.append(selectField({ label: "Shape", options: kind.aspects.map(value => ({ value, label: value })), get: item => item.payload.data.aspect ?? kind.aspect, set: value => patchData({ aspect: value === kind.aspect ? undefined : value }), key: "embedAspect" }));

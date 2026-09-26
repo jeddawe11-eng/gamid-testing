@@ -43,6 +43,7 @@ const session = createEditorSession({ persistence, onChange: () => renderAll() }
 function run(result, { coalesce = null, keepResultSelection = false, clearSelection = false } = {}) {
   if (!result.ok) { notify(describeErrors(result.errors).join(" ")); return result; }
   session.apply(result, { coalesce, select: keepResultSelection ? result.ids : clearSelection ? [] : undefined });
+  if (result.embedLifts?.length) notify(describeCode("EMBED_KEPT_ON_TOP"));
   return result;
 }
 
@@ -264,7 +265,8 @@ function renderPreview() {
   players = createPlayerManager();
   const available = Math.max(280, (scroll.clientWidth || window.innerWidth) - 16);
   const width = previewMode === "mobile" ? Math.min(390, available) : Math.min(900, available);
-  const painted = paintDocument(session.doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players });
+  // a Wall saved before the player-layering rule existed is shown with that rule applied (nothing drawn over a player); the document itself is not changed
+  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players });
   $("previewColumn").replaceChildren(...(painted.ok ? painted.stages : [make("p", "ed-empty", "This Wall cannot be previewed: " + describeErrors(painted.errors).join(" "))]));
   $("previewMobile").setAttribute("aria-pressed", String(previewMode === "mobile"));
   $("previewDesktop").setAttribute("aria-pressed", String(previewMode === "desktop"));

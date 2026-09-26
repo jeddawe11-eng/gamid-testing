@@ -275,8 +275,9 @@ test("player: a tap on a big-enough box plays INLINE in that box, with a sandbox
   assert.doesNotMatch(frame.attrs.sandbox, /allow-top-navigation/);
   assert.equal(frame.attrs.referrerpolicy, "strict-origin-when-cross-origin");
   assert.equal(frame.attrs.loading, "lazy");
-  assert.equal(frame.style.props.get("width"), "320px");
-  assert.equal(frame.style.props.get("height"), "180px", "the 16:9 ratio is kept");
+  // the frame fits the box BELOW the inline Close bar (320 x (180 - 44)): 16:9 inside 320 x 136
+  assert.equal(frame.style.props.get("width"), "241px");
+  assert.equal(frame.style.props.get("height"), "136px", "the 16:9 ratio is kept");
   assert.equal(manager.expanded, false);
   assert.deepEqual(manager.activeProviders(), ["youtube"]);
 });
@@ -327,7 +328,8 @@ test("player: only ONE active player per provider - starting a second closes the
   assert.equal(frames(a).length, 0);
   assert.equal(first.attrs.src, "about:blank");
   assert.equal(frames(b).length, 1);
-  manager.activate(c, describe("spotify", { kind: "track", id: "4uLU6hMCjMI75M1A2tKUQC", presentation: "embed" }), { widthPx: 320, heightPx: 160 });
+  // 200 px tall: the 152 px Spotify track player plus the 44 px inline Close bar
+  manager.activate(c, describe("spotify", { kind: "track", id: "4uLU6hMCjMI75M1A2tKUQC", presentation: "embed" }), { widthPx: 320, heightPx: 200 });
   assert.equal(frames(c).length, 1);
   assert.equal(frames(b).length, 1, "another provider is unaffected");
   assert.deepEqual(manager.activeProviders().sort(), ["spotify", "youtube"]);

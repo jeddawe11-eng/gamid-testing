@@ -26,7 +26,8 @@ const idOk = (spec, id) => typeof id === "string" && new RegExp(spec.id).test(id
 // A provider is described declaratively; everything else (validation, rendering, presentation rules) is derived from that description.
 //   key, label, hosts (page hosts it recognises), frameOrigins (origins its players load from - the ONLY additions to the page CSP),
 //   kinds: { [kind]: { label, id (regex source), inline (has an official embeddable player), aspect (default), aspects, size {width,height} (default element size),
-//                     minInline {w,h} (below this on screen a player is a tap-to-open tile), profile (a person/channel rather than content) } }
+//                     minInline {w,h} (below this on screen a player is a tap-to-open tile), minTile {w,h} (optional: the provider's documented smallest tile, CSS px -
+//                     the editor's minimum size for the player element), profile (a person/channel rather than content) } }
 //   parse(url: URL) -> { kind, id, aspect? } | null      openUrl(kind, id) -> https URL      embedUrl(kind, id) -> https URL | null ({parent} = the page host)
 export function defineProvider(definition) {
   const provider = Object.freeze({ ...definition });

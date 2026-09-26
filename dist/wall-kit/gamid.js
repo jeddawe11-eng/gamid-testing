@@ -27,11 +27,18 @@ export function renderGamidPayload(payload) {
 }
 
 export const createGamidPayload = (block, overrides = {}) => ({ block, layout: "card", ...overrides });
+// minSize (canonical units): the smallest box that still shows the block's title and a first row of its real content. Blocks are laid out in em of a 26-unit base
+// with 20-unit padding (gamid-blocks.js / wall-kit.css): every block = 40 padding + ~19 title + 13 gap, then
+//   profile      + the 3.2em-at-1.3em avatar row (108)                                        -> 180
+//   roles        + one role chip (~33)                                                        -> 110
+//   connections  + one two-line connection row (~57)                                          -> 130
+//   games        + list header (22) + two game rows (~76) + the Show all control (~41) + gaps -> 240
+// Widths keep the avatar + name / a chip / a row readable. The text size follows the Wall scale, not the box, so a minimum-size block is as legible as a big one.
 export const GAMID_BLOCK_INFO = Object.freeze({
-  profile: { label: "Profile", description: "Your avatar, display name and @GamID.", size: { width: 800, height: 260 } },
-  roles: { label: "Gaming roles", description: "The gaming roles you chose for your GamID.", size: { width: 800, height: 200 } },
-  games: { label: "Games", description: "Your games. Collapsed by default, safe for hundreds of games. Hours stay hidden unless you turn them on.", size: { width: 800, height: 520 } },
-  connections: { label: "Connections", description: "The accounts you have chosen to show on your GamID.", size: { width: 800, height: 260 } },
+  profile: { label: "Profile", description: "Your avatar, display name and @GamID.", size: { width: 800, height: 260 }, minSize: { width: 300, height: 180 } },
+  roles: { label: "Gaming roles", description: "The gaming roles you chose for your GamID.", size: { width: 800, height: 200 }, minSize: { width: 240, height: 110 } },
+  games: { label: "Games", description: "Your games. Collapsed by default, safe for hundreds of games. Hours stay hidden unless you turn them on.", size: { width: 800, height: 520 }, minSize: { width: 300, height: 240 } },
+  connections: { label: "Connections", description: "The accounts you have chosen to show on your GamID.", size: { width: 800, height: 260 }, minSize: { width: 240, height: 130 } },
 });
 
 elementRegistry.register("gamid", { validatePayload: validateGamidPayload, render: renderGamidPayload });

@@ -6,7 +6,9 @@
 @font-face { font-family: "GamID Chakra"; src: url("fonts/ChakraPetch.woff2") format("woff2"); font-weight: 700; font-display: swap; }
 
 .wall-stage { background: #0d0b14; -webkit-user-select: none; user-select: none; }
+/* shared tap policy (interaction.js): element boxes are pass-through; only controls marked data-wall-interactive (view mode) take taps */
 .wall-el { pointer-events: none; }
+.wall-el [data-wall-interactive] { pointer-events: auto; }
 .wall-text { width: 100%; height: 100%; margin: 0; padding: 0; }
 
 /* GamID blocks (real identity data drawn on the Wall). Sizes inside a block scale with the Wall through the inline font-size set by the painter (em units). */
@@ -37,6 +39,7 @@
 .wall-gamid .game-library-chevron::before { content: "▾"; }
 .wall-gamid .game-library[data-expanded="true"] .game-library-chevron::before { content: "▴"; }
 
-/* the player overlay's frame sits on black; the inline holder fills its element box */
+/* the player overlay's frame sits on black; the inline holder fills its element box, with its Close bar above (never over) the player */
 .wall-player-inline { z-index: 2; }
+.wall-player-close:focus-visible { outline: 3px solid #62e7ff; outline-offset: -3px; }
 .wall-embed:focus-visible { outline: 3px solid #62e7ff; outline-offset: -3px; }
