@@ -156,7 +156,7 @@ jobs:
             throw new Error(`${path} returned ${lastStatus} after ${attempts} attempts`);
           }
 
-          for (const path of ["/", "/account/", "/play-together/", "/@black"]) {
+          for (const path of ["/", "/account/", "/play-together/", "/@black", "/wall-editor/"]) {
             await fetchAfterPropagation(path);
           }
           const pageUrl = new URL("/play-together/", base);

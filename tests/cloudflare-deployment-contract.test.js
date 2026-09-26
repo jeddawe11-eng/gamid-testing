@@ -86,7 +86,7 @@ test("workflow reports deployment identity and prepares the approved TESTING smo
   for (const value of ["Requested source", "Resolved source SHA", "Root tree SHA", "Worker", "Wrangler", "Staged artifact", "Deployment result", "TESTING URL"]) {
     assert.match(workflow, new RegExp(value));
   }
-  for (const path of ["/", "/account/", "/play-together/", "/@black"]) assert.ok(workflow.includes(JSON.stringify(path)));
+  for (const path of ["/", "/account/", "/play-together/", "/@black", "/wall-editor/"]) assert.ok(workflow.includes(JSON.stringify(path)));
   assert.match(workflow, /html\.includes\("__ASSET_VERSION__"\)/);
   assert.match(workflow, /\?v=\[0-9a-f\]\{7\}/);
 });
