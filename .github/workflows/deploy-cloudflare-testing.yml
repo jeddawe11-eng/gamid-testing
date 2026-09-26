@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       source_ref:
-        description: "Feature branch to deploy to Cloudflare TESTING"
+        description: "main or a feature/* branch to deploy to Cloudflare TESTING"
         required: true
         type: string
       expected_sha:
@@ -41,7 +41,8 @@ jobs:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
         run: |
           set -euo pipefail
-          [[ "$SOURCE_REF" =~ ^feature/[A-Za-z0-9._/-]+$ ]] || { echo "source_ref must name a feature/* branch" >&2; exit 1; }
+          # main is accepted only as the exact name "main"; like a feature branch it must still resolve to expected_sha and descend from the accepted baseline
+          [[ "$SOURCE_REF" == "main" || "$SOURCE_REF" =~ ^feature/[A-Za-z0-9._/-]+$ ]] || { echo "source_ref must be main or name a feature/* branch" >&2; exit 1; }
           [[ "$SOURCE_REF" != *".."* && "$SOURCE_REF" != */ && "$SOURCE_REF" != */. && "$SOURCE_REF" != *.lock ]] || { echo "source_ref is not a safe branch name" >&2; exit 1; }
           [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "expected_sha must be a lowercase full Git SHA" >&2; exit 1; }
 

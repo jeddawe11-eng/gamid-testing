@@ -51,6 +51,15 @@ test("source ref, exact SHA, accepted ancestry, and initial Play Together tree a
   assert.match(workflow, /INITIAL_PLAY_TOGETHER_TREE: 7a1a6063e71d7140cf78a0dcfe94e213d365b24a/);
 });
 
+test("source ref accepts only the exact name main or a feature/* branch, and main keeps every SHA and ancestry guard", () => {
+  assert.ok(workflow.includes(`[[ "$SOURCE_REF" == "main" || "$SOURCE_REF" =~ ^feature/[A-Za-z0-9._/-]+$ ]]`));
+  assert.doesNotMatch(workflow, /SOURCE_REF" =~ \^main/);
+  assert.doesNotMatch(workflow, /SOURCE_REF" == "(?!main")[^"]*"/);
+  // the exact-SHA and accepted-baseline checks are unconditional (not skipped for main)
+  assert.match(workflow, /^\s+\[\[ "\$ACTUAL_SHA" == "\$EXPECTED_SHA" \]\]/m);
+  assert.match(workflow, /^\s+git merge-base --is-ancestor "\$ACCEPTED_BASELINE_SHA" "\$ACTUAL_SHA"/m);
+});
+
 test("workflow validates TESTING config and staged Play Together before the credential-bearing deploy step", () => {
   const guard = workflow.indexOf("Verify commit, ancestry, tree, and TESTING-only config");
   const stage = workflow.indexOf("Verify staged artifact");
