@@ -19,7 +19,7 @@ export const roleLabel = key => String(key).replace(/[_-]+/g, " ").replace(/\b\w
 // every tap for selecting and dragging.
 // VIEW mode draws Games and Connections from `snapshot.public` - exactly what a visitor may see (see dist/wall-editor/gamid-data.js) - and makes them useful: a game
 // row opens its Game Details, a connection opens its details (`details`, dist/wall-kit/gamid-details.js). EDIT mode keeps drawing the owner's own data for designing.
-export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onChange = () => {}, interactive = false, details = null } = {}) {
+export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onChange = () => {}, interactive = false, details = null, posters = null } = {}) {
   const el = (tag, className, text) => { const node = createNode(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
   const root = el("div", `wall-gamid wall-gamid-${content.block} is-${content.layout}`);
   const px = value => `${Math.round(value * scale * 100) / 100}px`;
@@ -34,7 +34,7 @@ export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onCh
     const view = snapshot.public;
     if (!view.available) { root.append(el("p", "wall-gamid-empty", "Visitors don't see this yet: your GamID is not public.")); return root; }
     if (content.block === "games") paintVisitorGames(root, head, content, view, el, details, onChange);
-    else paintVisitorConnections(root, view, el, details);
+    else paintVisitorConnections(root, view, el, details, posters);
     return root;
   }
   const section = snapshot[content.block];
@@ -144,7 +144,7 @@ function paintVisitorGames(root, head, content, view, el, details, onChange) {
   root.append(mount());
 }
 
-function paintVisitorConnections(root, view, el, details) {
+function paintVisitorConnections(root, view, el, details, posters) {
   if (!view.connections.length) { root.append(el("p", "wall-gamid-empty", "No connections are shown on your GamID.")); return; }
   const list = el("ul", "wall-gamid-connections");
   for (const connection of view.connections) {
@@ -152,7 +152,21 @@ function paintVisitorConnections(root, view, el, details) {
     const button = el("button", "wall-connection");
     button.type = "button";
     button.setAttribute("aria-label", `${connection.label}: ${connection.name}. ${connection.trust}. Open details`);
-    button.append(el("strong", "", connection.label), el("span", "", connection.name), el("span", `wall-connection-trust is-${connection.tone === "caution" ? "caution" : "ok"}`, connection.trust));
+    const title = el("strong", "wall-connection-title");
+    // a connection's own public avatar (e.g. the Steam persona picture), through GamID's image proxy only; shown once decoded, removed on any failure
+    if (typeof connection.avatarQuery === "string" && posters) {
+      const img = el("img", "wall-connection-avatar");
+      img.setAttribute("alt", "");
+      img.setAttribute("aria-hidden", "true");
+      img.addEventListener?.("load", () => img.setAttribute("data-ready", "true"));
+      img.addEventListener?.("error", () => img.remove?.());
+      const known = posters.ready?.(connection.avatarQuery);
+      if (known) img.setAttribute("src", known);
+      else posters.load(connection.avatarQuery).then(url => { if (url) img.setAttribute("src", url); else img.remove?.(); }, () => img.remove?.());
+      title.append(img);
+    }
+    title.append(el("span", "wall-connection-label", connection.label));
+    button.append(title, el("span", "", connection.name), el("span", `wall-connection-trust is-${connection.tone === "caution" ? "caution" : "ok"}`, connection.trust));
     button.addEventListener("click", () => details?.openConnection?.(connection, button));
     li.append(button);
     list.append(li);

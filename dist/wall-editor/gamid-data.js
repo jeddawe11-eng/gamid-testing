@@ -27,8 +27,20 @@ const APEX = new Set(["MASTER", "GRANDMASTER", "CHALLENGER"]);
 const titleCase = value => `${String(value).charAt(0)}${String(value).slice(1).toLowerCase()}`;
 const text = (value, max = 80) => (typeof value === "string" && value.trim() ? value.trim().slice(0, max) : "");
 
+// Steam's own profile address exactly as its player summary returned it (vanity /id/ or this account's /profiles/) - anything else is not followed.
+export function steamProfileUrl(value, steamId) {
+  if (typeof value !== "string") return null;
+  if (/^https:\/\/steamcommunity\.com\/id\/[A-Za-z0-9_-]{2,32}\/?$/.test(value)) return value;
+  return typeof steamId === "string" && /^[0-9]{17}$/.test(steamId) && (value === `https://steamcommunity.com/profiles/${steamId}/` || value === `https://steamcommunity.com/profiles/${steamId}`) ? value : null;
+}
+// A Steam avatar address -> the media-poster query for GamID's own image proxy (only the 40-hex hash is sent), or null.
+export function steamAvatarQuery(value) {
+  const match = /^https:\/\/avatars\.(?:akamai\.|cloudflare\.|fastly\.)?steamstatic\.com\/([0-9a-f]{40})(?:_full|_medium)?\.jpg$/.exec(typeof value === "string" ? value : "");
+  return match ? `steam_avatar=${match[1]}` : null;
+}
+
 // A public connection, shaped for the Wall (generic fields only; the painter names no provider). Only what the public profile itself shows, plus ACTIONS that exist
-// for real: Steam's own profile address for the SteamID64 the owner chose to show, copying a Discord username, and the League game entity. Nothing is invented.
+// for real: Steam's own profile address (as Steam returned it), copying a Discord username, and the League game entity. Nothing is invented.
 export function publicConnections(sections) {
   const list = [];
   const discord = sections?.discord;
@@ -39,9 +51,17 @@ export function publicConnections(sections) {
       actions: discordUser ? [{ kind: "copy", label: "Copy username", value: discordUser }] : [],
     });
   }
+  // Steam (Round 2): the persona name, avatar and Steam's own profile address, as stored from Steam's official player summary. The SteamID64 is never shown to a
+  // visitor; without a stored persona the row says plainly "Steam account", and the profile opens only through the address Steam itself returned (never built here).
   const steam = sections?.steam;
-  if (typeof steam?.steam_id === "string" && /^[0-9]{17}$/.test(steam.steam_id)) {
-    list.push({ key: "steam", label: "Steam", name: steam.steam_id, sub: "SteamID64", trust: "CONNECTED", tone: "ok", lines: [], actions: [{ kind: "open", label: "Open Steam profile", url: `https://steamcommunity.com/profiles/${steam.steam_id}` }] });
+  if (steam && typeof steam === "object" && (steam.trust_status === "CONNECTED" || /^[0-9]{17}$/.test(steam.steam_id ?? "") || text(steam.persona_name, 64))) {
+    const profileUrl = steamProfileUrl(steam.profile_url, steam.steam_id);
+    const avatar = steamAvatarQuery(steam.avatar_url);
+    list.push({
+      key: "steam", label: "Steam", name: text(steam.persona_name, 64) || "Steam account", sub: "", trust: "CONNECTED", tone: "ok", lines: [],
+      ...(avatar ? { avatarQuery: avatar } : {}),
+      actions: profileUrl ? [{ kind: "open", label: "Open Steam profile", url: profileUrl }] : [],
+    });
   }
   const league = sections?.league;
   if (text(league?.game_name)) {
@@ -131,7 +151,8 @@ export async function loadGamidSnapshot(api) {
     public: publicView,
     profile: { displayName: identity.display_name ?? "", handle: identity.gamid_handle ?? "", initial: (identity.display_name ?? "G").trim()[0]?.toUpperCase() ?? "G", avatarUrl },
     roles: roleKeys.map(key => ({ key, label: roleLabel(key), primary: key === identity.primary_role_key })),
-    connections: publicConnections.map(row => ({ label: providerLabel(row.provider_key), name: row.provider_display_name || row.provider_username || "" })),
+    // Steam's provider_username is its SteamID64: never shown - the persona (provider_display_name) or a neutral "Steam account"
+    connections: publicConnections.map(row => ({ label: providerLabel(row.provider_key), name: row.provider_key === "steam" ? (row.provider_display_name || "Steam account") : (row.provider_display_name || row.provider_username || "") })),
     games: { total: items.length, items, playtimeAllowed: display?.show_game_playtime === true },
     visibility: { profile: true, roles: true, connections: publicConnections.length > 0, games: publicSettings?.show_my_games === true },
   };

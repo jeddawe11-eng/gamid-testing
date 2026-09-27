@@ -40,7 +40,7 @@ const library = (names, extra = {}) => ({ library_count: names.length, total_cou
 const PUBLIC_NAMES = ["League of Legends", ...Array.from({ length: 119 }, (_, i) => `Public Game ${String(i + 1).padStart(3, "0")}`)];
 const sections = {
   discord: { display_name: "Espada", username: "espada" },
-  steam: { steam_id: "76561197960287930" },
+  steam: { steam_id: "76561197960287930", trust_status: "CONNECTED", persona_name: "EspadaSteam", avatar_url: "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg", profile_url: "https://steamcommunity.com/profiles/76561197960287930/" },
   league: { game_name: "Black", tag_line: "ME1", platform_id: "ME1", rank_state: "RANKED", tier: "BRONZE", division: "IV", lp: 32, wins: 10, losses: 12, data_source: "OPGG_TEMPORARY", updated_at: "2026-09-20T00:00:00Z" },
   my_games: { library_count: 120, games: PUBLIC_NAMES.slice(0, 6).map(name => (name === "League of Legends" ? league : game(name))) },
 };
@@ -80,11 +80,12 @@ test("H public connections: only what the public profile shows, plus real action
   const list = publicConnections(sections);
   assert.deepEqual(list.map(item => [item.key, item.name, item.sub, item.trust]), [
     ["discord", "Espada", "@espada", "CONNECTED"],
-    ["steam", "76561197960287930", "SteamID64", "CONNECTED"],
+    ["steam", "EspadaSteam", "", "CONNECTED"],   // Round 2: the persona, never the SteamID64
     ["league", "Black#ME1", "Region ME1", "PROTOTYPE / UNVERIFIED"],
   ]);
   assert.deepEqual(list[0].actions, [{ kind: "copy", label: "Copy username", value: "espada" }]);
-  assert.deepEqual(list[1].actions, [{ kind: "open", label: "Open Steam profile", url: "https://steamcommunity.com/profiles/76561197960287930" }]);
+  assert.deepEqual(list[1].actions, [{ kind: "open", label: "Open Steam profile", url: "https://steamcommunity.com/profiles/76561197960287930/" }], "the address Steam itself returned");
+  assert.equal(list[1].avatarQuery, "steam_avatar=fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb", "the avatar goes through GamID's own proxy (hash only)");
   assert.deepEqual(list[2].actions, [{ kind: "game", label: "View League of Legends game", gameName: "League of Legends" }]);
   assert.equal(list[2].lines[0], "Bronze IV · 32 LP · 10W 12L");
   assert.match(list[2].lines[1], /^Data: OP\.GG/);
@@ -206,7 +207,7 @@ test("G/H details: Game Details IS the accepted public component (League rank & 
   const sheet = mounted[1];
   details.openConnection(steam, element("button"));
   const link = all(sheet, node => node.tag === "a")[0];
-  assert.deepEqual([link.attrs.href, link.attrs.target, link.attrs.rel], ["https://steamcommunity.com/profiles/76561197960287930", "_blank", "noopener noreferrer nofollow"]);
+  assert.deepEqual([link.attrs.href, link.attrs.target, link.attrs.rel], ["https://steamcommunity.com/profiles/76561197960287930/", "_blank", "noopener noreferrer nofollow"]);
   details.openConnection(discord, element("button"));
   await all(sheet, node => node.tag === "button" && node.textContent === "Copy username")[0].click();
   assert.deepEqual(copied, ["espada"]);

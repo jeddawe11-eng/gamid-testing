@@ -157,7 +157,7 @@ test("YOUR GAMID: Steam is a Gaming Connection with Connect Steam, CONNECTED, a 
   // (Steam My Games later added the explicit, owner-triggered discovery; the connection note now only claims what sign-in proves.)
   assert.match(card, /Signed in through Steam\. This confirms the Steam account only; nothing about any game is verified\./);
   assert.doesNotMatch(card, /provider_account_id|connection_id|entity_id/);
-  assert.match(card, /Only your SteamID64 \$\{row\.is_public \? "is" : "would be"\} shown\./);
+  assert.match(card, /Only your Steam persona name, avatar and profile link \$\{row\.is_public \? "are" : "would be"\} shown \(never your SteamID64\)\./, "Round 2: what visitors see");
   assert.match(card, /row\.connected && row\.provider_key === "discord"\) card\.append\(discoveryPanel\(row\)\)/, "the Riot discovery panel stays Discord-only");
   assert.equal([...card.matchAll(/discoveryPanel/g)].length, 1, "and is referenced exactly once (never for Steam)");
 });
@@ -197,7 +197,9 @@ test("the browser never asks for or handles a Steam credential, an OpenID assert
 
 test("the public page shows Steam only from public_sections, as validated plain text, saying CONNECTED and nothing about any game", () => {
   const block = publicJs.slice(publicJs.indexOf("const steam = sections?.steam;"), publicJs.indexOf("const league = sections?.league;"));
-  assert.match(block, /\/\^\[0-9\]\{17\}\$\/\.test\(steam\.steam_id\)/);
+  assert.match(block, /\/\^\[0-9\]\{17\}\$\/\.test\(steam\.steam_id \?\? ""\)/);
+  assert.match(block, /persona \|\| "Steam account"/, "Round 2: the persona or a neutral label - never the SteamID64");
+  assert.doesNotMatch(block, /node\("strong", "", steam\.steam_id\)|"SteamID64"/);
   assert.match(block, /node\("span", "public-chip", "CONNECTED"\)/);
   assert.doesNotMatch(block, /VERIFIED|verified|game|owns|library|href|innerHTML|<a /i);
   assert.doesNotMatch(publicJs, /steamcommunity|api\.steampowered/i);
@@ -219,7 +221,10 @@ test("scope of the Steam code: the official games API lives in exactly one backe
   const source = files.filter(path => /\.(js|ts|html|css)$/.test(path) && !/qrcode\.min\.js$/.test(path)).map(path => readFileSync(path, "utf8")).join("\n");
   const filesMatching = pattern => files.filter(path => /\.(js|ts|html|css)$/.test(path) && !/qrcode\.min\.js$/.test(path) && pattern.test(readFileSync(path, "utf8"))).map(path => path.replace(/\\/g, "/").replace(/^.*\/(dist|supabase)\//, "$1/"));
   // Steam My Games: the official Web API is contacted from ONE backend module only - never from the browser, the public page, or the OpenID module.
-  assert.deepEqual(filesMatching(/GetOwnedGames|IPlayerService|api\.steampowered/i), ["supabase/functions/_shared/steam-games.js"]);
+  assert.deepEqual(filesMatching(/GetOwnedGames|IPlayerService/i), ["supabase/functions/_shared/steam-games.js"]);
+  // Round 2: the one other official call is the PUBLIC persona summary (GetPlayerSummaries), in its own backend module - still never the browser or OpenID.
+  assert.deepEqual(filesMatching(/api\.steampowered/i), ["supabase/functions/_shared/steam-games.js", "supabase/functions/_shared/steam-profile.js"]);
+  assert.deepEqual(filesMatching(/GetPlayerSummaries/).sort(), ["supabase/functions/_shared/steam-profile.js", "supabase/functions/steam-connect-callback/index.ts"]);
   // Marvel Rivals is only ever RECOGNIZED (an App ID constant and a "Discovered via Steam" label) - never on the public page, never in the schema of the OpenID/foundation.
   assert.deepEqual(filesMatching(/marvel ?rivals/i).sort(), ["dist/account/account.js", "supabase/functions/_shared/steam-games.js"]);
   assert.doesNotMatch(source, /xbox live|playstation network|battle\.net/i);

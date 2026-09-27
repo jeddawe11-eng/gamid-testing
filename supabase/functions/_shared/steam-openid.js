@@ -261,7 +261,7 @@ const LINK_RESULT = {
 };
 const VERIFY_REASON = { invalid_assertion: "verification_failed", verification_failed: "verification_failed", provider_unavailable: "provider_error" };
 
-export async function handleCallback({ request, env, fetchImpl = fetch, log = () => {}, nowMs = Date.now() }) {
+export async function handleCallback({ request, env, fetchImpl = fetch, log = () => {}, nowMs = Date.now(), onLinked = null }) {
   if (request.method !== "GET") return new Response("Method not allowed", { status: 405 });
   if (!configured(env)) { log("callback", "not_configured"); return returnRedirect("error", "not_configured"); }
 
@@ -300,6 +300,11 @@ export async function handleCallback({ request, env, fetchImpl = fetch, log = ()
     });
     const outcome = completed.ok && typeof completed.body === "string" ? completed.body : "PROVIDER_ERROR";
     log("callback", `link_${outcome}`);
+    // Round 2: once linked, the glue's optional hook receives ONLY the SteamID64 Steam just authenticated (it stores the account's public persona - see
+    // steam-profile.js; this module itself still holds no credential and calls no Steam API). Best effort: it never changes the link result.
+    if ((outcome === "CONNECTED" || outcome === "RECONNECTED") && typeof onLinked === "function") {
+      try { log("callback", `profile_${await onLinked({ steamId: verified.steamId, fetchImpl, save: args => serviceRpc(fetchImpl, env, "save_steam_profile", args) })}`); } catch { log("callback", "profile_failed"); }
+    }
     const [result, reason] = LINK_RESULT[outcome] || LINK_RESULT.PROVIDER_ERROR;
     return returnRedirect(result, reason);
   } catch (error) {

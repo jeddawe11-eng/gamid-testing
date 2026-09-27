@@ -76,7 +76,7 @@ test("League Show on my GamID stays the first gate: no League section from the s
 test("Discord and Steam cards are unaffected by the stats scope (same fields, same trust labels)", () => {
   const off = render({ discord: DISCORD, steam: STEAM, league: LEAGUE_IDENTITY });
   const on = render({ discord: DISCORD, steam: STEAM, league: { ...LEAGUE_IDENTITY, ...LEAGUE_RANK } });
-  for (const { text } of [off, on]) { assert.match(text, /DISCORD\s*mazen~/); assert.match(text, /@mazen9492/); assert.match(text, /STEAM\s*76561198040516491/); assert.match(text, /SteamID64/); assert.equal((text.match(/CONNECTED/g) || []).length, 2); }
+  for (const { text } of [off, on]) { assert.match(text, /DISCORD\s*mazen~/); assert.match(text, /@mazen9492/); assert.match(text, /STEAM\s*Steam account/); assert.doesNotMatch(text, /76561198040516491|SteamID64/, "Round 2: visitors never see the SteamID64"); assert.equal((text.match(/CONNECTED/g) || []).length, 2); }
   assert.equal(off.count, 3);
   assert.equal(on.count, 3);
 });
@@ -124,9 +124,14 @@ test("migration: additive - it replaces two functions, drops nothing, writes no 
   assert.doesNotMatch(scopeSql, /\bdrop\b|\btruncate\b|\bdelete\b|\binsert\b|\bupdate\b|\balter\b|create table/i);
   assert.ok(readdirSync(new URL("supabase/migrations/", root)).includes(scopeName));
   const later = readdirSync(new URL("supabase/migrations/", root)).sort().filter(name => name > scopeName);
+  // the League identity/stats block exactly as this migration wrote it (the rank fields only inside the public_game_stats_allowed branch)
+  const leagueBlock = sql => { const start = sql.indexOf("select 'league'::text"); return start < 0 ? null : sql.slice(start, sql.indexOf("from public.league_profiles l", start)); };
   for (const name of later) {
     const sql = stripSql(read(`supabase/migrations/${name}`));
-    assert.doesNotMatch(sql, /create or replace function private\.get_public_identity_impl|create or replace function private\.public_game_stats_allowed/, `${name} leaves the accepted public stats boundary intact`);
+    assert.doesNotMatch(sql, /create or replace function private\.public_game_stats_allowed/, `${name} leaves the stats gate intact`);
+    // Round 2 (20260927130000_steam_public_persona) replaces get_public_identity_impl to add Steam persona fields; any such later rewrite must carry the
+    // League / stats block over verbatim, so the accepted public stats boundary cannot change.
+    if (/create or replace function private\.get_public_identity_impl/.test(sql)) assert.equal(leagueBlock(sql), leagueBlock(scopeSql), `${name} keeps the League / stats block verbatim`);
   }
   assert.doesNotMatch(scopeSql, /'VERIFIED'|verified/i, "League stays prototype / unverified");
 });

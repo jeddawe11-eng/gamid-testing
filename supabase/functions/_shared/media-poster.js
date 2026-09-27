@@ -14,7 +14,7 @@
 //   SoundCloud (all)   SoundCloud oEmbed thumbnail_url                          Steam app          store.steampowered.com/api/appdetails header_image
 //   Twitch channel     static-cdn.jtvnw.net live preview (only while LIVE: an offline channel redirects to a placeholder, which is treated as "no poster")
 //   Twitch video/clip, Kick, Facebook, Instagram, X, Snapchat, Discord: none without an app token or an undocumented API -> neutral poster.
-// Steam avatars (Connections): `?steam_avatar=<40 hex>` -> https://avatars.steamstatic.com/<hash>_full.jpg, the only avatar form Steam's GetPlayerSummaries returns.
+// Steam avatars (Connections): `?steam_avatar=<40 hex>` -> https://avatars.steamstatic.com/<hash>_full.jpg, the avatar form Steam's public player summary returns (steam-profile.js).
 import { sniffImage } from "./wall-assets.js";
 
 export const POSTER_ORIGINS = Object.freeze(["https://jeddawe11-eng.github.io", "https://gamid-testing-static.gamid.workers.dev"]);

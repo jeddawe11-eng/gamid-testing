@@ -502,6 +502,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20260925090000_play_together_complete_milestone.sql",
       "20260925093000_play_together_complete_fk_indexes.sql",
       "20260925094500_play_together_dashboard_join_fix.sql",
+      "20260927130000_steam_public_persona.sql",   // Round 2: Steam persona fields in the public Steam section (League / stats block kept verbatim - public-stats-global-scope.test.js)
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

@@ -657,8 +657,10 @@ function connectionCard(row) {
   const copy = element("div", "connection-copy");
   copy.append(element("strong", "", row.label));
   if (row.connected && row.provider_key === "steam") {
-    // Steam authenticates only a SteamID64; there is no Steam display name/avatar (no Steam Web API is called).
-    if (row.provider_username) copy.append(element("span", "connection-name", `SteamID64 ${row.provider_username}`));
+    // Steam authenticates a SteamID64; its public persona name (from Steam's official player summary, stored server-side - Round 2) is what visitors see.
+    // The owner also sees the SteamID64 here, on their own private card.
+    if (row.provider_display_name) copy.append(element("span", "connection-name", row.provider_display_name));
+    if (row.provider_username) copy.append(element("span", "connection-handle", `SteamID64 ${row.provider_username}`));
   } else if (row.connected) {
     const primary = row.provider_display_name || row.provider_username || "";
     if (primary) copy.append(element("span", "connection-name", primary));
@@ -669,7 +671,7 @@ function connectionCard(row) {
   card.append(head);
 
   if (row.connected) {
-    const steamNote = row.provider_key === "steam" ? ` Only your SteamID64 ${row.is_public ? "is" : "would be"} shown.` : "";
+    const steamNote = row.provider_key === "steam" ? ` Only your Steam persona name, avatar and profile link ${row.is_public ? "are" : "would be"} shown (never your SteamID64).` : "";
     card.append(element("p", "connection-privacy", `${visibilityHint(Boolean(row.is_public))}${steamNote}`));
     if (row.provider_key === "discord" || row.provider_key === "steam") {
       card.append(visibilitySwitch({ on: Boolean(row.is_public), onChange: next => changeSectionVisibility(row.provider_key, next, showConnectionsMessage, loadConnections) }));

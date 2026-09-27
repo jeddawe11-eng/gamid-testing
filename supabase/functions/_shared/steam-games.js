@@ -19,6 +19,8 @@
 //      that the last attempt failed; the last good list is kept).
 // The browser only ever receives a short status word; the stored list is read back through owner-only RPCs.
 
+import { refreshSteamProfile } from "./steam-profile.js";
+
 export const SITE_ORIGIN = "https://jeddawe11-eng.github.io";
 
 export const STEAM_GAMES = Object.freeze({
@@ -38,12 +40,15 @@ export const MARVEL_RIVALS_APP_ID = "2767030";
 
 const USER_AGENT = "GamID-Testing-SteamGames (https://jeddawe11-eng.github.io/gamid-testing/, 1.0)";
 
+// The ONLY place the key's environment name is read (the connect callback uses this too, for the public persona - see steam-profile.js).
+export const readSteamApiKey = get => get("STEAM_WEB_API_KEY");
+
 export function readEnv(get) {
   return {
     supabaseUrl: get("SUPABASE_URL"),
     anonKey: get("SUPABASE_ANON_KEY"),
     serviceKey: get("SUPABASE_SERVICE_ROLE_KEY"),
-    steamApiKey: get("STEAM_WEB_API_KEY"),
+    steamApiKey: readSteamApiKey(get),
   };
 }
 
@@ -251,6 +256,9 @@ export async function handleRefresh({ request, env, fetchImpl = fetch, log = () 
     });
     const outcome = saved.ok && typeof saved.body === "string" ? saved.body : "SAVE_FAILED";
     log("games", `save_${outcome}`);
+    // Round 2: also refresh the account's PUBLIC persona / avatar / profile address (its own official call lives in steam-profile.js). Best effort: it never changes
+    // the games outcome the owner sees.
+    if (outcome === "SAVED" || outcome === "INVALID_DATA") log("profile", await refreshSteamProfile({ steamId: start.steam_id, apiKey: env.steamApiKey, fetchImpl, save: args => serviceRpc(fetchImpl, env, "save_steam_profile", args) }));
     if (outcome === "SAVED") return json({ status: OUTCOME_STATUS[result.kind], ...(result.kind === "AVAILABLE" ? { game_count: result.games.length } : {}) }, 200, cors);
     if (outcome === "INVALID_DATA") return json({ status: "malformed" }, 200, cors);
     if (outcome === "CONNECTION_CHANGED") return json({ error: "connection_changed" }, 409, cors);

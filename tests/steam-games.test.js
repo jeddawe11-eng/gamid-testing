@@ -94,6 +94,19 @@ function makeWorld(options = {}) {
         } else state.last_result = outcome; // a failed / private / malformed attempt keeps the last good list and count
         return json("SAVED");
       }
+
+      // Round 2: the public persona / avatar / profile address (steam-profile.js), stored after a successful refresh
+      if (name === "save_steam_profile") {
+        (world.profiles ||= []).push(args);
+        return json("SAVED");
+      }
+    }
+
+    // Round 2: GetPlayerSummaries is recorded apart from the GAMES request, so every "Steam games are asked exactly once" guarantee below still holds as written
+    if (target.origin === API_HOST && target.pathname === "/ISteamUser/GetPlayerSummaries/v2/") {
+      (world.steam.summaryRequests ||= []).push({ url: String(url), redirect: init.redirect });
+      const steamid = target.searchParams.get("steamids");
+      return steamJson({ response: { players: [{ steamid, personaname: `Persona ${steamid.slice(-2)}`, avatarfull: `https://avatars.steamstatic.com/${"a".repeat(40)}_full.jpg`, profileurl: `https://steamcommunity.com/profiles/${steamid}/` }] } });
     }
 
     if (target.origin === API_HOST) {
@@ -268,7 +281,9 @@ test("the owner's refresh reserves as THEM, reads the SteamID from their stored 
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { status: "available", game_count: 3 });
 
-  assert.deepEqual(rpcNames(world), ["reserve_steam_games_refresh", "begin_steam_games_fetch", "save_steam_games_result"], "reserve BEFORE any request to Steam, then begin, then save");
+  assert.deepEqual(rpcNames(world), ["reserve_steam_games_refresh", "begin_steam_games_fetch", "save_steam_games_result", "save_steam_profile"], "reserve BEFORE any request to Steam, then begin, then save (Round 2: then the public persona, best effort)");
+  assert.deepEqual(world.profiles, [{ candidate_steam_id: STEAM_A, candidate_persona: `Persona ${STEAM_A.slice(-2)}`, candidate_avatar_url: `https://avatars.steamstatic.com/${"a".repeat(40)}_full.jpg`, candidate_profile_url: `https://steamcommunity.com/profiles/${STEAM_A}/` }], "the persona of the SAME stored SteamID, as Steam returned it");
+  assert.equal(new URL(world.steam.summaryRequests[0].url).searchParams.get("steamids"), STEAM_A);
   const reserve = world.calls.find(c => c.url.endsWith("/reserve_steam_games_refresh"));
   assert.equal(reserve.headers.Authorization, "Bearer user-a-jwt", "the reservation is made with the caller's OWN token (auth.uid())");
   assert.equal(reserve.headers.apikey, ANON_KEY);
@@ -547,7 +562,7 @@ test("the browser response carries a status word (and a count) only - never game
   for (const secret of [STEAM_A, STEAM_KEY, "Dota", "Marvel", "2767030", "res-1", "conn-a", "entity-a", "user-a"]) assert.equal(text.includes(secret), false, secret);
 });
 
-test("only the three approved database functions are ever called, and the existing Steam connection is never changed by a refresh", async () => {
+test("only the approved database functions are ever called (Round 2: + save_steam_profile), and the existing Steam connection is never changed by a refresh", async () => {
   const world = withSteam(() => steamJson(LIBRARY));
   const before = JSON.stringify(world.connections);
   await run(world, request());
@@ -555,7 +570,7 @@ test("only the three approved database functions are ever called, and the existi
   world.steam.respond = () => steamJson({ response: {} });
   await run(world, request());
   assert.equal(JSON.stringify(world.connections), before);
-  assert.ok(new Set(rpcNames(world)).size === 3 && rpcNames(world).every(name => ["reserve_steam_games_refresh", "begin_steam_games_fetch", "save_steam_games_result"].includes(name)),
+  assert.ok(new Set(rpcNames(world)).size === 4 && rpcNames(world).every(name => ["reserve_steam_games_refresh", "begin_steam_games_fetch", "save_steam_games_result", "save_steam_profile"].includes(name)),
     "no connect/disconnect/complete/visibility/League/Discord function is touched");
 });
 
