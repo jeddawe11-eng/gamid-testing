@@ -1,13 +1,16 @@
-// Wall asset rules (the pure part): what a picture may be before it is uploaded, and how the editor picks starting sizes. The SAME bounds are enforced again by the storage
-// bucket (type + size) and by the database (register_my_wall_asset: path in the owner's folder, type, size, pixel size, per-owner count), so a hand-made request cannot
-// bypass them. SVG is deliberately not allowed (it can carry script); only raster images are.
+// Wall asset rules (the pure part): what a picture may be before it is uploaded, and how the editor picks starting sizes. These are only the browser's early checks: the
+// storage bucket enforces type + size, and the wall-asset-register Edge Function reads the STORED bytes, recognises the real format, reads the real pixel size, counts a
+// GIF's frames (decode-cost limits) and deletes anything invalid before the database - which checks everything again - registers it. A hand-made request cannot bypass
+// that. SVG is deliberately not allowed (it can carry script); only raster images are. A GIF stays animated wherever it is drawn (an ordinary picture, never video).
 export const ASSET_LIMITS = Object.freeze({
-  types: Object.freeze(["image/jpeg", "image/png", "image/webp", "image/avif"]),
+  types: Object.freeze(["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"]),
   maxBytes: 5 * 1024 * 1024,
   maxDimension: 8192,
   maxAssets: 60,
+  gifMaxFrames: 500,
+  gifMaxFramePixels: 50_000_000,
 });
-export const ASSET_TYPE_LABEL = "JPG, PNG, WebP or AVIF";
+export const ASSET_TYPE_LABEL = "JPG, PNG, WebP, AVIF or GIF";
 
 // -> { ok: true } | { ok: false, code, message }
 export function checkAssetFile({ type, size }) {
@@ -46,5 +49,14 @@ export const ASSET_ERROR_MESSAGES = {
   INVALID_WALL_ASSET_SIZE: `Images can be at most ${ASSET_LIMITS.maxDimension} pixels on a side.`,
   WALL_ASSET_TOO_LARGE: "Images must be 5 MB or smaller.",
   INVALID_WALL_ASSET_TYPE: `Choose a ${ASSET_TYPE_LABEL} image.`,
+  // answers from the server-side check of the stored file
+  UNSUPPORTED_IMAGE_TYPE: `That file is not a ${ASSET_TYPE_LABEL} image, so it was not added.`,
+  INVALID_IMAGE: "That image file is damaged or incomplete, so it was not added.",
+  WALL_ASSET_TYPE_MISMATCH: "That file's contents do not match its type, so it was not added.",
+  GIF_TOO_COMPLEX: "That GIF is too heavy to animate smoothly on phones (at most 500 frames, and fewer for large GIFs). Try a shorter or smaller GIF.",
+  INVALID_WALL_ASSET_PATH: "The upload could not be checked. Try again.",
+  IDENTITY_NOT_FOUND: "Create your GamID first, then come back to add images.",
+  unauthenticated: "Your session ended. Sign in again from your account, then come back.",
+  register_failed: "That image could not be added. Try again.",
 };
 export const describeAssetError = error => ASSET_ERROR_MESSAGES[error?.code] ?? ASSET_ERROR_MESSAGES[error?.message] ?? "That image could not be added. Try again.";

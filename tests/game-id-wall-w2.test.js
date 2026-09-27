@@ -98,9 +98,14 @@ test("migration: RLS on, no client table grant, RPC-only access for authenticate
   assert.match(migrationCode, /revoke all on table public\.wall_drafts from public, anon, authenticated;/);
   assert.ok(!/grant\s+[^;]*\bon\s+table\b/i.test(migrationCode), "no table grant of any kind");
   assert.ok(!/\bto\b[^;]*\banon\b[^;]*;/i.test(migrationCode.replace(/revoke[^;]*;/gi, "")), "nothing is granted to anon");
-  const grants = [...migrationCode.matchAll(/grant execute on function([^;]*?)to ([^;]*);/gi)];
+  const allGrants = [...migrationCode.matchAll(/grant execute on function([^;]*?)to ([^;]*);/gi)];
+  const grants = allGrants.filter(grant => grant[2].trim() === "authenticated");
   assert.equal(grants.length, 2, "the owner Wall RPCs and the owner asset RPCs");
-  for (const grant of grants) assert.equal(grant[2].trim(), "authenticated");
+  // post-QA (GIF, server-side validation): the ONE other grant is to service_role, for the verifying Edge Function's registration only - never a client role
+  const serviceGrants = allGrants.filter(grant => grant[2].trim() !== "authenticated");
+  assert.equal(serviceGrants.length, 1);
+  assert.equal(serviceGrants[0][2].trim(), "service_role");
+  assert.match(serviceGrants[0][1], /register_verified_wall_asset/);
   const grantedTo = grants.map(grant => grant[1]).join(" ");
   assert.ok(!/wall_document_errors|wall_string_is_unsafe|wall_scan_unsafe|wall_element_payload_errors|wall_new_document|wall_owned_entity_id|wall_embed_specs|wall_document_asset_ids|wall_background_errors/.test(grantedTo), "helpers are not client-executable");
 });
@@ -121,8 +126,13 @@ test("migration: ownership comes from auth.uid() through the membership architec
   assert.match(migrationCode, /public\.entity_memberships m/);
   assert.match(migrationCode, /m\.role = 'OWNER' and e\.entity_type = 'SOLO'/);
   const signatures = [...migrationCode.matchAll(/create function public\.(\w+)\(([^)]*)\)/g)];
-  assert.equal(signatures.length, 6, "three Wall RPCs + three asset RPCs");
-  for (const [, name, args] of signatures) assert.ok(!/entity|owner|user|profile/i.test(args), `${name} takes no owner/identity argument`);
+  // every CLIENT-callable function takes no owner/identity argument; the one exception is service_role-only (the verifying Edge Function proves the owner from the
+  // caller's token and passes it - see supabase/functions/_shared/wall-assets.js)
+  const clientCallable = signatures.filter(([, name]) => name !== "register_verified_wall_asset");
+  assert.equal(clientCallable.length, 6, "three Wall RPCs + three asset RPCs");
+  for (const [, name, args] of clientCallable) assert.ok(!/entity|owner|user|profile/i.test(args), `${name} takes no owner/identity argument`);
+  assert.equal(signatures.length, 7);
+  assert.match(migrationCode, /revoke all on function[^;]*public\.register_verified_wall_asset\(uuid, text, text, integer, integer, integer, integer\)\s*from public, anon, authenticated;/);
   assert.ok(!/\bvisibility\b|is_public|published/.test(migrationCode), "the draft does not depend on publish state");
 });
 

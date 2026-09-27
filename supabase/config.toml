@@ -31,6 +31,12 @@ verify_jwt = true
 [functions.league-lookup]
 verify_jwt = true
 
+# Wall asset registration: called by the signed-in owner's browser right after uploading a picture into their own folder. The gateway
+# verifies the user JWT; the function proves the user again (/auth/v1/user), reads the STORED bytes, validates the real format / size /
+# GIF frames, deletes anything invalid, and registers the asset through a service_role-only function.
+[functions.wall-asset-register]
+verify_jwt = true
+
 # Social Identity Preview card (PHASE 2 / Architecture C): fetched by social-media crawlers (Discord, WhatsApp, etc.) via a bare
 # og:image URL, so it cannot present a GamID session JWT - same reasoning as discord-connect-callback above. Safe because the
 # function itself only ever reads through the same anonymous, RLS-gated public.get_public_identity RPC and avatar storage path

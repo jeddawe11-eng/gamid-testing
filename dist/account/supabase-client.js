@@ -253,27 +253,43 @@ export async function loadAvatar(path) {
 }
 
 // ---- Wall assets (the owner's own pictures for the Wall: image elements and image backgrounds) ---------------------------------------------------
-// Same pattern as avatars: a private bucket, the owner's own folder, the owner's own token; a small registry RPC records each accepted upload. Nothing here is public.
-const WALL_ASSET_TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" };
+// Same pattern as avatars: a private bucket, the owner's own folder, the owner's own token. The upload is then REGISTERED by the wall-asset-register Edge Function, which
+// reads the stored bytes itself (real format, real pixel size, GIF frames), deletes anything invalid and records the asset - the browser's own claims about the file are
+// never trusted. Nothing here is public.
+const WALL_ASSET_TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif", "image/gif": "gif" };
 export const WALL_ASSET_MAX_BYTES = 5 * 1024 * 1024;
 
 export async function listWallAssets() {
   return (await rpc("list_my_wall_assets")) || [];
 }
 
-export async function uploadWallAsset(file, userId, { width, height }) {
+export async function uploadWallAsset(file, userId) {
   const extension = WALL_ASSET_TYPES[file.type];
-  if (!extension) throw new ApiError("Choose a JPG, PNG, WebP, or AVIF image.", 400, "INVALID_FILE_TYPE");
+  if (!extension) throw new ApiError("Choose a JPG, PNG, WebP, AVIF or GIF image.", 400, "INVALID_FILE_TYPE");
   if (file.size > WALL_ASSET_MAX_BYTES) throw new ApiError("Images must be 5 MB or smaller.", 400, "FILE_TOO_LARGE");
+  await restoreSession();
+  if (!session?.access_token) throw new ApiError("Sign in again to add images.", 401, "unauthenticated");
   const path = `${userId}/${crypto.randomUUID()}.${extension}`;
-  await request(`/storage/v1/object/wall-media/${path}`, { method: "POST", token: session?.access_token, body: file, headers: { "Content-Type": file.type, "x-upsert": "false" } });
+  await request(`/storage/v1/object/wall-media/${path}`, { method: "POST", token: session.access_token, body: file, headers: { "Content-Type": file.type, "x-upsert": "false" } });
+  let response;
   try {
-    const rows = await rpc("register_my_wall_asset", { candidate_path: path, candidate_mime: file.type, candidate_bytes: file.size, candidate_width: width, candidate_height: height });
-    return rows?.[0] ?? null;
-  } catch (error) {
+    response = await fetch(`${SUPABASE_URL}/functions/v1/wall-asset-register`, {
+      method: "POST",
+      headers: { apikey: PUBLISHABLE_KEY, Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    });
+  } catch {
     try { await request(`/storage/v1/object/wall-media/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* the orphan is private and only the owner can reach it */ }
-    throw error;
+    throw new ApiError("The image service could not be reached.", 0, "NETWORK_ERROR");
   }
+  let payload = null;
+  try { payload = await response.json(); } catch { payload = null; }
+  if (!response.ok || !payload?.asset) {
+    // the function already deleted a file it refused; this removes one it never got to see
+    try { await request(`/storage/v1/object/wall-media/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* private orphan, owner-only */ }
+    throw new ApiError(payload?.error || `Request failed (${response.status})`, response.status, payload?.error || "register_failed");
+  }
+  return payload.asset;
 }
 
 export async function loadWallAsset(path) {

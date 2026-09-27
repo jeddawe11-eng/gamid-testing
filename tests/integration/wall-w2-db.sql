@@ -201,18 +201,22 @@ begin
   res := res || jsonb_build_object('step', 'the draft works for a private (unpublished) identity too and survives unpublishing', 'pass', (out::jsonb)->'document' = doc_two and ((out::jsonb)->>'revision')::bigint = 3);
 
   -- ===== Wall assets: private bucket, owner-only registry, saving only what the owner has =====
-  select count(*) into cnt from storage.buckets b where b.id = 'wall-media' and b.public = false and b.file_size_limit = 5242880 and b.allowed_mime_types @> array['image/jpeg','image/png','image/webp','image/avif'] and cardinality(b.allowed_mime_types) = 4;
-  res := res || jsonb_build_object('step', 'the wall-media bucket is private, 5 MiB, and allows only jpeg/png/webp/avif (no SVG)', 'pass', cnt = 1);
+  select count(*) into cnt from storage.buckets b where b.id = 'wall-media' and b.public = false and b.file_size_limit = 5242880 and b.allowed_mime_types @> array['image/jpeg','image/png','image/webp','image/avif','image/gif'] and cardinality(b.allowed_mime_types) = 5;
+  res := res || jsonb_build_object('step', 'the wall-media bucket is private, 5 MiB, and allows only jpeg/png/webp/avif/gif (no SVG)', 'pass', cnt = 1);
   select count(*) into cnt from pg_policies p where p.schemaname = 'storage' and p.tablename = 'objects' and p.policyname in ('users upload wall media to their folder', 'users read their wall media', 'users delete their wall media') and p.roles = array['authenticated']::name[];
   res := res || jsonb_build_object('step', 'wall-media has exactly the three owner-only policies, all for authenticated (no public or anon read)', 'pass', cnt = 3);
   select count(*) into cnt from pg_policies p where p.schemaname = 'storage' and p.tablename = 'objects' and (coalesce(p.qual, '') || coalesce(p.with_check, '')) like '%wall-media%' and (p.roles && array['anon', 'public']::name[]);
   res := res || jsonb_build_object('step', 'no storage policy exposes wall-media to anon/public', 'pass', cnt = 0);
   select relrowsecurity into flag from pg_class where oid = 'public.wall_assets'::regclass;
   res := res || jsonb_build_object('step', 'RLS is enabled on wall_assets and no client role has a table privilege', 'pass', coalesce(flag, false) and not (has_table_privilege('anon', 'public.wall_assets', 'select') or has_table_privilege('authenticated', 'public.wall_assets', 'select') or has_table_privilege('authenticated', 'public.wall_assets', 'insert') or has_table_privilege('authenticated', 'public.wall_assets', 'delete')));
-  res := res || jsonb_build_object('step', 'asset RPCs: authenticated may execute, anon may not; wrappers are SECURITY INVOKER',
-    'pass', has_function_privilege('authenticated', 'public.register_my_wall_asset(text,text,integer,integer,integer)', 'execute') and has_function_privilege('authenticated', 'public.list_my_wall_assets()', 'execute') and has_function_privilege('authenticated', 'public.delete_my_wall_asset(uuid)', 'execute')
-      and not has_function_privilege('anon', 'public.register_my_wall_asset(text,text,integer,integer,integer)', 'execute') and not has_function_privilege('anon', 'public.list_my_wall_assets()', 'execute') and not has_function_privilege('anon', 'public.delete_my_wall_asset(uuid)', 'execute')
-      and not exists (select 1 from pg_proc p join pg_namespace s on s.oid = p.pronamespace where s.nspname = 'public' and p.proname in ('register_my_wall_asset', 'list_my_wall_assets', 'delete_my_wall_asset') and p.prosecdef));
+  res := res || jsonb_build_object('step', 'asset RPCs: the owner lists / deletes (authenticated, never anon); ONLY service_role (the verifying Edge Function) registers; wrappers are SECURITY INVOKER',
+    'pass', has_function_privilege('authenticated', 'public.list_my_wall_assets()', 'execute') and has_function_privilege('authenticated', 'public.delete_my_wall_asset(uuid)', 'execute')
+      and not has_function_privilege('anon', 'public.list_my_wall_assets()', 'execute') and not has_function_privilege('anon', 'public.delete_my_wall_asset(uuid)', 'execute')
+      and not has_function_privilege('authenticated', 'public.register_my_wall_asset(text,text,integer,integer,integer)', 'execute') and not has_function_privilege('anon', 'public.register_my_wall_asset(text,text,integer,integer,integer)', 'execute')
+      and has_function_privilege('service_role', 'public.register_verified_wall_asset(uuid,text,text,integer,integer,integer,integer)', 'execute')
+      and not has_function_privilege('authenticated', 'public.register_verified_wall_asset(uuid,text,text,integer,integer,integer,integer)', 'execute') and not has_function_privilege('anon', 'public.register_verified_wall_asset(uuid,text,text,integer,integer,integer,integer)', 'execute')
+      and not has_function_privilege('authenticated', 'private.wall_entity_for_user(uuid)', 'execute')
+      and not exists (select 1 from pg_proc p join pg_namespace s on s.oid = p.pronamespace where s.nspname = 'public' and p.proname in ('register_my_wall_asset', 'register_verified_wall_asset', 'list_my_wall_assets', 'delete_my_wall_asset') and p.prosecdef));
   out := pg_temp.w2_run(null, 'anon', 'select count(*)::text from public.list_my_wall_assets()');
   res := res || jsonb_build_object('step', 'anon cannot list assets', 'pass', out like 'ERR:42501:%', 'got', out);
 
@@ -225,26 +229,54 @@ begin
   out := pg_temp.w2_run(null, 'anon', 'select count(*)::text from storage.objects where bucket_id = ''wall-media''');
   res := res || jsonb_build_object('step', 'storage RLS: anon sees no wall-media objects', 'pass', out = '0' or out like 'ERR:%', 'got', out);
 
+  -- the browser can no longer register an upload with values it claims itself: only the verifying Edge Function (service_role) can
   out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 640, 360) a', ua::text || '/11111111-1111-4111-8111-111111111111.png'));
-  res := res || jsonb_build_object('step', 'registering an uploaded asset works and returns its row', 'pass', out not like 'ERR:%' and (out::jsonb ->> 'width') = '640' and (out::jsonb ->> 'byte_size') = '2048', 'got', out);
+  res := res || jsonb_build_object('step', 'a signed-in browser cannot register an upload itself any more (server-side content validation only)', 'pass', out like 'ERR:42501:%', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/png'', 2048, 640, 360, null) a', ua, ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  res := res || jsonb_build_object('step', 'a signed-in browser cannot call the verified registration either', 'pass', out like 'ERR:42501:%', 'got', out);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/png'', 2048, 640, 360, null) a', ua, ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  res := res || jsonb_build_object('step', 'the verifying function (service_role) registers an uploaded asset and gets its row', 'pass', out not like 'ERR:%' and (out::jsonb ->> 'width') = '640' and (out::jsonb ->> 'byte_size') = '2048', 'got', out);
   n := 0;
   j := out::jsonb;
-  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 640, 360) a', ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/png'', 2048, 640, 360, null) a', ua, ua::text || '/11111111-1111-4111-8111-111111111111.png'));
   res := res || jsonb_build_object('step', 'registering the same upload again is idempotent (same asset id)', 'pass', (out::jsonb ->> 'asset_id') = (j ->> 'asset_id'), 'got', out);
   select count(*) into cnt from public.wall_assets where entity_id = ent_a;
   res := res || jsonb_build_object('step', 'exactly one registry row exists for that upload', 'pass', cnt = 1);
-  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 640, 360) a', ub::text || '/22222222-2222-4222-8222-222222222222.png'));
-  res := res || jsonb_build_object('step', 'a path in ANOTHER user''s folder cannot be registered', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_PATH%', 'got', out);
-  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 640, 360) a', ua::text || '/33333333-3333-4333-8333-333333333333.png'));
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/png'', 2048, 640, 360, null) a', ua, ub::text || '/22222222-2222-4222-8222-222222222222.png'));
+  res := res || jsonb_build_object('step', 'a path in ANOTHER user''s folder cannot be registered for this user', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_PATH%', 'got', out);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/png'', 2048, 640, 360, null) a', ua, ua::text || '/33333333-3333-4333-8333-333333333333.png'));
   res := res || jsonb_build_object('step', 'registering an upload that does not exist in storage is refused', 'pass', out like 'ERR:P0002:WALL_ASSET_UPLOAD_NOT_FOUND%', 'got', out);
-  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 640, 360) a', ua::text || '/../x.png'));
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/png'', 2048, 640, 360, null) a', ua, ua::text || '/../x.png'));
   res := res || jsonb_build_object('step', 'a traversal-looking path is refused', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_PATH%', 'got', out);
-  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/svg+xml'', 2048, 640, 360) a', ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/svg+xml'', 2048, 640, 360, null) a', ua, ua::text || '/11111111-1111-4111-8111-111111111111.png'));
   res := res || jsonb_build_object('step', 'SVG (or any non-raster type) is refused', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_TYPE%', 'got', out);
-  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 5242881, 640, 360) a', ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/gif'', 2048, 640, 360, 5) a', ua, ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  res := res || jsonb_build_object('step', 'a type that does not match the file extension is refused', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_TYPE%', 'got', out);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/png'', 5242881, 640, 360, null) a', ua, ua::text || '/11111111-1111-4111-8111-111111111111.png'));
   res := res || jsonb_build_object('step', 'an oversized asset is refused', 'pass', out like 'ERR:22023:WALL_ASSET_TOO_LARGE%', 'got', out);
-  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 8193, 360) a', ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/png'', 2048, 8193, 360, null) a', ua, ua::text || '/11111111-1111-4111-8111-111111111111.png'));
   res := res || jsonb_build_object('step', 'an asset larger than 8192 pixels on a side is refused', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_SIZE%', 'got', out);
+  -- GIF: an ordinary image asset with a decode-cost limit (frames, and width x height x frames)
+  insert into storage.objects (bucket_id, name, owner_id, metadata) values ('wall-media', ua::text || '/44444444-4444-4444-8444-444444444444.gif', ua::text, '{"size": 3000}');
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/gif'', 3000, 640, 360, 24) a', ua, ua::text || '/44444444-4444-4444-8444-444444444444.gif'));
+  res := res || jsonb_build_object('step', 'an animated GIF within the limits registers', 'pass', out not like 'ERR:%' and (out::jsonb ->> 'mime_type') = 'image/gif', 'got', out);
+  select frame_count into n from public.wall_assets where storage_path = ua::text || '/44444444-4444-4444-8444-444444444444.gif';
+  res := res || jsonb_build_object('step', 'the GIF''s frame count is recorded', 'pass', n = 24);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/gif'', 3000, 64, 64, 501) a', ua, ua::text || '/44444444-4444-4444-8444-444444444444.gif'));
+  res := res || jsonb_build_object('step', 'a GIF with more than 500 frames is refused', 'pass', out like 'ERR:22023:GIF_TOO_COMPLEX%', 'got', out);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/gif'', 3000, 4096, 4096, 3) a', ua, ua::text || '/44444444-4444-4444-8444-444444444444.gif'));
+  res := res || jsonb_build_object('step', 'a GIF over 50,000,000 frame-pixels is refused (decode cost, not just file size)', 'pass', out like 'ERR:22023:GIF_TOO_COMPLEX%', 'got', out);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/gif'', 3000, 64, 64, null) a', ua, ua::text || '/44444444-4444-4444-8444-444444444444.gif'));
+  res := res || jsonb_build_object('step', 'a GIF must state its frame count', 'pass', out like 'ERR:22023:GIF_TOO_COMPLEX%', 'got', out);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/png'', 2048, 640, 360, 3) a', ua, ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  res := res || jsonb_build_object('step', 'only a GIF may carry a frame count', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_TYPE%', 'got', out);
+  begin
+    insert into public.wall_assets (entity_id, storage_path, mime_type, byte_size, width, height, frame_count) values (ent_a, ua::text || '/55555555-5555-4555-8555-555555555555.gif', 'image/gif', 100, 64, 64, 501);
+    res := res || jsonb_build_object('step', 'the table itself refuses an over-limit GIF (defense in depth)', 'pass', false);
+  exception when check_violation then
+    res := res || jsonb_build_object('step', 'the table itself refuses an over-limit GIF (defense in depth)', 'pass', true);
+  end;
+  delete from public.wall_assets where storage_path = ua::text || '/44444444-4444-4444-8444-444444444444.gif';
   out := pg_temp.w2_run(ub, 'authenticated', 'select coalesce((select count(*)::text from public.list_my_wall_assets()), ''0'')');
   res := res || jsonb_build_object('step', 'another user sees none of the owner''s assets', 'pass', out = '0', 'got', out);
   out := pg_temp.w2_run(ua, 'authenticated', 'select count(*)::text from public.list_my_wall_assets()');
@@ -281,7 +313,7 @@ begin
   -- per-owner limit of 60
   insert into public.wall_assets (entity_id, storage_path, mime_type, byte_size, width, height)
     select ent_a, ua::text || '/' || gen_random_uuid() || '.png', 'image/png', 100, 10, 10 from generate_series(1, 60);
-  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_my_wall_asset(%L, ''image/png'', 2048, 640, 360) a', ua::text || '/11111111-1111-4111-8111-111111111111.png'));
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''image/png'', 2048, 640, 360, null) a', ua, ua::text || '/11111111-1111-4111-8111-111111111111.png'));
   res := res || jsonb_build_object('step', 'more than 60 assets per owner is refused', 'pass', out like 'ERR:54000:WALL_ASSET_LIMIT%', 'got', out);
   delete from public.wall_assets where entity_id = ent_a;
 

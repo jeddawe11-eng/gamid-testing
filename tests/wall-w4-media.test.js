@@ -86,9 +86,11 @@ test("image: painting - only a blob: URL from the asset resolver is ever used; a
 
 // ---------- asset rules ----------
 test("assets: type, size, pixel size and count limits (SVG is never allowed)", () => {
-  assert.deepEqual(ASSET_LIMITS.types, ["image/jpeg", "image/png", "image/webp", "image/avif"]);
+  // post-QA: GIF is an accepted image (validated server-side from the stored bytes - tests/wall-post-qa-gif.test.js); SVG and non-images never are
+  assert.deepEqual(ASSET_LIMITS.types, ["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"]);
   assert.equal(checkAssetFile({ type: "image/png", size: 1000 }).ok, true);
-  for (const type of ["image/svg+xml", "image/gif", "text/html", "application/pdf", "video/mp4", ""]) assert.equal(checkAssetFile({ type, size: 1000 }).code, "INVALID_FILE_TYPE", type);
+  assert.equal(checkAssetFile({ type: "image/gif", size: 1000 }).ok, true);
+  for (const type of ["image/svg+xml", "text/html", "application/pdf", "video/mp4", ""]) assert.equal(checkAssetFile({ type, size: 1000 }).code, "INVALID_FILE_TYPE", type);
   assert.equal(checkAssetFile({ type: "image/png", size: ASSET_LIMITS.maxBytes }).ok, true);
   assert.equal(checkAssetFile({ type: "image/png", size: ASSET_LIMITS.maxBytes + 1 }).code, "FILE_TOO_LARGE");
   assert.equal(checkAssetFile({ type: "image/png", size: 0 }).code, "EMPTY_FILE");
