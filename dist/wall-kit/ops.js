@@ -441,6 +441,44 @@ export function updatePayloadMany(doc, ids, patch) {
   return { ok: true, doc: current };
 }
 
+// ---- GamID block styling (Round 2) -------------------------------------------------------------------------------------------------------------------
+// Merges a partial style into EACH selected GamID block's own style (a key set to `undefined` goes back to its default; an empty style is removed, so the block is
+// exactly the default look again). Validated like every other edit; one undo step.
+export function setGamidStyle(doc, ids, patch) {
+  const next = clone(doc);
+  for (const id of ids) {
+    const found = locate(next, id);
+    if (!found) return fail(doc, "ELEMENT_NOT_FOUND");
+    if (found.element.type !== "gamid") return fail(doc, "NOT_A_GAMID_BLOCK");
+    const style = { ...(found.element.payload.style ?? {}) };
+    for (const [key, value] of Object.entries(patch)) { if (value === undefined) delete style[key]; else style[key] = value; }
+    const payload = { ...found.element.payload };
+    if (Object.keys(style).length) payload.style = style; else delete payload.style;
+    found.element.payload = payload;
+  }
+  return finish(doc, next);
+}
+// "Apply to all GamID blocks": copies the source block's PRESENTATION (its style only - never its block kind, layout, games count, hours switch or geometry) to every
+// other GamID block on every stage. Each block keeps its own copy, so it can still be changed on its own afterwards. -> { ok, doc, count } (count = blocks changed)
+export function applyGamidStyleToAll(doc, sourceId) {
+  const source = locate(doc, sourceId);
+  if (!source) return fail(doc, "ELEMENT_NOT_FOUND");
+  if (source.element.type !== "gamid") return fail(doc, "NOT_A_GAMID_BLOCK");
+  const style = source.element.payload.style;
+  const next = clone(doc);
+  let count = 0;
+  for (const stage of next.stages) for (const element of stage.elements) {
+    if (element.type !== "gamid" || element.id === sourceId) continue;
+    const payload = { ...element.payload };
+    if (style) payload.style = structuredClone(style); else delete payload.style;
+    element.payload = payload;
+    count += 1;
+  }
+  if (!count) return fail(doc, "NO_OTHER_GAMID_BLOCKS");
+  const result = finish(doc, next);
+  return result.ok ? { ...result, count } : result;
+}
+
 // Numeric geometry edits from the properties panel (x, y, width, height, rotation). Always re-contained inside the stage.
 export function updateGeometry(doc, id, patch) {
   const found = locate(doc, id);

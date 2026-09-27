@@ -7,7 +7,7 @@ import { TEXT_LIMITS, WEIGHTS } from "../wall-kit/text.js";
 import { describeErrors } from "../wall-kit/messages.js";
 import { PROVIDERS, isAllowedOpenUrl } from "../wall-kit/embed/engine.js";
 import { IMAGE_FITS, ALT_MAX } from "../wall-kit/image.js";
-import { GAMID_LAYOUTS, GAMES_INITIAL } from "../wall-kit/gamid.js";
+import { GAMID_LAYOUTS, GAMES_INITIAL, GAMID_STYLE_ENUMS, GAMID_STYLE_RANGES, resolveGamidStyle } from "../wall-kit/gamid.js";
 
 const h = (tag, attributes = {}, ...children) => {
   const node = document.createElement(tag);
@@ -253,6 +253,49 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       root.append(h("p", { class: "ed-hint", text: "Hours are hidden unless you turn them on here AND your GamID playtime setting allows them." }));
     }
     root.append(h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn", type: "button", text: "Refresh GamID data", onclick: () => refreshGamid() })));
+    gamidStyleControls(root, element);
+  }
+
+  // Round 2: presentation only. Every control writes typed values into the block's own `style` (ops.setGamidStyle - validated, one undo step per gesture); the data
+  // shown never changes. Rows that only apply to one choice (gradient end colour, border details) are shown / hidden by their syncers, never rebuilt.
+  function gamidStyleControls(root, element) {
+    const style = item => resolveGamidStyle(item.payload.style);
+    const setStyle = (key, value) => ops.setGamidStyle(session.doc, session.state.selection, { [key]: value });
+    const when = (node, predicate) => { syncers.push(targets => { node.hidden = !predicate(style(targets[0])); }); return node; };
+    const color = (label, key) => colorField({ label, get: item => style(item)[key], set: value => setStyle(key, value), key: `gs-${key}` });
+    const percent = (label, key) => numberSlider({ label, min: 0, max: 100, step: 5, get: item => Math.round(style(item)[key] * 100), set: value => setStyle(key, Math.round(value) / 100), key: `gs-${key}` });
+    const units = (label, key) => { const [min, max] = GAMID_STYLE_RANGES[key]; return numberSlider({ label, min, max, step: 1, get: item => style(item)[key], set: value => setStyle(key, Math.round(value)), key: `gs-${key}` }); };
+    const choice = (label, key, labels) => selectField({ label, options: GAMID_STYLE_ENUMS[key].map(value => ({ value, label: labels[value] })), get: item => style(item)[key], set: value => setStyle(key, value), key: `gs-${key}` });
+
+    root.append(h("div", { class: "ed-group-title", text: "Block style" }));
+    root.append(h("p", { class: "ed-hint", text: "Changes how this block looks, never what it shows. Opacity applies to the background only - text stays fully readable. Trust labels keep their own colours." }));
+    root.append(choice("Background", "bgMode", { solid: "Solid colour", gradient: "Gradient", none: "None (transparent)" }));
+    root.append(when(color("Colour", "bgColor"), s => s.bgMode !== "none"));
+    root.append(when(color("Gradient end", "bgColor2"), s => s.bgMode === "gradient"));
+    root.append(when(units("Gradient angle °", "bgAngle"), s => s.bgMode === "gradient"));
+    root.append(when(percent("Background opacity %", "bgOpacity"), s => s.bgMode !== "none"));
+    root.append(h("div", { class: "ed-btn-row" }, toggleButton({ label: "Border", get: item => style(item).border, set: on => setStyle("border", on), key: "gs-border" })));
+    root.append(when(color("Border colour", "borderColor"), s => s.border));
+    root.append(when(percent("Border opacity %", "borderOpacity"), s => s.border));
+    root.append(when(units("Border width", "borderWidth"), s => s.border));
+    root.append(units("Corner radius", "radius"));
+    root.append(color("Heading colour", "headingColor"), color("Primary text", "primaryColor"), color("Secondary text", "secondaryColor"), color("Accent", "accentColor"));
+    root.append(choice("Chips / badges", "chipStyle", { outline: "Outline", filled: "Filled", plain: "Plain" }));
+    root.append(choice("Rows", "rowStyle", { card: "Cards", plain: "Plain", divided: "Divided" }));
+    if (element.payload.block === "profile") {
+      root.append(choice("Avatar", "avatarShape", { circle: "Circle", rounded: "Rounded square", square: "Square" }));
+      root.append(choice("Name size", "nameSize", { s: "Small", m: "Medium", l: "Large" }));
+      root.append(h("div", { class: "ed-btn-row" }, toggleButton({ label: "Show @GamID", get: item => style(item).showHandle, set: on => setStyle("showHandle", on), key: "gs-showHandle" })));
+    }
+    root.append(units("Padding", "padding"), units("Spacing", "gap"));
+    const status = h("p", { class: "ed-hint", role: "status" });
+    const applyAll = () => {
+      const result = exec(ops.applyGamidStyleToAll(session.doc, session.state.selection[0]));
+      status.textContent = result.ok ? `Style applied to ${result.count} other GamID block${result.count === 1 ? "" : "s"}. Each one can still be changed on its own.` : "";
+    };
+    root.append(h("div", { class: "ed-btn-row" },
+      h("button", { class: "ed-btn", type: "button", text: "Apply to all GamID blocks", onclick: applyAll }),
+      h("button", { class: "ed-btn", type: "button", text: "Reset style", onclick: () => { status.textContent = ""; exec(patchAll({ style: undefined })); } })), status);
   }
 
   function geometryControls(root) {

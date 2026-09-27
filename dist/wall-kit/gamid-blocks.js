@@ -25,6 +25,7 @@ export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onCh
   const px = value => `${Math.round(value * scale * 100) / 100}px`;
   root.style.setProperty("font-size", px(26));
   root.style.setProperty("padding", px(20));
+  if (content.style) applyGamidStyle(root, content.style, px);
   const head = el("div", "wall-gamid-head");
   head.append(el("span", "wall-gamid-title", BLOCK_TITLES[content.block] ?? "GAMID"));
   root.append(head);
@@ -147,7 +148,7 @@ function paintVisitorConnections(root, view, el, details) {
   if (!view.connections.length) { root.append(el("p", "wall-gamid-empty", "No connections are shown on your GamID.")); return; }
   const list = el("ul", "wall-gamid-connections");
   for (const connection of view.connections) {
-    const li = el("li");
+    const li = el("li", "is-button");
     const button = el("button", "wall-connection");
     button.type = "button";
     button.setAttribute("aria-label", `${connection.label}: ${connection.name}. ${connection.trust}. Open details`);
@@ -158,6 +159,36 @@ function paintVisitorConnections(root, view, el, details) {
   }
   markInteractive(list);
   root.append(list);
+}
+
+// ---- presentation styling (Round 2) -------------------------------------------------------------------------------------------------------------------------
+// The block's typed style (gamid.js, defaults already filled in) becomes CSS custom properties + a few classes on the block's own root; wall-kit.css reads them with
+// the accepted look as every fallback, so a block without a style is unchanged. Only validated values are used (#rrggbb, numbers in range, enums), never raw CSS.
+// Opacity is applied to the BACKGROUND colours (rgba), never to the element, so text, chips and trust labels stay fully opaque.
+const hexToRgb = hex => [1, 3, 5].map(at => parseInt(hex.slice(at, at + 2), 16));
+export const rgba = (hex, alpha) => `rgba(${hexToRgb(hex).join(", ")}, ${Math.round(alpha * 1000) / 1000})`;
+// Text drawn ON the accent colour (filled chips): black or white, whichever reads better (WCAG relative luminance).
+export function onColor(hex) {
+  const [r, g, b] = hexToRgb(hex).map(value => { const c = value / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.3 ? "#0b0913" : "#ffffff";
+}
+export function gamidStyleVars(style, px) {
+  const background = style.bgMode === "none" ? "transparent"
+    : style.bgMode === "gradient" ? `linear-gradient(${style.bgAngle}deg, ${rgba(style.bgColor, style.bgOpacity)}, ${rgba(style.bgColor2, style.bgOpacity)})`
+    : rgba(style.bgColor, style.bgOpacity);
+  const border = style.border && style.borderWidth > 0 ? `max(1px, ${px(style.borderWidth)}) solid ${rgba(style.borderColor, style.borderOpacity)}` : "none";
+  return {
+    "--g-bg": background, "--g-border": border, "--g-radius": px(style.radius), "--g-gap": px(style.gap),
+    "--g-heading": style.headingColor, "--g-text": style.primaryColor, "--g-muted": style.secondaryColor, "--g-accent": style.accentColor,
+    "--g-on-accent": onColor(style.accentColor), "--g-on-heading": onColor(style.headingColor),
+    "--g-chip-border": rgba(style.accentColor, 0.55), "--g-chip-bg": rgba(style.accentColor, 0.14),
+    "--g-row-border": rgba(style.accentColor, 0.45), "--g-row-bg": rgba(style.primaryColor, 0.05), "--g-row-line": rgba(style.primaryColor, 0.08),
+  };
+}
+function applyGamidStyle(root, style, px) {
+  for (const [name, value] of Object.entries(gamidStyleVars(style, px))) root.style.setProperty(name, value);
+  root.style.setProperty("padding", px(style.padding));
+  root.className += ` is-styled chips-${style.chipStyle} rows-${style.rowStyle} avatar-${style.avatarShape} name-${style.nameSize}${style.showHandle === false ? " no-handle" : ""}`;
 }
 
 // Pure helper for tests / the editor's summary: how many rows a block renders before the person expands anything.
