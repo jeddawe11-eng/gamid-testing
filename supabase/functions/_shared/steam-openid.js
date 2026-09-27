@@ -31,6 +31,15 @@ export const STEAM_OPENID = Object.freeze({
 
 export const SITE_ORIGIN = "https://jeddawe11-eng.github.io";
 export const RETURN_URL = `${SITE_ORIGIN}/gamid-testing/account/`;
+// Both TESTING sites host the account page (GitHub Pages - the original - and Cloudflare TESTING). Manual-acceptance finding: every Steam request from the
+// Cloudflare site was refused (no CORS), so Refresh games "couldn't reach the games service" and Steam could not be reconnected there. A connection started on a
+// site returns to THAT site: its key travels inside openid.return_to (signed by Steam) and only ever selects one of these fixed addresses - never a URL from input.
+export const STEAM_SITES = Object.freeze({
+  gh: Object.freeze({ origin: SITE_ORIGIN, returnUrl: RETURN_URL }),
+  cf: Object.freeze({ origin: "https://gamid-testing-static.gamid.workers.dev", returnUrl: "https://gamid-testing-static.gamid.workers.dev/account/" }),
+});
+export const siteForOrigin = origin => Object.keys(STEAM_SITES).find(key => STEAM_SITES[key].origin === origin) ?? null;
+const siteKey = value => (value === "cf" ? "cf" : "gh");
 const USER_AGENT = "GamID-Testing-OpenID (https://jeddawe11-eng.github.io/gamid-testing/, 1.0)";
 const CLAIMED_ID = /^https?:\/\/steamcommunity\.com\/openid\/id\/([0-9]{17})$/;
 
@@ -49,14 +58,15 @@ export function callbackUrlFor(supabaseUrl) {
   return `${String(supabaseUrl).replace(/\/+$/, "")}/functions/v1/${STEAM_OPENID.callbackFunction}`;
 }
 
-export const returnToFor = (supabaseUrl, state) => `${callbackUrlFor(supabaseUrl)}?state=${state}`;
+// The original site keeps its exact return_to; the Cloudflare site adds site=cf (covered by Steam's signature like the rest of return_to).
+export const returnToFor = (supabaseUrl, state, site = "gh") => `${callbackUrlFor(supabaseUrl)}?state=${state}${siteKey(site) === "cf" ? "&site=cf" : ""}`;
 export const realmFor = supabaseUrl => `${new URL(String(supabaseUrl)).origin}/`;
 
-export function buildAuthenticationUrl({ supabaseUrl, state }) {
+export function buildAuthenticationUrl({ supabaseUrl, state, site = "gh" }) {
   const params = new URLSearchParams({
     "openid.ns": STEAM_OPENID.ns,
     "openid.mode": "checkid_setup",
-    "openid.return_to": returnToFor(supabaseUrl, state),
+    "openid.return_to": returnToFor(supabaseUrl, state, site),
     "openid.realm": realmFor(supabaseUrl),
     "openid.identity": STEAM_OPENID.identifierSelect,
     "openid.claimed_id": STEAM_OPENID.identifierSelect,
@@ -164,8 +174,8 @@ export async function verifyAssertion({ searchParams, expectedReturnTo, fetchImp
 // HTTP plumbing
 // ---------------------------------------------------------------------------------------------------------------
 // Non-sensitive result codes only - nothing from Steam, the assertion, or errors is ever placed in the return URL.
-export function returnRedirect(result, reason) {
-  const url = new URL(RETURN_URL);
+export function returnRedirect(result, reason, site = "gh") {
+  const url = new URL(STEAM_SITES[siteKey(site)].returnUrl);
   url.searchParams.set("connection", "steam");
   url.searchParams.set("result", result);
   if (reason) url.searchParams.set("reason", reason);
@@ -182,7 +192,7 @@ function json(body, status, extra = {}) {
   });
 }
 
-const corsFor = origin => (origin === SITE_ORIGIN ? { "Access-Control-Allow-Origin": SITE_ORIGIN, Vary: "Origin" } : { Vary: "Origin" });
+const corsFor = origin => (siteForOrigin(origin) ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : { Vary: "Origin" });
 
 async function rpc(fetchImpl, env, name, args, { bearer, apikey }) {
   const response = await fetchImpl(`${String(env.supabaseUrl).replace(/\/+$/, "")}/rest/v1/rpc/${name}`, {
@@ -216,7 +226,8 @@ export async function handleStart({ request, env, fetchImpl = fetch }) {
     });
   }
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405, cors);
-  if (origin && origin !== SITE_ORIGIN) return json({ error: "origin_not_allowed" }, 403);
+  if (origin && !siteForOrigin(origin)) return json({ error: "origin_not_allowed" }, 403);
+  const site = siteForOrigin(origin) ?? "gh";
   if (!configured(env)) return json({ error: "not_configured" }, 503, cors);
 
   const match = /^Bearer\s+([A-Za-z0-9._~+/=-]+)$/.exec(request.headers.get("authorization") || "");
@@ -239,7 +250,7 @@ export async function handleStart({ request, env, fetchImpl = fetch }) {
   const row = Array.isArray(started.body) ? started.body[0] : null;
   if (!row || !/^[0-9a-f]{64}$/.test(row.state || "")) return json({ error: "start_failed" }, 502, cors);
 
-  return json({ authorization_url: buildAuthenticationUrl({ supabaseUrl: env.supabaseUrl, state: row.state }), expires_at: row.expires_at }, 200, cors);
+  return json({ authorization_url: buildAuthenticationUrl({ supabaseUrl: env.supabaseUrl, state: row.state, site }), expires_at: row.expires_at }, 200, cors);
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -266,17 +277,20 @@ export async function handleCallback({ request, env, fetchImpl = fetch, log = ()
   if (!configured(env)) { log("callback", "not_configured"); return returnRedirect("error", "not_configured"); }
 
   const searchParams = new URL(request.url).searchParams;
+  // the site the owner started from (gh | cf): it only selects one of the two fixed return addresses; the verified return_to below must carry the same value
+  const site = siteKey(searchParams.get("site"));
+  const back = (result, reason) => returnRedirect(result, reason, site);
   const states = searchParams.getAll("state");
   const state = states.length === 1 ? states[0] : "";
 
   try {
     const consumed = await serviceRpc(fetchImpl, env, "consume_connection_attempt_for", { candidate_state: state, expected_provider: "steam" });
-    if (!consumed.ok) { log("callback", "consume_failed"); return returnRedirect("error", "server_error"); }
+    if (!consumed.ok) { log("callback", "consume_failed"); return back("error", "server_error"); }
     const attempt = Array.isArray(consumed.body) ? consumed.body[0] : null;
     if (!attempt || attempt.status !== "OK") {
       const status = attempt?.status || "INVALID_STATE";
       log("callback", `state_${status}`);
-      return returnRedirect("error", STATE_REASON[status] || "invalid_state");
+      return back("error", STATE_REASON[status] || "invalid_state");
     }
 
     const finish = outcome => serviceRpc(fetchImpl, env, "finish_connection_attempt", { candidate_attempt_id: attempt.attempt_id, candidate_outcome: outcome });
@@ -284,14 +298,14 @@ export async function handleCallback({ request, env, fetchImpl = fetch, log = ()
     if (searchParams.get("openid.mode") === "cancel") {
       await finish("DENIED");
       log("callback", "cancelled");
-      return returnRedirect("cancelled");
+      return back("cancelled");
     }
 
-    const verified = await verifyAssertion({ searchParams, expectedReturnTo: returnToFor(env.supabaseUrl, state), fetchImpl, nowMs });
+    const verified = await verifyAssertion({ searchParams, expectedReturnTo: returnToFor(env.supabaseUrl, state, site), fetchImpl, nowMs });
     if (!verified.ok) {
       await finish(verified.reason === "provider_unavailable" ? "PROVIDER_ERROR" : "EXCHANGE_FAILED");
       log("callback", `verify_${verified.reason}`);
-      return returnRedirect("error", VERIFY_REASON[verified.reason] || "verification_failed");
+      return back("error", VERIFY_REASON[verified.reason] || "verification_failed");
     }
 
     const completed = await serviceRpc(fetchImpl, env, "complete_steam_connection_attempt", {
@@ -306,9 +320,9 @@ export async function handleCallback({ request, env, fetchImpl = fetch, log = ()
       try { log("callback", `profile_${await onLinked({ steamId: verified.steamId, fetchImpl, save: args => serviceRpc(fetchImpl, env, "save_steam_profile", args) })}`); } catch { log("callback", "profile_failed"); }
     }
     const [result, reason] = LINK_RESULT[outcome] || LINK_RESULT.PROVIDER_ERROR;
-    return returnRedirect(result, reason);
+    return back(result, reason);
   } catch (error) {
     log("callback", `unexpected_${error?.name || "error"}`);
-    return returnRedirect("error", "server_error");
+    return back("error", "server_error");
   }
 }

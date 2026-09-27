@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createHmac, randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import {
-  RETURN_URL, SITE_ORIGIN, STEAM_OPENID, buildAuthenticationUrl, callbackUrlFor, checkAssertionLocally, handleCallback, handleStart, readEnv, realmFor, returnToFor, verifyAssertion,
+  RETURN_URL, SITE_ORIGIN, STEAM_OPENID, STEAM_SITES, buildAuthenticationUrl, callbackUrlFor, checkAssertionLocally, handleCallback, handleStart, readEnv, realmFor, returnToFor, verifyAssertion,
 } from "../supabase/functions/_shared/steam-openid.js";
 
 const SUPABASE = "https://example-project.supabase.co";
@@ -555,4 +555,48 @@ test("the Steam module holds no credential, requests no Steam Web API, and does 
     assert.doesNotMatch(entry, /discord/i, "Steam functions are isolated from the Discord provider module");
   }
   assert.doesNotMatch(code, /discord/i, "the Steam provider module has no Discord dependency");
+});
+
+// ------------------------------------------------------------------------------------------------ post-Round 2: both TESTING sites (Cloudflare + GitHub Pages)
+
+const CF = "https://gamid-testing-static.gamid.workers.dev";
+test("post-Round 2: Steam can be (re)connected from the Cloudflare TESTING site - CORS allows it, and the flow returns to THAT site's account page", async () => {
+  assert.deepEqual(STEAM_SITES.cf, { origin: CF, returnUrl: `${CF}/account/` });
+  const world = makeWorld();
+  const preflight = await handleStart({ request: new Request(`${SUPABASE}/functions/v1/steam-connect-start`, { method: "OPTIONS", headers: { origin: CF } }), env: ENV, fetchImpl: world.fetch });
+  assert.equal(preflight.headers.get("access-control-allow-origin"), CF, "the browser's preflight from the Cloudflare site is answered (it was not: 'couldn't be reached')");
+  const started = await handleStart({ request: startRequest({ authorization: "Bearer user-a-jwt", origin: CF }), env: ENV, fetchImpl: world.fetch });
+  assert.equal(started.status, 200);
+  assert.equal(started.headers.get("access-control-allow-origin"), CF);
+  const authUrl = new URL((await started.json()).authorization_url);
+  const returnTo = authUrl.searchParams.get("openid.return_to");
+  const state = new URL(returnTo).searchParams.get("state");
+  assert.equal(returnTo, `${CALLBACK}?state=${state}&site=cf`, "the site travels INSIDE return_to, which Steam signs");
+  // Steam signs that exact return_to and sends the browser back to it
+  const fields = world.steam.assertion({ steamId: STEAM_A, returnTo });
+  const params = new URLSearchParams({ state, site: "cf", ...fields });
+  const back = await runCallback(world, new Request(`${CALLBACK}?${params}`));
+  assert.equal(location(back).origin + location(back).pathname, `${CF}/account/`);
+  assert.equal(location(back).searchParams.get("result"), "connected");
+  // the original site is unchanged: no site parameter, same return_to and return address as before
+  const gh = setup();
+  const ghBack = await runCallback(gh.world, callbackRequest(gh.state, gh.fields));
+  assert.equal(location(ghBack).href.startsWith(RETURN_URL), true);
+  assert.equal(returnToFor(SUPABASE, gh.state), `${CALLBACK}?state=${gh.state}`);
+});
+
+test("post-Round 2: the site key can only choose between the two fixed addresses, and it is covered by Steam's signature", async () => {
+  // a forged value falls back to the original site - never an attacker address
+  const { world, state, fields } = setup();
+  const forged = await runCallback(world, callbackRequest(state, { ...fields, site: "https://evil.example" }));
+  assert.equal(location(forged).origin, SITE_ORIGIN);
+  // an assertion Steam signed for the GitHub Pages return_to cannot be replayed as a Cloudflare one (return_to must match exactly)
+  const other = setup();
+  const swapped = await runCallback(other.world, callbackRequest(other.state, { ...other.fields, site: "cf" }));
+  assert.equal(location(swapped).origin, CF);
+  assert.equal(location(swapped).searchParams.get("result"), "error");
+  assert.equal(other.world.connections.length, 0, "nothing was linked");
+  // an unknown origin is still refused
+  const refused = await handleStart({ request: startRequest({ authorization: "Bearer user-a-jwt", origin: "https://evil.example" }), env: ENV, fetchImpl: makeWorld().fetch });
+  assert.equal(refused.status, 403);
 });

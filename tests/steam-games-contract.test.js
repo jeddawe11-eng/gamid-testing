@@ -173,7 +173,8 @@ test("the Steam Web API key is server-side only: it appears in exactly one sourc
 });
 
 test("the module only ever talks to the official API host and the Supabase project; it never scrapes Steam pages", () => {
-  const urls = [...module.matchAll(/https?:\/\/[a-z0-9.-]+/gi)].map(match => match[0]).filter(url => !/jeddawe11-eng|specs\.openid/.test(url));
+  // (the two TESTING site origins are CORS allow-list entries, not hosts the module contacts)
+  const urls = [...module.matchAll(/https?:\/\/[a-z0-9.-]+/gi)].map(match => match[0]).filter(url => !/jeddawe11-eng|gamid-testing-static\.gamid\.workers\.dev|specs\.openid/.test(url));
   assert.deepEqual([...new Set(urls)], ["https://api.steampowered.com"]);
   assert.doesNotMatch(module, /steamcommunity\.com|store\.steampowered|\/profiles\/|\/games\/\?|xml=1|cheerio|DOMParser|querySelector|puppeteer/i);
   assert.doesNotMatch(module, /GetPlayerSummaries|GetRecentlyPlayedGames|GetUserStatsForGame|GetPlayerAchievements|GetSteamLevel|ISteamUserStats/);

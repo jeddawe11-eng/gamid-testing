@@ -164,7 +164,10 @@ function json(body, status, extra = {}) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...extra } });
 }
 
-const corsFor = origin => (origin === SITE_ORIGIN ? { "Access-Control-Allow-Origin": SITE_ORIGIN, Vary: "Origin" } : { Vary: "Origin" });
+// Both TESTING sites host the account page: the original GitHub Pages site and Cloudflare TESTING (post-Round 2 manual-acceptance finding - Refresh games on
+// the Cloudflare site was refused by CORS and reported "the games service couldn't be reached").
+export const ALLOWED_ORIGINS = Object.freeze([SITE_ORIGIN, "https://gamid-testing-static.gamid.workers.dev"]);
+const corsFor = origin => (ALLOWED_ORIGINS.includes(origin) ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : { Vary: "Origin" });
 
 async function rpc(fetchImpl, env, name, args, { bearer, apikey }) {
   const response = await fetchImpl(`${String(env.supabaseUrl).replace(/\/+$/, "")}/rest/v1/rpc/${name}`, {
@@ -199,7 +202,7 @@ export async function handleRefresh({ request, env, fetchImpl = fetch, log = () 
     });
   }
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405, cors);
-  if (origin && origin !== SITE_ORIGIN) return json({ error: "origin_not_allowed" }, 403);
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) return json({ error: "origin_not_allowed" }, 403);
   if (!platformConfigured(env)) return json({ error: "not_configured" }, 503, cors);
 
   const match = /^Bearer\s+([A-Za-z0-9._~+/=-]+)$/.exec(request.headers.get("authorization") || "");
