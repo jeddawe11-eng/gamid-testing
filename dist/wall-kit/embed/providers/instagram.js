@@ -12,6 +12,7 @@ export const instagram = defineProvider({
   label: "Instagram",
   hosts: ["instagram.com", "www.instagram.com", "m.instagram.com"],
   frameOrigins: ["https://www.instagram.com"],
+  examples: "instagram.com/p/…  ·  instagram.com/reel/…  ·  instagram.com/name",
   kinds: {
     post: { label: "Post", id: CODE, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 540, height: 700 }, minInline: { w: 326, h: 420 } },
     reel: { label: "Reel", id: CODE, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 540, height: 700 }, minInline: { w: 326, h: 420 } },

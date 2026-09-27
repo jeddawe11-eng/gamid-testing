@@ -8,7 +8,8 @@ import { createImagePayload } from "../wall-kit/image.js";
 import { defaultBackground, createImageBackground } from "../wall-kit/background.js";
 import { GAMID_BLOCKS, GAMID_BLOCK_INFO, createGamidPayload } from "../wall-kit/gamid.js";
 import { startingImageSize } from "../wall-kit/assets.js";
-import { PROVIDERS, detectEmbed, buildEmbedPayload, defaultEmbedSize, humanReason } from "../wall-kit/embed/engine.js";
+import { PROVIDERS, detectEmbed, buildEmbedPayload, defaultEmbedSize, humanReason, PRESENTATION_LABELS } from "../wall-kit/embed/engine.js";
+import { mediaCapabilities } from "../wall-kit/embed/index.js";
 import { fitFrame } from "../wall-kit/embed/player.js";
 
 const h = (tag, attributes = {}, ...children) => {
@@ -70,7 +71,34 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
 
   // ---- Media & Links -------------------------------------------------------------------------------------------------------------------------
   const mediaUrl = $("mediaUrl"), mediaResult = $("mediaResult");
-  $("mediaSupported").textContent = `Supported: ${[...PROVIDERS.values()].map(provider => provider.label).join(", ")}. Paste an address - never embed code.`;
+  $("mediaSupported").textContent = "Paste a normal web address - never embed code. Only these platforms are accepted.";
+  // Provider discovery: every supported platform with the modes it HONESTLY supports (derived from the adapters, never a hand-written list). A platform button opens
+  // what can be pasted for it, per content type, with its modes and player shapes.
+  const providerList = $("mediaProviders"), providerInfo = $("mediaProviderInfo");
+  let openProvider = null;
+  const capabilities = mediaCapabilities();
+  function renderProviderInfo() {
+    for (const button of providerList.querySelectorAll("button")) button.setAttribute("aria-expanded", String(button.dataset.provider === openProvider));
+    const entry = capabilities.find(item => item.key === openProvider);
+    providerInfo.hidden = !entry;
+    if (!entry) { providerInfo.replaceChildren(); return; }
+    const rows = entry.kinds.map(kind => h("li", {},
+      h("strong", { text: kind.label }),
+      h("span", { class: "modes", text: kind.presentations.map(value => PRESENTATION_LABELS[value]).join(" · ") }),
+      kind.aspects.length && kind.aspects[0] !== "auto" ? h("span", { class: "shapes", text: `Player shape${kind.aspects.length > 1 ? "s" : ""}: ${kind.aspects.join(", ")}` }) : null));
+    providerInfo.replaceChildren(
+      h("strong", { class: "title", text: entry.label }),
+      h("p", { class: "ed-hint", text: entry.player ? "Plays right on your Wall where it says Player." : `No player: ${entry.label} opens on ${entry.label} (Card or Link).` }),
+      h("ul", {}, ...rows),
+      entry.examples ? h("p", { class: "ed-hint", text: `Paste: ${entry.examples}` }) : null);
+  }
+  for (const entry of capabilities) {
+    const modes = [...new Set(entry.kinds.flatMap(kind => kind.presentations))].map(value => PRESENTATION_LABELS[value]);
+    const button = h("button", { type: "button", class: `ed-provider${entry.featured ? "" : " is-extra"}`, "aria-expanded": "false", "aria-controls": "mediaProviderInfo", role: "listitem",
+      onclick: () => { openProvider = openProvider === entry.key ? null : entry.key; renderProviderInfo(); } }, h("b", { text: entry.label }), h("small", { text: modes.join(" · ") }));
+    button.dataset.provider = entry.key;
+    providerList.append(button);
+  }
   let timer = 0;
   const choice = { presentation: null, aspect: null, caption: "" };
   function renderDetected(detected) {

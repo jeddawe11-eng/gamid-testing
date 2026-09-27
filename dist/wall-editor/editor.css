@@ -104,6 +104,19 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-media-card strong { font-size: .9rem; }
 .ed-media-card .tag { color: var(--cyan); font-size: .62rem; letter-spacing: .12em; font-weight: 800; }
 .ed-media-msg { padding: .6rem .75rem; border: 1px solid #754151; border-radius: .7rem; background: #28151c; color: #ffc1cd; font-size: .76rem; line-height: 1.4; }
+/* Media & Links provider discovery: a wrapping grid of platform buttons (each a full touch target) and the details of the one that is open */
+.ed-providers { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: .4rem; margin: .4rem 0 .6rem; }
+.ed-provider { display: grid; gap: .1rem; min-width: 0; min-height: 2.9rem; padding: .35rem .55rem; border: 1px solid #3a334b; border-radius: .6rem; background: #1c1828; text-align: left; cursor: pointer; }
+.ed-provider b { font-size: .78rem; overflow-wrap: anywhere; }
+.ed-provider small { color: var(--muted); font-size: .6rem; font-weight: 600; }
+.ed-provider.is-extra { border-style: dashed; }
+.ed-provider[aria-expanded="true"] { border-color: var(--cyan); background: #0d2530; }
+.ed-provider-info { padding: .7rem .8rem; border: 1px solid #3a334b; border-radius: .8rem; background: #17132a; margin-bottom: .6rem; }
+.ed-provider-info .title { display: block; margin-bottom: .2rem; color: var(--cyan); letter-spacing: .04em; }
+.ed-provider-info ul { list-style: none; margin: .4rem 0; padding: 0; display: grid; gap: .35rem; }
+.ed-provider-info li { display: grid; gap: .05rem; font-size: .76rem; }
+.ed-provider-info .modes { color: #d5d0df; font-weight: 700; font-size: .7rem; }
+.ed-provider-info .shapes { color: var(--muted); font-size: .66rem; }
 .ed-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .6rem; }
 .ed-chip { min-width: 2.75rem; min-height: 2.75rem; border-radius: .7rem; border: 1px solid #3a334b; background: #1c1828; font-weight: 800; cursor: pointer; }
 .ed-chip[aria-selected="true"] { border-color: var(--cyan); color: var(--cyan); background: #0d2530; }

@@ -390,6 +390,9 @@ export function setEmbedData(doc, id, patch) {
   const found = locate(doc, id);
   if (!found) return fail(doc, "ELEMENT_NOT_FOUND");
   if (found.element.type !== "embed") return fail(doc, "NOT_AN_EMBED");
+  // a Player may only take a shape its provider offers for this content (the adapter's own list, never another provider's)
+  const kindSpec = PROVIDERS.get(found.element.payload.providerKey)?.kinds?.[found.element.payload.data?.kind];
+  if (patch.aspect !== undefined && !(kindSpec?.aspects ?? [kindSpec?.aspect]).includes(patch.aspect)) return fail(doc, "INVALID_ASPECT");
   const next = clone(doc);
   const element = locate(next, id).element;
   const before = embedDescriptor(element);

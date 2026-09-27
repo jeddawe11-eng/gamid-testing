@@ -226,9 +226,15 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     root.append(h("p", { class: "ed-hint", text: `${provider?.label ?? "Link"} · ${kind?.label ?? ""}. Nothing loads from ${provider?.label ?? "the provider"} while you edit; use Preview to try it.` }));
     // one operation: the data change and, for a player, the box refitted to the selected aspect (one undo step)
     const patchData = patch => ops.setEmbedData(session.doc, session.state.selection[0], patch);
+    // Only the presentations this content honestly supports (a Player only where the provider has a working official player).
     const presentations = [{ value: "card", label: "Card" }, { value: "link", label: "Link" }, ...(kind?.inline ? [{ value: "embed", label: "Player" }] : [])];
     root.append(selectField({ label: "Show as", options: presentations, get: item => item.payload.data.presentation, set: value => patchData({ presentation: value }), key: "embedShow" }));
-    if ((kind?.aspects?.length ?? 0) > 1) root.append(selectField({ label: "Shape", options: kind.aspects.map(value => ({ value, label: value })), get: item => item.payload.data.aspect ?? kind.aspect, set: value => patchData({ aspect: value === kind.aspect ? undefined : value }), key: "embedAspect" }));
+    if (!kind?.inline) root.append(h("p", { class: "ed-hint", text: `${provider?.label ?? "This platform"} has no player for this content, so it opens on ${provider?.label ?? "the platform"} as a Card or Link.` }));
+    // Shape: a Player's own shapes from its adapter (never a copied list); a card keeps its own box, so it has no Shape.
+    const shapes = (kind?.aspects ?? []).filter(value => value !== "auto");
+    if (element.payload.data.presentation === "embed" && shapes.length > 1) root.append(selectField({ label: "Shape", options: shapes.map(value => ({ value, label: value })), get: item => item.payload.data.aspect ?? kind.aspect, set: value => patchData({ aspect: value === kind.aspect ? undefined : value }), key: "embedAspect" }));
+    else if (element.payload.data.presentation === "embed" && shapes.length === 1) root.append(h("p", { class: "ed-hint", text: `Shape: ${shapes[0]} - set by ${provider?.label ?? "the provider"}'s player.` }));
+    else if (element.payload.data.presentation === "embed") root.append(h("p", { class: "ed-hint", text: `${provider?.label ?? "This"} player sizes itself to its box.` }));
     root.append(textInput({ label: "Caption", max: 80, get: item => item.payload.data.caption ?? "", set: value => patchData({ caption: value === "" ? undefined : value }), key: "embedCaption" }));
     const descriptor = elementRegistry.get("embed").render(element.payload).content;
     if (descriptor && isAllowedOpenUrl(descriptor.providerKey, descriptor.openUrl)) {
@@ -324,7 +330,8 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
   return {
     update() {
       const targets = selectedElements();
-      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}`).join(",")}|${session.doc.stages.length}`;
+      // (an embed's presentation is part of the key: switching Card <-> Player changes which controls apply, e.g. Shape)
+      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}`).join(",")}|${session.doc.stages.length}`;
       if (key !== builtKey) { builtKey = key; rebuild(targets); }
       if (targets.length) for (const sync of syncers) sync(targets);
     },

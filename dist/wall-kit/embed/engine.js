@@ -65,6 +65,7 @@ export function describeEmbed(provider, data) {
     aspect: data.aspect ?? kind.aspect,
     inline: wantsPlayer,
     minInline: kind.minInline ?? null,
+    ...(kind.minFrame ? { minFrame: kind.minFrame } : {}),
     openUrl: provider.openUrl(data.kind, data.id),
     embedUrl: wantsPlayer ? provider.embedUrl(data.kind, data.id) : null,
     frameOrigins: wantsPlayer ? provider.frameOrigins : [],
@@ -104,7 +105,7 @@ export function detectEmbed(text) {
     const found = provider.parse(parsed.url);
     if (!found || !Object.hasOwn(provider.kinds, found.kind) || !idOk(provider.kinds[found.kind], found.id)) continue;
     const kind = provider.kinds[found.kind];
-    const presentations = kind.inline ? ["embed", "card", "link"] : ["card", "link"];
+    const presentations = presentationsFor(kind);
     return {
       ok: true, providerKey: provider.key, providerLabel: provider.label, kind: found.kind, kindLabel: kind.label, id: found.id, profile: !!kind.profile,
       presentations, defaultPresentation: presentations[0], aspect: found.aspect ?? kind.aspect, aspects: kind.aspects ?? [], size: kind.size,
@@ -137,6 +138,22 @@ export const humanReason = {
   get UNSUPPORTED_SITE() { return `That site is not supported yet. Supported: ${[...PROVIDERS.values()].map(provider => provider.label).join(", ")}.`; },
   UNRECOGNIZED_CONTENT: "That is a supported site, but this kind of page cannot be added. Paste a link to a video, post, profile, channel or invite instead.",
 };
+
+// ---- capability matrix (what the editor tells the owner, derived ONLY from the adapters - there is no second list to drift) ------------------------------
+export const PRESENTATION_LABELS = Object.freeze({ embed: "Player", card: "Card", link: "Link" });
+// Presentations a kind can honestly be shown as: a Player only where the provider has a working official player for that content.
+export const presentationsFor = kind => (kind.inline ? ["embed", "card", "link"] : ["card", "link"]);
+// `featuredOrder`: the provider keys to list first, in that order (the registry module supplies it; this engine names no provider). Every other registered provider
+// follows, marked featured: false.
+export function capabilityMatrix(featuredOrder = []) {
+  const featured = featuredOrder.filter(key => PROVIDERS.has(key));
+  const ordered = [...featured, ...[...PROVIDERS.keys()].filter(key => !featured.includes(key))];
+  return ordered.map(key => {
+    const provider = PROVIDERS.get(key);
+    const kinds = Object.entries(provider.kinds).map(([kind, spec]) => ({ kind, label: spec.label, presentations: presentationsFor(spec), aspects: spec.inline ? [...(spec.aspects ?? [spec.aspect])] : [] }));
+    return { key, label: provider.displayLabel ?? provider.label, examples: provider.examples ?? "", featured: featured.includes(key), player: kinds.some(kind => kind.presentations.includes("embed")), kinds };
+  });
+}
 
 // The union of every origin an enabled player may load from: the page's `frame-src` is exactly this list (a test keeps them identical).
 export const frameOrigins = () => [...new Set([...PROVIDERS.values()].flatMap(provider => provider.frameOrigins))].sort();

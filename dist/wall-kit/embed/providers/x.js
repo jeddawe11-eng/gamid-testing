@@ -9,6 +9,8 @@ const RESERVED = new Set(["home", "explore", "i", "search", "settings", "message
 export const x = defineProvider({
   key: "x",
   label: "X",
+  displayLabel: "X / Twitter",
+  examples: "x.com/name/status/…  ·  twitter.com/name/status/…  ·  x.com/name",
   hosts: ["x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com"],
   frameOrigins: ["https://platform.twitter.com"],
   kinds: {

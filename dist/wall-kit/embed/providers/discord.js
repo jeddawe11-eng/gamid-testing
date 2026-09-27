@@ -8,6 +8,7 @@ export const discord = defineProvider({
   label: "Discord",
   hosts: ["discord.gg", "discord.com", "www.discord.com", "discordapp.com", "www.discordapp.com", "dsc.gg"],
   frameOrigins: [],
+  examples: "discord.gg/…",
   kinds: {
     invite: { label: "Server invite", id: "^[A-Za-z0-9-]{2,32}$", inline: false, aspect: "auto", size: { width: 800, height: 240 } },
   },

@@ -1,19 +1,25 @@
-// Twitch. Official embeds: https://player.twitch.tv/?channel=<login>|video=v<id>&parent=<page host> and https://clips.twitch.tv/embed?clip=<slug>&parent=<page host>.
-// Twitch REQUIRES the embedding page's host in `parent` (verified: its frame-ancestors follows it), which the player fills in at runtime from the page it is on.
-// Page CSP needs frame-src https://player.twitch.tv and https://clips.twitch.tv. Live/offline status is not read (Twitch needs an API key for that): deferred.
+// Twitch. Official embeds (dev.twitch.tv/docs/embed/video-and-clips): https://player.twitch.tv/?channel=<login>|video=v<id>&parent=<page host> and
+// https://clips.twitch.tv/embed?clip=<slug>&parent=<page host>. Twitch REQUIRES the embedding page's host in `parent` (verified: its frame-ancestors follows it), which
+// the player fills in at runtime from the page it is on. Twitch also documents a MINIMUM player size of 400 x 300 px (manual-QA finding: the Wall allowed 400x225 inline
+// and ~358x201 in a phone's larger player, both below it). minInline is therefore 400 x 300 for the FRAME: a smaller box opens the larger in-page player, and where even
+// that cannot reach 400 x 300 (most phones in portrait) the content opens on Twitch itself instead of showing a non-compliant player. 16:9 is the default shape; 4:3
+// reaches Twitch's minimum in a narrower box. Page CSP needs frame-src https://player.twitch.tv and https://clips.twitch.tv. Live/offline status is not read (Twitch needs
+// an API key for that): deferred.
 import { defineProvider } from "../engine.js";
 
 const RESERVED = new Set(["videos", "directory", "downloads", "jobs", "p", "settings", "subscriptions", "turbo", "wallet", "friends", "inventory", "drops", "prime", "store", "search", "login", "signup", "help", "legal", "about", "team", "popout", "embed", "moderator", "dashboard", "u"]);
+const MIN = { w: 400, h: 300 };
 
 export const twitch = defineProvider({
   key: "twitch",
   label: "Twitch",
   hosts: ["twitch.tv", "www.twitch.tv", "m.twitch.tv", "clips.twitch.tv"],
   frameOrigins: ["https://player.twitch.tv", "https://clips.twitch.tv"],
+  examples: "twitch.tv/name  ·  twitch.tv/videos/…  ·  clips.twitch.tv/…",
   kinds: {
-    channel: { label: "Channel", id: "^[A-Za-z0-9_]{3,25}$", inline: true, profile: true, aspect: "16:9", aspects: ["16:9"], size: { width: 800, height: 450 }, minInline: { w: 400, h: 225 } },
-    video: { label: "Video", id: "^[0-9]{5,15}$", inline: true, aspect: "16:9", aspects: ["16:9"], size: { width: 800, height: 450 }, minInline: { w: 400, h: 225 } },
-    clip: { label: "Clip", id: "^[A-Za-z0-9_-]{5,100}$", inline: true, aspect: "16:9", aspects: ["16:9"], size: { width: 800, height: 450 }, minInline: { w: 400, h: 225 } },
+    channel: { label: "Channel", id: "^[A-Za-z0-9_]{3,25}$", inline: true, profile: true, aspect: "16:9", aspects: ["16:9", "4:3"], size: { width: 800, height: 450 }, minInline: MIN, minFrame: MIN },
+    video: { label: "Video", id: "^[0-9]{5,15}$", inline: true, aspect: "16:9", aspects: ["16:9", "4:3"], size: { width: 800, height: 450 }, minInline: MIN, minFrame: MIN },
+    clip: { label: "Clip", id: "^[A-Za-z0-9_-]{5,100}$", inline: true, aspect: "16:9", aspects: ["16:9", "4:3"], size: { width: 800, height: 450 }, minInline: MIN, minFrame: MIN },
   },
   parse(url) {
     const host = url.hostname.toLowerCase();

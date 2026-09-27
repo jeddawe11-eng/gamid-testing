@@ -9,6 +9,7 @@ export const steam = defineProvider({
   label: "Steam",
   hosts: ["store.steampowered.com", "steamcommunity.com", "www.steamcommunity.com"],
   frameOrigins: ["https://store.steampowered.com"],
+  examples: "store.steampowered.com/app/…  ·  steamcommunity.com/id/…",
   kinds: {
     app: { label: "Game", id: "^[0-9]{1,10}$", inline: true, aspect: "auto", aspects: ["auto"], size: { width: 800, height: 240 }, minInline: { w: 320, h: 100 } },
     profile: { label: "Profile", id: "^(7656119[0-9]{10}|[A-Za-z0-9_-]{2,32})$", inline: false, profile: true, aspect: "auto", size: { width: 800, height: 240 } },

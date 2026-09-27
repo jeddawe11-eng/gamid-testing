@@ -12,6 +12,7 @@ export const spotify = defineProvider({
   label: "Spotify",
   hosts: ["open.spotify.com"],
   frameOrigins: ["https://open.spotify.com"],
+  examples: "open.spotify.com/track/…  ·  /album/…  ·  /playlist/…  ·  /episode/…",
   kinds: {
     track: { ...compact, label: "Track" },
     episode: { ...compact, label: "Episode" },

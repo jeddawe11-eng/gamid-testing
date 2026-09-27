@@ -59,6 +59,27 @@ const CASES = [
   ["https://steamcommunity.com/id/gabelogannewell", "steam", "profile", "gabelogannewell", ["card", "link"]],
   ["https://steamcommunity.com/profiles/76561197960287930", "steam", "profile", "76561197960287930"],
   ["https://steamcommunity.com/groups/steam", "steam", "group", "steam", ["card", "link"]],
+  // post-QA provider set
+  ["https://www.tiktok.com/player/v1/6718335390845095173", "tiktok", "video", "6718335390845095173"],
+  ["https://soundcloud.com/forss/flickermood", "soundcloud", "track", "forss/flickermood", ["embed", "card", "link"]],
+  ["https://soundcloud.com/Forss/Flickermood?in=x", "soundcloud", "track", "forss/flickermood"],
+  ["https://soundcloud.com/forss/sets/soulhack", "soundcloud", "playlist", "forss/sets/soulhack", ["embed", "card", "link"]],
+  ["https://soundcloud.com/forss", "soundcloud", "profile", "forss", ["embed", "card", "link"]],
+  ["https://soundcloud.com/forss/tracks", "soundcloud", "profile", "forss"],
+  ["https://vimeo.com/76979871", "vimeo", "video", "76979871", ["embed", "card", "link"]],
+  ["https://vimeo.com/76979871/abcdef1234", "vimeo", "video", "76979871:abcdef1234"],
+  ["https://player.vimeo.com/video/76979871?h=abcdef1234", "vimeo", "video", "76979871:abcdef1234"],
+  ["https://vimeo.com/channels/staffpicks/76979871", "vimeo", "video", "76979871"],
+  ["https://vimeo.com/staff", "vimeo", "profile", "staff", ["card", "link"]],
+  ["https://kick.com/xqc", "kick", "channel", "xqc", ["embed", "card", "link"]],
+  ["https://player.kick.com/xqc", "kick", "channel", "xqc"],
+  ["https://www.facebook.com/facebook/videos/10153231379946729/", "facebook", "video", "10153231379946729", ["card", "link"]],
+  ["https://www.facebook.com/watch/?v=10153231379946729", "facebook", "video", "10153231379946729"],
+  ["https://www.facebook.com/reel/1234567890123", "facebook", "reel", "1234567890123", ["card", "link"]],
+  ["https://www.facebook.com/NASA", "facebook", "page", "NASA", ["card", "link"]],
+  ["https://www.snapchat.com/spotlight/W7_EDlXWTBiXAEEniNoMPwAAYdWxvYnBhaHR3AaARhNpsAaARhNmWAAAAAQ", "snapchat", "spotlight", "W7_EDlXWTBiXAEEniNoMPwAAYdWxvYnBhaHR3AaARhNpsAaARhNmWAAAAAQ", ["embed", "card", "link"]],
+  ["https://www.snapchat.com/add/snapchat", "snapchat", "profile", "snapchat", ["card", "link"]],
+  ["https://www.snapchat.com/@snapchat", "snapchat", "profile", "snapchat"],
 ];
 
 test("recognition: every supported URL shape maps to (provider, kind, id) with the right presentation choices", () => {
@@ -72,8 +93,8 @@ test("recognition: every supported URL shape maps to (provider, kind, id) with t
   }
 });
 
-test("recognition: all eight initial providers are registered, and every one is reachable by a recognised URL", () => {
-  assert.deepEqual([...PROVIDERS.keys()].sort(), ["discord", "instagram", "spotify", "steam", "tiktok", "twitch", "x", "youtube"]);
+test("recognition: every provider is registered (the post-QA Media & Links set plus Discord and Steam), and every one is reachable by a recognised URL", () => {
+  assert.deepEqual([...PROVIDERS.keys()].sort(), ["discord", "facebook", "instagram", "kick", "snapchat", "soundcloud", "spotify", "steam", "tiktok", "twitch", "vimeo", "x", "youtube"]);
   assert.deepEqual([...new Set(CASES.map(entry => entry[1]))].sort(), [...PROVIDERS.keys()].sort());
   for (const key of PROVIDERS.keys()) assert.ok(providerRegistry.has(key), `${key} is registered with the Wall core's provider registry`);
 });
@@ -170,7 +191,10 @@ test("capabilities: inline players exist only where the provider has an official
   assert.deepEqual(inline, {
     discord: [], instagram: ["post", "reel"], spotify: ["album", "artist", "episode", "playlist", "show", "track"], steam: ["app"],
     tiktok: ["video"], twitch: ["channel", "clip", "video"], x: ["post"], youtube: ["playlist", "video"],
+    // post-QA: each verified to render inside the Wall sandbox; Facebook's official player needs its JS SDK (card/link only); Snapchat profiles have no working embed
+    soundcloud: ["playlist", "profile", "track"], vimeo: ["video"], kick: ["channel"], facebook: [], snapchat: ["spotlight"],
   });
+  assert.deepEqual(PROVIDERS.get("facebook").frameOrigins, [], "Facebook loads nothing from the Wall");
   assert.deepEqual(PROVIDERS.get("discord").frameOrigins, [], "Discord loads nothing from the Wall");
 });
 
@@ -188,7 +212,7 @@ test("descriptor: plain data only - no markup, no functions; the player address 
   assert.match(render("twitch", { kind: "channel", id: "shroud", presentation: "embed" }).embedUrl, /\{parent\}/, "Twitch's required parent is filled in at play time from the page host");
   assert.equal(render("spotify", { kind: "track", id: "4uLU6hMCjMI75M1A2tKUQC", presentation: "embed" }).embedUrl, "https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC?utm_source=generator");
   assert.equal(render("steam", { kind: "app", id: "730", presentation: "embed" }).embedUrl, "https://store.steampowered.com/widget/730/");
-  assert.equal(render("tiktok", { kind: "video", id: "6718335390845095173", presentation: "embed" }).embedUrl, "https://www.tiktok.com/embed/v2/6718335390845095173");
+  assert.equal(render("tiktok", { kind: "video", id: "6718335390845095173", presentation: "embed" }).embedUrl, "https://www.tiktok.com/player/v1/6718335390845095173?music_info=1&description=1&rel=0", "TikTok's official iframe Embed Player (post-QA: embed/v2 stayed black)");
   assert.equal(render("instagram", { kind: "post", id: "CuY0Yv7Bv2k", presentation: "embed" }).embedUrl, "https://www.instagram.com/p/CuY0Yv7Bv2k/embed/");
   assert.equal(render("x", { kind: "post", id: "20", presentation: "embed" }).embedUrl, "https://platform.twitter.com/embed/Tweet.html?id=20&dnt=true&theme=dark");
 });
@@ -196,7 +220,9 @@ test("descriptor: plain data only - no markup, no functions; the player address 
 test("every address a player loads or a visitor follows stays inside its own provider's allowlist (frame origins and hosts)", () => {
   for (const provider of PROVIDERS.values()) {
     for (const [name, kind] of Object.entries(provider.kinds)) {
-      const id = { youtube: { video: "dQw4w9WgXcQ", playlist: "PLrEnWoR732-BHrPp_Pm8_VleD68f9s14-", channel: "@MrBeast" }, spotify: Object.fromEntries(Object.keys(provider.kinds).map(k => [k, "4uLU6hMCjMI75M1A2tKUQC"])), twitch: { channel: "shroud", video: "123456789", clip: "Funny-abcdef" }, tiktok: { video: "6718335390845095173", profile: "@scout2015" }, instagram: { post: "CuY0Yv7Bv2k", reel: "CuY0Yv7Bv2k", profile: "natgeo" }, x: { post: "20", profile: "jack" }, discord: { invite: "abcDEF" }, steam: { app: "730", profile: "gabelogannewell", group: "steam" } }[provider.key][name];
+      const id = { youtube: { video: "dQw4w9WgXcQ", playlist: "PLrEnWoR732-BHrPp_Pm8_VleD68f9s14-", channel: "@MrBeast" }, spotify: Object.fromEntries(Object.keys(provider.kinds).map(k => [k, "4uLU6hMCjMI75M1A2tKUQC"])), twitch: { channel: "shroud", video: "123456789", clip: "Funny-abcdef" }, tiktok: { video: "6718335390845095173", profile: "@scout2015" }, instagram: { post: "CuY0Yv7Bv2k", reel: "CuY0Yv7Bv2k", profile: "natgeo" }, x: { post: "20", profile: "jack" }, discord: { invite: "abcDEF" }, steam: { app: "730", profile: "gabelogannewell", group: "steam" },
+        soundcloud: { track: "forss/flickermood", playlist: "forss/sets/soulhack", profile: "forss" }, vimeo: { video: "76979871:abcdef1234", profile: "staff" }, kick: { channel: "xqc" },
+        facebook: { video: "10153231379946729", reel: "1234567890123", page: "NASA" }, snapchat: { spotlight: "W7_EDlXWTBiXAEEniNoMPwAAYdWxvYnBhaHR3AaARhNpsAaARhNmWAAAAAQ", profile: "snapchat" } }[provider.key][name];
       assert.equal(isAllowedOpenUrl(provider.key, provider.openUrl(name, id)), true, `${provider.key}/${name} open URL`);
       const embed = provider.embedUrl(name, id);
       if (kind.inline) assert.equal(isAllowedFrameUrl(provider.key, embed.replaceAll("{parent}", "example.com")), true, `${provider.key}/${name} frame URL`);
@@ -480,8 +506,12 @@ test("CSP: the editor page's frame-src is EXACTLY the union of the adapters' fra
 });
 
 test("database parity: the SQL provider table equals the JavaScript adapters (provider, kind, id pattern, inline)", () => {
-  const sql = readdirSync("supabase/migrations").filter(name => /_wall_/.test(name)).map(name => read(`supabase/migrations/${name}`)).join("\n");
-  const rows = [...sql.matchAll(/\('([a-z]+)', '([a-z0-9]+)', '(\^[^']+\$)', (true|false)\)/g)].map(match => `${match[1]}|${match[2]}|${match[3]}|${match[4]}`).sort();
+  // the LATEST migration that (re)defines private.wall_embed_specs() is what the database runs
+  const definitions = readdirSync("supabase/migrations").filter(name => /_wall_/.test(name)).sort().map(name => read(`supabase/migrations/${name}`)).filter(text => /function private\.wall_embed_specs\(\)/.test(text));
+  const latest = definitions[definitions.length - 1];
+  const block = latest.slice(latest.search(/function private\.wall_embed_specs\(\)/), latest.indexOf("as specs (provider, kind, id_pattern, inline)"));
+  const rows = [...block.matchAll(/\('([a-z]+)', '([a-z0-9]+)', '(\^[^']+\$)', (true|false)\)/g)].map(match => `${match[1]}|${match[2]}|${match[3]}|${match[4]}`).sort();
+  const sql = definitions.join("\n");
   const expected = [...PROVIDERS.values()].flatMap(provider => Object.entries(provider.kinds).map(([kind, spec]) => `${provider.key}|${kind}|${spec.id}|${spec.inline}`)).sort();
   assert.deepEqual(rows, expected);
   assert.match(sql, /'ddd'|wall_embed_data_errors/);

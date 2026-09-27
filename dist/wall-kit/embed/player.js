@@ -34,11 +34,15 @@ export function resolveFrameUrl(descriptor, hostname) {
 const RATIO = /^(\d+):(\d+)$/;
 export const ratioOf = aspect => { const match = RATIO.exec(aspect ?? ""); return match ? Number(match[1]) / Number(match[2]) : null; };
 
-// Is the box on screen big enough for an inline player? (px on screen, not stage units.)
+// Is the box on screen big enough for an inline player? (px on screen, not stage units.) What must meet the provider's minimum is the FRAME that will actually be drawn:
+// a fixed-ratio player is fitted inside the box (letterboxed, never stretched), so a wide-but-short box can hold a frame smaller than the box.
 export function fitsInline(descriptor, widthPx, heightPx) {
   if (!descriptor.minInline) return true;
-  return widthPx >= descriptor.minInline.w && heightPx >= descriptor.minInline.h;
+  const frame = ratioOf(descriptor.aspect) ? fitFrame(descriptor.aspect, widthPx, heightPx) : { width: widthPx, height: heightPx };
+  return frame.width >= descriptor.minInline.w && frame.height >= descriptor.minInline.h;
 }
+// A provider's documented HARD minimum for its player frame (Twitch: 400 x 300). A larger in-page player that cannot reach it is not shown at all.
+export const meetsMinFrame = (descriptor, size) => !descriptor.minFrame || (size.width >= descriptor.minFrame.w && size.height >= descriptor.minFrame.h);
 
 // The largest frame inside (maxW x maxH) that keeps a real aspect ratio (no stretching); providers with an "auto" ratio use the whole box.
 export function fitFrame(aspect, maxW, maxH) {
@@ -135,6 +139,7 @@ export function createPlayerManager({ doc = globalThis.document, hostname = glob
     closeActive(descriptor.providerKey);
     const { width: vw, height: vh } = viewport();
     const size = expandedSize(descriptor, vw, vh);
+    if (!meetsMinFrame(descriptor, size)) return false;   // e.g. Twitch on a phone in portrait: open it on Twitch instead of a player below Twitch's minimum
     const frame = buildFrame(descriptor, size);
     if (!frame) return false;
     const overlay = doc.createElement("div");
@@ -167,7 +172,8 @@ export function createPlayerManager({ doc = globalThis.document, hostname = glob
     return true;
   }
 
-  // What a tap on an embed does: small box -> larger player; big enough box -> inline; anything that cannot play -> open the content on its own site.
+  // What a tap on an embed does: small box -> larger player; big enough box -> inline; a player that cannot be shown at the provider's minimum, or cannot be built ->
+// open the content on its own site (a new tab), never a broken player.
   function activate(box, descriptor, { widthPx, heightPx, opener = null } = {}) {
     if (!descriptor.inline) return openContent(descriptor);
     const played = fitsInline(descriptor, widthPx, heightPx - INLINE_BAR_PX) ? playInline(box, descriptor, widthPx, heightPx, opener) : openExpanded(descriptor, opener);

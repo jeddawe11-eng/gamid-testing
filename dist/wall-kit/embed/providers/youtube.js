@@ -10,6 +10,7 @@ export const youtube = defineProvider({
   label: "YouTube",
   hosts: ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be", "youtube-nocookie.com", "www.youtube-nocookie.com"],
   frameOrigins: ["https://www.youtube-nocookie.com"],
+  examples: "youtube.com/watch?v=…  ·  youtu.be/…  ·  youtube.com/shorts/…  ·  youtube.com/@channel",
   kinds: {
     // minTile: YouTube's documented smallest thumbnail/tile that may start playback (120 x 70 CSS px) - the Wall's minimum size for a YouTube player element
     video: { label: "Video", id: VIDEO, inline: true, aspect: "16:9", aspects: ["16:9", "9:16", "1:1", "4:3"], size: { width: 800, height: 450 }, minInline: { w: 200, h: 112 }, minTile: { w: 120, h: 70 } },

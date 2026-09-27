@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#08070d" />
   <meta name="robots" content="noindex" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://upvtrczefcvigxdyuylw.supabase.co; frame-src https://open.spotify.com https://platform.twitter.com https://player.twitch.tv https://clips.twitch.tv https://store.steampowered.com https://www.instagram.com https://www.tiktok.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://upvtrczefcvigxdyuylw.supabase.co; frame-src https://clips.twitch.tv https://open.spotify.com https://platform.twitter.com https://player.kick.com https://player.twitch.tv https://player.vimeo.com https://store.steampowered.com https://w.soundcloud.com https://www.instagram.com https://www.snapchat.com https://www.tiktok.com https://www.youtube-nocookie.com; object-src 'none'; base-uri 'none'; form-action 'none'" />
   <title>GamID — Wall Editor</title>
   <link rel="stylesheet" href="../wall-kit/wall-kit.css" />
   <link rel="stylesheet" href="editor.css" />
@@ -78,6 +78,10 @@
         <h2>Media &amp; Links</h2>
         <label class="ed-stack"><span>Paste a link</span><input id="mediaUrl" class="ed-text-line" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="Paste a video, post, profile or invite link" /></label>
         <div id="mediaResult" class="ed-media-result" aria-live="polite"></div>
+        <h2 class="ed-sub">Supported platforms</h2>
+        <p class="ed-hint">Tap a platform to see what you can paste and how it can show: <b>Player</b> plays on your Wall, <b>Card</b> and <b>Link</b> open it on the platform.</p>
+        <div id="mediaProviders" class="ed-providers" role="list"></div>
+        <div id="mediaProviderInfo" class="ed-provider-info" aria-live="polite" hidden></div>
         <p id="mediaSupported" class="ed-hint"></p>
         <p class="ed-hint">A pasted link is Wall content. Your connected accounts (identity) are managed in your GamID under My connections.</p>
       </section>
