@@ -38,6 +38,18 @@
 .wall-gamid .game-library-more { margin-left: auto; color: #aaa4b7; font-weight: 500; }
 .wall-gamid .game-library-chevron::before { content: "▾"; }
 .wall-gamid .game-library[data-expanded="true"] .game-library-chevron::before { content: "▴"; }
+/* visitor view: a game row / a connection is a button that opens its details (sized in em, so it scales with the Wall like the rest of the block) */
+.wall-gamid .wall-game-item { list-style: none; }
+.wall-gamid .wall-game.is-row { width: 100%; align-items: center; border: 1px solid rgba(255, 255, 255, .08); color: inherit; font: inherit; font-size: .75em; text-align: left; cursor: pointer; }
+.wall-gamid .wall-game.is-row:focus-visible, .wall-gamid .wall-connection:focus-visible { outline: .12em solid #62e7ff; outline-offset: .08em; }
+.wall-gamid .wall-game-copy { display: grid; gap: .1em; min-width: 0; flex: 1; }
+.wall-gamid .wall-game-name { overflow-wrap: anywhere; }
+.wall-gamid .wall-game-meta { color: #aaa4b7; font-size: .8em; overflow-wrap: anywhere; }
+.wall-gamid .wall-game-chevron { color: #aaa4b7; flex: none; }
+.wall-gamid .wall-connection { display: grid; gap: .1em; width: 100%; padding: .35em .8em; border: 1px solid rgba(98, 231, 255, .35); border-radius: .7em; background: transparent; color: inherit; font: inherit; font-size: .75em; text-align: left; cursor: pointer; }
+.wall-gamid .wall-connection span { color: #aaa4b7; font-size: .85em; overflow-wrap: anywhere; }
+.wall-gamid .wall-connection .wall-connection-trust { font-size: .7em; font-weight: 800; letter-spacing: .08em; color: #6ef0b5; }
+.wall-gamid .wall-connection .wall-connection-trust.is-caution { color: #ffc857; }
 
 /* the player overlay's frame sits on black; the inline holder fills its element box, with its Close bar above (never over) the player */
 .wall-player-inline { z-index: 2; }

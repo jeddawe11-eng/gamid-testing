@@ -217,6 +217,9 @@ test("route: the editor's imports are limited to the Wall core, the kit, its own
       assert.ok(specifier.startsWith(".") ? true : false, `${file} imports a bare/remote module ${specifier}`);
       const target = norm(resolve(dirname(file), specifier));
       assert.ok(existsSync(target), `${file} imports missing ${specifier}`);
+      // the ONE deliberate exception (post-QA, Games on the Wall): the accepted public My Games COMPONENT module (DOM-free; the caller injects `element`) is reused
+      // for Game Details so the Wall shows exactly what the public profile shows. The public PAGE (public.js) and everything else under /public/ stay off limits.
+      if (/\/dist\/public\/public-games\.js$/.test(target)) continue;
       assert.doesNotMatch(target, /play-together|\/public\//);
     }
   }

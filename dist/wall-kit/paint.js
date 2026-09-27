@@ -221,7 +221,7 @@ export function paintElement(item, scale, order, createNode, ctx = {}) {
   else if (content?.kind === "text") paintText(node, content, scale, createNode);
   else if (content?.kind === "image") paintImage(node, content, scale, item, createNode, ctx);
   else if (content?.kind === "embed" && content.content?.kind === "embed") paintEmbed(node, content.content, scale, item, createNode, ctx);
-  else if (content?.kind === "gamid") node.append(paintGamidBlock(content, ctx.gamid ?? null, createNode, { scale, interactive: ctx.mode === "view" }));
+  else if (content?.kind === "gamid") node.append(paintGamidBlock(content, ctx.gamid ?? null, createNode, { scale, interactive: ctx.mode === "view", details: ctx.details ?? null }));
   return node;
 }
 

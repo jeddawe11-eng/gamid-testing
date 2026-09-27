@@ -15,7 +15,8 @@ import { createCanvas } from "./canvas.js";
 import { createPropertiesPanel } from "./controls.js";
 import { createTools } from "./tools.js";
 import { createAssetStore } from "./assets.js";
-import { loadGamidSnapshot } from "./gamid-data.js";
+import { loadGamidSnapshot, PUBLIC_SOURCE_LABELS } from "./gamid-data.js";
+import { createWallDetails } from "../wall-kit/gamid-details.js";
 import { legacyAccountHandoffUrl } from "../account/testing-auth-handoff.js";
 import { rememberReturnTo } from "../account/post-auth-return.js";
 
@@ -268,6 +269,13 @@ $("conflictOverwrite").addEventListener("click", async () => {
 // ---- preview (visitor-style, the real render pipeline in VIEW mode; never touches the document) ------------------------------------------------------
 let previewMode = "mobile";
 let players = null;
+let details = null;   // Game Details / Connection Details, built once from the visitor view of this GamID (dist/wall-kit/gamid-details.js)
+function detailsFor(snapshot) {
+  const handle = snapshot?.public?.handle;
+  if (!handle) return null;
+  if (!details) details = createWallDetails({ element: make, handle, api, mount: node => document.body.append(node), sourceLabels: PUBLIC_SOURCE_LABELS });
+  return details;
+}
 function renderPreview() {
   const scroll = $("previewScroll");
   players?.destroyAll();
@@ -275,7 +283,7 @@ function renderPreview() {
   const available = Math.max(280, (scroll.clientWidth || window.innerWidth) - 16);
   const width = previewMode === "mobile" ? Math.min(390, available) : Math.min(900, available);
   // a Wall saved before the player-layering rule existed is shown with that rule applied (nothing drawn over a player); the document itself is not changed
-  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players });
+  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players, details: detailsFor(gamidSnapshot) });
   $("previewColumn").replaceChildren(...(painted.ok ? painted.stages : [make("p", "ed-empty", "This Wall cannot be previewed: " + describeErrors(painted.errors).join(" "))]));
   $("previewMobile").setAttribute("aria-pressed", String(previewMode === "mobile"));
   $("previewDesktop").setAttribute("aria-pressed", String(previewMode === "desktop"));
@@ -283,7 +291,7 @@ function renderPreview() {
 $("previewBtn").addEventListener("click", () => { $("preview").hidden = false; renderPreview(); $("previewScroll").scrollTop = 0; });
 $("previewMobile").addEventListener("click", () => { previewMode = "mobile"; renderPreview(); });
 $("previewDesktop").addEventListener("click", () => { previewMode = "desktop"; renderPreview(); });
-$("previewClose").addEventListener("click", () => { players?.destroyAll(); players = null; $("preview").hidden = true; $("previewColumn").replaceChildren(); });
+$("previewClose").addEventListener("click", () => { players?.destroyAll(); players = null; details?.closeAll(); $("preview").hidden = true; $("previewColumn").replaceChildren(); });
 
 // ---- keyboard (desktop) ------------------------------------------------------------------------------------------------------------------------------
 document.addEventListener("keydown", event => {

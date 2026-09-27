@@ -6,7 +6,8 @@
 //   - nothing is faked: a block with no data shows a plain "nothing to show yet" line.
 // The Games block reuses the accepted provider-neutral collapsible list (account/game-list.js): a bounded initial count, the total always shown, and an explicit
 // control to expand - it never renders hundreds of games by default.
-import { buildGameLibrary, gameListView } from "../account/game-list.js";
+import { buildGameLibrary, gameListView, gameListToggleLabel } from "../account/game-list.js";
+import { sourceBadges } from "../public/public-games.js";
 import { markInteractive } from "./interaction.js";
 
 export const BLOCK_TITLES = Object.freeze({ profile: "GAMID", roles: "GAMING ROLES", games: "GAMES", connections: "CONNECTIONS" });
@@ -16,7 +17,9 @@ export const roleLabel = key => String(key).replace(/[_-]+/g, " ").replace(/\b\w
 
 // `interactive` (view mode only): the block's own controls opt in to taps through the shared policy in interaction.js. In the editor it is false, so the canvas keeps
 // every tap for selecting and dragging.
-export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onChange = () => {}, interactive = false } = {}) {
+// VIEW mode draws Games and Connections from `snapshot.public` - exactly what a visitor may see (see dist/wall-editor/gamid-data.js) - and makes them useful: a game
+// row opens its Game Details, a connection opens its details (`details`, dist/wall-kit/gamid-details.js). EDIT mode keeps drawing the owner's own data for designing.
+export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onChange = () => {}, interactive = false, details = null } = {}) {
   const el = (tag, className, text) => { const node = createNode(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
   const root = el("div", `wall-gamid wall-gamid-${content.block} is-${content.layout}`);
   const px = value => `${Math.round(value * scale * 100) / 100}px`;
@@ -26,6 +29,13 @@ export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onCh
   head.append(el("span", "wall-gamid-title", BLOCK_TITLES[content.block] ?? "GAMID"));
   root.append(head);
   if (!snapshot) { root.append(el("p", "wall-gamid-empty", "GamID data is not available here.")); return root; }
+  if (interactive && snapshot.public && (content.block === "games" || content.block === "connections")) {
+    const view = snapshot.public;
+    if (!view.available) { root.append(el("p", "wall-gamid-empty", "Visitors don't see this yet: your GamID is not public.")); return root; }
+    if (content.block === "games") paintVisitorGames(root, head, content, view, el, details, onChange);
+    else paintVisitorConnections(root, view, el, details);
+    return root;
+  }
   const section = snapshot[content.block];
   if (snapshot.visibility && snapshot.visibility[content.block] === false) head.append(el("span", "wall-gamid-private", "PRIVATE"));
 
@@ -73,6 +83,81 @@ export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onCh
     }
   }
   return root;
+}
+
+// ---- visitor view ------------------------------------------------------------------------------------------------------------------------------------
+// A game row a visitor can open: the name, the accepted source badges ("Steam · Discovered", "Manual" - never "verified"), a short rank/stat line when the owner shows
+// ranks & stats, and hours only when this block shows them AND the server sent them (the owner's playtime switch). Tapping it opens the accepted Game Details.
+function visitorGameRow(game, content, el, details) {
+  const item = el("li", "wall-game-item");
+  const button = el("button", "wall-game is-row");
+  button.type = "button";
+  const badges = sourceBadges(game).map(badge => badge.text);
+  button.setAttribute("aria-label", `${game.name}. ${badges.join(". ")}. Open game details`);
+  const copy = el("span", "wall-game-copy");
+  copy.append(el("span", "wall-game-name", game.year ? `${game.name} (${game.year})` : game.name));
+  const meta = [...badges];
+  if (game.stats?.fields?.length) meta.push(game.stats.fields.slice(0, 2).map(field => `${field.label} ${field.value}`).join(" · "));
+  if (meta.length) copy.append(el("span", "wall-game-meta", meta.join(" · ")));
+  button.append(copy);
+  if (content.showPlaytime === true && hoursLabel(game.playtimeMinutes)) button.append(el("span", "wall-game-hours", hoursLabel(game.playtimeMinutes)));
+  button.append(el("span", "wall-game-chevron", "›"));
+  button.addEventListener("click", () => details?.openGame?.(game, button));
+  item.append(button);
+  return item;
+}
+
+function paintVisitorGames(root, head, content, view, el, details, onChange) {
+  const games = view.games;
+  if (!games) { root.append(el("p", "wall-gamid-empty", "Visitors don't see your games: My Games is off on your GamID.")); return; }
+  const state = { expanded: false };
+  const mount = () => {
+    const shown = gameListView(games.libraryCount, state.expanded, content.initial);
+    const rows = state.expanded ? games.items : games.items.slice(0, shown.showing);
+    const wrap = el("div", "game-library");
+    wrap.dataset.expanded = String(shown.expanded);
+    const top = el("div", "game-library-head");
+    top.append(el("span", "game-library-title", ""), el("span", "game-library-count", `${games.libraryCount} game${games.libraryCount === 1 ? "" : "s"}`));
+    const list = el("ul", "game-list");
+    list.append(...rows.map(game => visitorGameRow(game, content, el, details)));
+    wrap.append(top, list);
+    const rerender = () => { root.replaceChildren(head, mount()); onChange(); };
+    if (state.expanded && games.items.length < games.totalCount) {
+      const more = el("button", "game-library-toggle wall-game-more", `Show more games (${games.totalCount - games.items.length} left)`);
+      more.type = "button";
+      more.addEventListener("click", async () => { more.disabled = true; await games.loadMore(); rerender(); });
+      wrap.append(more);
+    }
+    if (shown.collapsible) {
+      const toggle = el("button", "game-library-toggle");
+      toggle.type = "button";
+      toggle.setAttribute("aria-expanded", String(shown.expanded));
+      toggle.append(el("span", "game-library-chevron"), el("span", "game-library-toggle-text", gameListToggleLabel(shown)));
+      if (!shown.expanded) toggle.append(el("span", "game-library-more", `${shown.hidden} more`));
+      toggle.addEventListener("click", () => { state.expanded = !state.expanded; rerender(); });
+      wrap.append(toggle);
+    }
+    markInteractive(wrap);   // the list scrolls inside the block and every row, More and Show all / fewer take taps
+    return wrap;
+  };
+  root.append(mount());
+}
+
+function paintVisitorConnections(root, view, el, details) {
+  if (!view.connections.length) { root.append(el("p", "wall-gamid-empty", "No connections are shown on your GamID.")); return; }
+  const list = el("ul", "wall-gamid-connections");
+  for (const connection of view.connections) {
+    const li = el("li");
+    const button = el("button", "wall-connection");
+    button.type = "button";
+    button.setAttribute("aria-label", `${connection.label}: ${connection.name}. ${connection.trust}. Open details`);
+    button.append(el("strong", "", connection.label), el("span", "", connection.name), el("span", `wall-connection-trust is-${connection.tone === "caution" ? "caution" : "ok"}`, connection.trust));
+    button.addEventListener("click", () => details?.openConnection?.(connection, button));
+    li.append(button);
+    list.append(li);
+  }
+  markInteractive(list);
+  root.append(list);
 }
 
 // Pure helper for tests / the editor's summary: how many rows a block renders before the person expands anything.

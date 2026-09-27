@@ -6,11 +6,93 @@
 //   games        game NAMES (and minutes only if the owner's existing playtime setting is on) from discovered games and the owner's own manual games; total count
 //   visibility   whether each section is currently public on the owner's GamID (the editor shows a "Private" tag when it is not - the block still previews for its owner)
 // Nothing is invented: a section with no data is empty. A failure to read one section never breaks the others.
+//
+// It ALSO builds `public`: exactly what a VISITOR of this GamID may see, read through the same two ANONYMOUS calls the accepted public profile makes
+// (get_public_identity + the paged get_public_my_games). The server has already applied every privacy switch there (published GamID, "Show on my GamID", Show My
+// Games, Show playtime, Show ranks & stats), so Preview's Games and Connections blocks can never show the owner more than a visitor would get - no owner data is mixed in.
+import { normalizeLibrary } from "../public/public-games.js";
+import { LEAGUE_LABELS } from "../account/game-profile-league-compat.js";
+
 const PROVIDER_LABELS = { steam: "Steam", discord: "Discord", riot: "Riot", league: "League of Legends", xbox: "Xbox", playstation: "PlayStation" };
 export const providerLabel = key => PROVIDER_LABELS[key] ?? String(key).replace(/[_-]+/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
 const roleLabel = key => String(key).replace(/[_-]+/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
+// readable data-source names: the accepted labels (the League compatibility layer is the one place that names its temporary source), never a copy here
+export const PUBLIC_SOURCE_LABELS = LEAGUE_LABELS.dataSources;
+export const PUBLIC_PAGE_SIZE = 50;
 
 async function safely(read, fallback) { try { return (await read()) ?? fallback; } catch { return fallback; } }
+
+// ---- the visitor view --------------------------------------------------------------------------------------------------------------------------------
+const APEX = new Set(["MASTER", "GRANDMASTER", "CHALLENGER"]);
+const titleCase = value => `${String(value).charAt(0)}${String(value).slice(1).toLowerCase()}`;
+const text = (value, max = 80) => (typeof value === "string" && value.trim() ? value.trim().slice(0, max) : "");
+
+// A public connection, shaped for the Wall (generic fields only; the painter names no provider). Only what the public profile itself shows, plus ACTIONS that exist
+// for real: Steam's own profile address for the SteamID64 the owner chose to show, copying a Discord username, and the League game entity. Nothing is invented.
+export function publicConnections(sections) {
+  const list = [];
+  const discord = sections?.discord;
+  const discordName = text(discord?.display_name), discordUser = text(discord?.username, 40);
+  if (discordName || discordUser) {
+    list.push({
+      key: "discord", label: "Discord", name: discordName || `@${discordUser}`, sub: discordUser && discordName && discordUser !== discordName ? `@${discordUser}` : "", trust: "CONNECTED", tone: "ok", lines: [],
+      actions: discordUser ? [{ kind: "copy", label: "Copy username", value: discordUser }] : [],
+    });
+  }
+  const steam = sections?.steam;
+  if (typeof steam?.steam_id === "string" && /^[0-9]{17}$/.test(steam.steam_id)) {
+    list.push({ key: "steam", label: "Steam", name: steam.steam_id, sub: "SteamID64", trust: "CONNECTED", tone: "ok", lines: [], actions: [{ kind: "open", label: "Open Steam profile", url: `https://steamcommunity.com/profiles/${steam.steam_id}` }] });
+  }
+  const league = sections?.league;
+  if (text(league?.game_name)) {
+    const lines = [];
+    // the rank is its own privacy scope ("Show ranks & stats"): when it is off the server sends no rank_state, and no rank line is drawn at all
+    if (league.rank_state === "RANKED" && league.tier) {
+      const division = !APEX.has(league.tier) && league.division ? ` ${league.division}` : "";
+      const record = Number.isInteger(league.wins) && Number.isInteger(league.losses) ? ` · ${league.wins}W ${league.losses}L` : "";
+      lines.push(`${titleCase(league.tier)}${division}${Number.isInteger(league.lp) ? ` · ${league.lp} LP` : ""}${record}`);
+    } else if (league.rank_state) lines.push("No ranked Solo/Duo rank reported");
+    const when = league.updated_at ? new Date(league.updated_at) : null;
+    lines.push(`Data: ${PUBLIC_SOURCE_LABELS[league.data_source] || "a third-party source"}${when && !Number.isNaN(when.getTime()) ? ` · Updated ${when.toLocaleDateString()}` : ""}`);
+    list.push({
+      key: "league", label: "League of Legends", name: `${text(league.game_name)}${text(league.tag_line, 10) ? `#${text(league.tag_line, 10)}` : ""}`, sub: text(league.platform_id, 10) ? `Region ${text(league.platform_id, 10)}` : "",
+      trust: "PROTOTYPE / UNVERIFIED", tone: "caution", lines, actions: [{ kind: "game", label: "View League of Legends game", gameName: "League of Legends" }],
+    });
+  }
+  return list;
+}
+
+// The visitor's view of this GamID. `games` is null when the owner's My Games is off (or there are none); its list grows page by page (50 at a time, the public
+// function's own paging) only when a visitor asks for more, so a library of thousands never loads at once.
+export async function loadPublicView(api, handle) {
+  if (!handle || typeof api.getPublicIdentity !== "function") return { available: false, handle: handle || "", games: null, connections: [] };
+  const identity = await safely(() => api.getPublicIdentity(handle), null);
+  if (!identity) return { available: false, handle, games: null, connections: [] };
+  const sections = identity.public_sections ?? {};
+  const preview = normalizeLibrary(sections.my_games, PUBLIC_SOURCE_LABELS);
+  let games = null;
+  if (preview && preview.libraryCount > 0) {
+    const first = normalizeLibrary(await safely(() => api.getPublicMyGames(handle, { limit: PUBLIC_PAGE_SIZE, offset: 0 }), null), PUBLIC_SOURCE_LABELS);
+    games = {
+      libraryCount: preview.libraryCount,
+      totalCount: first?.totalCount ?? preview.libraryCount,
+      items: first?.games?.length ? first.games : preview.games,
+      loading: false,
+      async loadMore() {
+        if (games.loading || games.items.length >= games.totalCount) return false;
+        games.loading = true;
+        try {
+          const page = normalizeLibrary(await api.getPublicMyGames(handle, { limit: PUBLIC_PAGE_SIZE, offset: games.items.length }), PUBLIC_SOURCE_LABELS);
+          if (!page?.games?.length) return false;
+          games.items = games.items.concat(page.games);
+          games.totalCount = page.totalCount;
+          return true;
+        } catch { return false; } finally { games.loading = false; }
+      },
+    };
+  }
+  return { available: true, handle, games, connections: publicConnections(sections) };
+}
 
 export async function loadGamidSnapshot(api) {
   const [account, profile, connections, publicSettings, display, discovered, manual] = await Promise.all([
@@ -43,8 +125,10 @@ export async function loadGamidSnapshot(api) {
     items.push({ name, minutes: null });
   }
   items.sort((a, b) => a.name.localeCompare(b.name));
+  const publicView = await safely(() => loadPublicView(api, identity.gamid_handle), { available: false, handle: identity.gamid_handle ?? "", games: null, connections: [] });
 
   return {
+    public: publicView,
     profile: { displayName: identity.display_name ?? "", handle: identity.gamid_handle ?? "", initial: (identity.display_name ?? "G").trim()[0]?.toUpperCase() ?? "G", avatarUrl },
     roles: roleKeys.map(key => ({ key, label: roleLabel(key), primary: key === identity.primary_role_key })),
     connections: publicConnections.map(row => ({ label: providerLabel(row.provider_key), name: row.provider_display_name || row.provider_username || "" })),

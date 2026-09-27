@@ -1,0 +1,76 @@
+/* Game Details / Connection Details for the Wall (Preview, and later a visitor's Wall). The .pg-* rules below are an EXACT copy of the accepted public-profile rules in
+   dist/public/public.css - the same accepted components (public-games.js) render into them. tests/wall-post-qa-gamid.test.js fails if any .pg-* rule here differs from
+   public.css, so the two can never drift. (public.css also styles the whole public page - html, body, :root - so it cannot be linked into the editor.) */
+.pg-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin-bottom:.15rem}
+.pg-label{margin:0;color:var(--cyan);font-size:.6rem;font-weight:800;letter-spacing:.16em}
+.pg-count{color:var(--muted);font-size:.72rem;font-weight:700}
+.pg-list{list-style:none;margin:0;padding:0}
+.pg-item+.pg-item{border-top:1px solid rgba(255,255,255,.08)}
+.pg-row{display:flex;align-items:center;gap:.6rem;width:100%;min-height:2.9rem;padding:.55rem .15rem;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pg-row:hover .pg-name{color:var(--cyan)}
+.pg-row:focus-visible,.pg-viewall:focus-visible,.pg-more:focus-visible,.pg-close:focus-visible,.pg-back:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:.5rem}
+.pg-copy{flex:1;min-width:0;display:grid;gap:.28rem}
+.pg-title{display:flex;flex-wrap:wrap;align-items:baseline;gap:.1rem .4rem;min-width:0}
+.pg-name{font-size:.9rem;font-weight:700;overflow-wrap:anywhere}
+.pg-year{color:var(--muted);font-size:.72rem;font-weight:600}
+.pg-badges{display:flex;flex-wrap:wrap;gap:.25rem .4rem;min-width:0}
+.pg-badge{display:inline-flex;align-items:center;gap:.3rem;max-width:100%;padding:.14rem .5rem;border:1px solid;border-radius:999px;font-size:.66rem;font-weight:700;line-height:1.3}
+.pg-badge-text{min-width:0;overflow-wrap:anywhere}
+.pg-badge.is-steam{border-color:#2b5666;background:rgba(98,231,255,.08);color:#a6f0ff}
+.pg-badge.is-manual{border-color:#5a4a86;background:rgba(139,93,255,.1);color:#d3c6ff;border-style:dashed}
+.pg-badge.is-provider{border-color:#3d4a5c;background:rgba(160,190,230,.08);color:#bcd0ea}
+.pg-icon{flex:none;width:.85rem;height:.85rem;background:currentColor;-webkit-mask:var(--pg-icon) center/contain no-repeat;mask:var(--pg-icon) center/contain no-repeat}
+.pg-icon.is-steam{width:1rem;height:1rem;--pg-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z'/%3E%3C/svg%3E")}
+.pg-icon.is-manual{--pg-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2.5 13.5l.7-3.1 7.6-7.6a1.4 1.4 0 0 1 2 0l.4.4a1.4 1.4 0 0 1 0 2l-7.6 7.6z' fill='none' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3Cpath d='M9.6 4l2.4 2.4' stroke='black' stroke-width='1.4'/%3E%3C/svg%3E")}
+.pg-icon.is-provider{--pg-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.4' fill='none' stroke='black' stroke-width='1.5'/%3E%3Ccircle cx='8' cy='8' r='2' fill='black'/%3E%3C/svg%3E")}
+.pg-chevron{flex:none;color:var(--muted);font-size:1.5rem;line-height:1}
+.pg-viewall,.pg-more{display:block;width:100%;min-height:2.75rem;margin-top:.35rem;padding:.5rem 1rem;border:1px solid rgba(255,255,255,.25);border-radius:.75rem;background:rgba(255,255,255,.04);color:#fff;font:inherit;font-size:.8rem;font-weight:750;cursor:pointer}
+.pg-more:disabled{opacity:.5;cursor:default}
+.pg-modal{position:fixed;inset:0;z-index:50;display:flex;align-items:stretch;justify-content:center}
+.pg-modal[hidden]{display:none}
+.pg-backdrop{position:absolute;inset:0;background:rgba(3,2,8,.72)}
+.pg-panel{position:relative;display:flex;flex-direction:column;width:100%;min-height:0;background:#0d0b16;color:var(--text);outline:none}
+.pg-view{display:flex;flex:1;flex-direction:column;min-height:0}
+.pg-view[hidden]{display:none}
+.pg-modal-head{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:max(.85rem,env(safe-area-inset-top)) 1rem .6rem}
+.pg-modal-title{margin:0;color:var(--cyan);font-size:.72rem;font-weight:800;letter-spacing:.16em;overflow-wrap:anywhere}
+.pg-close,.pg-back{min-width:2.75rem;min-height:2.75rem;padding:.4rem .9rem;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(255,255,255,.05);color:#fff;font:inherit;font-size:.8rem;font-weight:700;cursor:pointer}
+.pg-back[hidden]{display:none}
+.pg-search{display:block;padding:0 1rem .6rem}
+.pg-search-input{width:100%;min-height:2.75rem;padding:.6rem .9rem;border:1px solid #3a3450;border-radius:.75rem;background:#151222;color:#fff;font:inherit;font-size:1rem}
+.pg-search-input:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+.pg-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.pg-scroll,.pg-detail-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 1rem max(1rem,env(safe-area-inset-bottom))}
+.pg-status{margin:.2rem 0 .4rem;color:var(--muted);font-size:.78rem}
+.pg-status[hidden],.pg-more[hidden]{display:none}
+.pg-list.is-library[data-stale="true"]{opacity:.55}
+.pg-detail{display:grid;gap:1.1rem;padding-top:.3rem}
+.pg-detail-title{margin:0;font-size:1.4rem;line-height:1.2;letter-spacing:-.02em;overflow-wrap:anywhere}
+.pg-detail-title .pg-year{margin-left:.45rem;font-size:.85rem}
+.pg-section{display:grid;gap:.45rem;min-width:0}
+.pg-section-title{margin:0;color:var(--cyan);font-size:.62rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+.pg-chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.35rem}
+.pg-chip{padding:.25rem .65rem;border:1px solid #3a3450;border-radius:999px;background:#151222;font-size:.78rem;overflow-wrap:anywhere}
+.pg-sources{list-style:none;margin:0;padding:0;display:grid;gap:.7rem}
+.pg-source{display:grid;gap:.15rem;min-width:0}
+.pg-source-heading{display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:750;min-width:0}
+.pg-source-name{min-width:0;overflow-wrap:anywhere}
+.pg-source-heading .pg-icon.is-steam{color:#a6f0ff}
+.pg-source-heading .pg-icon.is-manual{color:#d3c6ff}
+.pg-source-heading .pg-icon.is-provider{color:#bcd0ea}
+.pg-source-text{color:var(--muted);font-size:.78rem;line-height:1.4;overflow-wrap:anywhere}
+.pg-playtime{margin:0;font-size:.95rem}
+.pg-stats{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.3rem 1rem;margin:0}
+.pg-stat-label{color:var(--muted);font-size:.78rem}
+.pg-stat-value{margin:0;font-size:.85rem;font-weight:700;overflow-wrap:anywhere}
+.pg-trust{justify-self:start;padding:.2rem .5rem;border:1px solid #27604a;border-radius:999px;background:#10251d;color:var(--green);font-size:.56rem;font-weight:800;letter-spacing:.1em}
+.pg-trust.is-caution{border-color:#5a4a1e;background:rgba(255,196,77,.08);color:#ffd27a}
+.pg-source-line{margin:0;color:var(--muted);font-size:.74rem;overflow-wrap:anywhere}
+@media(min-width:40rem){.pg-modal{align-items:center;padding:1.5rem}.pg-panel{width:min(40rem,100%);max-height:min(46rem,90svh);border:1px solid rgba(255,255,255,.2);border-radius:1.1rem;box-shadow:0 30px 80px rgba(0,0,0,.55)}}
+
+/* Wall-only additions (not part of the copy): the details sheet opens above the editor's Preview overlay (z-index 60) */
+.pg-modal.wall-details{z-index:80}
+.wall-details .pg-connection-actions{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.7rem}
+.wall-details .pg-connection-action{display:inline-flex;align-items:center;min-height:2.75rem;padding:.5rem 1rem;border:1px solid rgba(255,255,255,.25);border-radius:.75rem;background:rgba(255,255,255,.04);color:#fff;font:inherit;font-size:.8rem;font-weight:750;text-decoration:none;cursor:pointer}
+.wall-details .pg-connection-action:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.wall-details .pg-connection-note{margin:.5rem 0 0;color:var(--muted);font-size:.72rem}
