@@ -276,6 +276,8 @@ export function stageDeletionInfo(doc, stageId) {
   const stage = doc.stages[index];
   return { stageId, number: index + 1, elementCount: stage.elements.length, hasBackground: stage.background !== undefined && stage.background !== null, isLast: doc.stages.length <= 1 };
 }
+// The destinations offered for "Move to stage": every OTHER stage, in Wall order, named by its number (so any stage is one step away - Stage 1 -> Stage 4).
+export const stageMoveOptions = (doc, currentStageId) => doc.stages.map((stage, index) => ({ id: stage.id, label: `Stage ${index + 1}` })).filter(option => option.id !== currentStageId);
 // Moves whole groups/elements to another stage, on top of it, keeping their relative order. Sizes are kept; positions are clamped inside the stage.
 export function moveElementsToStage(doc, ids, toStageId) {
   const source = commonStage(doc, ids);

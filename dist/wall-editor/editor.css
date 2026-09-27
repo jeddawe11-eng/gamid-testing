@@ -38,6 +38,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-btn:hover:not(:disabled) { border-color: var(--violet); }
 .ed-btn:disabled { opacity: .4; cursor: not-allowed; }
 .ed-btn[aria-pressed="true"], .ed-btn.is-on { background: #2a1f4a; border-color: var(--violet); color: #fff; }
+.ed-btn.ed-btn-primary { background: var(--violet); border-color: var(--violet); color: #fff; font-weight: 800; }
 .ed-icon { padding: .3rem; font-size: 1.15rem; }
 .ed-primary { border: 0; background: linear-gradient(110deg, #713dff, var(--violet) 50%, #3d9dff); color: #fff; }
 .ed-danger { color: var(--danger); }
@@ -48,6 +49,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; padding: .7rem 1rem; border-bottom: 1px solid #6b5316; background: #2a2010; font-size: .8rem; }
 .ed-banner p { margin: 0; flex: 1 1 16rem; line-height: 1.4; }
 .ed-banner-error { background: #28151c; border-color: #754151; }
+/* a transient notice (it hides itself after ~5 s) reads as information, not as an error */
+.ed-banner-error[data-kind="info"] { background: #1a1730; border-color: #3d3470; }
 
 /* ---- gate (loading / sign-in / errors) ---- */
 .ed-gate { display: grid; place-items: center; height: calc(100dvh - var(--top)); padding: 1rem; }

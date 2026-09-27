@@ -53,6 +53,34 @@ export function describeErrors(codes) {
 }
 export const describeCode = code => BY_CODE[errorCodeBase(code)] ?? "Something went wrong.";
 
+// The editor's one message banner (post-Round 2 manual-acceptance fix: an informational notice - e.g. EMBED_KEPT_ON_TOP - used to stay on screen forever).
+//   info(message)   a TRANSIENT notice (success, cancellation, a refused edit, a hint, the player z-order notice): hides itself after `delayMs` (~5 s)
+//   error(message)  a PERSISTENT error that needs the owner's action (a save conflict, an expired session, ...): stays until dismissed / replaced
+//   clearTransient() hides a transient notice now (stage / selection changed); a persistent error is left alone
+//   dismiss()       hides whatever is shown (the Dismiss button)
+// Each message gets a sequence number; a timer only hides the message it was started for, so an old timer can never clear a newer message.
+export const TRANSIENT_NOTICE_MS = 5000;
+export function createNotifier({ show, hide, setTimer = (fn, ms) => setTimeout(fn, ms), clearTimer = id => clearTimeout(id), delayMs = TRANSIENT_NOTICE_MS }) {
+  let sequence = 0, timer = null, current = null;   // current: { id, kind }
+  const stop = () => { if (timer !== null) { clearTimer(timer); timer = null; } };
+  const put = (message, kind) => {
+    stop();
+    if (!message) { current = null; hide(); return null; }
+    const id = ++sequence;
+    current = { id, kind };
+    show(message, kind);
+    if (kind === "info") timer = setTimer(() => { if (current?.id === id) { timer = null; current = null; hide(); } }, delayMs);
+    return id;
+  };
+  return {
+    info: message => put(message, "info"),
+    error: message => put(message, "error"),
+    clearTransient: () => { if (current?.kind === "info") put("", "info"); },
+    dismiss: () => put("", "info"),
+    get current() { return current ? { ...current } : null; },
+  };
+}
+
 // The canvas status line: says plainly when the selection is one group (so it is clear the handles move / resize the group as one unit).
 export function selectionSummary(elements) {
   if (!elements.length) return "";

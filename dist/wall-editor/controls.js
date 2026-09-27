@@ -338,12 +338,26 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     const alignRow = h("div", { class: "ed-btn-row" });
     for (const [mode, label] of [["left", "Left"], ["hcenter", "Center"], ["right", "Right"], ["top", "Top"], ["vmiddle", "Middle"], ["bottom", "Bottom"]]) alignRow.append(button(label, () => exec(ops.alignElements(session.doc, ids, mode))));
     root.append(alignRow);
-    if (session.doc.stages.length > 1) {
-      root.append(h("div", { class: "ed-group-title", text: "Move to stage" }));
-      const select = h("select");
-      session.doc.stages.forEach((stage, index) => { if (stage.id !== session.state.stageId) select.append(h("option", { value: stage.id, text: `Stage ${index + 1}` })); });
-      root.append(h("div", { class: "ed-btn-row" }, select, button("Move", () => exec(ops.moveElementsToStage(session.doc, ids, select.value), { clearSelection: true }))));
-    }
+  }
+
+  // Post-Round 2 manual-acceptance fix: moving elements to another stage is the FIRST thing in the panel whenever the Wall has more than one stage - an explicit
+  // destination (every other stage by number, so Stage 1 -> Stage 4 is one step), then Move. The moved elements keep their position, size, rotation, content, style
+  // and group (ops.moveElementsToStage), and the editor follows them: the destination stage opens with them still selected, so both Layers lists update at once.
+  function stageMoveControls(root) {
+    if (session.doc.stages.length < 2) return;
+    const currentIndex = session.doc.stages.findIndex(stage => stage.id === session.state.stageId);
+    const select = h("select", { "aria-label": "Destination stage" });
+    for (const option of ops.stageMoveOptions(session.doc, session.state.stageId)) select.append(h("option", { value: option.id, text: option.label }));
+    const move = () => {
+      const ids = ops.expandSelection(session.stage, session.state.selection);
+      const destination = select.value;
+      const applied = exec(ops.moveElementsToStage(session.doc, ids, destination), { clearSelection: true });
+      if (!applied.ok) return;
+      session.setStage(destination);
+      session.select(ids);
+    };
+    root.append(h("div", { class: "ed-group-title", text: `Move to stage (now on Stage ${currentIndex + 1} of ${session.doc.stages.length})` }),
+      h("div", { class: "ed-btn-row" }, select, h("button", { class: "ed-btn ed-btn-primary", type: "button", text: "Move", onclick: move })));
   }
 
   function rebuild(targets) {
@@ -360,6 +374,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     const groupedSelection = targets.some(element => element.groupId);
     title.textContent = single ? `${TYPE_LABEL[types[0]] ?? types[0]}${groupedSelection ? " (in a group)" : ""}` : groupedSelection && new Set(targets.map(element => element.groupId)).size === 1 ? `Group of ${targets.length}` : `${targets.length} elements`;
     body.append(errorBox);
+    stageMoveControls(body);
     if (types.length === 1 && types[0] === "text") textControls(body);
     else if (types.length === 1 && types[0] === "rect") shapeControls(body);
     else if (types.length === 1 && types[0] === "image") imageControls(body);

@@ -6,7 +6,7 @@ import { createWallPersistence } from "../wall/persistence.js";
 import { createEditorSession } from "../wall-kit/session.js";
 import * as ops from "../wall-kit/ops.js";
 import { paintDocument } from "../wall-kit/paint.js";
-import { describeCode, describeErrors, stageDeleteQuestion, selectionSummary } from "../wall-kit/messages.js";
+import { describeCode, describeErrors, stageDeleteQuestion, selectionSummary, createNotifier } from "../wall-kit/messages.js";
 import { resolveEditorSession, planAuth, gateFor } from "../wall-kit/auth-gate.js";
 import { elementRegistry } from "../wall/elements.js";
 import { GAMID_BLOCK_INFO } from "../wall-kit/gamid.js";
@@ -49,11 +49,22 @@ function run(result, { coalesce = null, keepResultSelection = false, clearSelect
   return result;
 }
 
-function notify(message) {
-  $("errorText").textContent = message;
-  $("errorBanner").hidden = !message;
-}
-$("errorDismiss").addEventListener("click", () => notify(""));
+// One banner, two kinds (messages.js createNotifier): notify() is TRANSIENT (hides itself after ~5 s: hints, refused edits, the player z-order notice);
+// notifyError() is PERSISTENT (a save failure / conflict that needs the owner). A newer message always replaces an older one and its timer.
+let noticeShownAt = 0;
+const notifier = createNotifier({
+  show: (message, kind) => {
+    $("errorText").textContent = message;
+    $("errorBanner").dataset.kind = kind;
+    $("errorBanner").setAttribute("role", kind === "error" ? "alert" : "status");
+    $("errorBanner").hidden = false;
+    noticeShownAt = Date.now();
+  },
+  hide: () => { $("errorText").textContent = ""; $("errorBanner").hidden = true; },
+});
+const notify = message => notifier.info(message);
+const notifyError = message => notifier.error(message);
+$("errorDismiss").addEventListener("click", () => notifier.dismiss());
 
 // ---- assets and GamID data --------------------------------------------------------------------------------------------------------------------------
 // (setTimeout, not requestAnimationFrame: a hidden or backgrounded tab pauses animation frames, and an image that finished loading must still appear when the tab returns)
@@ -150,7 +161,7 @@ function updateChrome() {
   $("redoBtn").disabled = !session.canRedo;
   $("previewBtn").disabled = !workspaceVisible;
   $("conflict").hidden = status !== "conflict";
-  if (status !== lastStatus && status === "error" && session.state.errorCode) notify(describeCode(session.state.errorCode));
+  if (status !== lastStatus && status === "error" && session.state.errorCode) notifyError(describeCode(session.state.errorCode));
   lastStatus = status;
   const index = session.doc.stages.findIndex(stage => stage.id === session.state.stageId);
   $("stageLabel").textContent = `Stage ${index + 1} of ${session.doc.stages.length}`;
@@ -215,8 +226,15 @@ function renderLayers() {
 }
 
 let lastSelectionKey = "";
+let lastStageId = null, lastNoticeSelection = "";
 function renderAll() {
   updateChrome();
+  // a transient notice belongs to what was on screen when it appeared: switching stage hides it at once, and so does choosing a different selection once the
+  // notice has been visible for a moment (the action that raised it may itself have just changed the selection)
+  const selectionKey = session.state.selection.join(",");
+  if (session.state.stageId !== lastStageId) { if (lastStageId !== null) notifier.clearTransient(); lastStageId = session.state.stageId; }
+  else if (selectionKey !== lastNoticeSelection && Date.now() - noticeShownAt > 800) notifier.clearTransient();
+  lastNoticeSelection = selectionKey;
   if (!workspaceVisible) return;
   canvas.render();
   renderStages();
@@ -259,7 +277,7 @@ function removeStage(result) {
 
 async function save() {
   if (session.status === "error") session.retry();
-  notify("");
+  notifier.dismiss();
   await session.save();
 }
 $("saveBtn").addEventListener("click", save);
