@@ -17,9 +17,9 @@ export const soundcloud = defineProvider({
   frameOrigins: ["https://w.soundcloud.com"],
   examples: "soundcloud.com/artist/track  ·  soundcloud.com/artist/sets/…  ·  soundcloud.com/artist",
   kinds: {
-    track: { label: "Track", id: `^${NAME}/${SLUG}$`, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 800, height: 240 }, minInline: { w: 280, h: 166 } },
-    playlist: { label: "Playlist", id: `^${NAME}/sets/${SLUG}$`, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 800, height: 620 }, minInline: { w: 280, h: 300 } },
-    profile: { label: "Profile", id: `^${NAME}$`, inline: true, profile: true, aspect: "auto", aspects: ["auto"], size: { width: 800, height: 620 }, minInline: { w: 280, h: 300 } },
+    track: { label: "Track", id: `^${NAME}/${SLUG}$`, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 800, height: 240 }, minInline: { w: 280, h: 166 }, poster: true },
+    playlist: { label: "Playlist", id: `^${NAME}/sets/${SLUG}$`, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 800, height: 620 }, minInline: { w: 280, h: 300 }, poster: true },
+    profile: { label: "Profile", id: `^${NAME}$`, inline: true, profile: true, aspect: "auto", aspects: ["auto"], size: { width: 800, height: 620 }, minInline: { w: 280, h: 300 }, poster: true },
   },
   parse(url) {
     if (url.hostname.toLowerCase() === "on.soundcloud.com") return null;   // a short link: its target cannot be known without following a redirect

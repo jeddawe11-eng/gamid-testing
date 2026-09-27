@@ -4,8 +4,8 @@
 import { defineProvider } from "../engine.js";
 
 const ID = "^[A-Za-z0-9]{22}$";
-const compact = { label: "", id: ID, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 800, height: 240 }, minInline: { w: 280, h: 152 } };
-const list = { id: ID, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 800, height: 700 }, minInline: { w: 280, h: 352 } };
+const compact = { label: "", id: ID, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 800, height: 240 }, minInline: { w: 280, h: 152 }, poster: true };
+const list = { id: ID, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 800, height: 700 }, minInline: { w: 280, h: 352 }, poster: true };
 
 export const spotify = defineProvider({
   key: "spotify",

@@ -5,6 +5,7 @@ import { renderDocument } from "../wall/render.js";
 import { HEX_COLOR } from "../wall/fields.js";
 import { fontCss } from "./fonts.js";
 import { isAllowedOpenUrl } from "./embed/engine.js";
+import { hasPoster } from "./posters.js";
 import { paintGamidBlock } from "./gamid-blocks.js";
 import { markInteractive, markPassThrough } from "./interaction.js";
 import "./register.js";   // makes sure every element type, background kind and provider is registered wherever documents are painted
@@ -192,7 +193,30 @@ function paintEmbed(node, descriptor, scale, item, createNode, ctx) {
   if (layout.showChip) facade.append(chip);
   facade.append(title);
   if (layout.showHint) facade.append(hint);
+  if (!link && ctx.posters && hasPoster(descriptor)) paintPoster(facade, descriptor, ctx.posters, make);
   node.append(facade);
+}
+
+// The content's real poster behind a card / player facade (posters.js: GamID's own proxy, a blob: URL). It is added hidden and only shown once it has really
+// decoded; any failure removes it, so the neutral facade stays - never a broken image. A scrim keeps the chip, title and hint readable on any picture.
+function paintPoster(facade, descriptor, posters, make) {
+  facade.style.setProperty("position", "relative");
+  const img = make("img", "wall-embed-poster");
+  img.setAttribute("alt", "");
+  img.setAttribute("aria-hidden", "true");
+  img.setAttribute("decoding", "async");
+  img.setAttribute("draggable", "false");
+  for (const [name, value] of [["position", "absolute"], ["inset", "0"], ["width", "100%"], ["height", "100%"], ["object-fit", "cover"], ["opacity", "0"], ["transition", "opacity .2s"], ["pointer-events", "none"], ["z-index", "0"]]) img.style.setProperty(name, value);
+  const scrim = make("span", "wall-embed-scrim");
+  for (const [name, value] of [["position", "absolute"], ["inset", "0"], ["background", "linear-gradient(to top, rgba(8,6,16,.88), rgba(8,6,16,.35) 55%, rgba(8,6,16,.15))"], ["opacity", "0"], ["pointer-events", "none"], ["z-index", "0"]]) scrim.style.setProperty(name, value);
+  for (const child of [...(facade.children ?? [])]) { child.style?.setProperty?.("position", "relative"); child.style?.setProperty?.("z-index", "1"); }
+  facade.prepend ? facade.prepend(img, scrim) : facade.append(img, scrim);
+  const drop = () => { img.remove?.(); scrim.remove?.(); facade.removeAttribute?.("data-poster"); };
+  img.addEventListener?.("load", () => { img.style.setProperty("opacity", "1"); scrim.style.setProperty("opacity", "1"); facade.setAttribute("data-poster", "true"); });
+  img.addEventListener?.("error", drop);
+  const known = posters.readyFor?.(descriptor);
+  if (known) { img.style.removeProperty("transition"); img.setAttribute("src", known); return; }
+  posters.forDescriptor(descriptor).then(url => { if (url) img.setAttribute("src", url); else drop(); }, drop);
 }
 
 // What an element's box clips, by content kind. Text effects (glow, shadow, outline) are meant to spread past the text box, so text is never clipped by its own box

@@ -43,3 +43,8 @@ verify_jwt = true
 # an ordinary anonymous visitor's browser already reads; it grants no additional access.
 [functions.social-card]
 verify_jwt = false
+
+# media-poster is read by ANONYMOUS Wall visitors (a facade's real thumbnail before play), so it cannot require a session JWT. Safe because it reads no
+# GamID data at all: it only fetches public, documented thumbnail sources built from strictly validated provider/kind/id parts, from allowlisted hosts.
+[functions.media-poster]
+verify_jwt = false

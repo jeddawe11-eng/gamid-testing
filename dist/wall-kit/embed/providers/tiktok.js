@@ -12,7 +12,7 @@ export const tiktok = defineProvider({
   frameOrigins: ["https://www.tiktok.com"],
   examples: "tiktok.com/@name/video/…  ·  tiktok.com/@name",
   kinds: {
-    video: { label: "Video", id: "^[0-9]{8,25}$", inline: true, aspect: "9:16", aspects: ["9:16", "1:1", "16:9"], size: { width: 440, height: 780 }, minInline: { w: 250, h: 444 } },
+    video: { label: "Video", id: "^[0-9]{8,25}$", inline: true, aspect: "9:16", aspects: ["9:16", "1:1", "16:9"], size: { width: 440, height: 780 }, minInline: { w: 250, h: 444 }, poster: true },
     profile: { label: "Profile", id: "^@[A-Za-z0-9._]{2,24}$", inline: false, profile: true, aspect: "auto", size: { width: 800, height: 240 } },
   },
   parse(url) {

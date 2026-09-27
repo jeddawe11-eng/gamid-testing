@@ -27,7 +27,8 @@ const idOk = (spec, id) => typeof id === "string" && new RegExp(spec.id).test(id
 //   key, label, hosts (page hosts it recognises), frameOrigins (origins its players load from - the ONLY additions to the page CSP),
 //   kinds: { [kind]: { label, id (regex source), inline (has an official embeddable player), aspect (default), aspects, size {width,height} (default element size),
 //                     minInline {w,h} (below this on screen a player is a tap-to-open tile), minTile {w,h} (optional: the provider's documented smallest tile, CSS px -
-//                     the editor's minimum size for the player element), profile (a person/channel rather than content) } }
+//                     the editor's minimum size for the player element), profile (a person/channel rather than content),
+//                     poster (GamID's media-poster function has a documented, keyless thumbnail source for it - see supabase/functions/_shared/media-poster.js) } }
 //   parse(url: URL) -> { kind, id, aspect? } | null      openUrl(kind, id) -> https URL      embedUrl(kind, id) -> https URL | null ({parent} = the page host)
 export function defineProvider(definition) {
   const provider = Object.freeze({ ...definition });
@@ -66,6 +67,7 @@ export function describeEmbed(provider, data) {
     inline: wantsPlayer,
     minInline: kind.minInline ?? null,
     ...(kind.minFrame ? { minFrame: kind.minFrame } : {}),
+    poster: !!kind.poster,
     openUrl: provider.openUrl(data.kind, data.id),
     embedUrl: wantsPlayer ? provider.embedUrl(data.kind, data.id) : null,
     frameOrigins: wantsPlayer ? provider.frameOrigins : [],

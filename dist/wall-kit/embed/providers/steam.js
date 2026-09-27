@@ -11,7 +11,7 @@ export const steam = defineProvider({
   frameOrigins: ["https://store.steampowered.com"],
   examples: "store.steampowered.com/app/…  ·  steamcommunity.com/id/…",
   kinds: {
-    app: { label: "Game", id: "^[0-9]{1,10}$", inline: true, aspect: "auto", aspects: ["auto"], size: { width: 800, height: 240 }, minInline: { w: 320, h: 100 } },
+    app: { label: "Game", id: "^[0-9]{1,10}$", inline: true, aspect: "auto", aspects: ["auto"], size: { width: 800, height: 240 }, minInline: { w: 320, h: 100 }, poster: true },
     profile: { label: "Profile", id: "^(7656119[0-9]{10}|[A-Za-z0-9_-]{2,32})$", inline: false, profile: true, aspect: "auto", size: { width: 800, height: 240 } },
     group: { label: "Community group", id: "^[A-Za-z0-9_-]{2,64}$", inline: false, aspect: "auto", size: { width: 800, height: 240 } },
   },

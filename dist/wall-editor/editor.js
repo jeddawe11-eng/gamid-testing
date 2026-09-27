@@ -11,6 +11,7 @@ import { resolveEditorSession, planAuth, gateFor } from "../wall-kit/auth-gate.j
 import { elementRegistry } from "../wall/elements.js";
 import { GAMID_BLOCK_INFO } from "../wall-kit/gamid.js";
 import { createPlayerManager } from "../wall-kit/embed/player.js";
+import { createPosterLoader } from "../wall-kit/posters.js";
 import { createCanvas } from "./canvas.js";
 import { createPropertiesPanel } from "./controls.js";
 import { createTools } from "./tools.js";
@@ -58,6 +59,7 @@ $("errorDismiss").addEventListener("click", () => notify(""));
 // (setTimeout, not requestAnimationFrame: a hidden or backgrounded tab pauses animation frames, and an image that finished loading must still appear when the tab returns)
 const scheduleRender = () => { if (renderQueued) return; renderQueued = true; setTimeout(() => { renderQueued = false; if (workspaceVisible) renderAll(); }, 16); };
 const assetStore = createAssetStore({ api, userId: null, onChange: scheduleRender });
+const posters = createPosterLoader({ endpoint: api.MEDIA_POSTER_URL });
 async function refreshGamid() {
   gamidSnapshot = null;
   scheduleRender();
@@ -83,7 +85,7 @@ const canvas = createCanvas({
   viewport: $("viewport"),
   session,
   isMulti: () => multi,
-  getPaintContext: () => ({ assets: assetStore, gamid: gamidSnapshot }),
+  getPaintContext: () => ({ assets: assetStore, gamid: gamidSnapshot, posters }),
   onSelectedTap: () => { if (isPhone()) openTool("props"); },
   onEditText: () => {
     if (isPhone()) openTool("props");
@@ -283,7 +285,7 @@ function renderPreview() {
   const available = Math.max(280, (scroll.clientWidth || window.innerWidth) - 16);
   const width = previewMode === "mobile" ? Math.min(390, available) : Math.min(900, available);
   // a Wall saved before the player-layering rule existed is shown with that rule applied (nothing drawn over a player); the document itself is not changed
-  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players, details: detailsFor(gamidSnapshot) });
+  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players, posters, details: detailsFor(gamidSnapshot) });
   $("previewColumn").replaceChildren(...(painted.ok ? painted.stages : [make("p", "ed-empty", "This Wall cannot be previewed: " + describeErrors(painted.errors).join(" "))]));
   $("previewMobile").setAttribute("aria-pressed", String(previewMode === "mobile"));
   $("previewDesktop").setAttribute("aria-pressed", String(previewMode === "desktop"));

@@ -7,6 +7,8 @@ const SUPABASE_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co`;
 const STORAGE_UPLOAD_URL = `https://${SUPABASE_PROJECT_ID}.storage.supabase.co/storage/v1/upload/resumable`;
 const PUBLISHABLE_KEY = "sb_publishable_ovl-uegBzJlWPJcTF_dviw_6uf1aVYg";
 const SESSION_KEY = "gamid.testing.auth.session.v1";
+// Public, anonymous Edge Function: real media thumbnails / Steam avatars for Wall facades (supabase/functions/_shared/media-poster.js).
+export const MEDIA_POSTER_URL = `${SUPABASE_URL}/functions/v1/media-poster`;
 
 let session = null;
 

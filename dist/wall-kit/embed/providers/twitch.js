@@ -18,7 +18,7 @@ export const twitch = defineProvider({
   frameOrigins: ["https://player.twitch.tv", "https://clips.twitch.tv"],
   examples: "twitch.tv/name  ·  twitch.tv/videos/…  ·  clips.twitch.tv/…",
   kinds: {
-    channel: { label: "Channel", id: "^[A-Za-z0-9_]{3,25}$", inline: true, profile: true, aspect: "16:9", aspects: ["16:9", "4:3"], size: { width: 800, height: 450 }, minInline: MIN, minFrame: MIN },
+    channel: { label: "Channel", id: "^[A-Za-z0-9_]{3,25}$", inline: true, profile: true, aspect: "16:9", aspects: ["16:9", "4:3"], size: { width: 800, height: 450 }, minInline: MIN, minFrame: MIN, poster: true },
     video: { label: "Video", id: "^[0-9]{5,15}$", inline: true, aspect: "16:9", aspects: ["16:9", "4:3"], size: { width: 800, height: 450 }, minInline: MIN, minFrame: MIN },
     clip: { label: "Clip", id: "^[A-Za-z0-9_-]{5,100}$", inline: true, aspect: "16:9", aspects: ["16:9", "4:3"], size: { width: 800, height: 450 }, minInline: MIN, minFrame: MIN },
   },

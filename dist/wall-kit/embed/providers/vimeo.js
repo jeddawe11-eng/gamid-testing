@@ -18,7 +18,7 @@ export const vimeo = defineProvider({
   frameOrigins: ["https://player.vimeo.com"],
   examples: "vimeo.com/123456789  ·  vimeo.com/name",
   kinds: {
-    video: { label: "Video", id: VIDEO, inline: true, aspect: "16:9", aspects: ["16:9", "9:16", "1:1", "4:3"], size: { width: 800, height: 450 }, minInline: { w: 240, h: 135 } },
+    video: { label: "Video", id: VIDEO, inline: true, aspect: "16:9", aspects: ["16:9", "9:16", "1:1", "4:3"], size: { width: 800, height: 450 }, minInline: { w: 240, h: 135 }, poster: true },
     profile: { label: "Profile", id: "^[A-Za-z0-9_-]{2,64}$", inline: false, profile: true, aspect: "auto", size: { width: 800, height: 240 } },
   },
   parse(url) {
