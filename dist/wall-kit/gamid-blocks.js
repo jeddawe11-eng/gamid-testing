@@ -61,7 +61,14 @@ export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onCh
     if (!section?.length) root.append(el("p", "wall-gamid-empty", "No connections are shown on your GamID."));
     else {
       const list = el("ul", "wall-gamid-connections");
-      for (const item of section) { const li = el("li"); li.append(el("strong", "", item.label), item.name ? el("span", "", item.name) : el("span", "")); list.append(li); }
+      for (const item of section) {
+        const li = el("li");
+        const title = el("strong", "wall-connection-title");
+        if (typeof item.avatarQuery === "string" && posters) title.append(connectionAvatar(item.avatarQuery, el, posters));
+        title.append(el("span", "wall-connection-label", item.label));
+        li.append(title, item.name ? el("span", "", item.name) : el("span", ""));
+        list.append(li);
+      }
       root.append(list);
     }
   } else if (content.block === "games") {
@@ -153,18 +160,7 @@ function paintVisitorConnections(root, view, el, details, posters) {
     button.type = "button";
     button.setAttribute("aria-label", `${connection.label}: ${connection.name}. ${connection.trust}. Open details`);
     const title = el("strong", "wall-connection-title");
-    // a connection's own public avatar (e.g. the Steam persona picture), through GamID's image proxy only; shown once decoded, removed on any failure
-    if (typeof connection.avatarQuery === "string" && posters) {
-      const img = el("img", "wall-connection-avatar");
-      img.setAttribute("alt", "");
-      img.setAttribute("aria-hidden", "true");
-      img.addEventListener?.("load", () => img.setAttribute("data-ready", "true"));
-      img.addEventListener?.("error", () => img.remove?.());
-      const known = posters.ready?.(connection.avatarQuery);
-      if (known) img.setAttribute("src", known);
-      else posters.load(connection.avatarQuery).then(url => { if (url) img.setAttribute("src", url); else img.remove?.(); }, () => img.remove?.());
-      title.append(img);
-    }
+    if (typeof connection.avatarQuery === "string" && posters) title.append(connectionAvatar(connection.avatarQuery, el, posters));
     title.append(el("span", "wall-connection-label", connection.label));
     button.append(title, el("span", "", connection.name), el("span", `wall-connection-trust is-${connection.tone === "caution" ? "caution" : "ok"}`, connection.trust));
     button.addEventListener("click", () => details?.openConnection?.(connection, button));
@@ -173,6 +169,19 @@ function paintVisitorConnections(root, view, el, details, posters) {
   }
   markInteractive(list);
   root.append(list);
+}
+
+// A connection's own public avatar (e.g. the Steam persona picture), through GamID's image proxy only; shown once decoded, removed on any failure.
+function connectionAvatar(query, el, posters) {
+  const img = el("img", "wall-connection-avatar");
+  img.setAttribute("alt", "");
+  img.setAttribute("aria-hidden", "true");
+  img.addEventListener?.("load", () => img.setAttribute("data-ready", "true"));
+  img.addEventListener?.("error", () => img.remove?.());
+  const known = posters.ready?.(query);
+  if (known) img.setAttribute("src", known);
+  else posters.load(query).then(url => { if (url) img.setAttribute("src", url); else img.remove?.(); }, () => img.remove?.());
+  return img;
 }
 
 // ---- presentation styling (Round 2) -------------------------------------------------------------------------------------------------------------------------

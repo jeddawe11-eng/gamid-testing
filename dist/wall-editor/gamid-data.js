@@ -152,7 +152,10 @@ export async function loadGamidSnapshot(api) {
     profile: { displayName: identity.display_name ?? "", handle: identity.gamid_handle ?? "", initial: (identity.display_name ?? "G").trim()[0]?.toUpperCase() ?? "G", avatarUrl },
     roles: roleKeys.map(key => ({ key, label: roleLabel(key), primary: key === identity.primary_role_key })),
     // Steam's provider_username is its SteamID64: never shown - the persona (provider_display_name) or a neutral "Steam account"
-    connections: publicConnections.map(row => ({ label: providerLabel(row.provider_key), name: row.provider_key === "steam" ? (row.provider_display_name || "Steam account") : (row.provider_display_name || row.provider_username || "") })),
+    connections: publicConnections.map(row => {
+      const avatarQuery = row.provider_key === "steam" ? steamAvatarQuery(row.provider_avatar_url) : null;
+      return { label: providerLabel(row.provider_key), name: row.provider_key === "steam" ? (row.provider_display_name || "Steam account") : (row.provider_display_name || row.provider_username || ""), ...(avatarQuery ? { avatarQuery } : {}) };
+    }),
     games: { total: items.length, items, playtimeAllowed: display?.show_game_playtime === true },
     visibility: { profile: true, roles: true, connections: publicConnections.length > 0, games: publicSettings?.show_my_games === true },
   };

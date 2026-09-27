@@ -53,9 +53,13 @@ ul.wall-gamid-chips, ul.wall-gamid-connections { list-style: none; margin: 0; pa
 .wall-gamid .wall-connection .wall-connection-trust.is-caution { color: #ffc857; }
 /* a connection's own public avatar (Round 2: the Steam persona picture, via GamID's image proxy) sits before its label */
 .wall-gamid .wall-connection-title { display: flex; align-items: center; gap: .4em; }
-.wall-gamid .wall-connection .wall-connection-label { color: inherit; font-size: inherit; }
+.wall-gamid .wall-connection .wall-connection-label, .wall-gamid-connections li .wall-connection-label { color: inherit; font-size: inherit; }
 .wall-gamid .wall-connection-avatar { flex: none; width: 1.7em; height: 1.7em; border-radius: 50%; object-fit: cover; opacity: 0; }
 .wall-gamid .wall-connection-avatar[data-ready="true"] { opacity: 1; }
+/* the connection detail sheet (gamid-details.js): the account's avatar before its name */
+.wall-details .pg-detail-title { display: flex; align-items: center; gap: .6rem; }
+.wall-details .wall-connection-detail-avatar { flex: none; width: 3rem; height: 3rem; border-radius: 50%; object-fit: cover; opacity: 0; }
+.wall-details .wall-connection-detail-avatar[data-ready="true"] { opacity: 1; }
 /* chips / rows / profile presentation (styled blocks only) */
 .wall-gamid.chips-filled .wall-gamid-chips li { background: var(--g-accent); border-color: var(--g-accent); color: var(--g-on-accent); }
 .wall-gamid.chips-filled .wall-gamid-chips li.is-primary { background: var(--g-heading); border-color: var(--g-heading); color: var(--g-on-heading); }

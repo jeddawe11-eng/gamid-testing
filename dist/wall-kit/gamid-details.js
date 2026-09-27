@@ -9,7 +9,8 @@ import { createGamesLibrary, normalizeLibrary } from "../public/public-games.js"
 
 const safeHttps = url => { try { const parsed = new URL(url); return parsed.protocol === "https:" && !parsed.username && !parsed.password ? parsed.href : null; } catch { return null; } };
 
-export function createWallDetails({ element, handle, api, mount, lockScroll = () => {}, clipboard = globalThis.navigator?.clipboard, sourceLabels = {} }) {
+// `posters` (dist/wall-kit/posters.js): a connection's own public avatar is loaded ONLY through GamID's image proxy (a blob: URL), never from the provider directly.
+export function createWallDetails({ element, handle, api, mount, lockScroll = () => {}, clipboard = globalThis.navigator?.clipboard, sourceLabels = {}, posters = null }) {
   const games = createGamesLibrary({ element, handle, api, mount, sourceLabels, lockScroll, libraryCount: 0 });
   games.root.className = `${games.root.className} wall-details`;
 
@@ -61,6 +62,19 @@ export function createWallDetails({ element, handle, api, mount, lockScroll = ()
     title.textContent = connection.label;
     const detail = element("div", "pg-detail");
     const name = element("h2", "pg-detail-title");
+    // post-Round 2 acceptance finding: the sheet showed the persona, trust and profile link but never the account's avatar. It is drawn before the name, hidden until
+    // it has really decoded, and removed on any failure (no broken image; no avatar -> just the name, as before).
+    if (typeof connection.avatarQuery === "string" && posters) {
+      const avatar = element("img", "wall-connection-detail-avatar");
+      avatar.setAttribute("alt", "");
+      avatar.setAttribute("aria-hidden", "true");
+      avatar.addEventListener?.("load", () => avatar.setAttribute("data-ready", "true"));
+      avatar.addEventListener?.("error", () => avatar.remove?.());
+      const known = posters.ready?.(connection.avatarQuery);
+      if (known) avatar.setAttribute("src", known);
+      else posters.load(connection.avatarQuery).then(url => { if (url) avatar.setAttribute("src", url); else avatar.remove?.(); }, () => avatar.remove?.());
+      name.append(avatar);
+    }
     name.append(element("span", "pg-detail-name", connection.name));
     detail.append(name);
     if (connection.sub) detail.append(element("p", "pg-source-line", connection.sub));

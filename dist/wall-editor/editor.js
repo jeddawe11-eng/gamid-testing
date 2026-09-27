@@ -293,7 +293,7 @@ let details = null;   // Game Details / Connection Details, built once from the 
 function detailsFor(snapshot) {
   const handle = snapshot?.public?.handle;
   if (!handle) return null;
-  if (!details) details = createWallDetails({ element: make, handle, api, mount: node => document.body.append(node), sourceLabels: PUBLIC_SOURCE_LABELS });
+  if (!details) details = createWallDetails({ element: make, handle, api, mount: node => document.body.append(node), sourceLabels: PUBLIC_SOURCE_LABELS, posters });
   return details;
 }
 function renderPreview() {
