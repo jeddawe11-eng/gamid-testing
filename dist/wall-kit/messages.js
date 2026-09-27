@@ -47,3 +47,20 @@ export function describeErrors(codes) {
   return lines;
 }
 export const describeCode = code => BY_CODE[errorCodeBase(code)] ?? "Something went wrong.";
+
+// The canvas status line: says plainly when the selection is one group (so it is clear the handles move / resize the group as one unit).
+export function selectionSummary(elements) {
+  if (!elements.length) return "";
+  const groups = new Set(elements.map(element => element.groupId ?? null));
+  if (groups.size === 1 && !groups.has(null)) return `Group of ${elements.length} selected`;
+  return `${elements.length} selected`;
+}
+
+// The question asked before deleting ANY stage. It says what goes with it and that Undo brings it back (never "cannot be undone": it can).
+export function stageDeleteQuestion(info) {
+  if (!info) return "";
+  const stage = `Stage ${info.number}`;
+  if (info.elementCount > 0) return `${stage} has ${info.elementCount} element${info.elementCount === 1 ? "" : "s"}${info.hasBackground ? " and its own background" : ""}. Delete it and everything on it? You can undo this.`;
+  if (info.hasBackground) return `${stage} has no elements but has its own background. Delete this stage? You can undo this.`;
+  return `${stage} is empty. Delete this stage? You can undo this.`;
+}

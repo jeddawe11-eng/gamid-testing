@@ -6,7 +6,7 @@ import { createWallPersistence } from "../wall/persistence.js";
 import { createEditorSession } from "../wall-kit/session.js";
 import * as ops from "../wall-kit/ops.js";
 import { paintDocument } from "../wall-kit/paint.js";
-import { describeCode, describeErrors } from "../wall-kit/messages.js";
+import { describeCode, describeErrors, stageDeleteQuestion, selectionSummary } from "../wall-kit/messages.js";
 import { resolveEditorSession, planAuth, gateFor } from "../wall-kit/auth-gate.js";
 import { elementRegistry } from "../wall/elements.js";
 import { GAMID_BLOCK_INFO } from "../wall-kit/gamid.js";
@@ -89,7 +89,8 @@ const canvas = createCanvas({
     requestAnimationFrame(() => $("propsBody").querySelector("textarea")?.focus());
   },
 });
-const properties = createPropertiesPanel({ body: $("propsBody"), title: $("propsTitle"), session, run, fitTextHeight, assets: assetStore, refreshGamid });
+const leaveMultiSelect = () => { if (multi) { multi = false; updateChrome(); } };
+const properties = createPropertiesPanel({ body: $("propsBody"), title: $("propsTitle"), session, run, fitTextHeight, assets: assetStore, refreshGamid, onGroupingChanged: leaveMultiSelect });
 
 // ---- tools: one rail, one drawer ------------------------------------------------------------------------------------------------------------------
 // On a phone a bottom sheet covers the lower part of the stage: scroll the selection up into the part that stays visible above it.
@@ -150,8 +151,8 @@ function updateChrome() {
   lastStatus = status;
   const index = session.doc.stages.findIndex(stage => stage.id === session.state.stageId);
   $("stageLabel").textContent = `Stage ${index + 1} of ${session.doc.stages.length}`;
-  const count = session.state.selection.length;
-  $("selInfo").textContent = count ? `${count} selected` : "";
+  const chosen = new Set(session.state.selection);
+  $("selInfo").textContent = selectionSummary(session.stage ? session.stage.elements.filter(element => chosen.has(element.id)) : []);
   $("multiBtn").setAttribute("aria-pressed", String(multi));
 }
 
@@ -172,8 +173,10 @@ function renderStages() {
   $("stageLeft").disabled = index <= 0;
   $("stageRight").disabled = index >= session.doc.stages.length - 1;
   $("stageDelete").disabled = session.doc.stages.length <= 1;
+  // the confirmation belongs to the stage it was asked for; switching stages dismisses it
+  if (pendingStageDelete !== null && pendingStageDelete.stageId !== session.state.stageId) pendingStageDelete = null;
   $("stageConfirm").hidden = pendingStageDelete === null;
-  if (pendingStageDelete !== null) $("stageConfirmText").textContent = `Stage ${index + 1} has ${pendingStageDelete} element${pendingStageDelete === 1 ? "" : "s"}. Delete it and everything on it? You can undo this.`;
+  if (pendingStageDelete !== null) $("stageConfirmText").textContent = stageDeleteQuestion(pendingStageDelete);
 }
 
 function layerName(element) {
@@ -190,12 +193,13 @@ function renderLayers() {
   const stage = session.stage;
   if (!stage || !stage.elements.length) { list.append(make("li", "ed-empty", "This stage is empty. Use Add to place text, a shape, an image, a link or a GamID block.")); return; }
   const selected = new Set(session.state.selection);
+  const groups = ops.groupNumbers(stage);
   for (const element of ops.layerList(stage)) {
     const row = make("li", `ed-layer${selected.has(element.id) ? " is-selected" : ""}`);
     const main = make("button", "ed-layer-main");
     main.type = "button";
     main.append(make("span", "", layerName(element)));
-    if (element.groupId) main.append(make("span", "tag", "GROUP"));
+    if (element.groupId) main.append(make("span", "tag", `GROUP ${groups.get(element.groupId)}`));
     main.addEventListener("click", () => { if (multi) session.toggle(element.id); else session.select([element.id]); });
     const up = make("button", "ed-mini", "▲"), down = make("button", "ed-mini", "▼");
     up.type = down.type = "button";
@@ -231,14 +235,19 @@ $("stageAdd").addEventListener("click", () => {
 });
 $("stageLeft").addEventListener("click", () => run(ops.reorderStage(session.doc, session.state.stageId, ops.stageIndex(session.doc, session.state.stageId) - 1)));
 $("stageRight").addEventListener("click", () => run(ops.reorderStage(session.doc, session.state.stageId, ops.stageIndex(session.doc, session.state.stageId) + 1)));
+// Deleting ANY stage is confirmed first - with elements, with only a background, or completely empty. Undo restores it either way.
 $("stageDelete").addEventListener("click", () => {
-  const result = ops.deleteStage(session.doc, session.state.stageId);
-  if (result.ok) { removeStage(result); return; }
-  if (result.errors[0] === "STAGE_NOT_EMPTY") { pendingStageDelete = result.elementCount; renderStages(); return; }
-  notify(describeErrors(result.errors).join(" "));
+  const info = ops.stageDeletionInfo(session.doc, session.state.stageId);
+  if (!info || info.isLast) { notify(describeErrors(["LAST_STAGE"]).join(" ")); return; }
+  pendingStageDelete = info;
+  renderStages();
 });
 $("stageConfirmNo").addEventListener("click", () => { pendingStageDelete = null; renderStages(); });
-$("stageConfirmYes").addEventListener("click", () => { removeStage(ops.deleteStage(session.doc, session.state.stageId, { force: true })); pendingStageDelete = null; });
+$("stageConfirmYes").addEventListener("click", () => {
+  if (!pendingStageDelete || pendingStageDelete.stageId !== session.state.stageId) { pendingStageDelete = null; renderStages(); return; }
+  pendingStageDelete = null;
+  removeStage(ops.deleteStage(session.doc, session.state.stageId, { force: true }));
+});
 function removeStage(result) {
   const index = ops.stageIndex(session.doc, session.state.stageId);
   const neighbour = session.doc.stages[Math.max(0, index - 1) === index ? 1 : Math.max(0, index - 1)]?.id;
@@ -287,7 +296,7 @@ document.addEventListener("keydown", event => {
   if (mod && event.key.toLowerCase() === "y") { event.preventDefault(); session.redo(); tools.invalidate(); return; }
   if (!ids.length) return;
   if (mod && event.key.toLowerCase() === "d") { event.preventDefault(); run(ops.duplicateElements(session.doc, ids), { keepResultSelection: true }); return; }
-  if (mod && event.key.toLowerCase() === "g") { event.preventDefault(); run(event.shiftKey ? ops.ungroupElements(session.doc, ids) : ops.groupElements(session.doc, ids), { keepResultSelection: true }); return; }
+  if (mod && event.key.toLowerCase() === "g") { event.preventDefault(); if (run(event.shiftKey ? ops.ungroupElements(session.doc, ids) : ops.groupElements(session.doc, ids), { keepResultSelection: true }).ok) leaveMultiSelect(); return; }
   if (event.key === "Delete" || event.key === "Backspace") { event.preventDefault(); run(ops.deleteElements(session.doc, ids), { clearSelection: true }); return; }
   if (event.key === "Escape") { session.clearSelection(); return; }
   const step = event.shiftKey ? 10 : 1;

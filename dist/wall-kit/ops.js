@@ -256,6 +256,13 @@ export function deleteStage(doc, stageId, { force = false } = {}) {
   next.stages = next.stages.filter(candidate => candidate.id !== stageId);
   return finish(doc, next);
 }
+// What deleting a stage would remove - for the confirmation the editor ALWAYS shows before deleting any stage (empty, background-only or with elements).
+export function stageDeletionInfo(doc, stageId) {
+  const index = stageIndex(doc, stageId);
+  if (index < 0) return null;
+  const stage = doc.stages[index];
+  return { stageId, number: index + 1, elementCount: stage.elements.length, hasBackground: stage.background !== undefined && stage.background !== null, isLast: doc.stages.length <= 1 };
+}
 // Moves whole groups/elements to another stage, on top of it, keeping their relative order. Sizes are kept; positions are clamped inside the stage.
 export function moveElementsToStage(doc, ids, toStageId) {
   const source = commonStage(doc, ids);
@@ -761,3 +768,11 @@ export function hitTest(stage, px, py, slop = 0) {
 
 // The layer list, top-most first, as shown in the Layers panel.
 export const layerList = stage => ordered(stage).reverse();
+
+// A stable, human number for each group on a stage ("Group 1", "Group 2", ...), numbered from the bottom layer up, so the Layers panel can show WHICH elements
+// belong together instead of one identical "GROUP" tag for every group.
+export function groupNumbers(stage) {
+  const numbers = new Map();
+  for (const element of ordered(stage)) if (element.groupId && !numbers.has(element.groupId)) numbers.set(element.groupId, numbers.size + 1);
+  return numbers;
+}

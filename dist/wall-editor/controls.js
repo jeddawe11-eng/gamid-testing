@@ -25,7 +25,9 @@ const h = (tag, attributes = {}, ...children) => {
 const WEIGHT_NAMES = { 100: "Thin", 200: "Extra light", 300: "Light", 400: "Regular", 500: "Medium", 600: "Semi-bold", 700: "Bold", 800: "Extra bold", 900: "Black" };
 const TYPE_LABEL = { text: "Text", rect: "Shape", embed: "Link / Embed", image: "Image", gamid: "GamID block" };
 
-export function createPropertiesPanel({ body, title, session, run, fitTextHeight, assets = null, refreshGamid = () => {} }) {
+// onGroupingChanged: called after a successful Group / Ungroup, so the editor can leave Multi-select (while Multi stays on, the next tap on the new group toggles it
+// OFF again and its handles vanish - the W0 Samsung finding).
+export function createPropertiesPanel({ body, title, session, run, fitTextHeight, assets = null, refreshGamid = () => {}, onGroupingChanged = () => {} }) {
   let builtKey = null;
   let syncers = [];
   let errorBox = null;
@@ -277,9 +279,12 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     root.append(h("div", { class: "ed-btn-row" },
       button("Forward", () => exec(ops.reorderLayers(session.doc, ids, "forward"))), button("Backward", () => exec(ops.reorderLayers(session.doc, ids, "backward"))),
       button("To front", () => exec(ops.reorderLayers(session.doc, ids, "front"))), button("To back", () => exec(ops.reorderLayers(session.doc, ids, "back")))));
+    // Group: two or more units selected (a group counts as one unit). Ungroup: the selection contains a group.
+    const units = new Set(targets.map(element => element.groupId ?? element.id)).size;
+    const regroup = (result) => { const applied = exec(result, { keepResultSelection: true }); if (applied.ok) onGroupingChanged(); return applied; };
     root.append(h("div", { class: "ed-btn-row" },
-      button("Group", () => exec(ops.groupElements(session.doc, ids), { keepResultSelection: true }), targets.length < 2 || (grouped && new Set(targets.map(element => element.groupId ?? element.id)).size === 1)),
-      button("Ungroup", () => exec(ops.ungroupElements(session.doc, ids), { keepResultSelection: true }), !grouped)));
+      button("Group", () => regroup(ops.groupElements(session.doc, ids)), units < 2),
+      button("Ungroup", () => regroup(ops.ungroupElements(session.doc, ids)), !grouped)));
     root.append(h("div", { class: "ed-group-title", text: single ? "Align to stage" : "Align" }));
     const alignRow = h("div", { class: "ed-btn-row" });
     for (const [mode, label] of [["left", "Left"], ["hcenter", "Center"], ["right", "Right"], ["top", "Top"], ["vmiddle", "Middle"], ["bottom", "Bottom"]]) alignRow.append(button(label, () => exec(ops.alignElements(session.doc, ids, mode))));
