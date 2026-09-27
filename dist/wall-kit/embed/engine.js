@@ -46,7 +46,8 @@ export function validateEmbedData(provider, data) {
   if (!kind) return ["INVALID_KIND"];
   const errors = [];
   if (!idOk(kind, data.id)) errors.push("INVALID_ID");
-  if (!PRESENTATIONS.includes(data.presentation) || (data.presentation === "embed" && !kind.inline)) errors.push("INVALID_PRESENTATION");
+  // legacyEmbed: a kind that USED to offer a Player keeps accepting presentation "embed" so Walls saved then stay valid (it is shown as a Card - describeEmbed)
+  if (!PRESENTATIONS.includes(data.presentation) || (data.presentation === "embed" && !kind.inline && !kind.legacyEmbed)) errors.push("INVALID_PRESENTATION");
   if (isSet(data.aspect) && !ASPECTS.includes(data.aspect)) errors.push("INVALID_ASPECT");
   if (isSet(data.caption) && (typeof data.caption !== "string" || codePoints(data.caption) > CAPTION_MAX)) errors.push("INVALID_CAPTION");
   return errors;
@@ -56,6 +57,8 @@ export function validateEmbedData(provider, data) {
 export function describeEmbed(provider, data) {
   const kind = provider.kinds[data.kind];
   const wantsPlayer = data.presentation === "embed" && kind.inline;
+  // a saved "embed" of a kind that no longer has a Player (legacyEmbed) is drawn as a Card - never a Play button that only leaves the page
+  const presentation = data.presentation === "embed" && !kind.inline ? "card" : data.presentation;
   return {
     kind: "embed",
     providerKey: provider.key,
@@ -63,7 +66,7 @@ export function describeEmbed(provider, data) {
     contentKind: data.kind,
     contentLabel: kind.label,
     profile: !!kind.profile,
-    presentation: data.presentation,
+    presentation,
     aspect: data.aspect ?? kind.aspect,
     inline: wantsPlayer,
     minInline: kind.minInline ?? null,

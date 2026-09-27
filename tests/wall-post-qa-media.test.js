@@ -150,7 +150,7 @@ test("D capability matrix: the requested Media & Links providers in order, each 
     facebook: { video: C, reel: C, page: C },
     snapchat: { spotlight: P, profile: C },
     x: { post: P, profile: C },
-    instagram: { post: P, reel: P, profile: C },
+    instagram: { post: C, reel: C, profile: C },   // no Player (Instagram platform limitation; saved Players stay valid as Cards)
     discord: { invite: C },
     steam: { app: P, profile: C, group: C },
   });
@@ -206,7 +206,7 @@ test("D the SQL provider table (latest migration) carries every new provider kin
   // the LATEST migration that defines the table (post-Round 2: 20260927140000_wall_kick_vod.sql adds Kick VODs as card/link)
   const latest = readdirSync(new URL("../supabase/migrations/", import.meta.url)).filter(name => /_wall_/.test(name)).sort().reverse().find(name => /create or replace function private\.wall_embed_specs\(\)/.test(read(`supabase/migrations/${name}`)));
   const sql = read(`supabase/migrations/${latest}`);
-  for (const provider of PROVIDERS.values()) for (const [kind, spec] of Object.entries(provider.kinds)) assert.ok(sql.includes(`('${provider.key}', '${kind}', '${spec.id}', ${spec.inline === true})`), `${provider.key}/${kind}`);
+  for (const provider of PROVIDERS.values()) for (const [kind, spec] of Object.entries(provider.kinds)) assert.ok(sql.includes(`('${provider.key}', '${kind}', '${spec.id}', ${spec.inline === true || spec.legacyEmbed === true})`), `${provider.key}/${kind}`);
   assert.match(sql, /create or replace function private\.wall_embed_specs\(\)/);
   assert.doesNotMatch(sql, /\bdrop\b|\bdelete\b|\bupdate\b|\btruncate\b/i, "additive: no data is touched");
 });

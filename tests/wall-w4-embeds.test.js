@@ -46,7 +46,7 @@ const CASES = [
   ["https://clips.twitch.tv/FunnySlug-abcdef", "twitch", "clip", "FunnySlug-abcdef"],
   ["https://www.tiktok.com/@scout2015/video/6718335390845095173", "tiktok", "video", "6718335390845095173", ["embed", "card", "link"]],
   ["https://www.tiktok.com/@scout2015", "tiktok", "profile", "@scout2015", ["card", "link"]],
-  ["https://www.instagram.com/p/CuY0Yv7Bv2k/", "instagram", "post", "CuY0Yv7Bv2k", ["embed", "card", "link"]],
+  ["https://www.instagram.com/p/CuY0Yv7Bv2k/", "instagram", "post", "CuY0Yv7Bv2k", ["card", "link"]],   // no Player: Instagram does not play inside third-party pages for logged-out visitors
   ["https://www.instagram.com/natgeo/p/CuY0Yv7Bv2k/", "instagram", "post", "CuY0Yv7Bv2k"],
   ["https://www.instagram.com/reel/CuY0Yv7Bv2k/", "instagram", "reel", "CuY0Yv7Bv2k"],
   ["https://www.instagram.com/natgeo/", "instagram", "profile", "natgeo", ["card", "link"]],
@@ -189,7 +189,7 @@ test("adapters: validation is per provider - ids, kinds and presentations differ
 test("capabilities: inline players exist only where the provider has an official player; everything else is a card or link - nothing is faked", () => {
   const inline = Object.fromEntries([...PROVIDERS.values()].map(provider => [provider.key, Object.entries(provider.kinds).filter(([, kind]) => kind.inline).map(([name]) => name).sort()]));
   assert.deepEqual(inline, {
-    discord: [], instagram: ["post", "reel"], spotify: ["album", "artist", "episode", "playlist", "show", "track"], steam: ["app"],
+    discord: [], instagram: [], spotify: ["album", "artist", "episode", "playlist", "show", "track"], steam: ["app"],
     tiktok: ["video"], twitch: ["channel", "clip", "video"], x: ["post"], youtube: ["playlist", "video"],
     // post-QA: each verified to render inside the Wall sandbox; Facebook's official player needs its JS SDK (card/link only); Snapchat profiles have no working embed
     soundcloud: ["playlist", "profile", "track"], vimeo: ["video"], kick: ["channel"], facebook: [], snapchat: ["spotlight"],
@@ -213,7 +213,8 @@ test("descriptor: plain data only - no markup, no functions; the player address 
   assert.equal(render("spotify", { kind: "track", id: "4uLU6hMCjMI75M1A2tKUQC", presentation: "embed" }).embedUrl, "https://open.spotify.com/embed/track/4uLU6hMCjMI75M1A2tKUQC?utm_source=generator");
   assert.equal(render("steam", { kind: "app", id: "730", presentation: "embed" }).embedUrl, "https://store.steampowered.com/widget/730/");
   assert.equal(render("tiktok", { kind: "video", id: "6718335390845095173", presentation: "embed" }).embedUrl, "https://www.tiktok.com/player/v1/6718335390845095173?music_info=1&description=1&rel=0", "TikTok's official iframe Embed Player (post-QA: embed/v2 stayed black)");
-  assert.equal(render("instagram", { kind: "post", id: "CuY0Yv7Bv2k", presentation: "embed" }).embedUrl, "https://www.instagram.com/p/CuY0Yv7Bv2k/embed/");
+  const legacy = render("instagram", { kind: "post", id: "CuY0Yv7Bv2k", presentation: "embed" });
+  assert.deepEqual([legacy.embedUrl, legacy.inline, legacy.presentation], [null, false, "card"], "a Wall saved with an Instagram Player stays valid and is drawn as a Card");
   assert.equal(render("x", { kind: "post", id: "20", presentation: "embed" }).embedUrl, "https://platform.twitter.com/embed/Tweet.html?id=20&dnt=true&theme=dark");
 });
 
@@ -491,7 +492,7 @@ test("database parity: the SQL provider table equals the JavaScript adapters (pr
   const block = latest.slice(latest.search(/function private\.wall_embed_specs\(\)/), latest.indexOf("as specs (provider, kind, id_pattern, inline)"));
   const rows = [...block.matchAll(/\('([a-z]+)', '([a-z0-9]+)', '(\^[^']+\$)', (true|false)\)/g)].map(match => `${match[1]}|${match[2]}|${match[3]}|${match[4]}`).sort();
   const sql = definitions.join("\n");
-  const expected = [...PROVIDERS.values()].flatMap(provider => Object.entries(provider.kinds).map(([kind, spec]) => `${provider.key}|${kind}|${spec.id}|${spec.inline}`)).sort();
+  const expected = [...PROVIDERS.values()].flatMap(provider => Object.entries(provider.kinds).map(([kind, spec]) => `${provider.key}|${kind}|${spec.id}|${spec.inline === true || spec.legacyEmbed === true}`)).sort();
   assert.deepEqual(rows, expected);
   assert.match(sql, /'ddd'|wall_embed_data_errors/);
 });
