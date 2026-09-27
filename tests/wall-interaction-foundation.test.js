@@ -257,13 +257,19 @@ test("inline Close: one active player per provider is kept - a stale Close from 
   assert.equal(find(b, node => node.tag === "iframe").length, 0);
 });
 
-test("inline Close: a box too short for the provider minimum PLUS the Close bar opens the larger in-page player instead of a cramped inline one", () => {
+test("Round 2 inline contract: even a box below the provider minimum plays INSIDE its own element - no overlay, nothing added to the page body", () => {
   const doc = fakeDoc();
-  const manager = createPlayerManager({ doc, hostname: "example.com", viewport: () => ({ width: 390, height: 800 }) });
+  const manager = createPlayerManager({ doc, hostname: "example.com" });
   const box = new Node("div");
-  manager.activate(box, describe("youtube", youtube()), { widthPx: 320, heightPx: 150 });   // 150 - 44 = 106 < 112
-  assert.equal(find(box, node => node.tag === "iframe").length, 0);
-  assert.equal(manager.expanded, true);
+  manager.activate(box, describe("youtube", youtube()), { widthPx: 320, heightPx: 150 });
+  assert.equal(find(box, node => node.tag === "iframe").length, 1, "the frame is in the element");
+  assert.equal(doc.body.children.length, 0, "no overlay / modal");
+  assert.equal("expanded" in manager || "openExpanded" in manager, false, "the automatic enlarged player no longer exists");
+  // a small (phone-scaled) element: the Close bar shrinks with it but stays a 24px touch target
+  const small = new Node("div");
+  manager.activate(small, describe("youtube", youtube("embed", { id: "abcdEFGhijk" })), { widthPx: 120, heightPx: 70 });
+  const [bar] = small.children[0].children;
+  assert.equal(bar.style.props.get("height"), "24px");
   manager.destroyAll();
 });
 
@@ -342,7 +348,7 @@ test("minimums: documented per-type table (canonical units on the narrowest 360 
   assert.deepEqual(min(embed("y", "youtube", youtube(), {}, 0)), [334, 195], "YouTube: its documented 120x70 px playable tile");
   assert.deepEqual(min(embed("y", "youtube", youtube("embed", { aspect: "9:16" }), {}, 0)), [195, 334], "turned for a portrait player");
   // (post-QA: players without a documented tile, cards and links now have facade-derived minimums - see tests/wall-post-qa-media.test.js)
-  assert.deepEqual(min(embed("s", "spotify", { kind: "track", id: "4uLU6hMCjMI75M1A2tKUQC", presentation: "embed" }, {}, 0)), [ops.PLAYER_TILE_MIN.long, ops.PLAYER_TILE_MIN.short], "no documented tile: the smallest facade that shows its play button and title");
+  assert.deepEqual(min(embed("s", "spotify", { kind: "track", id: "4uLU6hMCjMI75M1A2tKUQC", presentation: "embed" }, {}, 0)), [280, 152 + ops.INLINE_CLOSE_BAR_UNITS], "Round 2: a player plays inside its element, so it holds the provider's frame minimum plus the Close bar");
   assert.deepEqual(min(embed("c", "youtube", youtube("card"), {}, 0)), [ops.CARD_MIN.width, ops.CARD_MIN.height], "cards: never shrunk into a clipped box");
   for (const block of ["profile", "roles", "games", "connections"]) {
     const { width, height } = GAMID_BLOCK_INFO[block].minSize;

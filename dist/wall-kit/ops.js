@@ -29,8 +29,8 @@ const EPS = 1e-6;
 // Minimums are in canonical units, judged on the NARROWEST supported column (360 CSS px, W0's worst case: 1 unit = 0.36 px), so a minimum holds on every phone.
 //   shapes, text, images   MIN_SIZE (10 units): decorative pieces stay fully flexible.
 //   embed player           the provider's documented tile minimum when it declares one (YouTube: a thumbnail that starts playback must be at least 120x70 px ->
-//                          334 x 195 units, turned to match a portrait player). Below the provider's INLINE minimum a tile is still valid: a tap opens the larger
-//                          in-page player (W0 finding). Other players: the smallest facade that still shows its ▶ and title (PLAYER_TILE_MIN, turned for portrait).
+//                          334 x 195 units, turned to match a portrait player), and at least the provider's inline frame minimum plus the Close bar, because a
+//                          Player always plays inside its own element (Round 2). Otherwise the smallest facade that still shows its ▶ and title (PLAYER_TILE_MIN).
 //   embed card             the smallest card whose provider chip + one title line fit inside its padding (paint.js facadeLayout): 300 x 150 units - a card can
 //                          never be shrunk into a clipped, broken box (manual-QA finding); its hint line appears once there is room for it.
 //   embed link             the smallest pill whose one title line fits: 300 x 80 units.
@@ -48,6 +48,7 @@ const ratioOf = aspect => { const match = /^(\d+):(\d+)$/.exec(aspect ?? ""); re
 export const CARD_MIN = Object.freeze({ width: 300, height: 150 });
 export const LINK_MIN = Object.freeze({ width: 300, height: 80 });
 export const PLAYER_TILE_MIN = Object.freeze({ long: 200, short: 140 });   // 60 padding + the 74 ▶ fit the short side; the title fits the long side
+export const INLINE_CLOSE_BAR_UNITS = 44;   // = player.js INLINE_BAR_PX at full scale
 export function minSizeOf(element) {
   if (element.type === "embed") {
     const descriptor = embedDescriptor(element);
@@ -57,7 +58,12 @@ export function minSizeOf(element) {
     const tile = PROVIDERS.get(descriptor.providerKey)?.kinds?.[descriptor.contentKind]?.minTile;
     const long = tile ? pxToMinUnits(Math.max(tile.w, tile.h)) : PLAYER_TILE_MIN.long, short = tile ? pxToMinUnits(Math.min(tile.w, tile.h)) : PLAYER_TILE_MIN.short;
     const portrait = (ratioOf(descriptor.aspect) ?? 1) < 1;
-    return { width: portrait ? short : long, height: portrait ? long : short };
+    // Round 2 inline contract: a Player plays inside its own element, so at full scale (1 unit = 1 CSS px) the element must hold the provider's comfortable frame
+    // minimum PLUS the inline Close bar.
+    const inline = descriptor.minFrame ?? descriptor.minInline;
+    const turn = inline && portrait && inline.w > inline.h;   // a landscape minimum turned for a portrait shape (YouTube 9:16)
+    const frameW = inline ? (turn ? inline.h : inline.w) : 0, frameH = inline ? (turn ? inline.w : inline.h) + INLINE_CLOSE_BAR_UNITS : 0;
+    return { width: Math.max(portrait ? short : long, frameW), height: Math.max(portrait ? long : short, frameH) };
   }
   if (element.type === "gamid") return GAMID_BLOCK_INFO[element.payload?.block]?.minSize ?? BASE_MIN;
   return BASE_MIN;
@@ -405,6 +411,9 @@ export function setEmbedData(doc, id, patch) {
   const ratio = ratioOf(after?.aspect);
   if (after?.inline && ratio && (after.aspect !== before?.aspect || !before?.inline)) {
     refitToRatio(element, ratio, next.canvas);
+    if (!clampToCanvas(element, next.canvas, minSizeOf(element))) return fail(doc, "OUTSIDE_CANVAS");
+  } else if (after && (after.presentation !== before?.presentation)) {
+    // a new presentation brings its own minimum (a Player holds its frame + Close bar; a card its chip + title): grow into it in the same undo step
     if (!clampToCanvas(element, next.canvas, minSizeOf(element))) return fail(doc, "OUTSIDE_CANVAS");
   }
   return finish(doc, next);

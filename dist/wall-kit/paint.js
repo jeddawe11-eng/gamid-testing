@@ -140,8 +140,8 @@ export function facadeLayout(presentation, widthUnits, heightUnits) {
   return { padding, showChip, showHint, titleLines, showPlay };
 }
 
-// A provider embed. EDIT: a facade card only (no iframe, no network). VIEW: link/card open the content; a player starts on a tap (inline, or a larger in-page player when the
-// box is below the provider's minimum). Everything shown comes from the adapter's descriptor; the address followed is re-checked against the provider's own hosts.
+// A provider embed. EDIT: a facade card only (no iframe, no network). VIEW: link/card open the content; a player starts on a tap, always inline inside this same element
+// (no overlay). Everything shown comes from the adapter's descriptor; the address followed is re-checked against the provider's own hosts.
 function paintEmbed(node, descriptor, scale, item, createNode, ctx) {
   const view = ctx.mode === "view";
   const s = value => px(value * scale);

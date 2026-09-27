@@ -1,6 +1,6 @@
 // Spotify. Official embed: https://open.spotify.com/embed/<type>/<id>. Inline for tracks, albums, playlists, episodes and shows; artists get the embed too, but its
 // content is a compact list, so it is offered as a player as well. Page CSP needs frame-src https://open.spotify.com. Spotify sizes its own controls: W0's real-device
-// finding was that very small boxes render but crop and compress the player, so each kind has a product minimum below which the element is a tile that opens a larger player.
+// finding was that very small boxes render but crop and compress the player, so each kind has a product minimum that the editor keeps a Player element above (it plays inside that element).
 import { defineProvider } from "../engine.js";
 
 const ID = "^[A-Za-z0-9]{22}$";

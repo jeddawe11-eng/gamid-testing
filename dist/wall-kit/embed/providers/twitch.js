@@ -1,8 +1,9 @@
 // Twitch. Official embeds (dev.twitch.tv/docs/embed/video-and-clips): https://player.twitch.tv/?channel=<login>|video=v<id>&parent=<page host> and
 // https://clips.twitch.tv/embed?clip=<slug>&parent=<page host>. Twitch REQUIRES the embedding page's host in `parent` (verified: its frame-ancestors follows it), which
 // the player fills in at runtime from the page it is on. Twitch also documents a MINIMUM player size of 400 x 300 px (manual-QA finding: the Wall allowed 400x225 inline
-// and ~358x201 in a phone's larger player, both below it). minInline is therefore 400 x 300 for the FRAME: a smaller box opens the larger in-page player, and where even
-// that cannot reach 400 x 300 (most phones in portrait) the content opens on Twitch itself instead of showing a non-compliant player. 16:9 is the default shape; 4:3
+// and ~358x201 in a phone's larger player, both below it). minFrame is therefore 400 x 300: the editor keeps a Twitch Player element at least 400 x (300 + the Close bar)
+// units, so at full scale the frame meets it. Round 2: the player always plays inside its own element (no overlay); on a phone's scaled-down column the element - and
+// so the frame - is proportionally smaller than 400 x 300 CSS px (Twitch's player still renders there; a documented limitation). 16:9 is the default shape; 4:3
 // reaches Twitch's minimum in a narrower box. Page CSP needs frame-src https://player.twitch.tv and https://clips.twitch.tv. Live/offline status is not read (Twitch needs
 // an API key for that): deferred.
 import { defineProvider } from "../engine.js";

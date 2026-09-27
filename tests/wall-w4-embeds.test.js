@@ -11,7 +11,7 @@ import { elementRegistry } from "../dist/wall/elements.js";
 import { providerRegistry } from "../dist/wall/providers.js";
 import "../dist/wall-kit/register.js";
 import { PROVIDERS, detectEmbed, buildEmbedPayload, defaultEmbedSize, frameOrigins, isAllowedFrameUrl, isAllowedOpenUrl, validateEmbedData, humanReason, PRESENTATIONS } from "../dist/wall-kit/embed/engine.js";
-import { createPlayerManager, resolveFrameUrl, fitsInline, fitFrame, expandedSize, ratioOf } from "../dist/wall-kit/embed/player.js";
+import { createPlayerManager, resolveFrameUrl, meetsInlineMinimum, fitFrame, inlineFrameSize, ratioOf } from "../dist/wall-kit/embed/player.js";
 import { paintDocument } from "../dist/wall-kit/paint.js";
 import * as ops from "../dist/wall-kit/ops.js";
 
@@ -247,15 +247,15 @@ test("the player resolves Twitch's required parent from the page host and refuse
 });
 
 // ---------- sizing / small-media rule ----------
-test("small media: below the provider's minimum on screen a player is a tile that opens a larger in-page player; big enough plays inline", () => {
+test("small media: the provider's comfortable minimum is judged on the frame below the Close bar (informational - the player still plays inside its element)", () => {
   const yt = elementRegistry.get("embed").render({ providerKey: "youtube", data: { kind: "video", id: "dQw4w9WgXcQ", presentation: "embed" } }).content;
-  assert.equal(fitsInline(yt, 312, 175), true);
-  assert.equal(fitsInline(yt, 199, 300), false);
-  assert.equal(fitsInline(yt, 300, 100), false);
+  assert.equal(meetsInlineMinimum(yt, 312, 219), true);
+  assert.equal(meetsInlineMinimum(yt, 199, 300), false);
+  assert.equal(meetsInlineMinimum(yt, 300, 100), false);
   const sp = elementRegistry.get("embed").render({ providerKey: "spotify", data: { kind: "playlist", id: "37i9dQZF1DXcBWIGoYBM5M", presentation: "embed" } }).content;
-  assert.equal(fitsInline(sp, 300, 200), false, "W0: a 300x200 playlist renders but is cropped - it must be a tile");
-  assert.equal(fitsInline(sp, 300, 352), true);
-  assert.equal(fitsInline({ minInline: null }, 1, 1), true);
+  assert.equal(meetsInlineMinimum(sp, 300, 200), false, "W0: a 300x200 playlist renders but is cropped");
+  assert.equal(meetsInlineMinimum(sp, 300, 396), true);
+  assert.equal(meetsInlineMinimum({ minInline: null }, 1, 1), true);
 });
 
 test("aspect: video is never stretched - frames keep the real ratio inside their box; 'auto' providers use the box", () => {
@@ -267,12 +267,8 @@ test("aspect: video is never stretched - frames keep the real ratio inside their
   assert.deepEqual(fitFrame("auto", 300, 500), { width: 300, height: 500 });
   assert.equal(ratioOf("16:9"), 16 / 9);
   assert.equal(ratioOf("auto"), null);
-  const big = expandedSize({ aspect: "16:9" }, 1200, 800);
-  assert.ok(big.width <= 960 && Math.abs(big.width / big.height - 16 / 9) < 0.02);
-  const portrait = expandedSize({ aspect: "9:16" }, 390, 800);
-  assert.ok(portrait.width <= 390 * 0.92 && portrait.height <= 800 * 0.78 && Math.abs(portrait.width / portrait.height - 9 / 16) < 0.02);
-  const auto = expandedSize({ aspect: "auto", minInline: { w: 280, h: 352 } }, 390, 800);
-  assert.ok(auto.width <= 390 * 0.92 && auto.height <= 800 * 0.78);
+  assert.deepEqual(inlineFrameSize({ aspect: "9:16" }, 225, 444), { width: 225, height: 400 }, "portrait fitted below the 44px bar, never stretched");
+  assert.deepEqual(inlineFrameSize({ aspect: "auto" }, 300, 300), { width: 300, height: 256 });
 });
 
 // ---------- the player manager (fake DOM) ----------
@@ -301,47 +297,30 @@ test("player: a tap on a big-enough box plays INLINE in that box, with a sandbox
   assert.doesNotMatch(frame.attrs.sandbox, /allow-top-navigation/);
   assert.equal(frame.attrs.referrerpolicy, "strict-origin-when-cross-origin");
   assert.equal(frame.attrs.loading, "lazy");
-  // the frame fits the box BELOW the inline Close bar (320 x (180 - 44)): 16:9 inside 320 x 136
-  assert.equal(frame.style.props.get("width"), "241px");
-  assert.equal(frame.style.props.get("height"), "136px", "the 16:9 ratio is kept");
-  assert.equal(manager.expanded, false);
+  // the frame fits the box BELOW the inline Close bar (a 180px element: a 29px bar), 16:9 kept
+  const [w, h] = [parseInt(frame.style.props.get("width"), 10), parseInt(frame.style.props.get("height"), 10)];
+  assert.ok(w <= 320 && h <= 180 - 29 && Math.abs(w / h - 16 / 9) < 0.02, `${w}x${h}`);
+  assert.equal(doc.body.children.length, 0);
   assert.deepEqual(manager.activeProviders(), ["youtube"]);
 });
 
-test("player: a tap on a TILE (below the provider minimum) opens a larger in-page player with an obvious Close; Close, backdrop and Escape all destroy the frame", () => {
+test("player: a tap on a SMALL element (below the provider minimum) still plays inside that element - no overlay; its Close destroys the frame and restores the facade", () => {
   const doc = fakeDoc();
-  const manager = createPlayerManager({ doc, hostname: "example.com", viewport: () => ({ width: 390, height: 800 }) });
+  const manager = createPlayerManager({ doc, hostname: "example.com" });
   const tile = new Node("div");
   const descriptor = describe("youtube", { kind: "video", id: "dQw4w9WgXcQ", presentation: "embed" });
   manager.activate(tile, descriptor, { widthPx: 120, heightPx: 70 });
-  assert.equal(frames(tile).length, 0, "the tile itself never becomes a tiny player");
-  assert.equal(manager.expanded, true);
-  const overlay = doc.body.children[0];
-  assert.equal(overlay.attrs.role, "dialog");
-  const close = overlay.children.find(child => child.tag === "button");
-  assert.match(close.textContent, /Close/);
+  const [frame] = frames(tile);
+  assert.ok(frame, "the frame is in the element itself");
+  assert.equal(doc.body.children.length, 0, "no overlay, no modal");
+  assert.equal(doc.body.style.props.has("overflow"), false, "the page is not locked");
+  assert.ok(parseInt(frame.style.props.get("width"), 10) <= 120 && parseInt(frame.style.props.get("height"), 10) <= 70, "within the element bounds");
+  const close = frames(tile).length && tile.children[0].children[0].children[0];
   assert.equal(close.attrs["aria-label"], "Close player");
-  assert.match(close.style.props.get("min-height"), /44px/, "a real touch target");
-  assert.equal(close.parent, overlay, "Close sits OUTSIDE the video area");
-  const [frame] = frames(overlay);
-  assert.equal(frame.attrs.src.startsWith("https://www.youtube-nocookie.com/embed/"), true);
-  assert.ok(Number(frame.style.props.get("width").replace("px", "")) <= 390 * 0.92);
-  assert.equal(doc.body.style.props.get("overflow"), "hidden", "the page behind does not scroll");
   close.fire("click");
-  assert.equal(manager.expanded, false);
-  assert.equal(doc.body.children.length, 0, "the overlay is removed");
   assert.equal(frame.attrs.src, "about:blank", "the frame is destroyed, not merely hidden");
-  assert.equal(doc.body.style.props.has("overflow"), false);
-  // backdrop
-  manager.activate(tile, descriptor, { widthPx: 120, heightPx: 70 });
-  const second = doc.body.children[0];
-  second.fire("click", { target: second });
-  assert.equal(manager.expanded, false);
-  // escape
-  manager.activate(tile, descriptor, { widthPx: 120, heightPx: 70 });
-  doc.fire("keydown", { key: "Escape" });
-  assert.equal(manager.expanded, false);
-  assert.equal((doc.listeners.keydown || []).length, 0, "no stray key handler is left behind");
+  assert.equal(frames(tile).length, 0);
+  assert.equal(tile.attrs["data-playing"], "false");
 });
 
 test("player: only ONE active player per provider - starting a second closes the first; different providers can play together", () => {

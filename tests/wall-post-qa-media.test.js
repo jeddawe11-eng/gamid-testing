@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { createDocument, createElement } from "../dist/wall/schema.js";
 import { elementRegistry } from "../dist/wall/elements.js";
 import { paintDocument, facadeLayout, FACADE } from "../dist/wall-kit/paint.js";
-import { createPlayerManager, fitsInline } from "../dist/wall-kit/embed/player.js";
+import { createPlayerManager, meetsInlineMinimum } from "../dist/wall-kit/embed/player.js";
 import { PROVIDERS, detectEmbed, buildEmbedPayload, frameOrigins, isAllowedOpenUrl, isAllowedFrameUrl, mediaCapabilities, MEDIA_PROVIDER_ORDER } from "../dist/wall-kit/embed/index.js";
 import * as ops from "../dist/wall-kit/ops.js";
 
@@ -44,7 +44,7 @@ test("B minimums: card 300x150, link 300x80, players keep theirs (YouTube 334x19
   assert.deepEqual(min(embedEl("l", "youtube", ytLink)), [300, 80]);
   assert.deepEqual(min(embedEl("p", "youtube", ytPlayer)), [334, 195], "the accepted YouTube player minimum is unchanged");
   assert.deepEqual(min(embedEl("p", "youtube", { ...ytPlayer, aspect: "9:16" })), [195, 334]);
-  assert.deepEqual(min(embedEl("s", "spotify", { kind: "track", id: "4uLU6hMCjMI75M1A2tKUQC", presentation: "embed" })), [200, 140]);
+  assert.deepEqual(min(embedEl("s", "spotify", { kind: "track", id: "4uLU6hMCjMI75M1A2tKUQC", presentation: "embed" })), [280, 196], "Round 2: the provider's frame minimum + the Close bar (plays inside the element)");
   for (const [w, h] of [[300, 150], [300, 80], [200, 140]]) assert.ok(w >= ops.pxToMinUnits(24) && h >= ops.pxToMinUnits(24));
 });
 
@@ -113,14 +113,14 @@ class Node {
 }
 test("C a player's own 'Watch on YouTube' opens a real, unsandboxed tab: popups escape the sandbox, the player frame itself stays sandboxed and cannot navigate the Wall", () => {
   const doc = new Node("document"); doc.body = new Node("body"); doc.createElement = tag => new Node(tag); doc.removeEventListener = () => {};
-  const manager = createPlayerManager({ doc, hostname: "gamid-testing-static.gamid.workers.dev", viewport: () => ({ width: 1200, height: 900 }) });
+  const manager = createPlayerManager({ doc, hostname: "gamid-testing-static.gamid.workers.dev" });
   const describe = data => elementRegistry.get("embed").render({ providerKey: "youtube", data }).content;
-  const box = new Node("div");
+  const box = new Node("div"), small = new Node("div");
   manager.activate(box, describe(ytPlayer), { widthPx: 800, heightPx: 500 });
   const inline = (function find(node) { return node.tag === "iframe" ? node : node.children.map(find).find(Boolean); })(box);
-  manager.activate(new Node("div"), describe({ ...ytPlayer, id: "abcdEFGhijk" }), { widthPx: 150, heightPx: 90 });
-  const expanded = (function find(node) { return node.tag === "iframe" ? node : node.children.map(find).find(Boolean); })(doc.body);
-  for (const frame of [inline, expanded]) {
+  manager.activate(small, describe({ ...ytPlayer, id: "abcdEFGhijk" }), { widthPx: 150, heightPx: 90 });
+  const tiny = (function find(node) { return node.tag === "iframe" ? node : node.children.map(find).find(Boolean); })(small);
+  for (const frame of [inline, tiny]) {
     const flags = frame.attrs.sandbox.split(" ");
     assert.ok(flags.includes("allow-popups") && flags.includes("allow-popups-to-escape-sandbox"), "a user-opened youtube.com tab (COOP: same-origin-allow-popups) is not refused");
     assert.ok(flags.includes("allow-scripts") && flags.includes("allow-same-origin"));
@@ -241,24 +241,28 @@ test("F Shape change refits the element and a resize keeps the SELECTED shape - 
   assert.match(controls, /set by \$\{provider\?\.label \?\? "the provider"\}'s player/, "a fixed-shape player says so");
 });
 
-test("D Twitch honours its documented 400x300 minimum: inline only when the fitted frame reaches it; on a phone in portrait it opens on Twitch instead of a too-small player", () => {
+test("D Twitch honours its documented 400x300 minimum at full scale (element minimum), and - Round 2 - always plays inside its own element, never in an overlay", () => {
   const describe = data => elementRegistry.get("embed").render({ providerKey: "twitch", data: { presentation: "embed", ...data } }).content;
   const wide = describe({ kind: "channel", id: "shroud" });
-  assert.equal(fitsInline(wide, 500, 300), false, "a 16:9 frame fitted in 500x300 is 500x281 - below 300 tall");
-  assert.equal(fitsInline(wide, 600, 400), true);
-  assert.equal(fitsInline(describe({ kind: "channel", id: "shroud", aspect: "4:3" }), 400, 300), true, "4:3 reaches the minimum in a narrower box");
+  assert.equal(meetsInlineMinimum(wide, 500, 300), false, "a 16:9 frame below the bar in 500x300 is below 300 tall");
+  assert.equal(meetsInlineMinimum(wide, 700, 450), true);
+  assert.equal(meetsInlineMinimum(describe({ kind: "channel", id: "shroud", aspect: "4:3" }), 400, 344), true, "4:3 reaches the minimum in a narrower box");
+  const min = ops.minSizeOf({ type: "embed", payload: { providerKey: "twitch", data: { kind: "channel", id: "shroud", presentation: "embed" } } });
+  assert.ok(min.width >= 400 && min.height >= 300 + ops.INLINE_CLOSE_BAR_UNITS, "the editor keeps a Twitch Player big enough for 400x300 below its Close bar");
   const opened = [];
   globalThis.open = (...args) => opened.push(args[0]);
   const doc = new Node("document"); doc.body = new Node("body"); doc.createElement = tag => new Node(tag); doc.removeEventListener = () => {}; doc.addEventListener = () => {};
-  const phone = createPlayerManager({ doc, hostname: "gamid-testing-static.gamid.workers.dev", viewport: () => ({ width: 390, height: 844 }) });
-  phone.activate(new Node("div"), wide, { widthPx: 300, heightPx: 200 });
-  assert.equal(doc.body.children.length, 0, "no player below Twitch's minimum");
-  assert.deepEqual(opened, ["https://www.twitch.tv/shroud"]);
-  const desktop = createPlayerManager({ doc, hostname: "gamid-testing-static.gamid.workers.dev", viewport: () => ({ width: 1280, height: 800 }) });
-  desktop.activate(new Node("div"), wide, { widthPx: 300, heightPx: 200 });
-  const frame = (function find(node) { return node.tag === "iframe" ? node : node.children.map(find).find(Boolean); })(doc.body);
-  assert.ok(parseInt(frame.style.props.get("width"), 10) >= 400 && parseInt(frame.style.props.get("height"), 10) >= 300, "the larger in-page player meets it");
-  desktop.destroyAll();
+  const manager = createPlayerManager({ doc, hostname: "gamid-testing-static.gamid.workers.dev" });
+  for (const [providerKey, data, w, h] of [["twitch", { kind: "channel", id: "shroud" }, 300, 200], ["twitch", { kind: "clip", id: "FunnySlug-abcdef" }, 900, 550], ["tiktok", { kind: "video", id: "6718335390845095173" }, 150, 267], ["tiktok", { kind: "video", id: "6718335390845095174" }, 440, 780]]) {
+    const box = new Node("div");
+    manager.activate(box, elementRegistry.get("embed").render({ providerKey, data: { presentation: "embed", ...data } }).content, { widthPx: w, heightPx: h });
+    const frame = (function find(node) { return node.tag === "iframe" ? node : node.children.map(find).find(Boolean); })(box);
+    assert.ok(frame, `${providerKey} ${w}x${h}: the frame is inside the element`);
+    assert.ok(parseInt(frame.style.props.get("width"), 10) <= w && parseInt(frame.style.props.get("height"), 10) <= h, `${providerKey}: within the element's bounds`);
+    assert.equal(doc.body.children.length, 0, `${providerKey}: no overlay`);
+  }
+  assert.deepEqual(opened, [], "nothing was sent to another tab either");
+  manager.destroyAll();
   delete globalThis.open;
 });
 
