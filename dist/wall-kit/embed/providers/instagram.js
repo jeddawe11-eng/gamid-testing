@@ -14,8 +14,8 @@ export const instagram = defineProvider({
   frameOrigins: ["https://www.instagram.com"],
   examples: "instagram.com/p/…  ·  instagram.com/reel/…  ·  instagram.com/name",
   kinds: {
-    post: { label: "Post", id: CODE, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 540, height: 700 }, minInline: { w: 326, h: 420 } },
-    reel: { label: "Reel", id: CODE, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 540, height: 700 }, minInline: { w: 326, h: 420 } },
+    post: { label: "Post", id: CODE, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 540, height: 700 }, minInline: { w: 326, h: 420 }, poster: true },
+    reel: { label: "Reel", id: CODE, inline: true, aspect: "auto", aspects: ["auto"], size: { width: 540, height: 700 }, minInline: { w: 326, h: 420 }, poster: true },
     profile: { label: "Profile", id: "^[A-Za-z0-9._]{1,30}$", inline: false, profile: true, aspect: "auto", size: { width: 800, height: 240 } },
   },
   parse(url) {

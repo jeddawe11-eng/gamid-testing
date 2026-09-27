@@ -30,7 +30,7 @@ function fakeFetch(routes) {
 
 // ---------- F: sources ----------
 test("F poster sources: every one is BUILT from validated parts (never taken from the request) and comes from a documented, keyless endpoint", () => {
-  assert.deepEqual(posterSource(q({ p: "youtube", k: "video", id: "dQw4w9WgXcQ" })), { provider: "youtube", type: "image", url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg" });
+  assert.deepEqual(posterSource(q({ p: "youtube", k: "video", id: "dQw4w9WgXcQ" })), { provider: "youtube", kind: "video", type: "image", url: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg" });
   assert.equal(posterSource(q({ p: "youtube", k: "playlist", id: "PLrEnWoR732-BHrPp_Pm8_VleD68f9s14-" })).url, "https://www.youtube.com/oembed?format=json&url=https%3A%2F%2Fwww.youtube.com%2Fplaylist%3Flist%3DPLrEnWoR732-BHrPp_Pm8_VleD68f9s14-");
   assert.equal(posterSource(q({ p: "vimeo", k: "video", id: "1084537:abcdef12" })).url, `https://vimeo.com/api/oembed.json?url=${encodeURIComponent("https://vimeo.com/1084537/abcdef12")}`, "an unlisted video keeps its hash");
   assert.equal(posterSource(q({ p: "tiktok", k: "video", id: "6718335390845095173" })).url, `https://www.tiktok.com/oembed?url=${encodeURIComponent("https://www.tiktok.com/@/video/6718335390845095173")}`);
@@ -44,9 +44,9 @@ test("F poster sources: every one is BUILT from validated parts (never taken fro
 test("F poster requests: anything not exactly a known provider + kind + valid id is refused (no open proxy, no path tricks)", () => {
   for (const params of [
     {}, { p: "youtube" }, { p: "youtube", k: "video" }, { p: "youtube", k: "video", id: "short" }, { p: "youtube", k: "video", id: "dQw4w9WgXcQ/../x" },
-    { p: "youtube", k: "channel", id: "@name" }, { p: "kick", k: "channel", id: "xqc" }, { p: "x", k: "post", id: "20" }, { p: "instagram", k: "post", id: "DLLQqjCMkiN" },
-    { p: "facebook", k: "video", id: "10153231379946729" }, { p: "snapchat", k: "spotlight", id: "W7_EDlXWTBiXAEEniNoMPwAAYdWxvYnBhaHR3AaARhNpsAaARhNmWAAAAAQ" },
-    { p: "twitch", k: "clip", id: "FunnySlug-abcdef" }, { p: "__proto__", k: "video", id: "x" }, { p: "youtube", k: "constructor", id: "x" },
+    { p: "youtube", k: "channel", id: "@name" }, { p: "kick", k: "video", id: "xqc/not-a-uuid" }, { p: "kick", k: "video", id: "../x/01a0df43-5130-7429-af65-66a176d79e10" }, { p: "x", k: "post", id: "20/../1" },
+    { p: "facebook", k: "video", id: "10153231379946729" }, { p: "discord", k: "invite", id: "a/b" }, { p: "steam", k: "profile", id: "../x" },
+    { p: "__proto__", k: "video", id: "x" }, { p: "youtube", k: "constructor", id: "x" },
     { p: "soundcloud", k: "track", id: "Forss/Flickermood" }, { p: "steam", k: "app", id: "570&x=1" }, { steam_avatar: "../../etc" }, { steam_avatar: "FEF49E7FA7E1997310D705B2A6158FF8DC1CDFEB" },
   ]) assert.equal(posterSource(q(params)), null, JSON.stringify(params));
 });
@@ -59,8 +59,8 @@ test("F the server's id rules are the Wall adapters' own rules (no drift), and t
   for (const [key, provider] of PROVIDERS) for (const [kind, spec] of Object.entries(provider.kinds)) if (spec.poster) (declared[key] ||= []).push(kind);
   assert.deepEqual(declared, Object.fromEntries(Object.entries(POSTER_KINDS).map(([provider, kinds]) => [provider, Object.keys(kinds)])), "adapters declare `poster` exactly where the server has a source");
   assert.equal(posterQuery(describe("youtube", { kind: "video", id: "dQw4w9WgXcQ" })), "p=youtube&k=video&id=dQw4w9WgXcQ");
-  assert.equal(posterQuery(describe("kick", { kind: "channel", id: "xqc" })), null, "no documented keyless source: no request at all");
-  assert.equal(hasPoster(describe("x", { kind: "post", id: "20" })), false);
+  assert.equal(posterQuery(describe("facebook", { kind: "video", id: "10153231379946729" })), null, "no public preview source (Facebook needs a login): no request at all");
+  assert.equal(hasPoster(describe("x", { kind: "profile", id: "jack" })), false);
 });
 
 test("F image hosts: only https on the provider's own image hosts; no ports, no credentials, no look-alike suffixes", () => {
@@ -143,7 +143,7 @@ test("G the handler: GET only, allowed origins only, typed errors, safe headers,
   assert.equal(ok.headers.get("access-control-allow-origin"), "https://gamid-testing-static.gamid.workers.dev");
   assert.equal((await handleMediaPoster({ request: request(`${base}?p=youtube&k=video&id=dQw4w9WgXcQ`, { origin: "https://evil.example" }), fetchImpl: impl })).status, 403);
   assert.equal((await handleMediaPoster({ request: request(`${base}?p=youtube&k=video&id=dQw4w9WgXcQ`, { method: "POST" }), fetchImpl: impl })).status, 405);
-  assert.equal((await handleMediaPoster({ request: request(`${base}?p=kick&k=channel&id=xqc`), fetchImpl: impl })).status, 400);
+  assert.equal((await handleMediaPoster({ request: request(`${base}?p=facebook&k=video&id=10153231379946729`), fetchImpl: impl })).status, 400);
   const none = await handleMediaPoster({ request: request(`${base}?p=youtube&k=video&id=aaaaaaaaaaa`), fetchImpl: impl });
   assert.equal(none.status, 404);
   assert.deepEqual(await none.json(), { error: "no_poster" });
@@ -168,7 +168,7 @@ test("F client loader: one request per poster (cached), only to GamID's own endp
   assert.equal(calls[0].init.credentials, "omit");
   assert.equal(calls[0].init.referrerPolicy, "no-referrer");
   assert.equal(await loader.forDescriptor(describe("youtube", { kind: "video", id: "aaaaaaaaaaa" })), null);
-  assert.equal(await loader.forDescriptor(describe("kick", { kind: "channel", id: "xqc" })), null);
+  assert.equal(await loader.forDescriptor(describe("facebook", { kind: "video", id: "10153231379946729" })), null);
   assert.equal(calls.length, 2, "a provider without a poster source is never requested");
   for (const bad of ["", "a=b c", "x=1&y=<script>", "u=https://evil.example/x", null]) assert.equal(await loader.load(bad), null, String(bad));
   assert.equal(calls.length, 2, "a malformed query is never sent");
@@ -188,14 +188,14 @@ class Node {
 }
 const all = (root, predicate) => { const out = []; const walk = node => { if (predicate(node)) out.push(node); node.children.forEach(walk); }; walk(root); return out; };
 
-test("F painter: a card / player facade gets its poster behind the text (hidden until decoded); a failed poster is removed; links stay plain pills; no poster, no request", async () => {
+test("F painter: a card / player facade gets its poster behind the text (hidden until decoded); a failed poster is removed; a link gets a small thumbnail; no poster source, no request", async () => {
   const doc = createDocument();
   const embed = (id, providerKey, data, y) => createElement({ id, type: "embed", x: 0, y, z: 0, width: 600, height: 300, payload: { providerKey, data } });
   doc.stages[0].elements = [
     embed("yt", "youtube", { kind: "video", id: "dQw4w9WgXcQ", presentation: "embed" }, 0),
     embed("gone", "youtube", { kind: "video", id: "aaaaaaaaaaa", presentation: "card" }, 310),
     embed("pill", "youtube", { kind: "video", id: "dQw4w9WgXcQ", presentation: "link" }, 620),
-    embed("kick", "kick", { kind: "channel", id: "xqc", presentation: "embed" }, 930),
+    embed("fb", "facebook", { kind: "video", id: "10153231379946729", presentation: "card" }, 930),
   ];
   const asked = [];
   let resolveGone;
@@ -218,9 +218,11 @@ test("F painter: a card / player facade gets its poster behind the text (hidden 
   resolveGone(null);
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.equal(all(box("gone"), node => node.tag === "img").length, 0, "no poster: the neutral facade stays, no broken image");
-  assert.equal(all(box("pill"), node => node.tag === "img").length, 0, "a Link stays a plain pill");
-  assert.equal(all(box("kick"), node => node.tag === "img").length, 0);
-  assert.deepEqual(asked.sort(), ["aaaaaaaaaaa", "dQw4w9WgXcQ"], "Kick (no documented keyless source) is never requested");
+  const [thumb] = all(box("pill"), node => node.tag === "img");
+  assert.equal(thumb.className, "wall-embed-thumb", "post-Round 2: a Link gets a small leading thumbnail, not a background");
+  assert.equal(thumb.style.props.get("display"), "none", "shown only once decoded");
+  assert.equal(all(box("fb"), node => node.tag === "img").length, 0);
+  assert.deepEqual(asked.sort(), ["aaaaaaaaaaa", "dQw4w9WgXcQ", "dQw4w9WgXcQ"], "Facebook (no public preview source) is never requested");
   assert.equal(all(stage, node => node.tag === "iframe").length, 0, "a poster never starts a player (no autoplay)");
 });
 

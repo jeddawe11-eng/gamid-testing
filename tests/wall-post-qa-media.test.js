@@ -1,7 +1,7 @@
 // Post-manual-QA fixes (media): B card / link / player minimum sizes and never-clipped facades, C the player's "Watch on YouTube" new tab.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { createDocument, createElement } from "../dist/wall/schema.js";
 import { elementRegistry } from "../dist/wall/elements.js";
 import { paintDocument, facadeLayout, FACADE } from "../dist/wall-kit/paint.js";
@@ -146,7 +146,7 @@ test("D capability matrix: the requested Media & Links providers in order, each 
     spotify: { track: P, episode: P, album: P, playlist: P, show: P, artist: P },
     soundcloud: { track: P, playlist: P, profile: P },
     vimeo: { video: P, profile: C },
-    kick: { channel: P },
+    kick: { channel: P, video: "card|link" },   // post-Round 2: Kick documents no VOD player (its player says "misconfigured")
     facebook: { video: C, reel: C, page: C },
     snapchat: { spotlight: P, profile: C },
     x: { post: P, profile: C },
@@ -203,7 +203,9 @@ test("D CSP: the editor page's frame-src is EXACTLY the adapters' player origins
 });
 
 test("D the SQL provider table (latest migration) carries every new provider kind exactly - saved Walls with them validate server-side too", () => {
-  const sql = read("supabase/migrations/20260927100000_wall_provider_capabilities.sql");
+  // the LATEST migration that defines the table (post-Round 2: 20260927140000_wall_kick_vod.sql adds Kick VODs as card/link)
+  const latest = readdirSync(new URL("../supabase/migrations/", import.meta.url)).filter(name => /_wall_/.test(name)).sort().reverse().find(name => /create or replace function private\.wall_embed_specs\(\)/.test(read(`supabase/migrations/${name}`)));
+  const sql = read(`supabase/migrations/${latest}`);
   for (const provider of PROVIDERS.values()) for (const [kind, spec] of Object.entries(provider.kinds)) assert.ok(sql.includes(`('${provider.key}', '${kind}', '${spec.id}', ${spec.inline === true})`), `${provider.key}/${kind}`);
   assert.match(sql, /create or replace function private\.wall_embed_specs\(\)/);
   assert.doesNotMatch(sql, /\bdrop\b|\bdelete\b|\bupdate\b|\btruncate\b/i, "additive: no data is touched");

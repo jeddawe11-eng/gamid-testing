@@ -10,7 +10,7 @@ export const discord = defineProvider({
   frameOrigins: [],
   examples: "discord.gg/…",
   kinds: {
-    invite: { label: "Server invite", id: "^[A-Za-z0-9-]{2,32}$", inline: false, aspect: "auto", size: { width: 800, height: 240 } },
+    invite: { label: "Server invite", id: "^[A-Za-z0-9-]{2,32}$", inline: false, aspect: "auto", size: { width: 800, height: 240 }, poster: true, meta: true },
   },
   parse(url) {
     const host = url.hostname.toLowerCase();

@@ -418,6 +418,12 @@ export const CORPUS = [
   { name: "embed: vimeo id too short", doc: docWith(embedEl("e1", "vimeo", { kind: "video", id: "123", presentation: "card" })) },
   { name: "embed: kick channel player", doc: docWith(embedEl("e1", "kick", { kind: "channel", id: "xqc", presentation: "embed" })) },
   { name: "embed: kick channel with a slash is refused", doc: docWith(embedEl("e1", "kick", { kind: "channel", id: "xqc/clips", presentation: "card" })) },
+  // post-Round 2: Kick VODs are card / link only (Kick has no working VOD embed)
+  { name: "embed: kick VOD card", doc: docWith(embedEl("e1", "kick", { kind: "video", id: "xqc/01a0df43-5130-7429-af65-66a176d79e10", presentation: "card" })) },
+  { name: "embed: kick VOD link", doc: docWith(embedEl("e1", "kick", { kind: "video", id: "xqc/01a0df43-5130-7429-af65-66a176d79e10", presentation: "link" })) },
+  { name: "embed: kick VOD as a player is refused", doc: docWith(embedEl("e1", "kick", { kind: "video", id: "xqc/01a0df43-5130-7429-af65-66a176d79e10", presentation: "embed" })) },
+  { name: "embed: kick VOD with a path trick is refused", doc: docWith(embedEl("e1", "kick", { kind: "video", id: "../01a0df43-5130-7429-af65-66a176d79e10", presentation: "card" })) },
+  { name: "embed: kick VOD with an uppercase id is refused (stored normalised)", doc: docWith(embedEl("e1", "kick", { kind: "video", id: "xqc/01A0DF43-5130-7429-AF65-66A176D79E10", presentation: "card" })) },
   { name: "embed: facebook video card", doc: docWith(embedEl("e1", "facebook", { kind: "video", id: "10153231379946729", presentation: "card" })) },
   { name: "embed: facebook reel link", doc: docWith(embedEl("e1", "facebook", { kind: "reel", id: "1234567890123", presentation: "link" })) },
   { name: "embed: facebook page card", doc: docWith(embedEl("e1", "facebook", { kind: "page", id: "NASA.page", presentation: "card" })) },

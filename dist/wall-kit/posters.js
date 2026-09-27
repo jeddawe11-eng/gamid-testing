@@ -45,10 +45,33 @@ export function createPosterLoader({ endpoint, fetchImpl = globalThis.fetch?.bin
     cache.set(query, promise);
     return promise;
   }
+  // The content's public name / short line (want=meta): plain strings only, length-capped again here; any failure -> null (the facade keeps its own label).
+  const metaCache = new Map(), metaReady = new Map();
+  const cleanLine = (value, max) => (typeof value === "string" && value.trim() ? Array.from(value.replace(/\s+/g, " ").trim()).slice(0, max).join("") : null);
+  function metaFor(descriptor) {
+    const query = descriptor?.meta ? posterQuery(descriptor) : null;
+    if (!query || typeof endpoint !== "string" || typeof fetchImpl !== "function") return Promise.resolve(null);
+    if (metaCache.has(query)) return metaCache.get(query);
+    const promise = (async () => {
+      try {
+        const response = await fetchImpl(`${endpoint}?${query}&want=meta`, { credentials: "omit", referrerPolicy: "no-referrer", cache: "default" });
+        if (!response?.ok || !/^application\/json/.test(response.headers?.get?.("content-type") ?? "")) return null;
+        const body = await response.json();
+        const meta = { title: cleanLine(body?.title, 120), subtitle: cleanLine(body?.subtitle, 120) };
+        if (!meta.title && !meta.subtitle) return null;
+        metaReady.set(query, meta);
+        return meta;
+      } catch { return null; }
+    })();
+    metaCache.set(query, promise);
+    return promise;
+  }
   return {
     load,
     ready: query => ready.get(query) ?? null,
     forDescriptor: descriptor => load(posterQuery(descriptor)),
     readyFor: descriptor => ready.get(posterQuery(descriptor)) ?? null,
+    metaFor,
+    readyMeta: descriptor => (descriptor?.meta ? metaReady.get(posterQuery(descriptor)) ?? null : null),
   };
 }

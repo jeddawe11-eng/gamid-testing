@@ -221,7 +221,7 @@ test("every address a player loads or a visitor follows stays inside its own pro
   for (const provider of PROVIDERS.values()) {
     for (const [name, kind] of Object.entries(provider.kinds)) {
       const id = { youtube: { video: "dQw4w9WgXcQ", playlist: "PLrEnWoR732-BHrPp_Pm8_VleD68f9s14-", channel: "@MrBeast" }, spotify: Object.fromEntries(Object.keys(provider.kinds).map(k => [k, "4uLU6hMCjMI75M1A2tKUQC"])), twitch: { channel: "shroud", video: "123456789", clip: "Funny-abcdef" }, tiktok: { video: "6718335390845095173", profile: "@scout2015" }, instagram: { post: "CuY0Yv7Bv2k", reel: "CuY0Yv7Bv2k", profile: "natgeo" }, x: { post: "20", profile: "jack" }, discord: { invite: "abcDEF" }, steam: { app: "730", profile: "gabelogannewell", group: "steam" },
-        soundcloud: { track: "forss/flickermood", playlist: "forss/sets/soulhack", profile: "forss" }, vimeo: { video: "76979871:abcdef1234", profile: "staff" }, kick: { channel: "xqc" },
+        soundcloud: { track: "forss/flickermood", playlist: "forss/sets/soulhack", profile: "forss" }, vimeo: { video: "76979871:abcdef1234", profile: "staff" }, kick: { channel: "xqc", video: "xqc/01a0df43-5130-7429-af65-66a176d79e10" },
         facebook: { video: "10153231379946729", reel: "1234567890123", page: "NASA" }, snapchat: { spotlight: "W7_EDlXWTBiXAEEniNoMPwAAYdWxvYnBhaHR3AaARhNpsAaARhNmWAAAAAQ", profile: "snapchat" } }[provider.key][name];
       assert.equal(isAllowedOpenUrl(provider.key, provider.openUrl(name, id)), true, `${provider.key}/${name} open URL`);
       const embed = provider.embedUrl(name, id);

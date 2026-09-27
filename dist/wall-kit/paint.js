@@ -193,8 +193,40 @@ function paintEmbed(node, descriptor, scale, item, createNode, ctx) {
   if (layout.showChip) facade.append(chip);
   facade.append(title);
   if (layout.showHint) facade.append(hint);
-  if (!link && ctx.posters && hasPoster(descriptor)) paintPoster(facade, descriptor, ctx.posters, make);
+  if (ctx.posters && hasPoster(descriptor)) (link ? paintLinkThumb : paintPoster)(facade, descriptor, ctx.posters, make, s);
+  if (ctx.posters && descriptor.meta && !descriptor.caption) paintMeta(facade, descriptor, ctx.posters, title, layout.showHint ? hint : null, view);
   node.append(facade);
+}
+
+// The content's real public name and short line (a Discord server and its member count, a Steam game / profile / group, a Kick VOD title) instead of the generic
+// label - before anything is opened. Only where the adapter declares `meta` and the owner wrote no caption of their own; plain text (textContent) only.
+function paintMeta(facade, descriptor, posters, title, hint, view) {
+  const apply = meta => {
+    if (!meta) return;
+    if (meta.title) { title.textContent = meta.title; facade.setAttribute("data-meta", "true"); }
+    if (meta.subtitle && hint) hint.textContent = `${meta.subtitle} · ${descriptor.presentation === "embed" ? (view ? "Tap to play" : "Plays in Preview") : `${view ? "Open" : "Opens"} ↗`}`;
+    if (meta.title && facade.getAttribute?.("aria-label")) facade.setAttribute("aria-label", `${descriptor.providerLabel} ${descriptor.contentLabel}: ${meta.title}${descriptor.presentation === "embed" ? "" : ": open"}`);
+  };
+  const known = posters.readyMeta?.(descriptor);
+  if (known) { apply(known); return; }
+  posters.metaFor?.(descriptor)?.then(apply, () => {});
+}
+
+// A Link (pill) gets a small square thumbnail at its start (a server icon, an avatar, a game header) - hidden until it has really decoded, removed on failure.
+function paintLinkThumb(facade, descriptor, posters, make, s) {
+  const img = make("img", "wall-embed-thumb");
+  img.setAttribute("alt", "");
+  img.setAttribute("aria-hidden", "true");
+  img.setAttribute("decoding", "async");
+  img.setAttribute("draggable", "false");
+  for (const [name, value] of [["flex", "none"], ["width", s(44)], ["height", s(44)], ["border-radius", s(10)], ["object-fit", "cover"], ["opacity", "0"], ["display", "none"], ["pointer-events", "none"]]) img.style.setProperty(name, value);
+  facade.prepend ? facade.prepend(img) : facade.append(img);
+  const drop = () => img.remove?.();
+  img.addEventListener?.("load", () => { img.style.setProperty("opacity", "1"); img.style.setProperty("display", "block"); facade.setAttribute("data-poster", "true"); });
+  img.addEventListener?.("error", drop);
+  const known = posters.readyFor?.(descriptor);
+  if (known) { img.setAttribute("src", known); return; }
+  posters.forDescriptor(descriptor).then(url => { if (url) img.setAttribute("src", url); else drop(); }, drop);
 }
 
 // The content's real poster behind a card / player facade (posters.js: GamID's own proxy, a blob: URL). It is added hidden and only shown once it has really

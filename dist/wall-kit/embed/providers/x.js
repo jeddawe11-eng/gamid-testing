@@ -14,7 +14,7 @@ export const x = defineProvider({
   hosts: ["x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com"],
   frameOrigins: ["https://platform.twitter.com"],
   kinds: {
-    post: { label: "Post", id: "^[0-9]{1,25}$", inline: true, aspect: "auto", aspects: ["auto"], size: { width: 560, height: 620 }, minInline: { w: 300, h: 260 } },
+    post: { label: "Post", id: "^[0-9]{1,25}$", inline: true, aspect: "auto", aspects: ["auto"], size: { width: 560, height: 620 }, minInline: { w: 300, h: 260 }, poster: true },
     profile: { label: "Profile", id: "^[A-Za-z0-9_]{1,15}$", inline: false, profile: true, aspect: "auto", size: { width: 800, height: 240 } },
   },
   parse(url) {
