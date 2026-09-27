@@ -120,6 +120,26 @@ function paintBackgroundLayer(background, { createNode, ctx, width, height, inde
   return layer;
 }
 
+// What a link / card / player facade shows at a given size, so its content is never cut off: the hint goes first, then the provider chip; the title keeps as many
+// lines as fit (at least one, ellipsized). Sizes are canonical units (the facade's type sizes are canonical units too), so the result is the same at every scale.
+//   link   a pill: padding 18, one row [chip | title | hint]; title 30 units (35 tall), single line
+//   card   a column: padding 30 (20 in a short box); chip 22 (27 tall), title 40 (46 per line), hint 24 (29 tall), gaps 10
+//   embed  a player facade: the card column with the ▶ (10 margin + 64 + the 10 gap after it) on top
+// Every box also has a 2-unit border on each side.
+export const FACADE = Object.freeze({ chip: 27, title: 46, linkTitle: 35, hint: 29, gap: 10, play: 84, border: 4, linkPad: 18, linkChipMinWidth: 420, linkHintMinWidth: 560 });
+export function facadeLayout(presentation, widthUnits, heightUnits) {
+  if (presentation === "link") return { padding: FACADE.linkPad, showChip: widthUnits >= FACADE.linkChipMinWidth, showHint: widthUnits >= FACADE.linkHintMinWidth, titleLines: 1, showPlay: false };
+  const padding = heightUnits < 200 ? 20 : 30;
+  const showPlay = presentation === "embed";
+  let room = heightUnits - 2 * padding - FACADE.border - (showPlay ? FACADE.play : 0) - FACADE.title;
+  const showChip = room >= FACADE.chip + FACADE.gap;
+  if (showChip) room -= FACADE.chip + FACADE.gap;
+  const showHint = room >= FACADE.hint + FACADE.gap;
+  if (showHint) room -= FACADE.hint + FACADE.gap;
+  const titleLines = Math.max(1, Math.min(3, 1 + Math.floor(Math.max(0, room) / FACADE.title)));
+  return { padding, showChip, showHint, titleLines, showPlay };
+}
+
 // A provider embed. EDIT: a facade card only (no iframe, no network). VIEW: link/card open the content; a player starts on a tap (inline, or a larger in-page player when the
 // box is below the provider's minimum). Everything shown comes from the adapter's descriptor; the address followed is re-checked against the provider's own hosts.
 function paintEmbed(node, descriptor, scale, item, createNode, ctx) {
@@ -127,6 +147,8 @@ function paintEmbed(node, descriptor, scale, item, createNode, ctx) {
   const s = value => px(value * scale);
   const make = (tag, className, text) => { const n = createNode(tag); if (className) n.className = className; if (text !== undefined) n.textContent = text; return n; };
   const openable = isAllowedOpenUrl(descriptor.providerKey, descriptor.openUrl);
+  const link = descriptor.presentation === "link";
+  const layout = facadeLayout(descriptor.presentation, item.width / scale, item.height / scale);
   node.setAttribute("data-provider", descriptor.providerKey);
   node.setAttribute("data-presentation", descriptor.presentation);
   const facade = view && openable && descriptor.presentation !== "embed" ? make("a", "wall-embed") : make("div", "wall-embed");
@@ -137,19 +159,22 @@ function paintEmbed(node, descriptor, scale, item, createNode, ctx) {
     facade.setAttribute("rel", "noopener noreferrer nofollow");
     facade.setAttribute("aria-label", `${descriptor.providerLabel} ${descriptor.contentLabel}: open`);
   }
-  for (const [name, value] of [["box-sizing", "border-box"], ["display", "flex"], ["flex-direction", "column"], ["justify-content", "center"], ["align-items", "flex-start"], ["gap", s(10)], ["width", "100%"], ["height", "100%"],
-    ["padding", s(descriptor.presentation === "link" ? 18 : 30)], ["color", "#f7f5ff"], ["text-decoration", "none"], ["font-family", "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"],
-    ["background", "linear-gradient(135deg, #1b1430, #0f0c1a)"], ["border", `${s(2)} solid rgba(139, 93, 255, .55)`], ["border-radius", s(descriptor.presentation === "link" ? 999 : 28)], ["overflow", "hidden"]]) facade.style.setProperty(name, value);
-  if (descriptor.presentation === "link") { facade.style.setProperty("flex-direction", "row"); facade.style.setProperty("align-items", "center"); }
+  for (const [name, value] of [["box-sizing", "border-box"], ["display", "flex"], ["flex-direction", "column"], ["justify-content", "center"], ["align-items", "flex-start"], ["gap", s(FACADE.gap)], ["width", "100%"], ["height", "100%"],
+    ["padding", s(layout.padding)], ["color", "#f7f5ff"], ["text-decoration", "none"], ["font-family", "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"],
+    ["background", "linear-gradient(135deg, #1b1430, #0f0c1a)"], ["border", `${s(2)} solid rgba(139, 93, 255, .55)`], ["border-radius", s(link ? 999 : 28)], ["overflow", "hidden"]]) facade.style.setProperty(name, value);
+  if (link) { facade.style.setProperty("flex-direction", "row"); facade.style.setProperty("align-items", "center"); }
   const chip = make("span", "wall-embed-provider", descriptor.providerLabel.toUpperCase());
-  for (const [name, value] of [["font-size", s(22)], ["font-weight", "800"], ["letter-spacing", ".14em"], ["color", "#62e7ff"]]) chip.style.setProperty(name, value);
+  for (const [name, value] of [["font-size", s(22)], ["font-weight", "800"], ["letter-spacing", ".14em"], ["color", "#62e7ff"], ["flex", "none"], ["white-space", "nowrap"]]) chip.style.setProperty(name, value);
   const title = make("strong", "wall-embed-title", descriptor.caption ?? (descriptor.profile && descriptor.presentation !== "embed" ? `${descriptor.id.startsWith("@") ? "" : "@"}${descriptor.id}` : descriptor.contentLabel));
-  for (const [name, value] of [["font-size", s(descriptor.presentation === "link" ? 30 : 40)], ["line-height", "1.15"], ["overflow-wrap", "anywhere"]]) title.style.setProperty(name, value);
+  const titleStyle = link
+    ? [["font-size", s(30)], ["line-height", "1.15"], ["flex", "1 1 auto"], ["min-width", "0"], ["overflow", "hidden"], ["text-overflow", "ellipsis"], ["white-space", "nowrap"]]
+    : [["font-size", s(40)], ["line-height", "1.15"], ["max-width", "100%"], ["overflow-wrap", "anywhere"], ["overflow", "hidden"], ["display", "-webkit-box"], ["-webkit-box-orient", "vertical"], ["-webkit-line-clamp", String(layout.titleLines)]];
+  for (const [name, value] of titleStyle) title.style.setProperty(name, value);
   const hint = make("span", "wall-embed-hint", descriptor.presentation === "embed" ? (view ? "Tap to play" : "Plays in Preview") : `${view ? "Open" : "Opens"} on ${descriptor.providerLabel} ↗`);
-  for (const [name, value] of [["font-size", s(24)], ["color", "#aaa4b7"]]) hint.style.setProperty(name, value);
+  for (const [name, value] of [["font-size", s(24)], ["color", "#aaa4b7"], ["flex", "none"], ["white-space", "nowrap"]]) hint.style.setProperty(name, value);
   if (descriptor.presentation === "embed") {
     const play = make("span", "wall-embed-play", "▶");
-    for (const [name, value] of [["font-size", s(64)], ["line-height", "1"], ["color", "#ffffff"], ["align-self", "center"], ["margin", `${s(10)} auto 0`]]) play.style.setProperty(name, value);
+    for (const [name, value] of [["font-size", s(64)], ["line-height", "1"], ["color", "#ffffff"], ["align-self", "center"], ["margin", `${s(10)} auto 0`], ["flex", "none"]]) play.style.setProperty(name, value);
     facade.append(play);
     facade.style.setProperty("align-items", "center");
     facade.style.setProperty("text-align", "center");
@@ -164,7 +189,9 @@ function paintEmbed(node, descriptor, scale, item, createNode, ctx) {
       facade.addEventListener?.("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault?.(); start(); } });
     }
   }
-  facade.append(chip, title, hint);
+  if (layout.showChip) facade.append(chip);
+  facade.append(title);
+  if (layout.showHint) facade.append(hint);
   node.append(facade);
 }
 

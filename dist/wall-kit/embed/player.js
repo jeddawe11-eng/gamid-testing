@@ -14,7 +14,11 @@ const HOSTNAME = /^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/i;
 // one 44px touch target tall; the frame fits the rest of the box, so a box only plays inline when that remaining area still meets the provider's minimum.
 export const INLINE_BAR_PX = 44;
 const FRAME_ALLOW = "autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write";
-const FRAME_SANDBOX = "allow-scripts allow-same-origin allow-popups allow-presentation allow-forms";
+// allow-popups-to-escape-sandbox: when a visitor uses a player's own "Watch on YouTube" (or any provider's "open on ..." link), the NEW TAB it opens must not
+// inherit this sandbox. youtube.com sends Cross-Origin-Opener-Policy: same-origin-allow-popups, and a sandboxed browsing context that receives a COOP document is
+// refused by the browser (ERR_BLOCKED_BY_RESPONSE - manual-QA finding). The flag frees ONLY such user-opened top-level tabs; the player frame itself stays fully
+// sandboxed and still cannot navigate the Wall page (no allow-top-navigation of any kind).
+const FRAME_SANDBOX = "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation allow-forms";
 
 // The frame URL for a descriptor, with the page host filled in where a provider needs it. null when it cannot be built safely.
 export function resolveFrameUrl(descriptor, hostname) {

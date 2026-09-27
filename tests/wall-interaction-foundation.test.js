@@ -341,8 +341,9 @@ test("minimums: documented per-type table (canonical units on the narrowest 360 
   assert.deepEqual(min(el("i", "image", { assetId: "a".repeat(32), fit: "cover", posX: 50, posY: 50, opacity: 1 }, {}, 0)), [10, 10], "images stay flexible");
   assert.deepEqual(min(embed("y", "youtube", youtube(), {}, 0)), [334, 195], "YouTube: its documented 120x70 px playable tile");
   assert.deepEqual(min(embed("y", "youtube", youtube("embed", { aspect: "9:16" }), {}, 0)), [195, 334], "turned for a portrait player");
-  assert.deepEqual(min(embed("s", "spotify", { kind: "track", id: "4uLU6hMCjMI75M1A2tKUQC", presentation: "embed" }, {}, 0)), [67, 67], "no documented tile: the 24 px touch floor");
-  assert.deepEqual(min(embed("c", "youtube", youtube("card"), {}, 0)), [67, 67], "links / cards: the 24 px touch floor");
+  // (post-QA: players without a documented tile, cards and links now have facade-derived minimums - see tests/wall-post-qa-media.test.js)
+  assert.deepEqual(min(embed("s", "spotify", { kind: "track", id: "4uLU6hMCjMI75M1A2tKUQC", presentation: "embed" }, {}, 0)), [ops.PLAYER_TILE_MIN.long, ops.PLAYER_TILE_MIN.short], "no documented tile: the smallest facade that shows its play button and title");
+  assert.deepEqual(min(embed("c", "youtube", youtube("card"), {}, 0)), [ops.CARD_MIN.width, ops.CARD_MIN.height], "cards: never shrunk into a clipped box");
   for (const block of ["profile", "roles", "games", "connections"]) {
     const { width, height } = GAMID_BLOCK_INFO[block].minSize;
     assert.deepEqual(min(el("g", "gamid", { block }, {}, 0)), [width, height]);

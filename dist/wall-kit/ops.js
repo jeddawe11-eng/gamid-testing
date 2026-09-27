@@ -30,9 +30,12 @@ const EPS = 1e-6;
 //   shapes, text, images   MIN_SIZE (10 units): decorative pieces stay fully flexible.
 //   embed player           the provider's documented tile minimum when it declares one (YouTube: a thumbnail that starts playback must be at least 120x70 px ->
 //                          334 x 195 units, turned to match a portrait player). Below the provider's INLINE minimum a tile is still valid: a tap opens the larger
-//                          in-page player (W0 finding). Providers that declare no tile minimum use the touch-target floor below.
-//   embed link / card      the WCAG 2.2 AA touch-target floor, 24 x 24 CSS px -> 67 x 67 units, so it can always be tapped.
+//                          in-page player (W0 finding). Other players: the smallest facade that still shows its ▶ and title (PLAYER_TILE_MIN, turned for portrait).
+//   embed card             the smallest card whose provider chip + one title line fit inside its padding (paint.js facadeLayout): 300 x 150 units - a card can
+//                          never be shrunk into a clipped, broken box (manual-QA finding); its hint line appears once there is room for it.
+//   embed link             the smallest pill whose one title line fits: 300 x 80 units.
 //   GamID block            the block's own smallest readable layout (GAMID_BLOCK_INFO[block].minSize: its title plus a first row of real content).
+// Every minimum is at least the WCAG 2.2 AA touch target (24 x 24 CSS px = 67 x 67 units).
 export const NARROWEST_COLUMN_PX = 360;
 export const TOUCH_TARGET_PX = 24;
 export const pxToMinUnits = cssPx => Math.ceil(cssPx * CANONICAL_CANVAS.width / NARROWEST_COLUMN_PX);
@@ -42,13 +45,17 @@ const TOUCH_MIN = Object.freeze({ width: pxToMinUnits(TOUCH_TARGET_PX), height: 
 const embedDescriptor = element => elementRegistry.get("embed")?.render?.(element.payload)?.content ?? null;
 const ratioOf = aspect => { const match = /^(\d+):(\d+)$/.exec(aspect ?? ""); return match ? Number(match[1]) / Number(match[2]) : null; };
 
+export const CARD_MIN = Object.freeze({ width: 300, height: 150 });
+export const LINK_MIN = Object.freeze({ width: 300, height: 80 });
+export const PLAYER_TILE_MIN = Object.freeze({ long: 200, short: 140 });   // 60 padding + the 74 ▶ fit the short side; the title fits the long side
 export function minSizeOf(element) {
   if (element.type === "embed") {
     const descriptor = embedDescriptor(element);
-    if (!descriptor || !descriptor.inline) return TOUCH_MIN;
+    if (!descriptor) return TOUCH_MIN;
+    if (descriptor.presentation === "link") return LINK_MIN;
+    if (!descriptor.inline) return CARD_MIN;
     const tile = PROVIDERS.get(descriptor.providerKey)?.kinds?.[descriptor.contentKind]?.minTile;
-    if (!tile) return TOUCH_MIN;
-    const long = pxToMinUnits(Math.max(tile.w, tile.h)), short = pxToMinUnits(Math.min(tile.w, tile.h));
+    const long = tile ? pxToMinUnits(Math.max(tile.w, tile.h)) : PLAYER_TILE_MIN.long, short = tile ? pxToMinUnits(Math.min(tile.w, tile.h)) : PLAYER_TILE_MIN.short;
     const portrait = (ratioOf(descriptor.aspect) ?? 1) < 1;
     return { width: portrait ? short : long, height: portrait ? long : short };
   }
