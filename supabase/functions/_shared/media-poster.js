@@ -206,10 +206,15 @@ export async function resolvePreview(source, fetchImpl) {
     return { imageUrl: img(icon), title: cleanText(guild.name, POSTER_LIMITS.maxTitle), subtitle: members ? `${members} members${online ? ` · ${online} online` : ""}` : null };
   }
   if (source.type === "page") {
-    const html = await readText(fetchImpl, source, POSTER_LIMITS.maxPageBytes, POSTER_LIMITS.pageTimeoutMs);
-    if (!html) return empty;
-    const meta = parseMetaTags(html);
-    return { imageUrl: img(meta["og:image"]) ?? img(meta["twitter:image"]), title: cleanText(meta["og:title"] ?? meta["twitter:title"], POSTER_LIMITS.maxTitle), subtitle: null };
+    // Some providers (seen live: Twitch) occasionally answer a public page without its preview tags; one bounded retry, never more
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const html = await readText(fetchImpl, source, POSTER_LIMITS.maxPageBytes, POSTER_LIMITS.pageTimeoutMs);
+      if (!html) continue;
+      const meta = parseMetaTags(html);
+      const preview = { imageUrl: img(meta["og:image"]) ?? img(meta["twitter:image"]), title: cleanText(meta["og:title"] ?? meta["twitter:title"], POSTER_LIMITS.maxTitle), subtitle: null };
+      if (preview.imageUrl || attempt === 1) return preview;
+    }
+    return empty;
   }
   return empty;
 }
@@ -245,17 +250,18 @@ export async function handleMediaPoster({ request, fetchImpl = fetch, log = () =
   try { query = new URL(request.url).searchParams; } catch { return json({ error: "invalid_request" }, 400, { ...cors, "Cache-Control": "no-store" }); }
   const source = posterSource(query);
   if (!source) return json({ error: "invalid_request" }, 400, { ...cors, "Cache-Control": "public, max-age=86400" });
-  // a live Twitch preview changes every few minutes; everything else is stable content art
+  // a live Twitch preview changes every few minutes; everything else is stable content art. A "nothing found" answer is cached only briefly (120 s): some providers
+  // (seen live: Twitch) occasionally answer without their preview, and a transient miss must not stick in visitors' browsers
   const maxAge = source.provider === "twitch" && source.kind === "channel" ? 300 : 21600;
   try {
     if (query.get("want") === "meta") {
       if (source.provider === "steam-avatar") return json({ error: "invalid_request" }, 400, { ...cors, "Cache-Control": "public, max-age=86400" });
       const preview = await resolvePreview(source, fetchImpl);
-      if (!preview.title && !preview.subtitle) { log("meta", `none_${source.provider}`); return json({ error: "no_meta" }, 404, { ...cors, "Cache-Control": "public, max-age=1800" }); }
+      if (!preview.title && !preview.subtitle) { log("meta", `none_${source.provider}`); return json({ error: "no_meta" }, 404, { ...cors, "Cache-Control": "public, max-age=120" }); }
       return json({ ...(preview.title ? { title: preview.title } : {}), ...(preview.subtitle ? { subtitle: preview.subtitle } : {}) }, 200, { ...cors, "Cache-Control": `public, max-age=${maxAge}` });
     }
     const poster = await fetchPoster(source, fetchImpl);
-    if (!poster.ok) { log("poster", `none_${source.provider}`); return json({ error: poster.code }, 404, { ...cors, "Cache-Control": "public, max-age=1800" }); }
+    if (!poster.ok) { log("poster", `none_${source.provider}`); return json({ error: poster.code }, 404, { ...cors, "Cache-Control": "public, max-age=120" }); }
     return new Response(poster.bytes, { status: 200, headers: { "Content-Type": poster.mime, "Content-Length": String(poster.bytes.length), "Cache-Control": `public, max-age=${maxAge}`, ...SAFE, ...cors } });
   } catch {
     log("poster", "exception");

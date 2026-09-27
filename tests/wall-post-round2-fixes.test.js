@@ -129,7 +129,7 @@ test("A9 page previews: og:image / og:title in either attribute order, entities 
   const source = posterSource(q({ p: "twitch", k: "video", id: "2884829425" }));
   const processing = fakeFetch({ [source.url]: () => reply(200, `<meta property="og:image" content="https://vod-secure.twitch.tv/_404/404_processing_640x360.png"/><meta property="og:title" content="xqc on Twitch"/>`) });
   assert.deepEqual(await fetchPoster(source, processing.impl), { ok: false, code: "no_poster" });
-  assert.equal(processing.calls.length, 1, "the page was read once and the placeholder never requested");
+  assert.equal(processing.calls.length, 2, "the page was read (plus ONE bounded retry - Twitch sometimes omits its preview tags) and the placeholder never requested");
   const ready = fakeFetch({ [source.url]: () => reply(200, html), "https://static-cdn.jtvnw.net/cf_vods/x/thumb/thumb0-640x360.jpg": imageReply });
   assert.equal((await fetchPoster(source, ready.impl)).ok, true, "a finished VOD's real thumbnail is served before any click");
   // a page may only redirect within its own host
