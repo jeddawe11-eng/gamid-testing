@@ -12,6 +12,7 @@
 // Games, Show playtime, Show ranks & stats), so Preview's Games and Connections blocks can never show the owner more than a visitor would get - no owner data is mixed in.
 import { normalizeLibrary } from "../public/public-games.js";
 import { LEAGUE_LABELS } from "../account/game-profile-league-compat.js";
+import { gameRef } from "../wall-kit/gamid-data.js";
 
 const PROVIDER_LABELS = { steam: "Steam", discord: "Discord", riot: "Riot", league: "League of Legends", xbox: "Xbox", playstation: "PlayStation" };
 export const providerLabel = key => PROVIDER_LABELS[key] ?? String(key).replace(/[_-]+/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
@@ -111,7 +112,28 @@ export async function loadPublicView(api, handle) {
       },
     };
   }
-  return { available: true, handle, games, connections: publicConnections(sections) };
+  // Round 3 - live GamID Data elements: the public identity fields a visitor already sees on the public profile (display name, @GamID, bio, chosen roles and the
+  // public avatar through the same ANONYMOUS read the public profile uses). A single game is looked up in this identity's own public library (its own search).
+  const catalog = new Map((Array.isArray(identity.role_catalog) ? identity.role_catalog : []).map(role => [role.key, role.label]));
+  const roleKeys = Array.isArray(identity.role_keys) ? identity.role_keys : [];
+  const avatarUrl = identity.avatar_media_reference && typeof api.loadPublicAvatar === "function" ? await safely(() => api.loadPublicAvatar(identity.avatar_media_reference), null) : null;
+  const displayName = text(identity.display_name, 80);
+  const profile = { displayName, handle: identity.gamid_handle || handle, bio: typeof identity.bio === "string" ? identity.bio.trim().slice(0, 1000) : "", initial: (displayName || "G")[0].toUpperCase(), avatarUrl };
+  const roles = roleKeys.map(key => ({ key, label: catalog.get(key) || roleLabel(key), primary: key === identity.primary_role_key }));
+  const found = new Map();
+  async function findGame(ref) {
+    if (!games) return null;
+    const local = games.items.find(game => gameRef(game.name) === ref);
+    if (local) return local;
+    if (found.has(ref)) return found.get(ref);
+    const lookup = safely(async () => {
+      const page = normalizeLibrary(await api.getPublicMyGames(handle, { query: ref, limit: 12, offset: 0 }), PUBLIC_SOURCE_LABELS);
+      return page?.games?.find(game => gameRef(game.name) === ref) ?? null;
+    }, null);
+    found.set(ref, lookup);
+    return lookup;
+  }
+  return { available: true, handle, games, connections: publicConnections(sections), profile, roles, findGame };
 }
 
 export async function loadGamidSnapshot(api) {
@@ -129,6 +151,7 @@ export async function loadGamidSnapshot(api) {
   if (identity.avatar_media_reference) avatarUrl = await safely(() => api.loadAvatar(identity.avatar_media_reference), null);
 
   const roleKeys = Array.isArray(identity.role_keys) ? identity.role_keys : [];
+  const roleCatalog = new Map((Array.isArray(identity.role_catalog) ? identity.role_catalog : []).map(role => [role.key, role.label]));
   const publicConnections = (Array.isArray(connections) ? connections : []).filter(row => row.connected && row.is_public);
   const seen = new Set();
   const items = [];
@@ -136,27 +159,30 @@ export async function loadGamidSnapshot(api) {
     const name = String(game.game_name ?? "").trim();
     if (!name || seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
-    items.push({ name, minutes: Number.isInteger(game.playtime_minutes) ? game.playtime_minutes : null });
+    // `ref` / `refName`: how the game is named in the owner's PUBLIC library (the catalog's name when GamID recognizes the game) - what a live Game element binds to
+    const refName = String(game.recognized_name ?? "").trim() || name;
+    items.push({ name, minutes: Number.isInteger(game.playtime_minutes) ? game.playtime_minutes : null, ref: gameRef(refName), refName });
   }
   for (const game of Array.isArray(manual) ? manual : []) {
     const name = String(game.display_name ?? game.name ?? "").trim();
     if (!name || seen.has(name.toLowerCase())) continue;
     seen.add(name.toLowerCase());
-    items.push({ name, minutes: null });
+    items.push({ name, minutes: null, ref: gameRef(name), refName: name });
   }
   items.sort((a, b) => a.name.localeCompare(b.name));
   const publicView = await safely(() => loadPublicView(api, identity.gamid_handle), { available: false, handle: identity.gamid_handle ?? "", games: null, connections: [] });
 
   return {
     public: publicView,
-    profile: { displayName: identity.display_name ?? "", handle: identity.gamid_handle ?? "", initial: (identity.display_name ?? "G").trim()[0]?.toUpperCase() ?? "G", avatarUrl },
-    roles: roleKeys.map(key => ({ key, label: roleLabel(key), primary: key === identity.primary_role_key })),
+    profile: { displayName: identity.display_name ?? "", handle: identity.gamid_handle ?? "", initial: (identity.display_name ?? "G").trim()[0]?.toUpperCase() ?? "G", avatarUrl, bio: typeof identity.bio === "string" ? identity.bio.trim() : "" },
+    roles: roleKeys.map(key => ({ key, label: roleCatalog.get(key) || roleLabel(key), primary: key === identity.primary_role_key })),
     // Steam's provider_username is its SteamID64: never shown - the persona (provider_display_name) or a neutral "Steam account"
     connections: publicConnections.map(row => {
       const avatarQuery = row.provider_key === "steam" ? steamAvatarQuery(row.provider_avatar_url) : null;
-      return { label: providerLabel(row.provider_key), name: row.provider_key === "steam" ? (row.provider_display_name || "Steam account") : (row.provider_display_name || row.provider_username || ""), ...(avatarQuery ? { avatarQuery } : {}) };
+      return { key: row.provider_key, label: providerLabel(row.provider_key), name: row.provider_key === "steam" ? (row.provider_display_name || "Steam account") : (row.provider_display_name || row.provider_username || ""), ...(avatarQuery ? { avatarQuery } : {}) };
     }),
     games: { total: items.length, items, playtimeAllowed: display?.show_game_playtime === true },
+    connectionLabels: Object.fromEntries(Object.keys(PROVIDER_LABELS).map(key => [key, PROVIDER_LABELS[key]])),   // for "<provider> connection is no longer available."
     visibility: { profile: true, roles: true, connections: publicConnections.length > 0, games: publicSettings?.show_my_games === true },
   };
 }

@@ -7,6 +7,7 @@ import { fontCss } from "./fonts.js";
 import { isAllowedOpenUrl } from "./embed/engine.js";
 import { hasPoster } from "./posters.js";
 import { paintGamidBlock } from "./gamid-blocks.js";
+import { paintGamidData } from "./gamid-data-paint.js";
 import { markInteractive, markPassThrough } from "./interaction.js";
 import "./register.js";   // makes sure every element type, background kind and provider is registered wherever documents are painted
 
@@ -88,16 +89,101 @@ function pictureNode(createNode, { url, fit, posX, posY, opacity, alt }) {
   return img;
 }
 
+// ---- the Artwork engine (Round 3): one painter for every picture look - uploaded artwork and the live GamID profile picture alike -------------------------
+// Structure:  node (.wall-el: filter effects, blend, opacity)  >  [piece window, a split piece only]  >  frame (.wall-art-frame: mask, corner radius, backdrop)  >  picture
+// Every value comes from an enumerated key or a validated number / #rrggbb colour (image.js); nothing from the document is ever used as CSS text.
+export const MASK_CLIP = Object.freeze({
+  circle: "ellipse(50% 50% at 50% 50%)",
+  rounded: "inset(0 round 18%)",
+  hexagon: "polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%)",
+  diamond: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
+});
+export const BLEND_CSS = Object.freeze({ normal: "normal", screen: "screen", multiply: "multiply", overlay: "overlay", "soft-light": "soft-light" });
+const clampNum = (value, min, max) => (Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : min);
+
+// The CSS filter chain for validated effects (bounded again here - the painter never trusts a number blindly). Shadow and glow follow the mask's shape.
+export function effectsFilter(effects, scale) {
+  if (!effects || typeof effects !== "object") return "";
+  const parts = [];
+  if (Number.isFinite(effects.brightness) && effects.brightness !== 1) parts.push(`brightness(${num(clampNum(effects.brightness, 0, 2))})`);
+  if (Number.isFinite(effects.contrast) && effects.contrast !== 1) parts.push(`contrast(${num(clampNum(effects.contrast, 0, 2))})`);
+  if (Number.isFinite(effects.saturation) && effects.saturation !== 1) parts.push(`saturate(${num(clampNum(effects.saturation, 0, 3))})`);
+  if (Number.isFinite(effects.blur) && effects.blur > 0) parts.push(`blur(${px(clampNum(effects.blur, 0, 40) * scale)})`);
+  const shadow = effects.shadow;
+  if (shadow && typeof shadow === "object") parts.push(`drop-shadow(${px(clampNum(shadow.x, -100, 100) * scale)} ${px(clampNum(shadow.y, -100, 100) * scale)} ${px(clampNum(shadow.blur, 0, 100) * scale)} ${hex(shadow.color)})`);
+  const glow = effects.glow;
+  if (glow && typeof glow === "object") {
+    const blur = clampNum(glow.blur, 0, 100) * scale;
+    parts.push(`drop-shadow(0 0 ${px(blur / 2)} ${hex(glow.color)})`, `drop-shadow(0 0 ${px(blur)} ${hex(glow.color)})`);
+  }
+  return parts.join(" ");
+}
+
+// Paints the LOOK onto `node` and returns the frame the picture goes into. `whole` = the size of the whole artwork (a split piece shows one band of it).
+export function paintArtworkFrame(node, look, scale, item, createNode) {
+  const legacy = look.backdrop === undefined;   // saved before Round 3: the exact old look - dark backing, the picture's own opacity, no effects
+  const nodeStyle = node.style;
+  nodeStyle.setProperty("overflow", "visible");   // the frame clips; shadow / glow may spread past the box (like text effects - taps never widen)
+  const filter = effectsFilter(look.effects, scale);
+  if (filter) nodeStyle.setProperty("filter", filter);
+  if (look.blend && look.blend !== "normal" && BLEND_CSS[look.blend]) nodeStyle.setProperty("mix-blend-mode", BLEND_CSS[look.blend]);
+  if (!legacy && Number.isFinite(look.opacity) && look.opacity !== 1) nodeStyle.setProperty("opacity", num(clampNum(look.opacity, 0, 1)));
+  let host = node;
+  let wholeW = item.width, wholeH = item.height;
+  const slice = look.slice;
+  if (slice && Number.isFinite(slice.from) && Number.isFinite(slice.to) && slice.to > slice.from) {
+    const pieceWindow = createNode("div");
+    pieceWindow.className = "wall-art-piece";
+    for (const [name, value] of [["position", "absolute"], ["inset", "0"], ["overflow", "hidden"]]) pieceWindow.style.setProperty(name, value);
+    node.append(pieceWindow);
+    host = pieceWindow;
+    const band = slice.to - slice.from;
+    if (slice.dir === "h") wholeH = item.height / band; else wholeW = item.width / band;
+  }
+  const frame = createNode("div");
+  frame.className = "wall-art-frame";
+  const style = frame.style;
+  const offsetPct = slice ? num((-slice.from / (slice.to - slice.from)) * 100) : "0";
+  const sizePct = slice ? num(100 / (slice.to - slice.from)) : "100";
+  const horizontal = slice?.dir === "h";
+  for (const [name, value] of [["position", "absolute"], ["overflow", "hidden"],
+    ["left", slice && !horizontal ? `${offsetPct}%` : "0"], ["top", slice && horizontal ? `${offsetPct}%` : "0"],
+    ["width", slice && !horizontal ? `${sizePct}%` : "100%"], ["height", slice && horizontal ? `${sizePct}%` : "100%"]]) style.setProperty(name, value);
+  const backdrop = legacy ? LEGACY_BACKDROP : look.backdrop;
+  if (backdrop !== "none") style.setProperty("background", hex(backdrop));
+  if (look.radius) style.setProperty("border-radius", px(Math.min(look.radius * scale, Math.min(wholeW, wholeH) / 2)));
+  if (look.mask && MASK_CLIP[look.mask]) style.setProperty("clip-path", MASK_CLIP[look.mask]);
+  host.append(frame);
+  return frame;
+}
+const LEGACY_BACKDROP = "#14101f";
+
+// The picture inside the frame. Without a crop: the saved fit / position (as before). With a crop: the source is scaled so the crop window fills the frame exactly
+// (the editor keeps the box at the crop's proportions), by percentages only - the same at every size and for every piece of a split.
+function artworkPicture(createNode, content, url, legacy) {
+  const img = pictureNode(createNode, { url, fit: content.fit, posX: content.posX, posY: content.posY, opacity: legacy ? content.opacity : 1, alt: content.alt });
+  const crop = content.crop;
+  if (crop && crop.w > 0 && crop.h > 0) {
+    const style = img.style;
+    for (const [name, value] of [["position", "absolute"], ["max-width", "none"], ["object-fit", "fill"],
+      ["width", `${num(100 / crop.w)}%`], ["height", `${num(100 / crop.h)}%`], ["left", `${num((-crop.x / crop.w) * 100)}%`], ["top", `${num((-crop.y / crop.h) * 100)}%`]]) style.setProperty(name, value);
+  }
+  return img;
+}
+
 function paintImage(node, content, scale, item, createNode, ctx) {
-  node.style.setProperty("background", "#14101f");
-  if (content.radius) node.style.setProperty("border-radius", px(Math.min(content.radius * scale, Math.min(item.width, item.height) / 2)));
+  const legacy = content.backdrop === undefined;
+  const frame = paintArtworkFrame(node, content, scale, item, createNode);
+  if (content.locked) node.setAttribute("data-locked", "true");
+  if (content.clickThrough) node.setAttribute("data-click-through", "true");
+  if (content.slice) node.setAttribute("data-slice-set", content.slice.set);
   const url = safeBlobUrl(ctx.assets?.urlFor?.(content.assetId));
-  if (url) { node.append(pictureNode(createNode, { url, fit: content.fit === "fill" ? "fill" : content.fit, posX: content.posX, posY: content.posY, opacity: content.opacity, alt: content.alt })); return; }
+  if (url) { frame.append(artworkPicture(createNode, content, url, legacy)); return; }
   const missing = createNode("div");
   missing.className = "wall-image-missing";
   missing.textContent = "Image";
   for (const [name, value] of [["display", "grid"], ["place-items", "center"], ["height", "100%"], ["color", "#8f88a3"], ["font", `700 ${px(28 * scale)} system-ui, sans-serif`]]) missing.style.setProperty(name, value);
-  node.append(missing);
+  frame.append(missing);
 }
 
 function paintBackgroundLayer(background, { createNode, ctx, width, height, index, count, scale }) {
@@ -277,6 +363,7 @@ export function paintElement(item, scale, order, createNode, ctx = {}) {
   else if (content?.kind === "text") paintText(node, content, scale, createNode);
   else if (content?.kind === "image") paintImage(node, content, scale, item, createNode, ctx);
   else if (content?.kind === "embed" && content.content?.kind === "embed") paintEmbed(node, content.content, scale, item, createNode, ctx);
+  else if (content?.kind === "gamidData") paintGamidData(node, content, scale, item, createNode, ctx, { paintText, paintArtworkFrame, px });
   else if (content?.kind === "gamid") node.append(paintGamidBlock(content, ctx.gamid ?? null, createNode, { scale, interactive: ctx.mode === "view", details: ctx.details ?? null, posters: ctx.posters ?? null }));
   return node;
 }
@@ -289,6 +376,7 @@ export function paintStage(stageTree, scale, createNode = tag => document.create
   stage.style.setProperty("width", px(stageTree.width));
   stage.style.setProperty("height", px(stageTree.height));
   stage.style.setProperty("overflow", "hidden");
+  stage.style.setProperty("isolation", "isolate");   // blend modes mix with this stage only
   // a stage's own background wins; otherwise the Wall-wide one is laid across ALL stages so it can run continuously from one stage into the next
   if (stageTree.background) stage.append(paintBackgroundLayer(stageTree.background, { createNode, ctx, width: stageTree.width, height: stageTree.height, index: 0, count: 1, scale }));
   else if (ctx.wallBackground) stage.append(paintBackgroundLayer(ctx.wallBackground, { createNode, ctx, width: stageTree.width, height: stageTree.height, index: ctx.stageIndex ?? 0, count: ctx.stageCount ?? 1, scale }));

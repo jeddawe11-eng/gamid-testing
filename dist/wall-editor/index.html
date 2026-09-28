@@ -61,9 +61,10 @@
         <div class="ed-add-list">
           <button class="ed-btn" type="button" data-add-action="text"><b>T</b><span>Text<small>Headings, names, captions</small></span></button>
           <button class="ed-btn" type="button" data-add-action="shape"><b>&#9632;</b><span>Shape<small>Rectangle, rounded, circle</small></span></button>
-          <button class="ed-btn" type="button" data-add-action="image"><b>&#9635;</b><span>Image<small>Upload your own picture</small></span></button>
+          <button class="ed-btn" type="button" data-add-action="image"><b>&#9635;</b><span>Artwork<small>Your picture or GIF: crop, mask, split, effects</small></span></button>
           <button class="ed-btn" type="button" data-add-action="embed"><b>&#9654;</b><span>Link / Embed<small>Paste a link to media</small></span></button>
           <button class="ed-btn" type="button" data-add-action="gamid"><b>G</b><span>GamID block<small>Real profile, roles, games</small></span></button>
+          <button class="ed-btn" type="button" data-add-action="gamidData"><b>&#9673;</b><span>GamID data<small>Live name, picture, bio, a role, a game&hellip;</small></span></button>
         </div>
       </section>
 
@@ -113,6 +114,9 @@
         <p class="ed-hint">Real data from your GamID, never sample content. Private information stays private: blocks show only what your GamID already allows to be shown.</p>
         <div id="gamidBlocks" class="ed-add-list"></div>
         <p id="gamidStatus" class="ed-hint"></p>
+        <h2 class="ed-sub" id="gamidDataTitle">GamID data</h2>
+        <p class="ed-hint">One live piece of your GamID, placed and styled anywhere: it always shows your current data, never a copy. Visitors only see what your GamID shows publicly.</p>
+        <div id="gamidData" class="ed-add-list ed-data-list"></div>
       </section>
 
       <section class="ed-section" data-tool-panel="layout">

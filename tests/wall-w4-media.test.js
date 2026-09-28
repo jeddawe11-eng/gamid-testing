@@ -62,12 +62,13 @@ test("image: rotation, groups and layers work like any element; the render conte
   const rotated = docWith(image("i", {}, { rotation: 20, groupId: "g" }), image("j", {}, { x: 500, groupId: "g" }));
   assert.deepEqual(errors(rotated), []);
   const content = renderImagePayload({ ...createImagePayload(UUID), evil: "<script>", radius: 10, alt: "x" });
-  assert.deepEqual(content, { kind: "image", assetId: UUID, fit: "cover", posX: 50, posY: 50, opacity: 1, radius: 10, alt: "x" });
+  assert.deepEqual(content, { kind: "image", assetId: UUID, fit: "cover", posX: 50, posY: 50, opacity: 1, backdrop: "none", radius: 10, alt: "x" });   // Round 3: new artwork is transparent
   const scaled = ops.resizeGroup(ops.groupElements(docWith(image("a", { radius: 40 }, { x: 0, y: 0, width: 200, height: 200 }), image("b", {}, { x: 300, y: 0, width: 200, height: 200, z: 1 })), ["a", "b"]).doc, ["a"], "se", 500, 0);
   assert.equal(scaled.ok, true);
 });
 test("image: painting - only a blob: URL from the asset resolver is ever used; a document string can never become an image address", () => {
-  const doc = docWith(image("i", { fit: "contain", posX: 20, posY: 80, opacity: 0.5, radius: 30, alt: "Setup" }));
+  // a document saved before Round 3 (no `backdrop`): the picture keeps its own opacity on the dark backing, exactly as before
+  const doc = docWith(image("i", { fit: "contain", posX: 20, posY: 80, opacity: 0.5, radius: 30, alt: "Setup", backdrop: undefined }));
   const shown = paintDocument(doc, 500, make, { assets: resolver({ [UUID]: "blob:https://x/abc" }) }).stages[0];
   const [img] = all(shown, node => node.tag === "img");
   assert.equal(img.attrs.src, "blob:https://x/abc");
@@ -350,9 +351,9 @@ test("GamID data snapshot: built from the accepted account APIs, public-safe onl
     getMyManualGames: async () => [{ display_name: "Chess" }, { display_name: "Apex" }],
   };
   const snap = await loadGamidSnapshot(api);
-  assert.deepEqual(snap.profile, { displayName: "Espada", handle: "black", initial: "E", avatarUrl: "blob:x/u/avatar.png" });
+  assert.deepEqual(snap.profile, { displayName: "Espada", handle: "black", initial: "E", avatarUrl: "blob:x/u/avatar.png", bio: "" });   // Round 3: + bio (live Bio elements)
   assert.deepEqual(snap.roles, [{ key: "competitive_player", label: "Competitive Player", primary: true }]);
-  assert.deepEqual(snap.connections, [{ label: "Steam", name: "Espada" }], "only the connection the owner made public, with its existing public name");
+  assert.deepEqual(snap.connections, [{ key: "steam", label: "Steam", name: "Espada" }], "only the connection the owner made public, with its existing public name");
   assert.deepEqual(snap.games.items.map(game => game.name), ["Apex", "Chess", "Halo"], "provider-neutral, de-duplicated, sorted");
   assert.equal(snap.games.total, 3);
   assert.equal(snap.games.playtimeAllowed, false);

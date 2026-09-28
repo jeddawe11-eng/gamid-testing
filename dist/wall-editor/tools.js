@@ -7,6 +7,7 @@ import { FONT_CATALOG, fontCss } from "../wall-kit/fonts.js";
 import { createImagePayload } from "../wall-kit/image.js";
 import { defaultBackground, createImageBackground } from "../wall-kit/background.js";
 import { GAMID_BLOCKS, GAMID_BLOCK_INFO, createGamidPayload } from "../wall-kit/gamid.js";
+import { DATA_FIELD_INFO, DATA_ITEMS, DATA_TEXT_FIELDS, createGamidDataPayload, dataTextStyle } from "../wall-kit/gamid-data.js";
 import { startingImageSize } from "../wall-kit/assets.js";
 import { PROVIDERS, detectEmbed, buildEmbedPayload, defaultEmbedSize, humanReason, PRESENTATION_LABELS } from "../wall-kit/embed/engine.js";
 import { mediaCapabilities } from "../wall-kit/embed/index.js";
@@ -45,6 +46,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
     image: () => pickImage(),
     embed: () => { setTool("media"); requestAnimationFrame(() => $("mediaUrl")?.focus()); },
     gamid: () => setTool("gamid"),
+    gamidData: () => { setTool("gamid"); requestAnimationFrame(() => $("gamidDataTitle")?.scrollIntoView({ block: "start" })); },
   };
   for (const button of document.querySelectorAll("[data-add-action]")) button.addEventListener("click", () => addActions[button.dataset.addAction]?.());
 
@@ -217,6 +219,47 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
     $("gamidStatus").textContent = snapshot ? `Your GamID data is loaded: ${snapshot.games.total} game${snapshot.games.total === 1 ? "" : "s"}, ${snapshot.roles.length} role${snapshot.roles.length === 1 ? "" : "s"}, ${snapshot.connections.length} public connection${snapshot.connections.length === 1 ? "" : "s"}.` : "Loading your GamID data…";
   }
 
+  // ---- GamID data (Round 3) -----------------------------------------------------------------------------------------------------------------------
+  // Live bindings, never copies. A single role / game / connection is chosen from the owner's OWN current data only (nothing can be typed in).
+  const DATA_ORDER = ["avatar", "displayName", "handle", "bio", "role", "game", "connection", "roles", "games", "connections"];
+  const DATA_NOTES = { avatar: "Your GamID picture", displayName: "Your display name", handle: "Your @GamID", bio: "Your bio", role: "One of your roles", game: "One of your games", connection: "One of your connections",
+    roles: "All your roles", games: "Your games list", connections: "Your public connections" };
+  function addData(field, ref) {
+    const text = DATA_TEXT_FIELDS.includes(field) ? dataTextStyle(field) : undefined;
+    const payload = createGamidDataPayload(field, { ...(ref ? { ref } : {}), ...(text ? { text } : {}), ...(field === "avatar" ? { look: { backdrop: "none", mask: "circle" } } : {}) });
+    const result = addCustom("gamidData", payload, DATA_FIELD_INFO[field].size);
+    if (result.ok) setTool("props");
+    return result;
+  }
+  function itemOptions(field, snapshot) {
+    if (field === "role") return [{ value: "@primary", label: "My primary role" }, ...(snapshot?.roles ?? []).map(role => ({ value: role.key, label: role.label }))];
+    if (field === "game") { const seen = new Set(); return (snapshot?.games?.items ?? []).filter(game => game.ref && !seen.has(game.ref) && seen.add(game.ref)).map(game => ({ value: game.ref, label: game.refName || game.name })); }
+    return (snapshot?.connections ?? []).map(connection => ({ value: connection.key, label: `${connection.label} · ${connection.name}` }));
+  }
+  let dataKey = "";
+  function renderGamidData() {
+    const snapshot = getGamid();
+    const key = snapshot ? JSON.stringify([snapshot.roles.map(role => role.key), snapshot.games.items.length, snapshot.connections.map(connection => connection.key)]) : "loading";
+    if (key === dataKey) return;
+    dataKey = key;
+    const box = $("gamidData");
+    box.replaceChildren();
+    for (const field of DATA_ORDER) {
+      const info = DATA_FIELD_INFO[field];
+      if (!DATA_ITEMS.includes(field)) {
+        box.append(h("button", { class: "ed-btn", type: "button", onclick: () => addData(field) }, h("b", { text: "◉" }), h("span", {}, info.label, h("small", { text: DATA_NOTES[field] }))));
+        continue;
+      }
+      const options = itemOptions(field, snapshot);
+      const select = h("select", { "aria-label": info.label });
+      for (const option of options) select.append(h("option", { value: option.value, text: option.label }));
+      const empty = !snapshot ? "Loading your GamID data…" : !options.length ? (field === "game" ? "No games on your GamID yet." : field === "connection" ? "No public connections yet." : "No roles yet.") : "";
+      box.append(h("div", { class: "ed-data-item" },
+        h("button", { class: "ed-btn", type: "button", disabled: !options.length, onclick: () => addData(field, select.value) }, h("b", { text: "◉" }), h("span", {}, info.label, h("small", { text: empty || DATA_NOTES[field] }))),
+        options.length ? h("div", { class: "ed-data-picker" }, select) : null));
+    }
+  }
+
   // ---- Assets --------------------------------------------------------------------------------------------------------------------------------
   const grid = $("assetGrid"), message = $("assetMessage");
   const say = text => { message.textContent = text; };
@@ -260,7 +303,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
 
   return {
     addImageElement, uploadFile,
-    update() { renderBackground(); renderAssets(); renderGamidStatus(); },
+    update() { renderBackground(); renderAssets(); renderGamidStatus(); renderGamidData(); },
     invalidate() { renderBackground(true); renderAssets(true); },
     renderAssets, renderBackground,
   };

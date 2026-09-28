@@ -106,7 +106,7 @@ test("S the editor's own (owner) snapshot also never draws the SteamID64 for Ste
     getMyConnections: async () => [{ provider_key: "steam", connected: true, is_public: true, provider_username: ID, provider_display_name: null }, { provider_key: "discord", connected: true, is_public: true, provider_username: "espada", provider_display_name: "Espada" }],
   };
   const snapshot = await loadGamidSnapshot(api);
-  assert.deepEqual(snapshot.connections, [{ label: "Steam", name: "Steam account" }, { label: "Discord", name: "Espada" }]);
+  assert.deepEqual(snapshot.connections, [{ key: "steam", label: "Steam", name: "Steam account" }, { key: "discord", label: "Discord", name: "Espada" }]);   // Round 3: + the provider key (live Connection elements bind to it)
 });
 
 class Node {

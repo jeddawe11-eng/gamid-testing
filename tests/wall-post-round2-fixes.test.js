@@ -338,6 +338,6 @@ test("G no arbitrary URL fetching: every new source fetches only its own fixed h
   assert.equal(avatarMeta.status, 400);
   const module = read("supabase/functions/_shared/media-poster.js");
   assert.doesNotMatch(module, /STEAM_WEB_API_KEY|SERVICE_ROLE|TWITCH_CLIENT|Deno\.env/, "no secret is read");
-  const migrations = readdirSync(new URL("../supabase/migrations/", import.meta.url)).filter(name => name > "20260927130000_steam_public_persona.sql");
+  const migrations = readdirSync(new URL("../supabase/migrations/", import.meta.url)).filter(name => name > "20260927130000_steam_public_persona.sql" && name < "20260928");   // that pass ended before Round 3 (20260928...)
   assert.deepEqual(migrations, ["20260927140000_wall_kick_vod.sql"], "the only database change in this pass is the Kick VOD table row");
 });

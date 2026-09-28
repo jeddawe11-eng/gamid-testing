@@ -14,6 +14,8 @@ import { elementRegistry } from "../wall/elements.js";
 import { createElement, CANONICAL_CANVAS } from "../wall/schema.js";
 import { createTextPayload } from "./text.js";
 import { GAMID_BLOCK_INFO } from "./gamid.js";
+import { cropRatio, MIN_SLICE, SPLIT_COUNTS, SLICE_DIRS } from "./image.js";
+import { DATA_COLLECTIONS } from "./gamid-data.js";
 import { PROVIDERS } from "./embed/engine.js";
 import "./register.js";   // every element type, background kind and embed provider the kit provides
 
@@ -66,6 +68,7 @@ export function minSizeOf(element) {
     return { width: Math.max(portrait ? short : long, frameW), height: Math.max(portrait ? long : short, frameH) };
   }
   if (element.type === "gamid") return GAMID_BLOCK_INFO[element.payload?.block]?.minSize ?? BASE_MIN;
+  if (element.type === "gamidData" && DATA_COLLECTIONS[element.payload?.field]) return GAMID_BLOCK_INFO[DATA_COLLECTIONS[element.payload.field]]?.minSize ?? BASE_MIN;   // a live collection is the block
   return BASE_MIN;
 }
 
@@ -372,7 +375,15 @@ export function lockedAspect(element) {
     if (!ratio) return null;
     return descriptor.inline ? ratio : element.width / element.height;
   }
-  if (element.type === "image" && element.payload.fit === "contain" && element.payload.aw && element.payload.ah) return element.payload.aw / element.payload.ah;
+  if (element.type === "image") {
+    // Round 3: a crop window keeps its own proportions (the crop IS the picture now); a split piece keeps its band of the whole artwork's proportions
+    const { aw, ah, crop, slice, fit } = element.payload;
+    const base = crop && aw && ah ? cropRatio(crop, aw, ah) : fit === "contain" && aw && ah ? aw / ah : null;
+    if (!base) return null;
+    if (!slice) return base;
+    const band = slice.to - slice.from;
+    return slice.dir === "h" ? base / band : base * band;
+  }
   return null;
 }
 
@@ -443,6 +454,8 @@ export function updatePayloadMany(doc, ids, patch) {
   return { ok: true, doc: current };
 }
 
+// A GamID block, or (Round 3) a live GamID Data COLLECTION - the same block, placed as live data: both take the block style.
+const isStyledBlock = element => element.type === "gamid" || (element.type === "gamidData" && !!DATA_COLLECTIONS[element.payload?.field]);
 // ---- GamID block styling (Round 2) -------------------------------------------------------------------------------------------------------------------
 // Merges a partial style into EACH selected GamID block's own style (a key set to `undefined` goes back to its default; an empty style is removed, so the block is
 // exactly the default look again). Validated like every other edit; one undo step.
@@ -451,7 +464,7 @@ export function setGamidStyle(doc, ids, patch) {
   for (const id of ids) {
     const found = locate(next, id);
     if (!found) return fail(doc, "ELEMENT_NOT_FOUND");
-    if (found.element.type !== "gamid") return fail(doc, "NOT_A_GAMID_BLOCK");
+    if (!isStyledBlock(found.element)) return fail(doc, "NOT_A_GAMID_BLOCK");
     const style = { ...(found.element.payload.style ?? {}) };
     for (const [key, value] of Object.entries(patch)) { if (value === undefined) delete style[key]; else style[key] = value; }
     const payload = { ...found.element.payload };
@@ -465,12 +478,12 @@ export function setGamidStyle(doc, ids, patch) {
 export function applyGamidStyleToAll(doc, sourceId) {
   const source = locate(doc, sourceId);
   if (!source) return fail(doc, "ELEMENT_NOT_FOUND");
-  if (source.element.type !== "gamid") return fail(doc, "NOT_A_GAMID_BLOCK");
+  if (!isStyledBlock(source.element)) return fail(doc, "NOT_A_GAMID_BLOCK");
   const style = source.element.payload.style;
   const next = clone(doc);
   let count = 0;
   for (const stage of next.stages) for (const element of stage.elements) {
-    if (element.type !== "gamid" || element.id === sourceId) continue;
+    if (!isStyledBlock(element) || element.id === sourceId) continue;
     const payload = { ...element.payload };
     if (style) payload.style = structuredClone(style); else delete payload.style;
     element.payload = payload;
@@ -485,6 +498,7 @@ export function applyGamidStyleToAll(doc, sourceId) {
 export function updateGeometry(doc, id, patch) {
   const found = locate(doc, id);
   if (!found) return fail(doc, "ELEMENT_NOT_FOUND");
+  if (isLocked(found.element)) return fail(doc, "ELEMENT_LOCKED");
   const next = clone(doc);
   const element = locate(next, id).element;
   for (const key of ["x", "y", "width", "height"]) if (patch[key] !== undefined) element[key] = Number(patch[key]);
@@ -510,6 +524,7 @@ export function rotateElement(doc, id, degrees) {
   const found = locate(doc, id);
   if (!found) return fail(doc, "ELEMENT_NOT_FOUND");
   if (found.element.groupId) return fail(doc, "GROUP_ROTATION_UNSUPPORTED");
+  if (isLocked(found.element)) return fail(doc, "ELEMENT_LOCKED");
   return updateGeometry(doc, id, { rotation: degrees });
 }
 
@@ -522,6 +537,7 @@ export function moveElements(doc, ids, dx, dy) {
   const nextStage = findStage(next, stage.id);
   const moving = new Set(expandSelection(nextStage, ids));
   const members = nextStage.elements.filter(element => moving.has(element.id));
+  if (members.some(isLocked)) return fail(doc, "ELEMENT_LOCKED");
   const box = unionContain(members);
   const minDx = Math.ceil(-box.x - EPS), maxDx = Math.floor(next.canvas.width - box.width - box.x + EPS);
   const minDy = Math.ceil(-box.y - EPS), maxDy = Math.floor(next.canvas.height - box.height - box.y + EPS);
@@ -569,6 +585,7 @@ export function resizeElement(doc, id, handle, dx, dy, { keepAspect = false } = 
   const found = locate(doc, id);
   if (!found || !HANDLES[handle]) return fail(doc, !found ? "ELEMENT_NOT_FOUND" : "UNKNOWN_HANDLE");
   if (found.element.groupId) return fail(doc, "GROUP_ELEMENT_RESIZE_UNSUPPORTED");
+  if (isLocked(found.element)) return fail(doc, "ELEMENT_LOCKED");
   const start = found.element;
   const min = minSizeOf(start);
   let geometry = null;
@@ -611,6 +628,7 @@ export function resizeGroup(doc, ids, handle, dx, dy) {
   const nextStage = findStage(next, stage.id);
   const moving = new Set(expandSelection(nextStage, ids));
   const members = nextStage.elements.filter(element => moving.has(element.id));
+  if (members.some(isLocked)) return fail(doc, "ELEMENT_LOCKED");
   const box = unionContain(members);
   let factor = Math.max((box.width + sx * dx) / box.width, (box.height + sy * dy) / box.height);
   factor = Math.max(factor, shrinkFloor(members));   // no member goes below its own minimum (a player, a GamID block, ...)
@@ -645,6 +663,7 @@ export function scaleSelection(doc, ids, factor) {
   const nextStage = findStage(next, stage.id);
   const moving = new Set(expandSelection(nextStage, ids));
   const members = nextStage.elements.filter(element => moving.has(element.id));
+  if (members.some(isLocked)) return fail(doc, "ELEMENT_LOCKED");
   const box = unionContain(members);
   const centre = [box.x + box.width / 2, box.y + box.height / 2];
   const maxFactor = Math.min(next.canvas.width / box.width, next.canvas.height / box.height);
@@ -766,6 +785,7 @@ export function alignElements(doc, ids, mode) {
   const nextStage = findStage(next, stage.id);
   const chosen = new Set(expandSelection(nextStage, ids));
   const members = nextStage.elements.filter(element => chosen.has(element.id));
+  if (members.some(isLocked)) return fail(doc, "ELEMENT_LOCKED");
   const units = new Map();
   for (const member of members) { const key = member.groupId ?? member.id; (units.get(key) ?? units.set(key, []).get(key)).push(member); }
   const boxes = [...units.values()].map(unit => ({ unit, box: unionBounds(unit) }));
@@ -820,8 +840,9 @@ export function elementContainsPoint(element, px, py, slop = 0) {
   return Math.abs(localX) <= element.width / 2 + slop && Math.abs(localY) <= element.height / 2 + slop;
 }
 // The element a tap on (px, py) means: the top-most exact hit, else the top-most element within `slop` (so a tiny element stays selectable - W0's Samsung finding).
+// A click-through artwork is never hit: the tap goes to what is beneath it (it stays selectable from Layers).
 export function hitTest(stage, px, py, slop = 0) {
-  const top = ordered(stage).reverse();
+  const top = ordered(stage).reverse().filter(element => !isClickThrough(element));
   return top.find(element => elementContainsPoint(element, px, py, 0)) ?? (slop > 0 ? top.find(element => elementContainsPoint(element, px, py, slop)) ?? null : null);
 }
 
@@ -834,4 +855,174 @@ export function groupNumbers(stage) {
   const numbers = new Map();
   for (const element of ordered(stage)) if (element.groupId && !numbers.has(element.groupId)) numbers.set(element.groupId, numbers.size + 1);
   return numbers;
+}
+
+// ---- Artwork (Round 3): lock, click-through, split -------------------------------------------------------------------------------------------------------------
+// Lock Position: the canvas (and every geometry op) leaves a locked artwork where it is; it stays selectable, styleable, layerable and movable to another stage.
+export const isLocked = element => element?.type === "image" && element.payload?.locked === true;
+// Click-through: a canvas tap passes through the artwork (hitTest skips it); Layers still selects it.
+export const isClickThrough = element => element?.type === "image" && element.payload?.clickThrough === true;
+
+const round6 = value => Math.round(value * 1e6) / 1e6;
+// The pieces of the split a piece belongs to, on that piece's stage, in band order.
+export function splitPieces(doc, id) {
+  const found = locate(doc, id);
+  const set = found?.element.type === "image" ? found.element.payload.slice?.set : null;
+  if (!set) return [];
+  return found.stage.elements.filter(element => element.type === "image" && element.payload.slice?.set === set).sort((a, b) => a.payload.slice.from - b.payload.slice.from);
+}
+// The size of the WHOLE artwork a piece is a band of (a piece always shows its band at the whole artwork's scale).
+const wholeOf = piece => {
+  const { dir, from, to } = piece.payload.slice;
+  return dir === "h" ? { width: piece.width, height: piece.height / (to - from) } : { width: piece.width / (to - from), height: piece.height };
+};
+
+// Splits one artwork into `count` (2..5) equal pieces, vertical cuts ("v": side by side) or horizontal ("h": stacked). NON-destructive: the asset is not touched -
+// every piece is the same artwork showing its own band, so a GIF plays ONE timeline across all pieces (they share the asset). The pieces are grouped (group id = the
+// split set) so they move, resize and layer as one until the owner ungroups them. The first piece keeps the original element's id; they take its layer slot.
+export function splitArtwork(doc, id, count, dir = "v") {
+  const found = locate(doc, id);
+  if (!found) return fail(doc, "ELEMENT_NOT_FOUND");
+  const source = found.element;
+  if (source.type !== "image") return fail(doc, "NOT_AN_ARTWORK");
+  if (!SPLIT_COUNTS.includes(count) || !SLICE_DIRS.includes(dir)) return fail(doc, "INVALID_SPLIT");
+  if (source.payload.slice) return fail(doc, "ALREADY_SPLIT");
+  if (source.rotation) return fail(doc, "ROTATED_SPLIT_UNSUPPORTED");
+  if (source.groupId) return fail(doc, "UNGROUP_BEFORE_SPLIT");
+  if (isLocked(source)) return fail(doc, "ELEMENT_LOCKED");
+  const span = dir === "h" ? source.height : source.width;
+  if (span / count < MIN_SIZE || 1 / count < MIN_SLICE) return fail(doc, "TOO_SMALL_TO_SPLIT");
+  const next = clone(doc);
+  const stage = findStage(next, found.stage.id);
+  const set = nextId(doc, "split");
+  const taken = new Set([set]);
+  const edges = Array.from({ length: count + 1 }, (_, i) => Math.round(span * i / count));
+  const list = ordered(stage);
+  const slot = list.findIndex(element => element.id === id);
+  const pieces = edges.slice(0, -1).map((edge, i) => {
+    const piece = clone(source);
+    if (i > 0) { piece.id = nextId(next, "el", taken); taken.add(piece.id); }
+    const size = edges[i + 1] - edge;
+    if (dir === "h") { piece.y = source.y + edge; piece.height = size; } else { piece.x = source.x + edge; piece.width = size; }
+    piece.groupId = set;
+    piece.payload = { ...source.payload, slice: { set, dir, from: round6(edge / span), to: round6(edges[i + 1] / span) } };
+    return piece;
+  });
+  assignZ(stage, [...list.slice(0, slot), ...pieces, ...list.slice(slot + 1)]);
+  return finish(doc, next, { set, ids: pieces.map(piece => piece.id) });
+}
+
+// Moves the boundary between piece `index` and `index + 1` (in band order) to the fraction `cut` of the whole artwork. The outer edges stay where they are (the
+// left piece keeps its start, the right piece its end); every band keeps at least MIN_SLICE of the artwork and MIN_SIZE units. Works for pieces that were moved apart.
+export function moveSplitBoundary(doc, id, index, cut) {
+  const pieces = splitPieces(doc, id);
+  if (pieces.length < 2) return fail(doc, "NOT_SPLIT");
+  if (!Number.isInteger(index) || index < 0 || index >= pieces.length - 1 || !Number.isFinite(cut)) return fail(doc, "INVALID_BOUNDARY");
+  const [a, b] = [pieces[index], pieces[index + 1]];
+  if (isLocked(a) || isLocked(b)) return fail(doc, "ELEMENT_LOCKED");
+  const dir = a.payload.slice.dir;
+  const wholeA = wholeOf(a), wholeB = wholeOf(b);
+  const spanA = dir === "h" ? wholeA.height : wholeA.width, spanB = dir === "h" ? wholeB.height : wholeB.width;
+  const lo = Math.max(a.payload.slice.from + MIN_SLICE, a.payload.slice.from + MIN_SIZE / spanA);
+  const hi = Math.min(b.payload.slice.to - MIN_SLICE, b.payload.slice.to - MIN_SIZE / spanB);
+  if (lo > hi) return fail(doc, "TOO_SMALL_TO_SPLIT");
+  const at = Math.min(hi, Math.max(lo, cut));
+  const next = clone(doc);
+  const nextA = locate(next, a.id).element, nextB = locate(next, b.id).element;
+  const endB = dir === "h" ? b.y + b.height : b.x + b.width;
+  const sizeA = Math.max(MIN_SIZE, Math.ceil(spanA * MIN_SLICE), Math.round(spanA * (at - a.payload.slice.from)));
+  const sizeB = Math.max(MIN_SIZE, Math.ceil(spanB * MIN_SLICE), Math.round(spanB * (b.payload.slice.to - at)));
+  if (dir === "h") { nextA.height = sizeA; nextB.height = sizeB; nextB.y = endB - sizeB; } else { nextA.width = sizeA; nextB.width = sizeB; nextB.x = endB - sizeB; }
+  // the stored band follows the rounded geometry exactly, so each piece still draws its band at the whole artwork's scale
+  const cutA = round6(a.payload.slice.from + sizeA / spanA);
+  const cutB = round6(b.payload.slice.to - sizeB / spanB);
+  nextA.payload = { ...nextA.payload, slice: { ...nextA.payload.slice, to: cutA } };
+  nextB.payload = { ...nextB.payload, slice: { ...nextB.payload.slice, from: cutB } };
+  return finish(doc, next, { cut: at });
+}
+
+// Takes a split back to ONE artwork: the whole artwork is rebuilt from the first piece (its band and size give the whole box), keeping that piece's id, look and the
+// topmost piece's layer slot. Nothing is lost - the split was never baked into the picture.
+export function removeSplit(doc, id) {
+  const pieces = splitPieces(doc, id);
+  if (!pieces.length) return fail(doc, "NOT_SPLIT");
+  const first = pieces[0];
+  const { dir, from, set } = first.payload.slice;
+  const whole = wholeOf(first);
+  const next = clone(doc);
+  const stage = locate(next, first.id).stage;
+  const ids = new Set(pieces.map(piece => piece.id));
+  const list = ordered(stage);
+  const topIndex = Math.max(...list.map((element, index) => (ids.has(element.id) ? index : -1)));
+  const merged = clone(first);
+  if (dir === "h") { merged.height = Math.round(whole.height); merged.y = Math.round(first.y - from * whole.height); } else { merged.width = Math.round(whole.width); merged.x = Math.round(first.x - from * whole.width); }
+  const { slice: _slice, ...payload } = merged.payload;
+  merged.payload = payload;
+  if (merged.groupId === set) delete merged.groupId;
+  if (!clampToCanvas(merged, next.canvas)) return fail(doc, "OUTSIDE_CANVAS");
+  const kept = list.filter(element => !ids.has(element.id));
+  const slot = list.slice(0, topIndex + 1).filter(element => !ids.has(element.id)).length;
+  assignZ(stage, [...kept.slice(0, slot), merged, ...kept.slice(slot)]);
+  return finish(doc, next, { ids: [merged.id] });
+}
+
+// Reset: the same number of pieces, same direction, equal boundaries again, re-assembled in place (the whole artwork box rebuilt from the first piece).
+export function resetSplit(doc, id) {
+  const pieces = splitPieces(doc, id);
+  if (!pieces.length) return fail(doc, "NOT_SPLIT");
+  const { dir } = pieces[0].payload.slice;
+  const merged = removeSplit(doc, id);
+  if (!merged.ok) return merged;
+  const again = splitArtwork(merged.doc, merged.ids[0], pieces.length, dir);
+  return again.ok ? again : fail(doc, ...again.errors);
+}
+
+// Layers drag-and-drop: moves the dragged layer (its whole group, unless it is being reordered INSIDE its own group) directly above or below the target's unit.
+// Groups stay contiguous, so there is one stacking model: the same one Forward / Backward / Front / Back use.
+export function moveLayer(doc, id, targetId, place = "above") {
+  const stage = commonStage(doc, [id, targetId]);
+  if (!stage || id === targetId || !["above", "below"].includes(place)) return fail(doc, "SELECTION_INVALID");
+  const next = clone(doc);
+  const nextStage = findStage(next, stage.id);
+  const list = ordered(nextStage);
+  const dragged = list.find(element => element.id === id), target = list.find(element => element.id === targetId);
+  const sameGroup = dragged.groupId && dragged.groupId === target.groupId;
+  const moving = new Set(sameGroup ? [id] : expandSelection(nextStage, [id]));
+  if (moving.has(targetId)) return { ok: true, doc };
+  const anchorIds = new Set(sameGroup ? [targetId] : expandSelection(nextStage, [targetId]));
+  const rest = list.filter(element => !moving.has(element.id));
+  const unit = list.filter(element => moving.has(element.id));
+  const anchorIndexes = rest.map((element, index) => (anchorIds.has(element.id) ? index : -1)).filter(index => index >= 0);
+  const at = place === "above" ? Math.max(...anchorIndexes) + 1 : Math.min(...anchorIndexes);
+  assignZ(nextStage, [...rest.slice(0, at), ...unit, ...rest.slice(at)]);
+  return finish(doc, next);
+}
+// Crop (non-destructive): sets / clears an artwork's crop window. The box keeps its width and centre and takes the crop's proportions (so the crop is shown
+// undistorted); `source` ({ aw, ah }) records the picture's pixel size when the element does not have it yet. One undo step. Not for split pieces (remove the split first).
+export function setCrop(doc, id, crop, source = {}) {
+  const found = locate(doc, id);
+  if (!found) return fail(doc, "ELEMENT_NOT_FOUND");
+  if (found.element.type !== "image") return fail(doc, "NOT_AN_ARTWORK");
+  if (found.element.payload.slice) return fail(doc, "ALREADY_SPLIT");
+  if (isLocked(found.element)) return fail(doc, "ELEMENT_LOCKED");
+  const next = clone(doc);
+  const element = locate(next, id).element;
+  const payload = { ...element.payload };
+  if (source.aw && source.ah && !(payload.aw && payload.ah)) { payload.aw = source.aw; payload.ah = source.ah; }
+  if (!crop) { delete payload.crop; element.payload = payload; return finish(doc, next); }
+  payload.crop = clone(crop);
+  element.payload = payload;
+  if (payload.aw && payload.ah) {
+    const ratio = cropRatio(crop, payload.aw, payload.ah);
+    const cy = element.y + element.height / 2;
+    let width = element.width, height = Math.round(width / ratio);
+    if (height > next.canvas.height) { height = next.canvas.height; width = Math.round(height * ratio); }
+    const min = minSizeOf(element);
+    if (height < min.height) { height = min.height; width = Math.round(height * ratio); }
+    element.x = Math.round(element.x + (element.width - width) / 2);
+    element.width = width; element.height = height;
+    element.y = Math.round(cy - height / 2);
+    if (!clampToCanvas(element, next.canvas)) return fail(doc, "OUTSIDE_CANVAS");
+  }
+  return finish(doc, next);
 }

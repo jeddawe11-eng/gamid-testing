@@ -65,7 +65,7 @@ test("A1 the owner's editor canvas draws the Steam avatar too (it used to show o
     getMyConnections: async () => [{ provider_key: "steam", connected: true, is_public: true, provider_username: "76561198205768860", provider_display_name: "HAMZA", provider_avatar_url: AVATAR }, { provider_key: "discord", connected: true, is_public: true, provider_username: "x", provider_display_name: "X", provider_avatar_url: "https://cdn.discordapp.com/avatars/1/abc.png" }],
   };
   const snapshot = await loadGamidSnapshot(api);
-  assert.deepEqual(snapshot.connections, [{ label: "Steam", name: "HAMZA", avatarQuery: "steam_avatar=1756d62447ed20e683a2867e984d92311c7595e2" }, { label: "Discord", name: "X" }], "only Steam avatars go through the proxy");
+  assert.deepEqual(snapshot.connections, [{ key: "steam", label: "Steam", name: "HAMZA", avatarQuery: "steam_avatar=1756d62447ed20e683a2867e984d92311c7595e2" }, { key: "discord", label: "Discord", name: "X" }], "only Steam avatars go through the proxy");
   const posters = { ready: () => "blob:known", load: async () => "blob:known" };
   const root = paintGamidBlock(renderGamidPayload({ block: "connections", layout: "card" }), snapshot, tag => new Node(tag), { interactive: false, posters });
   const [img] = all(root, node => node.tag === "img");

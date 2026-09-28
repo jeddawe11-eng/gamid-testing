@@ -42,7 +42,7 @@ test("corpus: names are unique and both valid and invalid documents are covered"
 // neither can occur; the forward migration that registers a real provider must teach the database validator both (and add corpus cases).
 const PROVIDER_ONLY = new Set(["PROVIDER", "PROVIDER_DATA_NOT_OBJECT"]);
 const w1Codes = () => {
-  const w1Source = ["dist/wall/validate.js", "dist/wall/elements.js", "dist/wall-kit/text.js", "dist/wall-kit/image.js", "dist/wall-kit/gamid.js", "dist/wall-kit/background.js"].map(read).join("\n");
+  const w1Source = ["dist/wall/validate.js", "dist/wall/elements.js", "dist/wall-kit/text.js", "dist/wall-kit/image.js", "dist/wall-kit/gamid.js", "dist/wall-kit/background.js", "dist/wall-kit/gamid-data.js"].map(read).join("\n");
   const codes = new Set([...w1Source.matchAll(/["`]([A-Z][A-Z_]{5,})(?::|["`])/g)].map(match => match[1]).filter(code => !PROVIDER_ONLY.has(code)));
   // the embed engine also holds vocabulary that is not a validation code (capability names, detection reasons): only its validator's codes count
   const validator = read("dist/wall-kit/embed/engine.js");

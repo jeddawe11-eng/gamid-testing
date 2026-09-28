@@ -10,6 +10,7 @@ import { describeCode, describeErrors, stageDeleteQuestion, selectionSummary, cr
 import { resolveEditorSession, planAuth, gateFor } from "../wall-kit/auth-gate.js";
 import { elementRegistry } from "../wall/elements.js";
 import { GAMID_BLOCK_INFO } from "../wall-kit/gamid.js";
+import { DATA_FIELD_INFO } from "../wall-kit/gamid-data.js";
 import { createPlayerManager } from "../wall-kit/embed/player.js";
 import { createPosterLoader } from "../wall-kit/posters.js";
 import { createCanvas } from "./canvas.js";
@@ -104,7 +105,7 @@ const canvas = createCanvas({
   },
 });
 const leaveMultiSelect = () => { if (multi) { multi = false; updateChrome(); } };
-const properties = createPropertiesPanel({ body: $("propsBody"), title: $("propsTitle"), session, run, fitTextHeight, assets: assetStore, refreshGamid, onGroupingChanged: leaveMultiSelect });
+const properties = createPropertiesPanel({ body: $("propsBody"), title: $("propsTitle"), session, run, fitTextHeight, assets: assetStore, refreshGamid, getGamid: () => gamidSnapshot, onGroupingChanged: leaveMultiSelect });
 
 // ---- tools: one rail, one drawer ------------------------------------------------------------------------------------------------------------------
 // On a phone a bottom sheet covers the lower part of the stage: scroll the selection up into the part that stays visible above it.
@@ -196,7 +197,12 @@ function renderStages() {
 function layerName(element) {
   if (element.type === "text") return `Text: ${element.payload.text.replace(/\s+/g, " ").slice(0, 24) || "(empty)"}`;
   if (element.type === "rect") return element.payload.radius >= Math.min(element.width, element.height) / 2 && element.width === element.height ? "Circle" : element.payload.radius ? "Rounded rectangle" : "Rectangle";
-  if (element.type === "image") return element.payload.alt ? `Image: ${element.payload.alt.slice(0, 22)}` : "Image";
+  if (element.type === "image") {
+    const base = element.payload.alt ? `Artwork: ${element.payload.alt.slice(0, 22)}` : "Artwork";
+    const slice = element.payload.slice;
+    return slice ? `${base} · piece ${Math.round(slice.from * 100)}–${Math.round(slice.to * 100)}%` : base;
+  }
+  if (element.type === "gamidData") return `GamID data: ${DATA_FIELD_INFO[element.payload.field]?.label ?? "field"}`;
   if (element.type === "embed") { const descriptor = elementRegistry.get("embed").render(element.payload).content; return `${descriptor?.providerLabel ?? "Link"} ${descriptor?.contentLabel?.toLowerCase() ?? ""}`.trim(); }
   if (element.type === "gamid") return `GamID: ${GAMID_BLOCK_INFO[element.payload.block]?.label ?? "block"}`;
   return element.type;
@@ -220,7 +226,38 @@ function renderLayers() {
     up.setAttribute("aria-label", "Bring forward"); down.setAttribute("aria-label", "Send backward");
     up.addEventListener("click", () => run(ops.reorderLayers(session.doc, [element.id], "forward")));
     down.addEventListener("click", () => run(ops.reorderLayers(session.doc, [element.id], "backward")));
-    row.append(main, up, down);
+    row.append(main);
+    // Round 3 - an artwork's Lock and Click-through are always reachable here, even when the canvas cannot pick it
+    if (element.type === "image") {
+      const lock = make("button", "ed-mini", element.payload.locked ? "🔒" : "🔓");
+      lock.type = "button";
+      lock.setAttribute("aria-pressed", String(element.payload.locked === true));
+      lock.setAttribute("aria-label", element.payload.locked ? "Unlock position" : "Lock position");
+      lock.title = lock.getAttribute("aria-label");
+      lock.addEventListener("click", () => run(ops.updatePayload(session.doc, element.id, { locked: element.payload.locked ? undefined : true })));
+      row.append(lock);
+      if (element.payload.clickThrough) main.append(make("span", "tag", "CLICK-THROUGH"));
+    }
+    row.append(up, down);
+    // drag a row onto another to place it above / below that layer (groups move as one unless reordered inside their own group)
+    row.draggable = true;
+    row.dataset.id = element.id;
+    row.addEventListener("dragstart", event => { event.dataTransfer?.setData("text/plain", element.id); row.classList.add("is-dragging"); });
+    row.addEventListener("dragend", () => row.classList.remove("is-dragging"));
+    row.addEventListener("dragover", event => {
+      event.preventDefault();
+      const rect = row.getBoundingClientRect();
+      const above = event.clientY < rect.top + rect.height / 2;
+      row.classList.toggle("is-drop-above", above); row.classList.toggle("is-drop-below", !above);
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("is-drop-above", "is-drop-below"));
+    row.addEventListener("drop", event => {
+      event.preventDefault();
+      const dragged = event.dataTransfer?.getData("text/plain");
+      const above = row.classList.contains("is-drop-above");
+      row.classList.remove("is-drop-above", "is-drop-below");
+      if (dragged && dragged !== element.id) run(ops.moveLayer(session.doc, dragged, element.id, above ? "above" : "below"));
+    });
     list.append(row);
   }
 }

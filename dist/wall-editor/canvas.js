@@ -84,6 +84,15 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
       left: px(view.cx - view.w / 2), top: px(view.cy - view.h / 2), width: px(view.w), height: px(view.h), transform: `rotate(${view.angle}rad)`,
     });
     overlay.append(outline);
+    // Round 3 - Lock Position: a locked artwork is still selected (outline + Properties + Layers) but shows no move pad and no handles, only a lock badge
+    if (selected.some(ops.isLocked)) {
+      outline.classList.add("is-locked");
+      const badge = el("div", "ed-lock-badge", { left: px(view.cx - view.w / 2), top: px(view.cy - view.h / 2) });
+      badge.textContent = "Locked";
+      overlay.append(badge);
+      return;
+    }
+    drawSplitBoundaries(overlay, selected);
     // a small selection gets a move pad so it can still be dragged
     if (Math.min(view.w, view.h) < PAD_MIN_PX) {
       const padW = Math.max(PAD_MIN_PX, view.w), padH = Math.max(PAD_MIN_PX, view.h);
@@ -107,6 +116,24 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
     }
   }
 
+  // Round 3 - Split: when a whole split artwork is selected, every inner boundary gets a drag handle (the line between two pieces).
+  function drawSplitBoundaries(overlay, selected) {
+    const pieces = ops.splitPieces(doc(), selected[0].id);
+    if (pieces.length < 2 || selected.length !== pieces.length || !pieces.every(piece => selected.includes(piece))) return;
+    const dir = pieces[0].payload.slice.dir;
+    for (let index = 0; index < pieces.length - 1; index += 1) {
+      const a = pieces[index], b = pieces[index + 1];
+      const line = dir === "h"
+        ? { left: px(Math.min(a.x, b.x) * scale), top: px(((a.y + a.height + b.y) / 2) * scale), width: px(Math.max(a.width, b.width) * scale) }
+        : { left: px(((a.x + a.width + b.x) / 2) * scale), top: px(Math.min(a.y, b.y) * scale), height: px(Math.max(a.height, b.height) * scale) };
+      const handle = el("div", `ed-boundary is-${dir}`, line);
+      handle.setAttribute("data-boundary", String(index));
+      handle.setAttribute("role", "separator");
+      handle.setAttribute("aria-label", `Split boundary ${index + 1}`);
+      overlay.append(handle);
+    }
+  }
+
   // ---- gestures -------------------------------------------------------------------------------------------------------------------------------------------
   const toStage = event => { const rect = host.getBoundingClientRect(); return { x: (event.clientX - rect.left) / scale, y: (event.clientY - rect.top) / scale }; };
   const isAdditive = event => isMulti() || event.shiftKey || event.ctrlKey || event.metaKey;
@@ -127,6 +154,12 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
       return;
     }
     if (gesture) return;
+    const boundary = event.target.closest?.("[data-boundary]");
+    if (boundary) {
+      const pieces = ops.splitPieces(session.doc, session.state.selection[0]);
+      const index = Number(boundary.getAttribute("data-boundary"));
+      if (pieces[index + 1]) { begin("boundary", event, { index, pieceId: pieces[index].id, piece: pieces[index] }); return; }
+    }
     const handle = event.target.closest?.("[data-handle]");
     if (handle) {
       const name = handle.getAttribute("data-handle");
@@ -190,6 +223,13 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
       const multi = gesture.ids.length > 1 || locateGrouped(gesture.startDoc, gesture.ids[0]);
       // an element with a locked aspect (a player's selected aspect, a whole picture) is held to exactly that ratio; Shift keeps any other box's proportions
       result = multi ? ops.resizeGroup(gesture.startDoc, gesture.ids, gesture.handle, dx, dy) : ops.resizeElement(gesture.startDoc, gesture.ids[0], gesture.handle, dx, dy, { keepAspect: ops.lockedAspect(ops.locate(gesture.startDoc, gesture.ids[0]).element) ?? event.shiftKey });
+    } else if (gesture.kind === "boundary") {
+      // the boundary follows the pointer along the split direction, in fractions of the whole artwork
+      const { piece, index } = gesture;
+      const { dir, from, to } = piece.payload.slice;
+      const span = dir === "h" ? piece.height / (to - from) : piece.width / (to - from);
+      const edge = (dir === "h" ? piece.height : piece.width) + (dir === "h" ? dy : dx);
+      result = ops.moveSplitBoundary(gesture.startDoc, gesture.pieceId, index, from + edge / span);
     } else if (gesture.kind === "rotate") {
       const found = ops.locate(gesture.startDoc, gesture.ids[0]);
       const rect = host.getBoundingClientRect();
