@@ -361,6 +361,19 @@ export function assetsInUse(doc) {
   for (const stage of doc.stages) { scan(stage.background); for (const element of stage.elements) scan(element.payload); }
   return used;
 }
+// WHERE an asset is used in this Wall, in words ("Whole Wall background", "Stage 2 background", "an image on Stage 1") - empty when it is unused. The Background
+// panel shows this instead of a Delete button, so an asset in use can never be destroyed from under the Wall.
+export function assetUsage(doc, assetId) {
+  const uses = value => { if (!value || typeof value !== "object") return false; if (value.assetId === assetId) return true; return Object.values(value).some(uses); };
+  const places = [];
+  if (uses(doc.background)) places.push("Whole Wall background");
+  doc.stages.forEach((stage, index) => {
+    if (uses(stage.background)) places.push(`Stage ${index + 1} background`);
+    const pictures = stage.elements.filter(element => uses(element.payload)).length;
+    if (pictures) places.push(pictures === 1 ? `an image on Stage ${index + 1}` : `${pictures} images on Stage ${index + 1}`);
+  });
+  return places;
+}
 
 // The aspect ratio (width / height) an element is held to while it is resized, or null for a free resize. The value itself is the lock - resizing never falls back
 // to whatever shape the box happens to have:

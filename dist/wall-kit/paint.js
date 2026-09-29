@@ -196,6 +196,12 @@ function paintImage(node, content, scale, item, createNode, ctx) {
   frame.append(missing);
 }
 
+// The CSS transform for a background's flips (validated booleans only).
+export const backgroundFlip = background => {
+  const x = background?.flipX === true ? -1 : 1, y = background?.flipY === true ? -1 : 1;
+  return x === 1 && y === 1 ? "none" : `scale(${x}, ${y})`;
+};
+
 function paintBackgroundLayer(background, { createNode, ctx, width, height, index, count, scale, scope = "wall" }) {
   const layer = createNode("div");
   layer.className = "wall-bg";
@@ -205,9 +211,15 @@ function paintBackgroundLayer(background, { createNode, ctx, width, height, inde
   else if (background.kind === "gradient") style.setProperty("background", gradientCss(background));
   else if (background.kind === "image" || background.kind === "video") {
     style.setProperty("background", "#0d0b14");
+    // Flip horizontal / vertical: a mirror of the drawn media only (CSS transform) - the uploaded file is never changed, re-encoded or copied
+    const flip = backgroundFlip(background);
     if (background.kind === "image") {
       const url = safeBlobUrl(ctx.assets?.urlFor?.(background.assetId));
-      if (url) layer.append(pictureNode(createNode, { url, fit: background.fit, posX: background.posX, posY: background.posY, opacity: background.opacity }));
+      if (url) {
+        const picture = pictureNode(createNode, { url, fit: background.fit, posX: background.posX, posY: background.posY, opacity: background.opacity });
+        if (flip !== "none") picture.style.setProperty("transform", flip);
+        layer.append(picture);
+      }
     } else {
       // a background VIDEO (video-background.js): muted, looping, inline, no controls, never a tap target; the same fit / position / opacity model as an image
       const url = safeMediaUrl(ctx.assets?.videoUrlFor?.(background.assetId));
@@ -215,7 +227,8 @@ function paintBackgroundLayer(background, { createNode, ctx, width, height, inde
         const video = ctx.videos ? ctx.videos.take(`${scope}:${background.assetId}`, url, createNode) : backgroundVideo(url, createNode);
         video.className = "wall-bg-video";
         for (const [name, value] of [["display", "block"], ["width", "100%"], ["height", "100%"], ["object-fit", background.fit === "contain" ? "contain" : "cover"],
-          ["object-position", `${num(background.posX)}% ${num(background.posY)}%`], ["opacity", num(background.opacity)], ["pointer-events", "none"]]) video.style.setProperty(name, value);
+          ["object-position", `${num(background.posX)}% ${num(background.posY)}%`], ["opacity", num(background.opacity)], ["pointer-events", "none"],
+          ["transform", flip]]) video.style.setProperty(name, value);   // (a pooled element is reused: its flip is always re-set, "none" included)
         layer.append(video);
       }
     }

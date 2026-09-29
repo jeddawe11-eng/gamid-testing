@@ -32,6 +32,7 @@ const BY_CODE = {
   TOO_SMALL_TO_SPLIT: "The artwork is too small for that many pieces.",
   NOT_SPLIT: "This artwork is not split.",
   INVALID_BOUNDARY: "That split boundary cannot move there.",
+  INVALID_FLIP: "That background flip is not valid, so it was not applied.",
   INVALID_BACKDROP: "The backing must be None or a colour.",
   INVALID_CROP: "That crop is not valid, so it was not applied.",
   INVALID_MASK: "That mask is not available.",

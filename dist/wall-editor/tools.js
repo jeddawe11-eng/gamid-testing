@@ -159,6 +159,28 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
   }
   let bgKey = "";
   let videoStatus = "";
+  // Background asset deletion: never one click. An asset the Wall uses (Whole Wall / a stage background / a picture element) cannot be deleted - the panel says
+  // where it is used; an unused one asks for confirmation first. The database refuses again if the SAVED Wall still uses it (nothing is ever left broken).
+  let pendingDelete = null;       // asset id awaiting confirmation
+  let deleteStatus = "";
+  function deleteControls(asset, noun) {
+    const usage = ops.assetUsage(doc(), asset.asset_id);
+    if (usage.length) return h("div", { class: "ed-asset-inuse", text: `In use: ${usage.join(", ")}` });
+    if (pendingDelete !== asset.asset_id) {
+      return h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete", "aria-label": `Delete this ${noun}`, onclick: () => { pendingDelete = asset.asset_id; deleteStatus = ""; renderBackground(true); } });
+    }
+    return h("div", { class: "ed-confirm", role: "group", "aria-label": `Delete this ${noun}?` },
+      h("p", { text: `Delete this ${noun} permanently? It is removed from your uploads and cannot be undone.` }),
+      h("div", { class: "ed-row" },
+        h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete permanently", onclick: async () => {
+          const result = await assets.remove(asset.asset_id, doc());
+          pendingDelete = null;
+          deleteStatus = result.ok ? `The ${noun} was deleted.`
+            : result.code === "WALL_ASSET_IN_USE" ? `This ${noun} is still used by your saved Wall. Save your changes first, then delete it.` : result.message;
+          renderBackground(true);
+        } }),
+        h("button", { class: "ed-btn", type: "button", text: "Cancel", onclick: () => { pendingDelete = null; renderBackground(true); } })));
+  }
   // MP4 background upload (background only - videos never appear in Assets or as artwork). Resumable, with progress; the server checks the stored file.
   const videoInput = h("input", { type: "file", accept: "video/mp4", hidden: true });
   document.body.append(videoInput);
@@ -197,7 +219,8 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
   function renderBackground(force = false) {
     const current = currentBackground();
     // rebuild only when the STRUCTURE changes (scope, stage, kind, picture, fit, overlay on/off, asset list) - never while a slider is being dragged
-    const key = JSON.stringify([scope, stageId(), current?.kind ?? null, current?.assetId ?? null, current?.fit ?? null, !!current?.overlay, assets.assets.length, assets.images.filter(asset => assets.urlFor(asset.asset_id)).length, assets.videos.map(asset => !!assets.videoUrlFor(asset.asset_id)).join(), doc().stages.length, scope === "stage" ? !!doc().background : null, videoStatus]);
+    const key = JSON.stringify([scope, stageId(), current?.kind ?? null, current?.assetId ?? null, current?.fit ?? null, !!current?.overlay, assets.assets.length, assets.images.filter(asset => assets.urlFor(asset.asset_id)).length, assets.videos.map(asset => !!assets.videoUrlFor(asset.asset_id)).join(), doc().stages.length, scope === "stage" ? !!doc().background : null, videoStatus,
+      current?.flipX === true, current?.flipY === true, pendingDelete, deleteStatus, [...ops.assetsInUse(doc())].sort().join()]);
     if (!force && key === bgKey) return;
     bgKey = key;
     for (const button of document.querySelectorAll("[data-bg-scope]")) button.setAttribute("aria-pressed", String(button.dataset.bgScope === scope));
@@ -214,17 +237,21 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
     }
     controlsBox.replaceChildren();
     const co = { coalesce: `bg-${scope}` };
-    if (bg?.kind === "color") controlsBox.append(bgColor("Colour", bg.color, value => setBg({ ...bg, color: value }, co)));
-    if (bg?.kind === "gradient") controlsBox.append(bgColor("From", bg.from, value => setBg({ ...bg, from: value }, co)), bgColor("To", bg.to, value => setBg({ ...bg, to: value }, co)), bgSlider("Angle", 0, 360, 1, bg.angle, value => setBg({ ...bg, angle: value }, co)));
+    // every control writes onto the background AS IT IS NOW (sliders do not rebuild this panel, so a value captured when it was built may be stale)
+    const live = () => currentBackground() ?? bg;
+    if (bg?.kind === "color") controlsBox.append(bgColor("Colour", bg.color, value => setBg({ ...live(), color: value }, co)));
+    if (bg?.kind === "gradient") controlsBox.append(bgColor("From", bg.from, value => setBg({ ...live(), from: value }, co)), bgColor("To", bg.to, value => setBg({ ...live(), to: value }, co)), bgSlider("Angle", 0, 360, 1, bg.angle, value => setBg({ ...live(), angle: value }, co)));
     if (bg?.kind === "image") {
       const grid = h("div", { class: "ed-assets" });
       for (const asset of assets.images) {
         const thumb = h("div", { class: "thumb" });
         const url = assets.urlFor(asset.asset_id);
         if (url) thumb.append(h("img", { src: url, alt: "" })); else thumb.textContent = "…";
-        grid.append(h("div", { class: "ed-asset" }, thumb, h("button", { class: "ed-btn", type: "button", "aria-pressed": String(asset.asset_id === bg.assetId), text: asset.asset_id === bg.assetId ? "Selected" : "Use", onclick: () => setBg({ ...bg, assetId: asset.asset_id }) })));
+        grid.append(h("div", { class: "ed-asset" }, thumb, h("button", { class: "ed-btn", type: "button", "aria-pressed": String(asset.asset_id === bg.assetId), text: asset.asset_id === bg.assetId ? "Selected" : "Use", onclick: () => setBg({ ...live(), assetId: asset.asset_id }) }),
+          deleteControls(asset, "image")));
       }
       controlsBox.append(grid);
+      if (deleteStatus) controlsBox.append(h("p", { class: "ed-hint", role: "status", text: deleteStatus }));
     }
     if (bg?.kind === "video") {
       const list = h("div", { class: "ed-assets ed-videos" });
@@ -236,10 +263,10 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
         list.append(h("div", { class: "ed-asset" }, thumb,
           h("div", { class: "meta", text: `Video ${index + 1} · ${asset.width}×${asset.height} · ${Math.max(1, Math.round(asset.byte_size / (1024 * 1024)))} MB` }),
           h("div", { class: "row" },
-            h("button", { class: "ed-btn", type: "button", "aria-pressed": String(selected), text: selected ? "Selected" : "Use", onclick: () => setBg({ ...bg, assetId: asset.asset_id }) }),
-            selected ? null : h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete", onclick: async () => { const result = await assets.remove(asset.asset_id, doc()); videoStatus = result.ok ? "Video deleted." : result.message; renderBackground(true); } }))));
+            h("button", { class: "ed-btn", type: "button", "aria-pressed": String(selected), text: selected ? "Selected" : "Use", onclick: () => setBg({ ...live(), assetId: asset.asset_id }) })),
+          deleteControls(asset, "video")));
       });
-      controlsBox.append(list, h("div", { class: "ed-row ed-wrap" }, h("button", { class: "ed-btn ed-primary", type: "button", text: "Upload MP4", onclick: pickVideo, disabled: /^(Checking|Uploading|Processing)/.test(videoStatus) })),
+      controlsBox.append(list, ...(deleteStatus ? [h("p", { class: "ed-hint", role: "status", text: deleteStatus })] : []),h("div", { class: "ed-row ed-wrap" }, h("button", { class: "ed-btn ed-primary", type: "button", text: "Upload MP4", onclick: pickVideo, disabled: /^(Checking|Uploading|Processing)/.test(videoStatus) })),
         h("p", { id: "bgVideoStatus", class: "ed-hint", role: "status", text: videoStatus }),
         h("p", { class: "ed-hint", text: "MP4, up to 50 MB. H.264 is used as it is; an H.265 (HEVC) video is converted for every browser at the same resolution. It plays muted and looping behind everything, with no controls." }));
     } else if (videoStatus && kind !== "video") controlsBox.append(h("p", { id: "bgVideoStatus", class: "ed-hint", role: "status", text: videoStatus }));
@@ -247,16 +274,20 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
       controlsBox.append(h("label", { class: "ed-field" }, h("span", { text: "Fit" }), h("div", { class: "ed-inline" }, (() => {
         const select = h("select");
         for (const [value, label] of [["cover", bg.kind === "video" ? "Fill (cover, recommended)" : "Fill (crop)"], ["contain", bg.kind === "video" ? "Show whole video" : "Show whole picture"]]) select.append(h("option", { value, text: label, selected: bg.fit === value }));
-        select.addEventListener("change", () => setBg({ ...bg, fit: select.value }));
+        select.addEventListener("change", () => setBg({ ...live(), fit: select.value }));
         return select;
       })())));
-      controlsBox.append(bgSlider("Position X %", 0, 100, 1, bg.posX, value => setBg({ ...bg, posX: value }, co)), bgSlider("Position Y %", 0, 100, 1, bg.posY, value => setBg({ ...bg, posY: value }, co)), bgSlider("Opacity %", 0, 100, 1, Math.round(bg.opacity * 100), value => setBg({ ...bg, opacity: value / 100 }, co)));
+      controlsBox.append(bgSlider("Position X %", 0, 100, 1, bg.posX, value => setBg({ ...live(), posX: value }, co)), bgSlider("Position Y %", 0, 100, 1, bg.posY, value => setBg({ ...live(), posY: value }, co)), bgSlider("Opacity %", 0, 100, 1, Math.round(bg.opacity * 100), value => setBg({ ...live(), opacity: value / 100 }, co)));
+      // Flip: mirrors how the background is drawn (image or video alike) - the uploaded file is never changed. Saved in the Wall as flipX / flipY.
+      const flip = (label, key) => h("button", { class: "ed-btn", type: "button", "aria-pressed": String(bg[key] === true), text: label,
+        onclick: () => { const now = live(); setBg(now[key] === true ? (({ [key]: _off, ...rest }) => rest)(now) : { ...now, [key]: true }); } });
+      controlsBox.append(h("div", { class: "ed-btn-row", role: "group", "aria-label": "Flip background" }, flip("Flip horizontal", "flipX"), flip("Flip vertical", "flipY")));
       const overlayOn = !!bg.overlay;
       const toggle = h("input", { type: "checkbox" });
       toggle.checked = overlayOn;
-      toggle.addEventListener("change", () => setBg(toggle.checked ? { ...bg, overlay: { color: "#000000", opacity: 0.35 } } : { ...bg, overlay: undefined }));
+      toggle.addEventListener("change", () => setBg(toggle.checked ? { ...live(), overlay: { color: "#000000", opacity: 0.35 } } : { ...live(), overlay: undefined }));
       controlsBox.append(h("label", { class: "ed-field" }, h("span", { text: "Darken" }), h("div", { class: "ed-inline" }, toggle)));
-      if (overlayOn) controlsBox.append(bgColor("Overlay", bg.overlay.color, value => setBg({ ...bg, overlay: { ...bg.overlay, color: value } }, co)), bgSlider("Overlay %", 0, 100, 1, Math.round(bg.overlay.opacity * 100), value => setBg({ ...bg, overlay: { ...bg.overlay, opacity: value / 100 } }, co)));
+      if (overlayOn) controlsBox.append(bgColor("Overlay", bg.overlay.color, value => setBg({ ...live(), overlay: { ...live().overlay, color: value } }, co)), bgSlider("Overlay %", 0, 100, 1, Math.round(bg.overlay.opacity * 100), value => setBg({ ...live(), overlay: { ...live().overlay, opacity: value / 100 } }, co)));
     }    const note = $("bgNote");
     if (scope === "stage") note.textContent = session.stage?.background ? "This stage has its own background." : (doc().background ? "This stage uses the Whole Wall background. Choose one here to give this stage its own." : "No background yet.");
     else note.textContent = "The Whole Wall background runs continuously across all stages. A stage can have its own background instead.";

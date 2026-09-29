@@ -5,6 +5,8 @@
 //   image:    { kind, assetId, fit (cover | contain), posX, posY (0..100), opacity (0..1), overlay?: { color: #rrggbb, opacity: 0..1 } }
 //   video:    the SAME fields as image, naming one of the owner's MP4 (H.264) video assets. Background only: it always plays muted, looping and inline, with no controls,
 //             behind every element, and never takes a tap. The database checks that a video background names a video asset and every other asset reference an image.
+//   image / video, optional: flipX, flipY (booleans) - mirror the DRAWN background horizontally / vertically. Only how it is shown: the uploaded file is untouched.
+//             Absent (every background saved before) = not flipped.
 import { backgroundRegistry } from "../wall/backgrounds.js";
 import { isHex, isGradient, inRange, isSet, isPlainObject } from "../wall/fields.js";
 import { ASSET_ID } from "./image.js";
@@ -30,11 +32,14 @@ const mediaBackground = kind => ({
     if (!inRange(background.posX, 0, 100) || !inRange(background.posY, 0, 100)) errors.push("INVALID_POSITION");
     if (!inRange(background.opacity, 0, 1)) errors.push("INVALID_OPACITY");
     if (isSet(background.overlay) && !(isPlainObject(background.overlay) && isHex(background.overlay.color) && inRange(background.overlay.opacity, 0, 1))) errors.push("INVALID_OVERLAY");
+    if ((isSet(background.flipX) && typeof background.flipX !== "boolean") || (isSet(background.flipY) && typeof background.flipY !== "boolean")) errors.push("INVALID_FLIP");
     return errors;
   },
   render(background) {
     const content = { kind, assetId: background.assetId, fit: background.fit, posX: background.posX, posY: background.posY, opacity: background.opacity };
     if (isSet(background.overlay)) content.overlay = { color: background.overlay.color, opacity: background.overlay.opacity };
+    if (background.flipX === true) content.flipX = true;
+    if (background.flipY === true) content.flipY = true;
     return content;
   },
 });
