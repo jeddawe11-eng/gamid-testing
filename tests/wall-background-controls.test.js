@@ -111,6 +111,27 @@ test("B5 safe deletion: the Background panel knows exactly where an asset is use
   assert.match(text("dist/wall-editor/assets.js"), /if \(doc && assetsInUse\(doc\)\.has\(assetId\)\) return \{ ok: false, code: "WALL_ASSET_IN_USE"/, "the store refuses an in-use asset too");
 });
 
+test("B7 Remove background clears only the chosen scope's assignment, never the asset; the upload then becomes deletable", () => {
+  const doc = createDocument({ stageCount: 2 });
+  doc.background = createImageBackground(IMG, { flipY: true });
+  doc.stages[1].background = createVideoBackground(VID, { opacity: 0.4 });
+  const stage2 = doc.stages[1].id;
+  const noStage = ops.setBackground(doc, stage2, null).doc;
+  assert.equal(noStage.stages[1].background, undefined, "the stage override is gone - the stage falls back to the Whole Wall background");
+  assert.deepEqual(noStage.background, doc.background, "the Whole Wall background is untouched");
+  assert.equal(validateDocument(noStage).valid, true);
+  assert.deepEqual(ops.assetUsage(noStage, VID), [], "the video is no longer used anywhere -> its Delete is offered");
+  const [fallback] = paintDocument(JSON.parse(JSON.stringify(noStage)), 400, make, { assets, videos: createVideoPool() }).stages.slice(1);
+  assert.equal(media(fallback).tag, "img", "after Save -> Reload the stage paints the Whole Wall image");
+  const noWall = ops.setBackground(doc, "wall", null).doc;
+  assert.equal(noWall.background, undefined);
+  assert.deepEqual(noWall.stages[1].background, doc.stages[1].background, "the stage override is untouched");
+  assert.deepEqual(ops.assetUsage(noWall, IMG), []);
+  const tools = text("dist/wall-editor/tools.js");
+  assert.match(tools, /text: "Remove background",[\s\S]{0,200}onclick: \(\) => \{ pendingDelete = null; deleteStatus = ""; setBg\(null\); \}/, "Remove only clears the assignment (no assets.remove)");
+  assert.match(tools, /if \(!bg && \(assets\.images\.length \|\| assets\.videos\.length\)\)/, "with no background the uploads (and their Delete) stay reachable");
+});
+
 test("B6 the Background panel offers the SAME controls for image and video (Fit, Position X / Y, Opacity, Darken, Flip horizontal / vertical)", () => {
   const tools = text("dist/wall-editor/tools.js");
   const shared = tools.slice(tools.indexOf('if (bg?.kind === "image" || bg?.kind === "video") {'), tools.indexOf('const note = $("bgNote");'));

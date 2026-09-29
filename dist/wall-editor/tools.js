@@ -239,34 +239,50 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
     const co = { coalesce: `bg-${scope}` };
     // every control writes onto the background AS IT IS NOW (sliders do not rebuild this panel, so a value captured when it was built may be stale)
     const live = () => currentBackground() ?? bg;
-    if (bg?.kind === "color") controlsBox.append(bgColor("Colour", bg.color, value => setBg({ ...live(), color: value }, co)));
-    if (bg?.kind === "gradient") controlsBox.append(bgColor("From", bg.from, value => setBg({ ...live(), from: value }, co)), bgColor("To", bg.to, value => setBg({ ...live(), to: value }, co)), bgSlider("Angle", 0, 360, 1, bg.angle, value => setBg({ ...live(), angle: value }, co)));
-    if (bg?.kind === "image") {
+    // Remove background: clears THIS scope's assignment only (a stage then falls back to the Whole Wall background). The uploaded file is never touched here;
+    // once nothing uses it any more, its Delete appears in the background uploads below.
+    if (bg) controlsBox.append(h("div", { class: "ed-row ed-wrap" }, h("button", { class: "ed-btn", type: "button", text: "Remove background",
+      "aria-label": scope === "wall" ? "Remove the Whole Wall background" : "Remove this stage's own background", onclick: () => { pendingDelete = null; deleteStatus = ""; setBg(null); } })));
+    // the background uploads (Use + Delete); `onUse` assigns one, `selectedId` marks the current one
+    const imageGrid = (selectedId, onUse) => {
       const grid = h("div", { class: "ed-assets" });
       for (const asset of assets.images) {
         const thumb = h("div", { class: "thumb" });
         const url = assets.urlFor(asset.asset_id);
         if (url) thumb.append(h("img", { src: url, alt: "" })); else thumb.textContent = "…";
-        grid.append(h("div", { class: "ed-asset" }, thumb, h("button", { class: "ed-btn", type: "button", "aria-pressed": String(asset.asset_id === bg.assetId), text: asset.asset_id === bg.assetId ? "Selected" : "Use", onclick: () => setBg({ ...live(), assetId: asset.asset_id }) }),
+        grid.append(h("div", { class: "ed-asset" }, thumb, h("button", { class: "ed-btn", type: "button", "aria-pressed": String(asset.asset_id === selectedId), text: asset.asset_id === selectedId ? "Selected" : "Use", onclick: () => onUse(asset.asset_id) }),
           deleteControls(asset, "image")));
       }
-      controlsBox.append(grid);
-      if (deleteStatus) controlsBox.append(h("p", { class: "ed-hint", role: "status", text: deleteStatus }));
-    }
-    if (bg?.kind === "video") {
+      return grid;
+    };
+    const videoList = (selectedId, onUse) => {
       const list = h("div", { class: "ed-assets ed-videos" });
       assets.videos.forEach((asset, index) => {
         const thumb = h("div", { class: "thumb" });
         const url = assets.videoUrlFor(asset.asset_id);
         if (url) thumb.append(h("video", { src: url, muted: true, preload: "metadata", playsinline: true, "aria-hidden": "true" })); else thumb.textContent = "…";
-        const selected = asset.asset_id === bg.assetId;
+        const selected = asset.asset_id === selectedId;
         list.append(h("div", { class: "ed-asset" }, thumb,
           h("div", { class: "meta", text: `Video ${index + 1} · ${asset.width}×${asset.height} · ${Math.max(1, Math.round(asset.byte_size / (1024 * 1024)))} MB` }),
           h("div", { class: "row" },
-            h("button", { class: "ed-btn", type: "button", "aria-pressed": String(selected), text: selected ? "Selected" : "Use", onclick: () => setBg({ ...live(), assetId: asset.asset_id }) })),
+            h("button", { class: "ed-btn", type: "button", "aria-pressed": String(selected), text: selected ? "Selected" : "Use", onclick: () => onUse(asset.asset_id) })),
           deleteControls(asset, "video")));
       });
-      controlsBox.append(list, ...(deleteStatus ? [h("p", { class: "ed-hint", role: "status", text: deleteStatus })] : []),h("div", { class: "ed-row ed-wrap" }, h("button", { class: "ed-btn ed-primary", type: "button", text: "Upload MP4", onclick: pickVideo, disabled: /^(Checking|Uploading|Processing)/.test(videoStatus) })),
+      return list;
+    };
+    const deleteLine = () => (deleteStatus ? [h("p", { class: "ed-hint", role: "status", text: deleteStatus })] : []);
+    if (bg?.kind === "color") controlsBox.append(bgColor("Colour", bg.color, value => setBg({ ...live(), color: value }, co)));
+    if (bg?.kind === "gradient") controlsBox.append(bgColor("From", bg.from, value => setBg({ ...live(), from: value }, co)), bgColor("To", bg.to, value => setBg({ ...live(), to: value }, co)), bgSlider("Angle", 0, 360, 1, bg.angle, value => setBg({ ...live(), angle: value }, co)));
+    if (bg?.kind === "image") controlsBox.append(imageGrid(bg.assetId, assetId => setBg({ ...live(), assetId })), ...deleteLine());
+    // no background here: the uploads stay reachable (choosing Image / Video would assign one straight away, so an unused upload could never be deleted)
+    if (!bg && (assets.images.length || assets.videos.length)) {
+      controlsBox.append(h("p", { class: "ed-hint", text: "Your background uploads. Use one here, or delete one that nothing uses." }));
+      if (assets.images.length) controlsBox.append(h("h4", { class: "ed-sub", text: "Images" }), imageGrid(null, assetId => setBg(createImageBackground(assetId))));
+      if (assets.videos.length) controlsBox.append(h("h4", { class: "ed-sub", text: "Videos" }), videoList(null, assetId => setBg(createVideoBackground(assetId))));
+      controlsBox.append(...deleteLine());
+    }
+    if (bg?.kind === "video") {
+      controlsBox.append(videoList(bg.assetId, assetId => setBg({ ...live(), assetId })), ...deleteLine(), h("div", { class: "ed-row ed-wrap" }, h("button", { class: "ed-btn ed-primary", type: "button", text: "Upload MP4", onclick: pickVideo, disabled: /^(Checking|Uploading|Processing)/.test(videoStatus) })),
         h("p", { id: "bgVideoStatus", class: "ed-hint", role: "status", text: videoStatus }),
         h("p", { class: "ed-hint", text: "MP4, up to 50 MB. H.264 is used as it is; an H.265 (HEVC) video is converted for every browser at the same resolution. It plays muted and looping behind everything, with no controls." }));
     } else if (videoStatus && kind !== "video") controlsBox.append(h("p", { id: "bgVideoStatus", class: "ed-hint", role: "status", text: videoStatus }));
