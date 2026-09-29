@@ -78,6 +78,7 @@ export function createAssetStore({ api, userId, onChange = () => {}, decode = de
       if (!metaCheck.ok) return metaCheck;
       try {
         const asset = await api.uploadWallVideo(file, currentUserId, { onProgress });
+        if (asset?.job) return { ok: true, job: asset.job };   // HEVC: converted on the server; see watchVideoJob
         if (!asset) return { ok: false, message: describeAssetError(null) };
         assets = [asset, ...assets.filter(existing => existing.asset_id !== asset.asset_id)];
         ensureVideoUrl(asset.asset_id);
@@ -131,6 +132,23 @@ export function createAssetStore({ api, userId, onChange = () => {}, decode = de
         return { ok: false, code: error?.code, message: describeAssetError(error) };
       }
     },
+    // Follows one server-side conversion until it is READY (the H.264 copy exists and is registered) or FAILED. -> Promise<{ state, asset?, failureCode? }>
+    async watchVideoJob(jobId, { intervalMs = 4000, timeoutMs = 45 * 60 * 1000, wait = ms => new Promise(resolve => setTimeout(resolve, ms)), onState = () => {} } = {}) {
+      const started = now();
+      for (;;) {
+        let job = null;
+        try { job = (await api.getMyWallVideoJobs()).find(row => row.job_id === jobId) ?? null; } catch { job = null; }
+        if (job) onState(job.state);
+        if (job?.state === "ready" && job.asset_id) {
+          await this.refresh();
+          return { state: "ready", asset: byId(job.asset_id) ?? { asset_id: job.asset_id } };
+        }
+        if (job?.state === "failed") return { state: "failed", failureCode: job.failure_code };
+        if (now() - started > timeoutMs) return { state: "failed", failureCode: "WATCH_TIMED_OUT" };
+        await wait(intervalMs);
+      }
+    },
+    async pendingVideoJobs() { try { return (await api.getMyWallVideoJobs?.() ?? []).filter(job => job.state === "pending" || job.state === "processing"); } catch { return []; } },
     dimensionsOf(assetId) { const asset = byId(assetId); return asset ? { width: asset.width, height: asset.height } : null; },
     dispose() { for (const url of urls.values()) URL.revokeObjectURL(url); urls.clear(); },
   };

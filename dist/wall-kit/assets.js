@@ -48,6 +48,14 @@ export function checkVideoMetadata({ width, height, duration } = {}) {
   return { ok: true };
 }
 
+// Why a server-side conversion (HEVC -> H.264) did not finish, in words. Nothing is attached to the Wall when it fails.
+export function describeVideoJobFailure(code) {
+  if (code === "SOURCE_HDR_UNSUPPORTED") return "That video is HDR, which cannot be converted for every browser yet. Try an SDR version.";
+  if (code === "SOURCE_TOO_LONG") return "That video is too long to convert (up to about 2 minutes of 4K). Try a shorter clip.";
+  if (code === "WALL_VIDEO_LIMIT" || code === "WALL_ASSET_LIMIT") return "You have reached the video limit. Delete a video you no longer use, then try again.";
+  return "That video could not be converted. Nothing on your Wall changed - try again, or choose another MP4.";
+}
+
 // A starting element size (canonical units) for a picture of the given pixel size: as large as 640 wide / 900 tall while keeping its proportions.
 export function startingImageSize(width, height) {
   const ratio = width / height;
@@ -76,6 +84,7 @@ export const ASSET_ERROR_MESSAGES = {
   UNSUPPORTED_VIDEO_TYPE: "That file is not an MP4 video, so it was not added.",
   INVALID_VIDEO: "That video could not be read (damaged, incomplete or without a picture track). Try another MP4.",
   VIDEO_CODEC_UNSUPPORTED: "That MP4 is not H.264, which every browser can play. Export it as H.264 (MP4) and try again.",
+  VIDEO_TOO_LONG_TO_CONVERT: "That video is too long to convert (up to about 2 minutes of 4K). Try a shorter clip.",
   WALL_VIDEO_LIMIT: "You can keep up to 10 background videos. Delete one you no longer use first.",
   WALL_VIDEO_UPLOAD_FAILED: "The video upload did not finish. Check your connection and try again.",
   GIF_TOO_COMPLEX: "That GIF is too heavy to animate smoothly on phones (at most 500 frames, and fewer for large GIFs). Try a shorter or smaller GIF.",

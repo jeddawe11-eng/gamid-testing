@@ -292,6 +292,8 @@ async function registerWallUpload(path, unreachable) {
   }
   let payload = null;
   try { payload = await response.json(); } catch { payload = null; }
+  // an HEVC video is accepted for server-side conversion: the answer is a queued job (202), not yet an asset - nothing may be attached until it is READY
+  if (response.ok && payload?.job?.job_id) return { job: payload.job };
   if (!response.ok || !payload?.asset) {
     // the function already deleted a file it refused; this removes one it never got to see
     try { await request(`/storage/v1/object/${bucket}/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* private orphan, owner-only */ }
@@ -306,7 +308,8 @@ async function registerWallUpload(path, unreachable) {
 // - the video is never loaded into memory as a whole, and no address is ever saved in the Wall.
 export const WALL_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
 export const WALL_VIDEO_URL_SECONDS = 6 * 60 * 60;
-const wallBucketFor = path => (/\.mp4$/.test(String(path)) ? "wall-video" : "wall-media");
+// converted videos (<user>/<job>.h264.mp4) live in the private wall-video-derived bucket, written only by the worker
+const wallBucketFor = path => (/\.h264\.mp4$/.test(String(path)) ? "wall-video-derived" : /\.mp4$/.test(String(path)) ? "wall-video" : "wall-media");
 
 export async function uploadWallVideo(file, userId, { onProgress } = {}) {
   if (file?.type !== "video/mp4") throw new ApiError("Choose an MP4 video.", 400, "INVALID_FILE_TYPE");
@@ -322,13 +325,19 @@ export async function uploadWallVideo(file, userId, { onProgress } = {}) {
   return registerWallUpload(path, "The video service could not be reached.");
 }
 
+// The owner's own recent background-video conversions (state + failure code only).
+export async function getMyWallVideoJobs() {
+  return (await rpc("get_my_wall_video_jobs")) || [];
+}
+
 // -> an https: address the browser can stream (range requests) for WALL_VIDEO_URL_SECONDS; only the owner's own object can be signed (storage RLS)
 export async function signWallVideo(path) {
   if (!/\.mp4$/.test(String(path))) return null;
   await restoreSession();
-  const signed = await request(`/storage/v1/object/sign/wall-video/${encodeStoragePath(path)}`, { method: "POST", token: session?.access_token, body: { expiresIn: WALL_VIDEO_URL_SECONDS } });
+  const bucket = wallBucketFor(path);
+  const signed = await request(`/storage/v1/object/sign/${bucket}/${encodeStoragePath(path)}`, { method: "POST", token: session?.access_token, body: { expiresIn: WALL_VIDEO_URL_SECONDS } });
   const relative = signed?.signedURL ?? signed?.signedUrl;
-  if (typeof relative !== "string" || !relative.startsWith("/object/sign/wall-video/")) return null;
+  if (typeof relative !== "string" || !relative.startsWith(`/object/sign/${bucket}/`)) return null;
   return `${SUPABASE_URL}/storage/v1${relative}`;
 }
 

@@ -191,7 +191,8 @@ test("V1 the server recognises a real H.264 MP4 from its boxes (moov first or la
   }
 });
 test("V1 anything that is not a browser-safe H.264 MP4 is refused with a typed reason", async () => {
-  const cases = { "mpeg4-part2.mp4": "VIDEO_CODEC_UNSUPPORTED", "hevc.mp4": "VIDEO_CODEC_UNSUPPORTED", "audio-only.mp4": "INVALID_VIDEO", "quicktime.mov": "UNSUPPORTED_VIDEO_TYPE" };
+  // (HEVC is recognised as a CONVERSION candidate since the transcoding pass - tests/wall-video-transcode.test.js; the Edge Function refuses it unless conversion is on)
+  const cases = { "mpeg4-part2.mp4": "VIDEO_CODEC_UNSUPPORTED", "audio-only.mp4": "INVALID_VIDEO", "quicktime.mov": "UNSUPPORTED_VIDEO_TYPE" };
   for (const [name, code] of Object.entries(cases)) {
     const bytes = read(`tests/fixtures/mp4/${name}`);
     assert.equal((await inspectMp4(rangeReader(bytes).read, bytes.length)).code, code, name);
@@ -312,7 +313,7 @@ test("V3 upload rules: MP4 only, at most 50 MB and 4096 px; videos stream (never
   assert.match(tools, /for \(const asset of assets\.images\)/, "Assets and image backgrounds list pictures only");
   const client = text("dist/account/supabase-client.js");
   assert.match(client, /bucketName: "wall-video"/, "resumable upload into the private wall-video bucket");
-  assert.match(client, /relative\.startsWith\("\/object\/sign\/wall-video\/"\)/, "only a signed address of the owner's own wall-video object is used");
+  assert.match(client, /relative\.startsWith\(`\/object\/sign\/\$\{bucket\}\/`\)/, "only a signed address of the owner's own wall-video object is used");
 });
 
 test("V4 the database mirror: video background kind, wall-video bucket + RLS, MP4 registry limits, and kind-checked saves", () => {

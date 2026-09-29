@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { processOneWallVideoJob, transcodeWallBackground } from "./wall-video.mjs";
 
 const run = promisify(execFile);
 const MAX_SOURCE_BYTES = 150 * 1024 * 1024;   // 150 MiB = 157,286,400 bytes; duration (30 s), D3 settings and the derivative ceiling are unchanged
@@ -64,7 +65,13 @@ async function cleanupEligible() {
 
 export async function processOneRemoteJob() {
   const rows = await api("/rest/v1/rpc/worker_claim_intro_job", { body:{} }); const job = rows?.[0];
-  if (!job) { await cleanupEligible(); return { processed:false }; }
+  if (!job) {
+    await cleanupEligible();
+    // no Intro waiting: the same Job execution serves one queued Wall background video (HEVC -> H.264, see wall-video.mjs)
+    const { url,key } = environment();
+    const wall = await processOneWallVideoJob({ url, headers:contentType => backendRequestHeaders(key, contentType ? "" : undefined, contentType) });
+    return wall.processed ? { processed:true, kind:"wall-video", ...wall } : { processed:false };
+  }
   const dir = await mkdtemp(join(tmpdir(),"gamid-intro-")); const input=join(dir,"source"); const output=join(dir,"intro-d3.webm");
   try {
     const source = await api(`/storage/v1/object/authenticated/intro-sources/${storagePath(job.source_path)}`, { method:"GET", contentType:null,raw:true });
@@ -84,5 +91,8 @@ const [command,input,output] = process.argv.slice(2);
 if (command === "encode") {
   if (!input || !output) throw new Error("Usage: node worker/intro-worker.mjs encode INPUT OUTPUT");
   console.log(JSON.stringify(await encodeD3(input,output),null,2));
+} else if (command === "transcode-wall") {
+  if (!input || !output) throw new Error("Usage: node worker/intro-worker.mjs transcode-wall INPUT OUTPUT");
+  console.log(JSON.stringify(await transcodeWallBackground(input,output),null,2));
 } else if (command === "once") console.log(JSON.stringify(await processOneRemoteJob()));
 else if (import.meta.url === `file://${process.argv[1]}`) throw new Error("Use encode or once");

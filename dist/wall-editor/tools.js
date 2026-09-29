@@ -8,7 +8,7 @@ import { createImagePayload } from "../wall-kit/image.js";
 import { defaultBackground, createImageBackground, createVideoBackground } from "../wall-kit/background.js";
 import { GAMID_BLOCKS, GAMID_BLOCK_INFO, createGamidPayload } from "../wall-kit/gamid.js";
 import { DATA_FIELD_INFO, DATA_ITEMS, DATA_TEXT_FIELDS, createGamidDataPayload, dataTextStyle } from "../wall-kit/gamid-data.js";
-import { startingImageSize } from "../wall-kit/assets.js";
+import { startingImageSize, describeVideoJobFailure } from "../wall-kit/assets.js";
 import { PROVIDERS, detectEmbed, buildEmbedPayload, defaultEmbedSize, humanReason, PRESENTATION_LABELS } from "../wall-kit/embed/engine.js";
 import { mediaCapabilities } from "../wall-kit/embed/index.js";
 import { fitFrame } from "../wall-kit/embed/player.js";
@@ -166,12 +166,32 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
     const file = videoInput.files?.[0];
     videoInput.value = "";
     if (!file) return;
+    // the scope the owner chose when they picked the file: a converted video lands exactly there, even if they switched stage meanwhile
+    const target = scopeId();
     videoStatus = "Checking the video…";
     renderBackground(true);
-    const result = await assets.uploadVideo(file, { onProgress: (done, total) => { videoStatus = `Uploading… ${Math.round((done / total) * 100)}%`; const line = $("bgVideoStatus"); if (line) line.textContent = videoStatus; } });
-    videoStatus = result.ok ? "Video added." : result.message;
-    if (result.ok) setBg(createVideoBackground(result.asset.asset_id)); else { notify(result.message); renderBackground(true); }
+    const result = await assets.uploadVideo(file, { onProgress: (done, total) => showVideoStatus(`Uploading… ${Math.round((done / total) * 100)}%`) });
+    if (!result.ok) { videoStatus = result.message; notify(result.message); renderBackground(true); return; }
+    if (result.asset) { videoStatus = "Video added."; setBg(createVideoBackground(result.asset.asset_id)); return; }
+    // HEVC / H.265: converted to H.264 on the server at the SAME resolution. Nothing is attached until it is READY; a failure changes nothing on the Wall.
+    await followConversion(result.job.job_id, target, { attach: true });
   });
+  const showVideoStatus = text => { videoStatus = text; const line = $("bgVideoStatus"); if (line) line.textContent = text; else renderBackground(true); };
+  async function followConversion(jobId, target, { attach }) {
+    showVideoStatus("Processing video… Converting it for every browser at its full resolution. This can take a few minutes; you can keep editing.");
+    const done = await assets.watchVideoJob(jobId);
+    if (done.state === "ready") {
+      videoStatus = "Ready - your video is converted.";
+      if (attach) run(ops.setBackground(doc(), target, createVideoBackground(done.asset.asset_id)));
+      else { notify("Your converted background video is ready. Choose it under Background > Video."); renderBackground(true); }
+      return;
+    }
+    videoStatus = describeVideoJobFailure(done.failureCode);
+    notify(videoStatus);
+    renderBackground(true);
+  }
+  // a conversion still running from an earlier visit: show its progress and say when it is ready (it is not attached to anything by itself)
+  setTimeout(async () => { for (const job of await assets.pendingVideoJobs?.() ?? []) followConversion(job.job_id, null, { attach: false }); }, 1500);
   const pickVideo = () => { videoStatus = ""; videoInput.click(); };
 
   function renderBackground(force = false) {
@@ -219,9 +239,9 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
             h("button", { class: "ed-btn", type: "button", "aria-pressed": String(selected), text: selected ? "Selected" : "Use", onclick: () => setBg({ ...bg, assetId: asset.asset_id }) }),
             selected ? null : h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete", onclick: async () => { const result = await assets.remove(asset.asset_id, doc()); videoStatus = result.ok ? "Video deleted." : result.message; renderBackground(true); } }))));
       });
-      controlsBox.append(list, h("div", { class: "ed-row ed-wrap" }, h("button", { class: "ed-btn ed-primary", type: "button", text: "Upload MP4", onclick: pickVideo })),
+      controlsBox.append(list, h("div", { class: "ed-row ed-wrap" }, h("button", { class: "ed-btn ed-primary", type: "button", text: "Upload MP4", onclick: pickVideo, disabled: /^(Checking|Uploading|Processing)/.test(videoStatus) })),
         h("p", { id: "bgVideoStatus", class: "ed-hint", role: "status", text: videoStatus }),
-        h("p", { class: "ed-hint", text: "MP4 (H.264), up to 50 MB. It plays muted and looping behind everything, with no controls." }));
+        h("p", { class: "ed-hint", text: "MP4, up to 50 MB. H.264 is used as it is; an H.265 (HEVC) video is converted for every browser at the same resolution. It plays muted and looping behind everything, with no controls." }));
     } else if (videoStatus && kind !== "video") controlsBox.append(h("p", { id: "bgVideoStatus", class: "ed-hint", role: "status", text: videoStatus }));
     if (bg?.kind === "image" || bg?.kind === "video") {
       controlsBox.append(h("label", { class: "ed-field" }, h("span", { text: "Fit" }), h("div", { class: "ed-inline" }, (() => {

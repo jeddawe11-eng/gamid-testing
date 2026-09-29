@@ -367,6 +367,66 @@ begin
   res := res || jsonb_build_object('step', 'at most 10 background videos per owner', 'pass', out like 'ERR:54000:WALL_VIDEO_LIMIT%', 'got', out);
   delete from public.wall_assets where entity_id = ent_a;
 
+  -- ===== HEVC -> H.264 conversion queue (the worker boundary; every call below is what the Edge Function / worker make with the service role) =====
+  insert into storage.objects (bucket_id, name, owner_id, metadata) values ('wall-video', ua::text || '/88888888-8888-4888-8888-888888888888.mp4', ua::text, '{"size": 31235249}');
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(j)::text from public.create_wall_video_job(%L::uuid, %L, 31235249, ''hvc1'', 3840, 2160, 966) j', ua, ua::text || '/88888888-8888-4888-8888-888888888888.mp4'));
+  res := res || jsonb_build_object('step', 'a browser session cannot queue a conversion itself', 'pass', out like 'ERR:%', 'got', out);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(j)::text from public.create_wall_video_job(%L::uuid, %L, 31235249, ''hvc1'', 3840, 2160, 966) j', ua, ua::text || '/88888888-8888-4888-8888-888888888888.mp4'));
+  res := res || jsonb_build_object('step', 'the Edge Function queues an inspected HEVC source as pending', 'pass', out not like 'ERR:%' and (out::jsonb ->> 'state') = 'pending', 'got', left(out, 160));
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(j)::text from public.create_wall_video_job(%L::uuid, %L, 31235249, ''hvc1'', 3840, 2160, 966) j', ua, ub::text || '/88888888-8888-4888-8888-888888888888.mp4'));
+  res := res || jsonb_build_object('step', 'a job can only name a source in the owner''s own folder', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_PATH%', 'got', out);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(j)::text from public.create_wall_video_job(%L::uuid, %L, 31235249, ''vp09'', 3840, 2160, 966) j', ua, ua::text || '/88888888-8888-4888-8888-888888888888.mp4'));
+  res := res || jsonb_build_object('step', 'only HEVC is queued', 'pass', out like 'ERR:22023:VIDEO_CODEC_UNSUPPORTED%', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', 'select count(*)::text from public.get_my_wall_video_jobs() where state = ''pending'' and source_width = 3840 and source_height = 2160');
+  res := res || jsonb_build_object('step', 'the owner sees the job (state and size only)', 'pass', out = '1', 'got', out);
+  out := pg_temp.w2_run(ub, 'authenticated', 'select coalesce((select count(*)::text from public.get_my_wall_video_jobs()), ''0'')');
+  res := res || jsonb_build_object('step', 'another user does not see it', 'pass', out = '0' or out like 'ERR:%', 'got', out);
+  out := pg_temp.w2_run(null, 'anon', 'select count(*)::text from public.get_my_wall_video_jobs()');
+  res := res || jsonb_build_object('step', 'anon cannot read conversion jobs', 'pass', out like 'ERR:%', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', 'select to_jsonb(j)::text from public.worker_claim_wall_video_job() j');
+  res := res || jsonb_build_object('step', 'a browser session cannot claim worker jobs', 'pass', out like 'ERR:%', 'got', out);
+  out := pg_temp.w2_run(null, 'service_role', 'select to_jsonb(j)::text from public.worker_claim_wall_video_job() j');
+  j := out::jsonb;
+  res := res || jsonb_build_object('step', 'the worker claims it; the derivative path is assigned by the database in the owner''s folder', 'pass', out not like 'ERR:%' and (j ->> 'derivative_path') = ua::text || '/' || (j ->> 'job_id') || '.h264.mp4' and (j ->> 'source_width')::int = 3840, 'got', left(out, 220));
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.worker_complete_wall_video_job(%L::uuid, %L, 55494483, 3840, 2160) a', j ->> 'job_id', j ->> 'derivative_path'));
+  res := res || jsonb_build_object('step', 'completion without the derivative in storage is refused', 'pass', out like 'ERR:P0002:WALL_VIDEO_DERIVATIVE_NOT_FOUND%', 'got', out);
+  insert into storage.objects (bucket_id, name, owner_id, metadata) values ('wall-video-derived', j ->> 'derivative_path', null, '{"size": 55494483}');
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.worker_complete_wall_video_job(%L::uuid, %L, 55494483, 1920, 1080) a', j ->> 'job_id', j ->> 'derivative_path'));
+  res := res || jsonb_build_object('step', 'a derivative of a DIFFERENT resolution (1920x1080 for a 3840x2160 source) is refused by the database', 'pass', out like 'ERR:22023:WALL_VIDEO_RESOLUTION_CHANGED%', 'got', out);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.worker_complete_wall_video_job(%L::uuid, %L, 55494483, 3840, 2160) a', j ->> 'job_id', ua::text || '/elsewhere.h264.mp4'));
+  res := res || jsonb_build_object('step', 'only the assigned derivative path completes a job', 'pass', out like 'ERR:22023:INVALID_WALL_VIDEO_DERIVATIVE_PATH%', 'got', out);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.worker_complete_wall_video_job(%L::uuid, %L, 55494483, 3840, 2160) a', j ->> 'job_id', j ->> 'derivative_path'));
+  res := res || jsonb_build_object('step', 'a same-resolution H.264 derivative (55 MB, larger than the 50 MB source limit) completes the job', 'pass', out not like 'ERR:%', 'got', left(out, 160));
+  select count(*) into cnt from public.wall_assets a where a.entity_id = ent_a and a.storage_path = j ->> 'derivative_path' and a.mime_type = 'video/mp4' and a.width = 3840 and a.height = 2160 and a.byte_size = 55494483;
+  res := res || jsonb_build_object('step', 'the durable asset is the derivative, registered at the SOURCE resolution', 'pass', cnt = 1);
+  out := pg_temp.w2_run(ua, 'authenticated', format('select count(*)::text from public.get_my_wall_video_jobs() where state = ''ready'' and asset_id is not null and job_id = %L::uuid', j ->> 'job_id'));
+  res := res || jsonb_build_object('step', 'the owner sees READY with the new asset', 'pass', out = '1', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', 'select count(*)::text from storage.objects where bucket_id = ''wall-video-derived''');
+  res := res || jsonb_build_object('step', 'the owner can read their derived video (folder policy, so it can be signed for streaming)', 'pass', out = '1', 'got', out);
+  out := pg_temp.w2_run(ub, 'authenticated', 'select count(*)::text from storage.objects where bucket_id = ''wall-video-derived''');
+  res := res || jsonb_build_object('step', 'another user cannot', 'pass', out = '0', 'got', out);
+  select public = false and file_size_limit = 209715200 and allowed_mime_types = array['video/mp4'] into flag from storage.buckets where id = 'wall-video-derived';
+  res := res || jsonb_build_object('step', 'the derived bucket is private, 200 MiB, video/mp4 only, and has no client insert policy', 'pass', coalesce(flag, false)
+    and not exists (select 1 from pg_policies p where p.schemaname = 'storage' and p.tablename = 'objects' and p.cmd = 'INSERT' and p.qual is null and p.with_check like '%wall-video-derived%'));
+  out := pg_temp.w2_run(null, 'service_role', 'select coalesce(jsonb_agg(to_jsonb(c)), ''[]'')::text from public.worker_wall_video_cleanup_candidates(20) c');
+  res := res || jsonb_build_object('step', 'after success only the HEVC SOURCE is a cleanup candidate - never the durable derivative', 'pass', out not like 'ERR:%' and jsonb_array_length(out::jsonb) = 1 and (out::jsonb -> 0 ->> 'source_path') = ua::text || '/88888888-8888-4888-8888-888888888888.mp4' and (out::jsonb -> 0 ->> 'derivative_path') is null, 'got', left(out, 220));
+  out := pg_temp.w2_run(null, 'service_role', format('select public.worker_confirm_wall_video_cleanup(%L::uuid, true, true)::text', j ->> 'job_id'));
+  out := pg_temp.w2_run(null, 'service_role', 'select jsonb_array_length(coalesce(jsonb_agg(to_jsonb(c)), ''[]''))::text from public.worker_wall_video_cleanup_candidates(20) c');
+  res := res || jsonb_build_object('step', 'once confirmed, nothing is left to clean up', 'pass', out = '0', 'got', out);
+  -- a failed conversion: nothing registered; the source and the partial derivative are both cleaned up
+  insert into storage.objects (bucket_id, name, owner_id, metadata) values ('wall-video', ua::text || '/99999999-9999-4999-8999-999999999999.mp4', ua::text, '{"size": 1000}');
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(j)::text from public.create_wall_video_job(%L::uuid, %L, 1000, ''hev1'', 1280, 720, 30) j', ua, ua::text || '/99999999-9999-4999-8999-999999999999.mp4'));
+  out := pg_temp.w2_run(null, 'service_role', 'select to_jsonb(j)::text from public.worker_claim_wall_video_job() j');
+  j := out::jsonb;
+  out := pg_temp.w2_run(null, 'service_role', format('select public.worker_fail_wall_video_job(%L::uuid, ''derivative_resolution_changed'')::text', j ->> 'job_id'));
+  out := pg_temp.w2_run(ua, 'authenticated', format('select failure_code from public.get_my_wall_video_jobs() where job_id = %L::uuid', j ->> 'job_id'));
+  res := res || jsonb_build_object('step', 'a failed job reports a typed failure to its owner', 'pass', out = 'DERIVATIVE_RESOLUTION_CHANGED', 'got', out);
+  select count(*) into cnt from public.wall_assets a where a.storage_path = j ->> 'derivative_path';
+  res := res || jsonb_build_object('step', 'a failed job registers nothing', 'pass', cnt = 0);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(c)::text from public.worker_wall_video_cleanup_candidates(20) c where c.job_id = %L::uuid', j ->> 'job_id'));
+  res := res || jsonb_build_object('step', 'a failed job''s source and partial derivative are both cleanup candidates', 'pass', (out::jsonb ->> 'source_path') is not null and (out::jsonb ->> 'derivative_path') = j ->> 'derivative_path', 'got', left(out, 220));
+  delete from public.wall_video_jobs where entity_id = ent_a;
+  delete from public.wall_assets where entity_id = ent_a;
   -- the assets the corpus documents use (fixed ids), owned by the first user, so valid corpus documents can be persisted: one picture and one video
   insert into public.wall_assets (asset_id, entity_id, storage_path, mime_type, byte_size, width, height)
   values ('3f2b8c1e-5a4d-4e7b-9c60-1d2e3f4a5b6c', ent_a, ua::text || '/3f2b8c1e-5a4d-4e7b-9c60-1d2e3f4a5b6c.png', 'image/png', 1000, 100, 100),

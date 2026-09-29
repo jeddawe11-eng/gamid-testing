@@ -14,14 +14,18 @@
 // Background VIDEOS (MP4) are uploaded (resumably) into the separate private `wall-video` bucket as <user id>/<uuid>.mp4. For them the function never downloads the
 // file: it reads only box HEADERS and the `moov` box with range requests, and requires a real ISO-BMFF MP4 (an `ftyp` first, an ISO / MP4 brand), a video track whose
 // sample entry is H.264 (avc1 / avc3 - the codec every browser plays), a real picture size of at most 4096 px a side and at most 50 MiB. Anything else is deleted.
+// HEVC / H.265 (hvc1 / hev1): when WALL_VIDEO_TRANSCODE_ENABLED is "true" (set only once the worker image that transcodes is deployed), a valid HEVC MP4 within the
+// same limits and the transcoding budget is QUEUED (public.create_wall_video_job) instead: the worker makes a same-resolution H.264 derivative, which becomes the
+// asset, and deletes the source. With the switch off, HEVC is refused exactly as before. H.264 always takes the direct path - never transcoded.
 
 export const WALL_ASSET_ORIGINS = Object.freeze(["https://jeddawe11-eng.github.io", "https://gamid-testing-static.gamid.workers.dev"]);
 export const WALL_ASSET_LIMITS = Object.freeze({ maxBytes: 5 * 1024 * 1024, maxDimension: 8192, gifMaxFrames: 500, gifMaxFramePixels: 50_000_000 });
 export const EXTENSION_TYPES = Object.freeze({ jpg: "image/jpeg", png: "image/png", webp: "image/webp", avif: "image/avif", gif: "image/gif", mp4: "video/mp4" });
-export const WALL_VIDEO_LIMITS = Object.freeze({ maxBytes: 50 * 1024 * 1024, maxDimension: 4096, maxMoovBytes: 8 * 1024 * 1024, maxTopLevelBoxes: 256 });
+export const WALL_VIDEO_LIMITS = Object.freeze({ maxBytes: 50 * 1024 * 1024, maxDimension: 4096, maxMoovBytes: 8 * 1024 * 1024, maxTopLevelBoxes: 256, maxTranscodePixelFrames: 3840 * 2160 * 30 * 120 });
+export const HEVC_CODECS = Object.freeze(["hvc1", "hev1"]);
 
 export function readWallAssetEnv(get) {
-  return { supabaseUrl: get("SUPABASE_URL"), anonKey: get("SUPABASE_ANON_KEY"), serviceKey: get("SUPABASE_SERVICE_ROLE_KEY") };
+  return { supabaseUrl: get("SUPABASE_URL"), anonKey: get("SUPABASE_ANON_KEY"), serviceKey: get("SUPABASE_SERVICE_ROLE_KEY"), transcodeEnabled: get("WALL_VIDEO_TRANSCODE_ENABLED") === "true" };
 }
 
 // ---- format recognition (pure) ----------------------------------------------------------------------------------------------------------------------
@@ -165,7 +169,8 @@ export function parseMoov(b) {
     if (!stsd || stsd.end - stsd.start < 16 + 36) return { ok: false, code: "INVALID_VIDEO" };
     const entry = stsd.start + 8;                     // version/flags (4) + entry count (4)
     const codec = ascii(b, entry + 4, 4);
-    if (codec !== "avc1" && codec !== "avc3") { unsupported = codec; continue; }
+    const hevc = HEVC_CODECS.includes(codec);
+    if (codec !== "avc1" && codec !== "avc3" && !hevc) { unsupported = codec; continue; }
     // the sample entry's coded size: after size+type (8), reserved (6) + data ref (2), pre-defined / reserved (16)
     let width = u16be(b, entry + 32), height = u16be(b, entry + 34);
     const tkhd = child(b, trak, "tkhd");
@@ -173,7 +178,10 @@ export function parseMoov(b) {
       const at = b[tkhd.start] === 1 ? tkhd.start + 88 : tkhd.start + 76;   // display size (16.16 fixed point) at the end of the track header
       if (at + 8 <= tkhd.end) { const w = Math.round(u32be(b, at) / 65536), h = Math.round(u32be(b, at + 4) / 65536); if (w > 0 && h > 0) { width = w; height = h; } }
     }
-    return { ok: true, mime: "video/mp4", width, height, codec, frames: null };
+    // the number of pictures (stsz sample count): the transcoding budget for an HEVC source
+    const stsz = child(b, stbl, "stsz");
+    const samples = stsz && stsz.end - stsz.start >= 12 ? u32be(b, stsz.start + 8) : null;
+    return { ok: true, mime: "video/mp4", width, height, codec, frames: null, samples, transcode: hevc };
   }
   return { ok: false, code: unsupported ? "VIDEO_CODEC_UNSUPPORTED" : "INVALID_VIDEO" };
 }
@@ -213,11 +221,16 @@ export async function inspectMp4(read, total) {
   return video;
 }
 
-export function videoProblem(video, byteLength) {
+export function videoProblem(video, byteLength, { transcodeEnabled = false } = {}) {
   if (!Number.isSafeInteger(byteLength) || byteLength < 1 || byteLength > WALL_VIDEO_LIMITS.maxBytes) return "VIDEO_TOO_LARGE";
   if (!video.ok) return video.code;
   const side = value => Number.isInteger(value) && value >= 1 && value <= WALL_VIDEO_LIMITS.maxDimension;
   if (!side(video.width) || !side(video.height)) return "INVALID_WALL_ASSET_SIZE";
+  if (video.transcode) {
+    if (!transcodeEnabled) return "VIDEO_CODEC_UNSUPPORTED";
+    if (!(video.samples > 0)) return "INVALID_VIDEO";
+    if (video.width * video.height * video.samples > WALL_VIDEO_LIMITS.maxTranscodePixelFrames) return "VIDEO_TOO_LONG_TO_CONVERT";
+  }
   return null;
 }
 
@@ -225,7 +238,7 @@ export function videoProblem(video, byteLength) {
 const PATH = /^([0-9a-f-]{36})\/[0-9a-f-]{36}\.(jpg|png|webp|avif|gif|mp4)$/;
 const json = (body, status, extra = {}) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...extra } });
 const corsFor = origin => (WALL_ASSET_ORIGINS.includes(origin) ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : { Vary: "Origin" });
-const DB_ERRORS = { WALL_VIDEO_LIMIT: 409, VIDEO_TOO_LARGE: 400, WALL_ASSET_LIMIT: 409, IDENTITY_NOT_FOUND: 409, WALL_ASSET_UPLOAD_NOT_FOUND: 404, INVALID_WALL_ASSET_PATH: 400, INVALID_WALL_ASSET_TYPE: 400, WALL_ASSET_TOO_LARGE: 400, INVALID_WALL_ASSET_SIZE: 400, GIF_TOO_COMPLEX: 400 };
+const DB_ERRORS = { VIDEO_CODEC_UNSUPPORTED: 400, WALL_VIDEO_LIMIT: 409, VIDEO_TOO_LARGE: 400, WALL_ASSET_LIMIT: 409, IDENTITY_NOT_FOUND: 409, WALL_ASSET_UPLOAD_NOT_FOUND: 404, INVALID_WALL_ASSET_PATH: 400, INVALID_WALL_ASSET_TYPE: 400, WALL_ASSET_TOO_LARGE: 400, INVALID_WALL_ASSET_SIZE: 400, GIF_TOO_COMPLEX: 400 };
 
 export async function handleWallAssetRegister({ request, env, fetchImpl = fetch, log = () => {} }) {
   const origin = request.headers.get("origin");
@@ -279,8 +292,27 @@ export async function handleWallAssetRegister({ request, env, fetchImpl = fetch,
       byteLength = total;
       if (!Number.isSafeInteger(byteLength) || byteLength > WALL_VIDEO_LIMITS.maxBytes) image = { ok: false, code: "VIDEO_TOO_LARGE" };
       else image = await inspectMp4(read, byteLength).catch(() => ({ ok: false, code: "INVALID_VIDEO" }));
-      const problem = videoProblem(image, byteLength);
+      const problem = videoProblem(image, byteLength, { transcodeEnabled: env.transcodeEnabled === true });
       if (problem) { await discard(); log("wall-asset", `rejected_${problem}`); return json({ error: problem }, 400, cors); }
+      if (image.transcode) {
+        // 5v. HEVC: queue the server-side conversion; the source stays private until the worker has made (and the database has accepted) the H.264 copy
+        const queued = await fetchImpl(`${base}/rest/v1/rpc/create_wall_video_job`, {
+          method: "POST",
+          headers: { ...service, "Content-Type": "application/json" },
+          body: JSON.stringify({ candidate_owner: userId, candidate_path: path, candidate_bytes: byteLength, candidate_codec: image.codec, candidate_width: image.width, candidate_height: image.height, candidate_frames: image.samples }),
+        });
+        let queuedPayload = null;
+        try { queuedPayload = await queued.json(); } catch { queuedPayload = null; }
+        const job = Array.isArray(queuedPayload) ? queuedPayload[0] : null;
+        if (!queued.ok || !job?.job_id) {
+          const code = String(queuedPayload?.message || "");
+          await discard();
+          log("wall-asset", `queue_${DB_ERRORS[code] ? code : "failed"}`);
+          return json({ error: DB_ERRORS[code] ? code : "register_failed" }, DB_ERRORS[code] ?? 502, cors);
+        }
+        log("wall-asset", "queued_hevc");
+        return json({ job: { job_id: job.job_id, state: job.state, width: image.width, height: image.height } }, 202, cors);
+      }
     } else {
       // 3. the STORED bytes, read with the service role
       const stored = await fetchImpl(objectUrl, { headers: service });

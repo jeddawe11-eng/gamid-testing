@@ -89,7 +89,7 @@ test("migration: additive only, TESTING-safe, and fresh timestamps after the Pla
   assert.equal(versions.filter(v => v === "20260925140000").length, 1);
   assert.ok(!/\b(drop|truncate)\s+(table|schema|function)\b/i.test(migrationCode), "no destructive statements");
   assert.ok(!/\balter\s+table\s+public\.(entities|entity_memberships|profiles)\b/i.test(migrationCode), "no change to existing tables");
-  assert.ok(!/\bdelete\s+from\s+(?!public\.wall_assets)|\binsert\s+into\s+public\.(entities|profiles)|\bupdate\s+public\.(?!wall_drafts|wall_assets)/i.test(migrationCode), "touches no existing data (only the Wall's own tables)");
+  assert.ok(!/\bdelete\s+from\s+(?!public\.wall_assets)|\binsert\s+into\s+public\.(entities|profiles)|\bupdate\s+public\.(?!wall_drafts|wall_assets|wall_video_jobs)/i.test(migrationCode), "touches no existing data (only the Wall's own tables)");
   assert.ok(!/game[-_ ]?id[-_ ]?wall/i.test(migration), "the Steam-slice scope guard reserves that phrase");
 });
 
@@ -100,12 +100,15 @@ test("migration: RLS on, no client table grant, RPC-only access for authenticate
   assert.ok(!/\bto\b[^;]*\banon\b[^;]*;/i.test(migrationCode.replace(/revoke[^;]*;/gi, "")), "nothing is granted to anon");
   const allGrants = [...migrationCode.matchAll(/grant execute on function([^;]*?)to ([^;]*);/gi)];
   const grants = allGrants.filter(grant => grant[2].trim() === "authenticated");
-  assert.equal(grants.length, 2, "the owner Wall RPCs and the owner asset RPCs");
+  assert.equal(grants.length, 3, "the owner Wall RPCs, the owner asset RPCs and (video transcoding) the owner's own conversion status");
   // post-QA (GIF, server-side validation): the ONE other grant is to service_role, for the verifying Edge Function's registration only - never a client role
+  // (video transcoding) the second: the queue + worker RPCs, for the Edge Function and the worker only
   const serviceGrants = allGrants.filter(grant => grant[2].trim() !== "authenticated");
-  assert.equal(serviceGrants.length, 1);
-  assert.equal(serviceGrants[0][2].trim(), "service_role");
+  assert.equal(serviceGrants.length, 2);
+  assert.ok(serviceGrants.every(grant => grant[2].trim() === "service_role"));
   assert.match(serviceGrants[0][1], /register_verified_wall_asset/);
+  assert.match(serviceGrants[1][1], /create_wall_video_job[\s\S]*worker_claim_wall_video_job/);
+  assert.doesNotMatch(grants.map(grant => grant[1]).join(" "), /create_wall_video_job|worker_/, "no client can queue or run a conversion");
   const grantedTo = grants.map(grant => grant[1]).join(" ");
   assert.ok(!/wall_document_errors|wall_string_is_unsafe|wall_scan_unsafe|wall_element_payload_errors|wall_new_document|wall_owned_entity_id|wall_embed_specs|wall_document_asset_ids|wall_background_errors/.test(grantedTo), "helpers are not client-executable");
 });
@@ -128,10 +131,12 @@ test("migration: ownership comes from auth.uid() through the membership architec
   const signatures = [...migrationCode.matchAll(/create function public\.(\w+)\(([^)]*)\)/g)];
   // every CLIENT-callable function takes no owner/identity argument; the one exception is service_role-only (the verifying Edge Function proves the owner from the
   // caller's token and passes it - see supabase/functions/_shared/wall-assets.js)
-  const clientCallable = signatures.filter(([, name]) => name !== "register_verified_wall_asset");
-  assert.equal(clientCallable.length, 6, "three Wall RPCs + three asset RPCs");
+  // (video transcoding: the queue and worker RPCs are service_role-only too - granted only to service_role in the migration)
+  const serviceOnly = new Set(["register_verified_wall_asset", "create_wall_video_job", "worker_claim_wall_video_job", "worker_complete_wall_video_job", "worker_fail_wall_video_job", "worker_wall_video_cleanup_candidates", "worker_confirm_wall_video_cleanup"]);
+  const clientCallable = signatures.filter(([, name]) => !serviceOnly.has(name));
+  assert.equal(clientCallable.length, 7, "three Wall RPCs + three asset RPCs + the owner's conversion status");
   for (const [, name, args] of clientCallable) assert.ok(!/entity|owner|user|profile/i.test(args), `${name} takes no owner/identity argument`);
-  assert.equal(signatures.length, 7);
+  assert.equal(signatures.length, 14);
   assert.match(migrationCode, /revoke all on function[^;]*public\.register_verified_wall_asset\(uuid, text, text, integer, integer, integer, integer\)\s*from public, anon, authenticated;/);
   assert.ok(!/\bvisibility\b|is_public|published/.test(migrationCode), "the draft does not depend on publish state");
 });

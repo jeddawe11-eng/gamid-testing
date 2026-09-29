@@ -17,7 +17,7 @@ export function authorizeWebhook(headers, expectedSecret) {
 export function validateWebhookPayload(payload) {
   return payload?.type === "INSERT"
     && payload?.schema === "public"
-    && payload?.table === "intro_processing_jobs"
+    && (payload?.table === "intro_processing_jobs" || payload?.table === "wall_video_jobs")
     && payload?.record?.state === "pending"
     && typeof payload?.record?.job_id === "string";
 }
