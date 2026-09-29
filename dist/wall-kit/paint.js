@@ -207,6 +207,8 @@ function paintBackgroundLayer(background, { createNode, ctx, width, height, inde
   layer.className = "wall-bg";
   const style = layer.style;
   for (const [name, value] of [["position", "absolute"], ["left", "0"], ["width", px(width)], ["height", px(height * count)], ["top", px(-index * height)], ["overflow", "hidden"], ["z-index", "0"], ["pointer-events", "none"]]) style.setProperty(name, value);
+  // a stage that shows content beyond its edges (the editor, see paintStage) still shows ONLY its own slice of the background
+  if (ctx.showOutside === true) style.setProperty("clip-path", `inset(${px(index * height)} 0 ${px((count - index - 1) * height)} 0)`);
   if (background.kind === "color") style.setProperty("background", hex(background.color));
   else if (background.kind === "gradient") style.setProperty("background", gradientCss(background));
   else if (background.kind === "image" || background.kind === "video") {
@@ -410,7 +412,9 @@ export function paintStage(stageTree, scale, createNode = tag => document.create
   stage.style.setProperty("position", "relative");
   stage.style.setProperty("width", px(stageTree.width));
   stage.style.setProperty("height", px(stageTree.height));
-  stage.style.setProperty("overflow", "hidden");
+  // The stage is the artboard: whatever lies beyond its edges (an element with Keep inside stage OFF) is clipped here - in Preview and on the Wall it never bleeds
+  // into another stage. Only the editor passes showOutside, so the owner can see and grab the part that is outside while positioning.
+  stage.style.setProperty("overflow", ctx.showOutside === true ? "visible" : "hidden");
   stage.style.setProperty("isolation", "isolate");   // blend modes mix with this stage only
   // a stage's own background wins; otherwise the Wall-wide one is laid across ALL stages so it can run continuously from one stage into the next
   if (stageTree.background) stage.append(paintBackgroundLayer(stageTree.background, { createNode, ctx, width: stageTree.width, height: stageTree.height, index: 0, count: 1, scale, scope: `stage:${stageTree.id}` }));

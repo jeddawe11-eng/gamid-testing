@@ -5,11 +5,12 @@
 // unit-testable under plain Node.
 //
 // Geometry rules (carried over from the real-device-proven W0 editor, expressed in the canonical 1000 x 1778 stage space):
-//   - HARD containment: an element (its rotated bounding box, if rotated) never leaves its stage; drags/resizes stop at the edge.
+//   - HARD containment: an element (its rotated bounding box, if rotated) never leaves its stage; drags/resizes stop at the edge. The owner can turn this OFF per
+//     element ("Keep inside stage", keepInside:false): it may then go past any edge and the stage clips it when painted (see fieldFor).
 //   - Whole-unit geometry: x, y, width, height are integers, so containment sums are exact.
 //   - Every drag/resize is a pure function of (document at gesture start, total pointer delta), so a gesture is deterministic and cancelable.
 //   - Layer order is stage-local, dense (0..n-1 after any ordering operation) and never depends on array/insertion order.
-import { validateDocument } from "../wall/validate.js";
+import { validateDocument, FREE_MARGIN } from "../wall/validate.js";
 import { elementRegistry } from "../wall/elements.js";
 import { createElement, CANONICAL_CANVAS } from "../wall/schema.js";
 import { createTextPayload } from "./text.js";
@@ -178,30 +179,43 @@ export function unionContain(elements) {
   }
   return { x: left, y: top, width: right - left, height: bottom - top };
 }
-const inside = (box, canvas) => box.x >= -EPS && box.y >= -EPS && box.x + box.width <= canvas.width + EPS && box.y + box.height <= canvas.height + EPS;
+// `area`: the canvas ({ width, height }, origin 0,0) or a positioning field ({ x, y, width, height }, see fieldFor)
+const inside = (box, area) => { const ax = area.x ?? 0, ay = area.y ?? 0; return box.x >= ax - EPS && box.y >= ay - EPS && box.x + box.width <= ax + area.width + EPS && box.y + box.height <= ay + area.height + EPS; };
 
-// Puts an element back inside the canvas (shrinking an unrotated one that is too large). Returns false only when a rotated element cannot fit at all.
+// "Keep inside stage" - ON unless an element carries keepInside:false. The FIELD is where an element's geometry may go: the stage itself (ON, the containment every
+// geometry op has always applied), or - OFF - the stage plus FREE_MARGIN units on every side, so the element can sit partly or wholly outside any edge (the stage
+// still clips it in Preview and on the Wall; the margin is only the validator's sanity bound, nowhere near visible). Every op below contains against the field,
+// so drag, resize, rotate, pinch, Bigger / Smaller, alignment and stage moves all follow the one rule.
+export const keepsInside = element => element?.keepInside !== false;
+const stageField = canvas => ({ x: 0, y: 0, width: canvas.width, height: canvas.height });
+export const fieldFor = (element, canvas) => (keepsInside(element) ? stageField(canvas)
+  : { x: -FREE_MARGIN, y: -FREE_MARGIN, width: canvas.width + 2 * FREE_MARGIN, height: canvas.height + 2 * FREE_MARGIN });
+// a selection resized / scaled as one unit is free only when every member is (one member kept inside keeps the unit inside, as before)
+const fieldForAll = (elements, canvas) => (elements.every(element => !keepsInside(element)) ? fieldFor({ keepInside: false }, canvas) : stageField(canvas));
+
+// Puts an element back inside its field (shrinking an unrotated one that is too large). Returns false only when a rotated element cannot fit at all.
 // `min` is the size floor to apply: the generic floor for moves/alignment (so an older, smaller element is never silently enlarged), the element's own
 // per-type minimum where its SIZE is being set (numeric size fields, adding an element).
 function clampToCanvas(element, canvas, min = BASE_MIN) {
+  const area = fieldFor(element, canvas);
   if (!element.rotation) {
-    element.width = Math.min(Math.max(min.width, Math.round(element.width)), canvas.width);
-    element.height = Math.min(Math.max(min.height, Math.round(element.height)), canvas.height);
-    element.x = Math.min(Math.max(0, Math.round(element.x)), canvas.width - element.width);
-    element.y = Math.min(Math.max(0, Math.round(element.y)), canvas.height - element.height);
+    element.width = Math.min(Math.max(min.width, Math.round(element.width)), area.width);
+    element.height = Math.min(Math.max(min.height, Math.round(element.height)), area.height);
+    element.x = Math.min(Math.max(area.x, Math.round(element.x)), area.x + area.width - element.width);
+    element.y = Math.min(Math.max(area.y, Math.round(element.y)), area.y + area.height - element.height);
     return true;
   }
   element.width = Math.max(min.width, Math.round(element.width));
   element.height = Math.max(min.height, Math.round(element.height));
   const box = containBounds(element);
-  if (box.width > canvas.width + EPS || box.height > canvas.height + EPS) return false;
+  if (box.width > area.width + EPS || box.height > area.height + EPS) return false;
   // shift the centre so the rotated bounds sit inside, on whole units
   const offsetX = box.x - element.x, offsetY = box.y - element.y;   // bounds origin relative to x,y
-  const minX = Math.ceil(-offsetX - EPS), maxX = Math.floor(canvas.width - box.width - offsetX + EPS);
-  const minY = Math.ceil(-offsetY - EPS), maxY = Math.floor(canvas.height - box.height - offsetY + EPS);
+  const minX = Math.ceil(area.x - offsetX - EPS), maxX = Math.floor(area.x + area.width - box.width - offsetX + EPS);
+  const minY = Math.ceil(area.y - offsetY - EPS), maxY = Math.floor(area.y + area.height - box.height - offsetY + EPS);
   element.x = Math.min(Math.max(Math.round(element.x), minX), maxX);
   element.y = Math.min(Math.max(Math.round(element.y), minY), maxY);
-  return inside(containBounds(element), canvas);
+  return inside(containBounds(element), area);
 }
 
 // ---- ids and selection ------------------------------------------------------------------------------------------------------------------------------
@@ -542,8 +556,32 @@ export function rotateElement(doc, id, degrees) {
   return updateGeometry(doc, id, { rotation: degrees });
 }
 
+// "Keep inside stage" for a selection (a group as one unit). OFF only frees the geometry - nothing moves. Turning it back ON brings the selection inside the stage
+// again in the same undo step: as one rigid unit when it fits (so a group keeps its shape), then every element is contained exactly as the geometry ops do.
+export function setKeepInside(doc, ids, on) {
+  const stage = commonStage(doc, ids);
+  if (!stage) return fail(doc, "SELECTION_INVALID");
+  const next = clone(doc);
+  const nextStage = findStage(next, stage.id);
+  const chosen = new Set(expandSelection(nextStage, ids));
+  const members = nextStage.elements.filter(element => chosen.has(element.id));
+  if (!on) { for (const element of members) element.keepInside = false; return finish(doc, next); }
+  for (const element of members) delete element.keepInside;
+  const box = unionContain(members);
+  if (!inside(box, next.canvas)) {
+    if (members.some(isLocked)) return fail(doc, "ELEMENT_LOCKED");   // bringing it back would move a locked artwork
+    if (box.width <= next.canvas.width + EPS && box.height <= next.canvas.height + EPS) {
+      const dx = Math.round(Math.min(Math.max(0, -box.x), next.canvas.width - box.width - box.x)), dy = Math.round(Math.min(Math.max(0, -box.y), next.canvas.height - box.height - box.y));
+      for (const element of members) { element.x += dx; element.y += dy; }
+    }
+    for (const element of members) if (!clampToCanvas(element, next.canvas)) return fail(doc, "OUTSIDE_CANVAS");
+  }
+  return finish(doc, next);
+}
+
 // ---- move -------------------------------------------------------------------------------------------------------------------------------------------
-// Moves a selection as one rigid unit by (dx, dy) whole units; the unit stops at the stage edges.
+// Moves a selection as one rigid unit by (dx, dy) whole units; the unit stops where its first member (kept inside) reaches a stage edge - a member with Keep inside
+// stage OFF does not stop it at the stage edge. With every member kept inside this is exactly the old union-box stop.
 export function moveElements(doc, ids, dx, dy) {
   const stage = commonStage(doc, ids);
   if (!stage) return fail(doc, "SELECTION_INVALID");
@@ -552,9 +590,12 @@ export function moveElements(doc, ids, dx, dy) {
   const moving = new Set(expandSelection(nextStage, ids));
   const members = nextStage.elements.filter(element => moving.has(element.id));
   if (members.some(isLocked)) return fail(doc, "ELEMENT_LOCKED");
-  const box = unionContain(members);
-  const minDx = Math.ceil(-box.x - EPS), maxDx = Math.floor(next.canvas.width - box.width - box.x + EPS);
-  const minDy = Math.ceil(-box.y - EPS), maxDy = Math.floor(next.canvas.height - box.height - box.y + EPS);
+  let minDx = -Infinity, maxDx = Infinity, minDy = -Infinity, maxDy = Infinity;
+  for (const member of members) {
+    const box = containBounds(member), area = fieldFor(member, next.canvas);
+    minDx = Math.max(minDx, Math.ceil(area.x - box.x - EPS)); maxDx = Math.min(maxDx, Math.floor(area.x + area.width - box.width - box.x + EPS));
+    minDy = Math.max(minDy, Math.ceil(area.y - box.y - EPS)); maxDy = Math.min(maxDy, Math.floor(area.y + area.height - box.height - box.y + EPS));
+  }
   const moveX = Math.min(Math.max(Math.round(dx), minDx), Math.max(minDx, maxDx));
   const moveY = Math.min(Math.max(Math.round(dy), minDy), Math.max(minDy, maxDy));
   for (const element of members) { element.x += moveX; element.y += moveY; }
@@ -602,26 +643,27 @@ export function resizeElement(doc, id, handle, dx, dy, { keepAspect = false } = 
   if (isLocked(found.element)) return fail(doc, "ELEMENT_LOCKED");
   const start = found.element;
   const min = minSizeOf(start);
+  const area = fieldFor(start, doc.canvas);   // the stage, or (Keep inside stage OFF) the free field around it
   let geometry = null;
   // shrink the gesture toward zero until it fits: exact for unrotated elements after the first pass below, fine-stepped for rotated ones
   for (let step = 40; step >= 0; step -= 1) {
     const t = step / 40;
     const candidate = resizeGeometry(start, handle, dx * t, dy * t, keepAspect, min);
-    if (inside(containBounds({ ...start, ...candidate }), doc.canvas)) { geometry = candidate; break; }
+    if (inside(containBounds({ ...start, ...candidate }), area)) { geometry = candidate; break; }
   }
   if (!geometry) return { ok: true, doc };
   if (!start.rotation) {
-    // exact edge stop for the common (unrotated) case: clamp the dragged edges onto the stage instead of the 1/40 stepping above
+    // exact edge stop for the common (unrotated) case: clamp the dragged edges onto the field instead of the 1/40 stepping above
     const [sx, sy] = HANDLES[handle];
     const free = resizeGeometry(start, handle, dx, dy, keepAspect, min);
-    const fits = candidate => inside(candidate, doc.canvas);
+    const fits = candidate => inside(candidate, area);
     if (fits(free)) geometry = free;
     else if (!keepAspect) {
       const right = start.x + start.width, bottom = start.y + start.height;
-      const left = sx < 0 ? Math.max(0, Math.min(free.x, right - min.width)) : start.x;
-      const top = sy < 0 ? Math.max(0, Math.min(free.y, bottom - min.height)) : start.y;
-      const farRight = sx > 0 ? Math.min(doc.canvas.width, Math.max(free.x + free.width, start.x + min.width)) : right;
-      const farBottom = sy > 0 ? Math.min(doc.canvas.height, Math.max(free.y + free.height, start.y + min.height)) : bottom;
+      const left = sx < 0 ? Math.max(area.x, Math.min(free.x, right - min.width)) : start.x;
+      const top = sy < 0 ? Math.max(area.y, Math.min(free.y, bottom - min.height)) : start.y;
+      const farRight = sx > 0 ? Math.min(area.x + area.width, Math.max(free.x + free.width, start.x + min.width)) : right;
+      const farBottom = sy > 0 ? Math.min(area.y + area.height, Math.max(free.y + free.height, start.y + min.height)) : bottom;
       geometry = { x: left, y: top, width: farRight - left, height: farBottom - top };
     }
   }
@@ -649,9 +691,10 @@ export function resizeGroup(doc, ids, handle, dx, dy) {
   let factor = Math.max((box.width + sx * dx) / box.width, (box.height + sy * dy) / box.height);
   factor = Math.max(factor, shrinkFloor(members));   // no member goes below its own minimum (a player, a GamID block, ...)
   const anchor = { x: sx > 0 ? box.x : box.x + box.width, y: sy > 0 ? box.y : box.y + box.height };
+  const area = fieldForAll(members, next.canvas);
   const room = {
-    x: sx > 0 ? next.canvas.width - anchor.x : anchor.x,
-    y: sy > 0 ? next.canvas.height - anchor.y : anchor.y,
+    x: sx > 0 ? area.x + area.width - anchor.x : anchor.x - area.x,
+    y: sy > 0 ? area.y + area.height - anchor.y : anchor.y - area.y,
   };
   factor = Math.min(factor, room.x / box.width, room.y / box.height);
   factor = Math.floor(factor * 1000) / 1000;
@@ -682,7 +725,8 @@ export function scaleSelection(doc, ids, factor) {
   if (members.some(isLocked)) return fail(doc, "ELEMENT_LOCKED");
   const box = unionContain(members);
   const centre = [box.x + box.width / 2, box.y + box.height / 2];
-  const maxFactor = Math.min(next.canvas.width / box.width, next.canvas.height / box.height);
+  const area = fieldForAll(members, next.canvas);
+  const maxFactor = Math.min(area.width / box.width, area.height / box.height);
   const applied = Math.max(Math.min(factor, maxFactor), Math.min(shrinkFloor(members), maxFactor));   // pinch / Smaller stop at each member's minimum
   for (const element of members) {
     const elementCentre = [element.x + element.width / 2, element.y + element.height / 2];

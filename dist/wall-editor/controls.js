@@ -581,6 +581,12 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     const alignRow = h("div", { class: "ed-btn-row" });
     for (const [mode, label] of [["left", "Left"], ["hcenter", "Center"], ["right", "Right"], ["top", "Top"], ["vmiddle", "Middle"], ["bottom", "Bottom"]]) alignRow.append(button(label, () => exec(ops.alignElements(session.doc, ids, mode))));
     root.append(alignRow);
+    // Keep inside stage (ON by default): OFF lets the selection go partly or wholly past any stage edge - the stage clips it in Preview and on the Wall
+    const keep = h("input", { type: "checkbox" });
+    keep.addEventListener("change", () => exec(ops.setKeepInside(session.doc, session.state.selection, keep.checked)));
+    syncers.push(current => { keep.checked = current.every(ops.keepsInside); });
+    root.append(field("Keep inside stage", keep),
+      h("p", { class: "ed-hint", text: "Off: move it past the stage edges. Whatever is outside the stage is cut off in Preview and on your Wall." }));
   }
 
   // Post-Round 2 manual-acceptance fix: moving elements to another stage is the FIRST thing in the panel whenever the Wall has more than one stage - an explicit

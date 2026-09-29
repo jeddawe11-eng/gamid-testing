@@ -9,6 +9,7 @@ const BY_CODE = {
   INVALID_STROKE_WIDTH: "Border width must be between 0 and 100.",
   INVALID_RADIUS: "Corner radius must be between 0 and 1000.",
   OUTSIDE_CANVAS: "That would leave the stage, so it was not applied.",
+  INVALID_KEEP_INSIDE: "That Keep inside stage setting is not valid, so it was not applied.",
   LAST_STAGE: "A Wall needs at least one stage.",
   STAGE_NOT_EMPTY: "This stage has elements on it.",
   GROUP_NEEDS_TWO: "Select at least two elements to group.",

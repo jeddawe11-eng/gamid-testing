@@ -4,7 +4,7 @@
 //
 // Real-device lessons kept from the W0 prototype (Samsung / Chrome):
 //   - touch-action:none on the stage so a drag never fights page scroll (the stage is fitted to the screen, so it never needs to scroll);
-//   - hard containment at the stage edges (in ops.js);
+//   - hard containment at the stage edges (in ops.js) - unless the owner turns "Keep inside stage" OFF for an element (then the stage is an artboard that clips);
 //   - a tiny element stays recoverable: generous tap slop, a move pad, and handles pushed OUTSIDE a small box so all four stay reachable;
 //   - a selected group/multi-selection shows a clear box with four corner handles and resizes uniformly.
 import { renderDocument } from "../wall/render.js";
@@ -53,8 +53,12 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
     const tree = renderDocument(source, { viewportWidth: source.canvas.width * scale });
     if (!tree.ok) return;
     const index = source.stages.findIndex(stage => stage.id === session.state.stageId);
-    const stageNode = paintStage(tree.stages[index], tree.scale, undefined, { ...getPaintContext(), mode: "edit", wallBackground: tree.background ?? null, stageIndex: index, stageCount: tree.stages.length });
+    // Keep inside stage OFF: while editing, what lies beyond the stage stays visible (dimmed outside the artboard edge) so it can be seen and grabbed; Preview and
+    // the Wall clip it at the stage
+    const free = source.stages[index].elements.some(element => !ops.keepsInside(element));
+    const stageNode = paintStage(tree.stages[index], tree.scale, undefined, { ...getPaintContext(), mode: "edit", showOutside: free, wallBackground: tree.background ?? null, stageIndex: index, stageCount: tree.stages.length });
     const overlay = el("div", "ed-overlay");
+    if (free) overlay.append(el("div", "ed-artboard"));
     host.style.setProperty("width", px(tree.stages[index].width));
     host.style.setProperty("height", px(tree.stages[index].height));
     host.replaceChildren(stageNode, overlay);
