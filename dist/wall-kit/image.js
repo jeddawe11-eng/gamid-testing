@@ -14,6 +14,12 @@
 //     clickThrough  true = a tap on the canvas passes through it to what is beneath (select it from Layers)
 //     slice      { set, dir: v | h, from, to } - one piece of a SPLIT artwork: it shows the [from, to) band of the whole artwork. The pieces of one split share
 //                `set` (also their group id) and the same asset, so a GIF split plays ONE shared animation timeline and nothing is re-encoded or re-uploaded.
+//                Split hardening (optional, written by every new split):
+//                  src    { x, y, w, h } - the artwork's exact geometry before it was split, so Remove Split is a clean inverse of Split
+//                  scale  { w, h } - "Preserve source scale": the size (canonical units) of the WHOLE artwork every piece is a window onto. With it, moving or
+//                         resizing a piece changes WHERE it is and WHICH PART it shows - never the picture's scale. Without it (pieces made before this), a
+//                         piece's scale follows its own box, as before.
+//                  cross  -1..1 - with `scale`: how far the window has moved across the cut direction (a fraction of the whole artwork), default 0
 import { elementRegistry } from "../wall/elements.js";
 import { isSet, isHex, inRange, isPlainObject } from "../wall/fields.js";
 
@@ -55,10 +61,17 @@ export function validateEffects(effects) {
   return true;
 }
 
+export const SLICE_UNITS_MAX = 20000;
+const onlyKeys = (value, keys) => isPlainObject(value) && Object.keys(value).every(key => keys.includes(key));
 export function validateSlice(slice) {
-  if (!isPlainObject(slice) || Object.keys(slice).some(key => !["set", "dir", "from", "to"].includes(key))) return false;
+  if (!onlyKeys(slice, ["set", "dir", "from", "to", "src", "scale", "cross"])) return false;
   if (typeof slice.set !== "string" || !SET_ID.test(slice.set) || !SLICE_DIRS.includes(slice.dir)) return false;
-  return inRange(slice.from, 0, 1) && inRange(slice.to, 0, 1) && slice.to - slice.from >= MIN_SLICE - EPS;
+  if (!(inRange(slice.from, 0, 1) && inRange(slice.to, 0, 1) && slice.to - slice.from >= MIN_SLICE - EPS)) return false;
+  if (isSet(slice.src) && !(onlyKeys(slice.src, ["x", "y", "w", "h"]) && inRange(slice.src.x, -SLICE_UNITS_MAX, SLICE_UNITS_MAX) && inRange(slice.src.y, -SLICE_UNITS_MAX, SLICE_UNITS_MAX)
+    && inRange(slice.src.w, 1, SLICE_UNITS_MAX) && inRange(slice.src.h, 1, SLICE_UNITS_MAX))) return false;
+  if (isSet(slice.scale) && !(onlyKeys(slice.scale, ["w", "h"]) && inRange(slice.scale.w, 1, SLICE_UNITS_MAX) && inRange(slice.scale.h, 1, SLICE_UNITS_MAX))) return false;
+  if (isSet(slice.cross) && !inRange(slice.cross, -1, 1)) return false;
+  return true;
 }
 
 // The shared LOOK of any picture on the Wall (an uploaded artwork, or a live GamID profile picture - gamid-data-elements.js): one visual engine, one validator.
@@ -109,6 +122,11 @@ function scaleImagePayload(payload, factor) {
     if (isPlainObject(effects.shadow)) effects.shadow = { ...effects.shadow, blur: clampTo(effects.shadow.blur, EFFECT_LIMITS.shadowBlur), x: clampTo(effects.shadow.x, EFFECT_LIMITS.offset), y: clampTo(effects.shadow.y, EFFECT_LIMITS.offset) };
     if (isPlainObject(effects.glow)) effects.glow = { ...effects.glow, blur: clampTo(effects.glow.blur, EFFECT_LIMITS.shadowBlur) };
     next.effects = effects;
+  }
+  // a split piece's preserved source scale follows a uniform resize of its group (the whole artwork is being resized on purpose); `src` stays the pre-split record
+  if (isPlainObject(payload.slice?.scale)) {
+    const fit = value => Math.min(SLICE_UNITS_MAX, Math.max(1, Math.round(value * factor * 100) / 100));
+    next.slice = { ...payload.slice, scale: { w: fit(payload.slice.scale.w), h: fit(payload.slice.scale.h) } };
   }
   return next;
 }

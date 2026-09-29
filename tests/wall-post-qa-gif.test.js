@@ -134,7 +134,7 @@ test("I client: GIF is an accepted image everywhere the owner adds pictures; the
   const html = read("dist/wall-editor/index.html");
   assert.match(html, /accept="image\/jpeg,image\/png,image\/webp,image\/avif,image\/gif"/);
   const tools = read("dist/wall-editor/tools.js");
-  assert.match(tools, /disabled: true, title: "Video backgrounds come in a later update", text: "Video · later"/, "GIF is not video: video backgrounds stay deferred");
+  assert.match(tools, /accept: "video\/mp4"/, "GIF is not video: MP4 is a separate, background-only upload (split hardening + video background pass)");
   assert.match(read("supabase/config.toml"), /\[functions\.wall-asset-register\]\nverify_jwt = true/);
   assert.match(read("supabase/migrations/20260927110000_wall_gif_assets.sql"), /revoke execute on function public\.register_my_wall_asset\(text, text, integer, integer, integer\), private\.register_my_wall_asset_impl\(text, text, integer, integer, integer\) from authenticated;/);
 });

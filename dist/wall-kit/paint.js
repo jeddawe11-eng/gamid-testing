@@ -9,6 +9,7 @@ import { hasPoster } from "./posters.js";
 import { paintGamidBlock } from "./gamid-blocks.js";
 import { paintGamidData } from "./gamid-data-paint.js";
 import { markInteractive, markPassThrough } from "./interaction.js";
+import { safeMediaUrl, backgroundVideo } from "./video-background.js";
 import "./register.js";   // makes sure every element type, background kind and provider is registered wherever documents are painted
 
 const num = value => (Number.isFinite(value) ? String(Math.round(value * 1000) / 1000) : "0");
@@ -143,12 +144,21 @@ export function paintArtworkFrame(node, look, scale, item, createNode) {
   const frame = createNode("div");
   frame.className = "wall-art-frame";
   const style = frame.style;
-  const offsetPct = slice ? num((-slice.from / (slice.to - slice.from)) * 100) : "0";
-  const sizePct = slice ? num(100 / (slice.to - slice.from)) : "100";
   const horizontal = slice?.dir === "h";
-  for (const [name, value] of [["position", "absolute"], ["overflow", "hidden"],
-    ["left", slice && !horizontal ? `${offsetPct}%` : "0"], ["top", slice && horizontal ? `${offsetPct}%` : "0"],
-    ["width", slice && !horizontal ? `${sizePct}%` : "100%"], ["height", slice && horizontal ? `${sizePct}%` : "100%"]]) style.setProperty(name, value);
+  const fixed = slice && slice.scale && Number.isFinite(slice.scale.w) && Number.isFinite(slice.scale.h) ? slice.scale : null;
+  if (fixed) {
+    // "Preserve source scale": the whole artwork keeps ONE size whatever the piece's box is; the piece is only a window onto it (moved by from / cross)
+    wholeW = fixed.w * scale; wholeH = fixed.h * scale;
+    const cross = Number.isFinite(slice.cross) ? slice.cross : 0;
+    const left = horizontal ? -cross * wholeW : -slice.from * wholeW, top = horizontal ? -slice.from * wholeH : -cross * wholeH;
+    for (const [name, value] of [["position", "absolute"], ["overflow", "hidden"], ["left", px(left)], ["top", px(top)], ["width", px(wholeW)], ["height", px(wholeH)]]) style.setProperty(name, value);
+  } else {
+    const offsetPct = slice ? num((-slice.from / (slice.to - slice.from)) * 100) : "0";
+    const sizePct = slice ? num(100 / (slice.to - slice.from)) : "100";
+    for (const [name, value] of [["position", "absolute"], ["overflow", "hidden"],
+      ["left", slice && !horizontal ? `${offsetPct}%` : "0"], ["top", slice && horizontal ? `${offsetPct}%` : "0"],
+      ["width", slice && !horizontal ? `${sizePct}%` : "100%"], ["height", slice && horizontal ? `${sizePct}%` : "100%"]]) style.setProperty(name, value);
+  }
   const backdrop = legacy ? LEGACY_BACKDROP : look.backdrop;
   if (backdrop !== "none") style.setProperty("background", hex(backdrop));
   if (look.radius) style.setProperty("border-radius", px(Math.min(look.radius * scale, Math.min(wholeW, wholeH) / 2)));
@@ -186,17 +196,29 @@ function paintImage(node, content, scale, item, createNode, ctx) {
   frame.append(missing);
 }
 
-function paintBackgroundLayer(background, { createNode, ctx, width, height, index, count, scale }) {
+function paintBackgroundLayer(background, { createNode, ctx, width, height, index, count, scale, scope = "wall" }) {
   const layer = createNode("div");
   layer.className = "wall-bg";
   const style = layer.style;
   for (const [name, value] of [["position", "absolute"], ["left", "0"], ["width", px(width)], ["height", px(height * count)], ["top", px(-index * height)], ["overflow", "hidden"], ["z-index", "0"], ["pointer-events", "none"]]) style.setProperty(name, value);
   if (background.kind === "color") style.setProperty("background", hex(background.color));
   else if (background.kind === "gradient") style.setProperty("background", gradientCss(background));
-  else if (background.kind === "image") {
-    const url = safeBlobUrl(ctx.assets?.urlFor?.(background.assetId));
+  else if (background.kind === "image" || background.kind === "video") {
     style.setProperty("background", "#0d0b14");
-    if (url) layer.append(pictureNode(createNode, { url, fit: background.fit, posX: background.posX, posY: background.posY, opacity: background.opacity }));
+    if (background.kind === "image") {
+      const url = safeBlobUrl(ctx.assets?.urlFor?.(background.assetId));
+      if (url) layer.append(pictureNode(createNode, { url, fit: background.fit, posX: background.posX, posY: background.posY, opacity: background.opacity }));
+    } else {
+      // a background VIDEO (video-background.js): muted, looping, inline, no controls, never a tap target; the same fit / position / opacity model as an image
+      const url = safeMediaUrl(ctx.assets?.videoUrlFor?.(background.assetId));
+      if (url) {
+        const video = ctx.videos ? ctx.videos.take(`${scope}:${background.assetId}`, url, createNode) : backgroundVideo(url, createNode);
+        video.className = "wall-bg-video";
+        for (const [name, value] of [["display", "block"], ["width", "100%"], ["height", "100%"], ["object-fit", background.fit === "contain" ? "contain" : "cover"],
+          ["object-position", `${num(background.posX)}% ${num(background.posY)}%`], ["opacity", num(background.opacity)], ["pointer-events", "none"]]) video.style.setProperty(name, value);
+        layer.append(video);
+      }
+    }
     if (background.overlay) {
       const overlay = createNode("div");
       for (const [name, value] of [["position", "absolute"], ["inset", "0"], ["background", hex(background.overlay.color)], ["opacity", num(background.overlay.opacity)]]) overlay.style.setProperty(name, value);
@@ -378,7 +400,7 @@ export function paintStage(stageTree, scale, createNode = tag => document.create
   stage.style.setProperty("overflow", "hidden");
   stage.style.setProperty("isolation", "isolate");   // blend modes mix with this stage only
   // a stage's own background wins; otherwise the Wall-wide one is laid across ALL stages so it can run continuously from one stage into the next
-  if (stageTree.background) stage.append(paintBackgroundLayer(stageTree.background, { createNode, ctx, width: stageTree.width, height: stageTree.height, index: 0, count: 1, scale }));
+  if (stageTree.background) stage.append(paintBackgroundLayer(stageTree.background, { createNode, ctx, width: stageTree.width, height: stageTree.height, index: 0, count: 1, scale, scope: `stage:${stageTree.id}` }));
   else if (ctx.wallBackground) stage.append(paintBackgroundLayer(ctx.wallBackground, { createNode, ctx, width: stageTree.width, height: stageTree.height, index: ctx.stageIndex ?? 0, count: ctx.stageCount ?? 1, scale }));
   stageTree.elements.forEach((item, order) => stage.appendChild(paintElement(item, scale, order, createNode, ctx)));
   return stage;

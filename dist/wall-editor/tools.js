@@ -5,7 +5,7 @@ import * as ops from "../wall-kit/ops.js";
 import { createTextPayload } from "../wall-kit/text.js";
 import { FONT_CATALOG, fontCss } from "../wall-kit/fonts.js";
 import { createImagePayload } from "../wall-kit/image.js";
-import { defaultBackground, createImageBackground } from "../wall-kit/background.js";
+import { defaultBackground, createImageBackground, createVideoBackground } from "../wall-kit/background.js";
 import { GAMID_BLOCKS, GAMID_BLOCK_INFO, createGamidPayload } from "../wall-kit/gamid.js";
 import { DATA_FIELD_INFO, DATA_ITEMS, DATA_TEXT_FIELDS, createGamidDataPayload, dataTextStyle } from "../wall-kit/gamid-data.js";
 import { startingImageSize } from "../wall-kit/assets.js";
@@ -158,40 +158,75 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
     return h("label", { class: "ed-field" }, h("span", { text: label }), h("div", { class: "ed-inline" }, input));
   }
   let bgKey = "";
+  let videoStatus = "";
+  // MP4 background upload (background only - videos never appear in Assets or as artwork). Resumable, with progress; the server checks the stored file.
+  const videoInput = h("input", { type: "file", accept: "video/mp4", hidden: true });
+  document.body.append(videoInput);
+  videoInput.addEventListener("change", async () => {
+    const file = videoInput.files?.[0];
+    videoInput.value = "";
+    if (!file) return;
+    videoStatus = "Checking the video…";
+    renderBackground(true);
+    const result = await assets.uploadVideo(file, { onProgress: (done, total) => { videoStatus = `Uploading… ${Math.round((done / total) * 100)}%`; const line = $("bgVideoStatus"); if (line) line.textContent = videoStatus; } });
+    videoStatus = result.ok ? "Video added." : result.message;
+    if (result.ok) setBg(createVideoBackground(result.asset.asset_id)); else { notify(result.message); renderBackground(true); }
+  });
+  const pickVideo = () => { videoStatus = ""; videoInput.click(); };
+
   function renderBackground(force = false) {
     const current = currentBackground();
     // rebuild only when the STRUCTURE changes (scope, stage, kind, picture, fit, overlay on/off, asset list) - never while a slider is being dragged
-    const key = JSON.stringify([scope, stageId(), current?.kind ?? null, current?.assetId ?? null, current?.fit ?? null, !!current?.overlay, assets.assets.length, assets.assets.filter(asset => assets.urlFor(asset.asset_id)).length, doc().stages.length, scope === "stage" ? !!doc().background : null]);
+    const key = JSON.stringify([scope, stageId(), current?.kind ?? null, current?.assetId ?? null, current?.fit ?? null, !!current?.overlay, assets.assets.length, assets.images.filter(asset => assets.urlFor(asset.asset_id)).length, assets.videos.map(asset => !!assets.videoUrlFor(asset.asset_id)).join(), doc().stages.length, scope === "stage" ? !!doc().background : null, videoStatus]);
     if (!force && key === bgKey) return;
     bgKey = key;
     for (const button of document.querySelectorAll("[data-bg-scope]")) button.setAttribute("aria-pressed", String(button.dataset.bgScope === scope));
     const bg = currentBackground();
     const kind = bg?.kind ?? "none";
     kindsBox.replaceChildren();
-    for (const [value, label] of [["none", "None"], ["color", "Colour"], ["gradient", "Gradient"], ["image", "Image"]]) {
+    for (const [value, label] of [["none", "None"], ["color", "Colour"], ["gradient", "Gradient"], ["image", "Image"], ["video", "Video"]]) {
       kindsBox.append(h("button", { type: "button", "aria-pressed": String(kind === value), text: label, onclick: () => {
         if (value === "none") setBg(null);
-        else if (value === "image") { const first = assets.assets[0]; if (first) setBg(createImageBackground(first.asset_id)); else { notify("Upload an image first (Assets), then use it as a background."); setTool("assets"); } }
+        else if (value === "image") { const first = assets.images[0]; if (first) setBg(createImageBackground(first.asset_id)); else { notify("Upload an image first (Assets), then use it as a background."); setTool("assets"); } }
+        else if (value === "video") { const first = assets.videos[0]; if (first) setBg(createVideoBackground(first.asset_id)); else pickVideo(); }
         else setBg(defaultBackground(value));
       } }));
     }
-    kindsBox.append(h("button", { type: "button", disabled: true, title: "Video backgrounds come in a later update", text: "Video · later" }));
     controlsBox.replaceChildren();
     const co = { coalesce: `bg-${scope}` };
     if (bg?.kind === "color") controlsBox.append(bgColor("Colour", bg.color, value => setBg({ ...bg, color: value }, co)));
     if (bg?.kind === "gradient") controlsBox.append(bgColor("From", bg.from, value => setBg({ ...bg, from: value }, co)), bgColor("To", bg.to, value => setBg({ ...bg, to: value }, co)), bgSlider("Angle", 0, 360, 1, bg.angle, value => setBg({ ...bg, angle: value }, co)));
     if (bg?.kind === "image") {
       const grid = h("div", { class: "ed-assets" });
-      for (const asset of assets.assets) {
+      for (const asset of assets.images) {
         const thumb = h("div", { class: "thumb" });
         const url = assets.urlFor(asset.asset_id);
         if (url) thumb.append(h("img", { src: url, alt: "" })); else thumb.textContent = "…";
         grid.append(h("div", { class: "ed-asset" }, thumb, h("button", { class: "ed-btn", type: "button", "aria-pressed": String(asset.asset_id === bg.assetId), text: asset.asset_id === bg.assetId ? "Selected" : "Use", onclick: () => setBg({ ...bg, assetId: asset.asset_id }) })));
       }
       controlsBox.append(grid);
+    }
+    if (bg?.kind === "video") {
+      const list = h("div", { class: "ed-assets ed-videos" });
+      assets.videos.forEach((asset, index) => {
+        const thumb = h("div", { class: "thumb" });
+        const url = assets.videoUrlFor(asset.asset_id);
+        if (url) thumb.append(h("video", { src: url, muted: true, preload: "metadata", playsinline: true, "aria-hidden": "true" })); else thumb.textContent = "…";
+        const selected = asset.asset_id === bg.assetId;
+        list.append(h("div", { class: "ed-asset" }, thumb,
+          h("div", { class: "meta", text: `Video ${index + 1} · ${asset.width}×${asset.height} · ${Math.max(1, Math.round(asset.byte_size / (1024 * 1024)))} MB` }),
+          h("div", { class: "row" },
+            h("button", { class: "ed-btn", type: "button", "aria-pressed": String(selected), text: selected ? "Selected" : "Use", onclick: () => setBg({ ...bg, assetId: asset.asset_id }) }),
+            selected ? null : h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete", onclick: async () => { const result = await assets.remove(asset.asset_id, doc()); videoStatus = result.ok ? "Video deleted." : result.message; renderBackground(true); } }))));
+      });
+      controlsBox.append(list, h("div", { class: "ed-row ed-wrap" }, h("button", { class: "ed-btn ed-primary", type: "button", text: "Upload MP4", onclick: pickVideo })),
+        h("p", { id: "bgVideoStatus", class: "ed-hint", role: "status", text: videoStatus }),
+        h("p", { class: "ed-hint", text: "MP4 (H.264), up to 50 MB. It plays muted and looping behind everything, with no controls." }));
+    } else if (videoStatus && kind !== "video") controlsBox.append(h("p", { id: "bgVideoStatus", class: "ed-hint", role: "status", text: videoStatus }));
+    if (bg?.kind === "image" || bg?.kind === "video") {
       controlsBox.append(h("label", { class: "ed-field" }, h("span", { text: "Fit" }), h("div", { class: "ed-inline" }, (() => {
         const select = h("select");
-        for (const [value, label] of [["cover", "Fill (crop)"], ["contain", "Show whole picture"]]) select.append(h("option", { value, text: label, selected: bg.fit === value }));
+        for (const [value, label] of [["cover", bg.kind === "video" ? "Fill (cover, recommended)" : "Fill (crop)"], ["contain", bg.kind === "video" ? "Show whole video" : "Show whole picture"]]) select.append(h("option", { value, text: label, selected: bg.fit === value }));
         select.addEventListener("change", () => setBg({ ...bg, fit: select.value }));
         return select;
       })())));
@@ -202,8 +237,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
       toggle.addEventListener("change", () => setBg(toggle.checked ? { ...bg, overlay: { color: "#000000", opacity: 0.35 } } : { ...bg, overlay: undefined }));
       controlsBox.append(h("label", { class: "ed-field" }, h("span", { text: "Darken" }), h("div", { class: "ed-inline" }, toggle)));
       if (overlayOn) controlsBox.append(bgColor("Overlay", bg.overlay.color, value => setBg({ ...bg, overlay: { ...bg.overlay, color: value } }, co)), bgSlider("Overlay %", 0, 100, 1, Math.round(bg.overlay.opacity * 100), value => setBg({ ...bg, overlay: { ...bg.overlay, opacity: value / 100 } }, co)));
-    }
-    const note = $("bgNote");
+    }    const note = $("bgNote");
     if (scope === "stage") note.textContent = session.stage?.background ? "This stage has its own background." : (doc().background ? "This stage uses the Whole Wall background. Choose one here to give this stage its own." : "No background yet.");
     else note.textContent = "The Whole Wall background runs continuously across all stages. A stage can have its own background instead.";
   }
@@ -266,12 +300,12 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
   let assetsKey = "";
   function renderAssets(force = false) {
     const used = ops.assetsInUse(doc());
-    const key = JSON.stringify([assets.assets.map(asset => [asset.asset_id, !!assets.urlFor(asset.asset_id)]), [...used].sort()]);
+    const key = JSON.stringify([assets.images.map(asset => [asset.asset_id, !!assets.urlFor(asset.asset_id)]), [...used].sort()]);
     if (!force && key === assetsKey) return;
     assetsKey = key;
     grid.replaceChildren();
-    if (!assets.assets.length) { grid.append(h("p", { class: "ed-empty", text: "No images yet. Upload one to use it on your Wall or as a background." })); return; }
-    for (const asset of assets.assets) {
+    if (!assets.images.length) { grid.append(h("p", { class: "ed-empty", text: "No images yet. Upload one to use it on your Wall or as a background." })); return; }
+    for (const asset of assets.images) {
       const thumb = h("div", { class: "thumb" });
       const url = assets.urlFor(asset.asset_id);
       if (url) thumb.append(h("img", { src: url, alt: "" })); else thumb.textContent = "…";

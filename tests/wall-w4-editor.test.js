@@ -42,14 +42,14 @@ test("Media & Links: paste an address (a URL field, not an embed-code box); supp
   for (const provider of PROVIDERS.values()) assert.equal(html.includes(provider.label), false, `${provider.label} is not hard-coded in the page`);
   assert.match(media, /identity[\s\S]*Wall content|Wall content[\s\S]*identity/i, "the identity-vs-content distinction is explained");
 });
-test("Background: Whole Wall vs This stage, Colour / Gradient / Image, and an honest 'later' for video", () => {
+test("Background: Whole Wall vs This stage, Colour / Gradient / Image / Video (MP4 background)", () => {
   const panel = html.slice(html.indexOf('data-tool-panel="background"'), html.indexOf('data-tool-panel="gamid"'));
   assert.match(panel, /data-bg-scope="wall"/);
   assert.match(panel, /data-bg-scope="stage"/);
-  assert.deepEqual([...BACKGROUND_KINDS], ["color", "gradient", "image"]);
+  assert.deepEqual([...BACKGROUND_KINDS], ["color", "gradient", "image", "video"]);
   const tools = read("dist/wall-editor/tools.js");
-  assert.match(tools, /\["none", "None"\], \["color", "Colour"\], \["gradient", "Gradient"\], \["image", "Image"\]/);
-  assert.match(tools, /Video · later[\s\S]{0,20}|disabled: true, title: "Video backgrounds come in a later update"/);
+  assert.match(tools, /\["none", "None"\], \["color", "Colour"\], \["gradient", "Gradient"\], \["image", "Image"\], \["video", "Video"\]/);
+  assert.doesNotMatch(tools, /Video · later/, "video backgrounds are live now");
 });
 test("Assets: the file picker accepts exactly the allowed raster types; limits are stated; nothing but the owner's own images is offered", () => {
   const input = html.match(/<input id="assetFile"[^>]*>/)[0];

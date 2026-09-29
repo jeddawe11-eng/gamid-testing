@@ -273,6 +273,12 @@ export async function uploadWallAsset(file, userId) {
   if (!session?.access_token) throw new ApiError("Sign in again to add images.", 401, "unauthenticated");
   const path = `${userId}/${crypto.randomUUID()}.${extension}`;
   await request(`/storage/v1/object/wall-media/${path}`, { method: "POST", token: session.access_token, body: file, headers: { "Content-Type": file.type, "x-upsert": "false" } });
+  return registerWallUpload(path, "The image service could not be reached.");
+}
+
+// Asks the wall-asset-register Edge Function to check the STORED file and register it; anything it refuses (or never saw) is removed from storage.
+async function registerWallUpload(path, unreachable) {
+  const bucket = wallBucketFor(path);
   let response;
   try {
     response = await fetch(`${SUPABASE_URL}/functions/v1/wall-asset-register`, {
@@ -281,17 +287,49 @@ export async function uploadWallAsset(file, userId) {
       body: JSON.stringify({ path }),
     });
   } catch {
-    try { await request(`/storage/v1/object/wall-media/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* the orphan is private and only the owner can reach it */ }
-    throw new ApiError("The image service could not be reached.", 0, "NETWORK_ERROR");
+    try { await request(`/storage/v1/object/${bucket}/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* the orphan is private and only the owner can reach it */ }
+    throw new ApiError(unreachable, 0, "NETWORK_ERROR");
   }
   let payload = null;
   try { payload = await response.json(); } catch { payload = null; }
   if (!response.ok || !payload?.asset) {
     // the function already deleted a file it refused; this removes one it never got to see
-    try { await request(`/storage/v1/object/wall-media/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* private orphan, owner-only */ }
+    try { await request(`/storage/v1/object/${bucket}/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* private orphan, owner-only */ }
     throw new ApiError(payload?.error || `Request failed (${response.status})`, response.status, payload?.error || "register_failed");
   }
   return payload.asset;
+}
+
+// Background VIDEOS (MP4, H.264) live in their own private bucket, `wall-video` (50 MiB, video/mp4 only, owner folder + owner RLS like wall-media). A large file goes up
+// with the established RESUMABLE upload (6 MiB chunks, resumes after a network drop), then the same Edge Function checks the stored MP4 (real container, an H.264
+// video track, its real size) before it is registered. Playback streams from a SHORT-LIVED signed address of the owner's own object (the browser's own range requests)
+// - the video is never loaded into memory as a whole, and no address is ever saved in the Wall.
+export const WALL_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
+export const WALL_VIDEO_URL_SECONDS = 6 * 60 * 60;
+const wallBucketFor = path => (/\.mp4$/.test(String(path)) ? "wall-video" : "wall-media");
+
+export async function uploadWallVideo(file, userId, { onProgress } = {}) {
+  if (file?.type !== "video/mp4") throw new ApiError("Choose an MP4 video.", 400, "INVALID_FILE_TYPE");
+  if (file.size > WALL_VIDEO_MAX_BYTES) throw new ApiError("Background videos must be 50 MB or smaller.", 400, "FILE_TOO_LARGE");
+  await restoreSession();
+  if (!session?.access_token) throw new ApiError("Sign in again to add a video.", 401, "unauthenticated");
+  const path = `${userId}/${crypto.randomUUID()}.mp4`;
+  try {
+    await uploadResumable({ endpoint: STORAGE_UPLOAD_URL, bucketName: "wall-video", objectName: path, contentType: "video/mp4", file, token: session.access_token, apikey: PUBLISHABLE_KEY, onProgress });
+  } catch (error) {
+    throw new ApiError("The video upload did not finish. Check your connection and try again.", error?.status ?? 0, error?.status === 413 ? "FILE_TOO_LARGE" : "WALL_VIDEO_UPLOAD_FAILED");
+  }
+  return registerWallUpload(path, "The video service could not be reached.");
+}
+
+// -> an https: address the browser can stream (range requests) for WALL_VIDEO_URL_SECONDS; only the owner's own object can be signed (storage RLS)
+export async function signWallVideo(path) {
+  if (!/\.mp4$/.test(String(path))) return null;
+  await restoreSession();
+  const signed = await request(`/storage/v1/object/sign/wall-video/${encodeStoragePath(path)}`, { method: "POST", token: session?.access_token, body: { expiresIn: WALL_VIDEO_URL_SECONDS } });
+  const relative = signed?.signedURL ?? signed?.signedUrl;
+  if (typeof relative !== "string" || !relative.startsWith("/object/sign/wall-video/")) return null;
+  return `${SUPABASE_URL}/storage/v1${relative}`;
 }
 
 export async function loadWallAsset(path) {
@@ -303,7 +341,7 @@ export async function loadWallAsset(path) {
 export async function deleteWallAsset(assetId) {
   const rows = await rpc("delete_my_wall_asset", { candidate_asset_id: assetId });
   const path = rows?.[0]?.storage_path;
-  if (path) { try { await request(`/storage/v1/object/wall-media/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* the registry row is gone; the private object is unreachable by anyone else */ } }
+  if (path) { try { await request(`/storage/v1/object/${wallBucketFor(path)}/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* the registry row is gone; the private object is unreachable by anyone else */ } }
   return true;
 }
 export async function getMyIntro() {

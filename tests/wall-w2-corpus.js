@@ -12,6 +12,7 @@ const rectWithPayload = payload => docWith(rect("r1", { payload: { fill: "#aabbc
 const textEl = (id, over = {}, extra = {}) => rect(id, { type: "text", width: 600, height: 150, payload: createTextPayload(over), ...extra });
 const docWithText = (over, extra) => docWith(textEl("t1", over, extra));
 const UUID = "3f2b8c1e-5a4d-4e7b-9c60-1d2e3f4a5b6c";
+const VIDEO_UUID = "bbbbbbbb-0000-4000-8000-000000000003";   // a video asset in the DB contract (a video background must name a VIDEO asset)
 const imageEl = (id, over = {}, extra = {}) => rect(id, { type: "image", payload: { assetId: UUID, fit: "cover", posX: 50, posY: 50, opacity: 1, ...over }, ...extra });
 const gamidEl = (id, over = {}, extra = {}) => rect(id, { type: "gamid", width: 600, height: 300, payload: { block: "profile", ...over }, ...extra });
 const dataEl = (id, payload, extra = {}) => rect(id, { type: "gamidData", width: 600, height: 200, payload, ...extra });
@@ -359,6 +360,20 @@ export const CORPUS = [
   { name: "artwork: slice set missing", doc: docWith(imageEl("i1", { slice: { dir: "v", from: 0, to: 0.5 } })) },
   { name: "artwork: slice from as string", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: "0", to: 0.5 } })) },
   { name: "artwork: slice extra key", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: 0, to: 0.5, index: 1 } })) },
+  // split hardening: pre-split record, preserved source scale, cross-axis window offset
+  { name: "split: piece with src, scale and cross", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: 0.25, to: 0.5, src: { x: 137, y: 222, w: 555, h: 333 }, scale: { w: 555.5, h: 333 }, cross: -0.2 } })) },
+  { name: "split: src at the bounds", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "h", from: 0, to: 1, src: { x: -20000, y: 20000, w: 1, h: 20000 }, scale: { w: 1, h: 20000 }, cross: 1 } })) },
+  { name: "split: null new keys are not set", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: 0, to: 0.5, src: null, scale: null, cross: null } })) },
+  { name: "split: src missing a field", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: 0, to: 0.5, src: { x: 1, y: 2, w: 3 } } })) },
+  { name: "split: src extra key", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: 0, to: 0.5, src: { x: 1, y: 2, w: 3, h: 4, rotation: 10 } } })) },
+  { name: "split: src zero width", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: 0, to: 0.5, src: { x: 1, y: 2, w: 0, h: 4 } } })) },
+  { name: "split: src out of range", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: 0, to: 0.5, src: { x: 20001, y: 2, w: 3, h: 4 } } })) },
+  { name: "split: src not an object", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: 0, to: 0.5, src: "0 0 10 10" } })) },
+  { name: "split: scale too large", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: 0, to: 0.5, scale: { w: 20001, h: 10 } } })) },
+  { name: "split: scale as strings", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: 0, to: 0.5, scale: { w: "10", h: 10 } } })) },
+  { name: "split: scale extra key", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: 0, to: 0.5, scale: { w: 10, h: 10, zoom: 2 } } })) },
+  { name: "split: cross out of range", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: 0, to: 0.5, cross: -1.01 } })) },
+  { name: "split: cross as string", doc: docWith(imageEl("i1", { slice: { set: "s", dir: "v", from: 0, to: 0.5, cross: "0" } })) },
   { name: "artwork: several invalid Round 3 keys at once", doc: docWith(imageEl("i1", { backdrop: "red", mask: "blob", blend: "x", locked: 0, clickThrough: "no", effects: [], crop: [], slice: [], radius: -1 })) },
 
   // ---- Round 3: live GamID Data elements ----
@@ -431,6 +446,14 @@ export const CORPUS = [
   { name: "background: image position invalid", doc: withBackground({ kind: "image", assetId: UUID, fit: "cover", posX: 150, posY: 50, opacity: 1 }) },
   { name: "background: image opacity invalid", doc: withBackground({ kind: "image", assetId: UUID, fit: "cover", posX: 50, posY: 50, opacity: 2 }) },
   { name: "background: image overlay invalid", doc: withBackground({ kind: "image", assetId: UUID, fit: "cover", posX: 50, posY: 50, opacity: 1, overlay: { color: "black", opacity: 0.5 } }) },
+  { name: "background: wall video (cover)", doc: withBackground({ kind: "video", assetId: VIDEO_UUID, fit: "cover", posX: 50, posY: 50, opacity: 1 }) },
+  { name: "background: stage video with overlay", doc: withBackground(undefined, { kind: "video", assetId: VIDEO_UUID, fit: "contain", posX: 0, posY: 100, opacity: 0.6, overlay: { color: "#000000", opacity: 0.4 } }) },
+  { name: "background: video and image on different scopes", doc: withBackground({ kind: "video", assetId: VIDEO_UUID, fit: "cover", posX: 50, posY: 50, opacity: 1 }, { kind: "image", assetId: UUID, fit: "cover", posX: 50, posY: 50, opacity: 1 }) },
+  { name: "background: video assetId invalid", doc: withBackground({ kind: "video", assetId: "https://evil.example/v.mp4", fit: "cover", posX: 50, posY: 50, opacity: 1 }) },
+  { name: "background: video fit fill is not allowed", doc: withBackground({ kind: "video", assetId: UUID, fit: "fill", posX: 50, posY: 50, opacity: 1 }) },
+  { name: "background: video missing fields", doc: withBackground({ kind: "video", assetId: UUID }) },
+  { name: "background: video overlay invalid", doc: withBackground(undefined, { kind: "video", assetId: UUID, fit: "cover", posX: 50, posY: 50, opacity: 1, overlay: { color: "red", opacity: 2 } }) },
+  { name: "background: video unsafe string", doc: withBackground({ kind: "video", assetId: UUID, fit: "cover", posX: 50, posY: 50, opacity: 1, note: "javascript:alert(1)" }) },
   { name: "background: image overlay opacity invalid", doc: withBackground({ kind: "image", assetId: UUID, fit: "cover", posX: 50, posY: 50, opacity: 1, overlay: { color: "#000000", opacity: 1.5 } }) },
   { name: "background: unsafe string in an unknown key is rejected", doc: withBackground({ kind: "color", color: "#101020", note: "<script>alert(1)</script>" }) },
   { name: "background: unsafe string on a stage", doc: withBackground(undefined, { kind: "color", color: "#101020", label: "javascript:alert(1)" }) },

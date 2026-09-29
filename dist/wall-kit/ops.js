@@ -510,6 +510,7 @@ export function updateGeometry(doc, id, patch) {
   if ([element.x, element.y, element.width, element.height].some(value => !Number.isFinite(value))) return fail(doc, `INVALID_DIMENSIONS:${id}`);
   const sizing = patch.width !== undefined || patch.height !== undefined;
   if (!clampToCanvas(element, next.canvas, sizing ? minSizeOf(element) : BASE_MIN)) return fail(doc, "OUTSIDE_CANVAS");
+  if (sizing && element.type === "image" && element.payload.slice?.scale) element.payload = { ...element.payload, slice: rewindowSlice(found.element, element, "se") };
   return finish(doc, next);
 }
 
@@ -612,7 +613,9 @@ export function resizeElement(doc, id, handle, dx, dy, { keepAspect = false } = 
     }
   }
   const next = clone(doc);
-  Object.assign(locate(next, id).element, geometry);
+  const resized = locate(next, id).element;
+  Object.assign(resized, geometry);
+  if (start.type === "image" && start.payload.slice?.scale) resized.payload = { ...resized.payload, slice: rewindowSlice(start, resized, handle) };
   return finish(doc, next);
 }
 
@@ -871,15 +874,24 @@ export function splitPieces(doc, id) {
   if (!set) return [];
   return found.stage.elements.filter(element => element.type === "image" && element.payload.slice?.set === set).sort((a, b) => a.payload.slice.from - b.payload.slice.from);
 }
-// The size of the WHOLE artwork a piece is a band of (a piece always shows its band at the whole artwork's scale).
-const wholeOf = piece => {
-  const { dir, from, to } = piece.payload.slice;
+// Every piece of that split on EVERY stage (a piece can be sent to another stage on its own), in band order.
+function allSplitPieces(doc, set) {
+  return doc.stages.flatMap(stage => stage.elements.filter(element => element.type === "image" && element.payload.slice?.set === set)).sort((a, b) => a.payload.slice.from - b.payload.slice.from);
+}
+// The size of the WHOLE artwork a piece is a window onto: its preserved source scale when it has one, otherwise (pieces made before split hardening) derived from its
+// own box and band - which is why resizing such a piece used to change the picture's scale.
+export const wholeOf = piece => {
+  const { dir, from, to, scale } = piece.payload.slice;
+  if (scale) return { width: scale.w, height: scale.h };
   return dir === "h" ? { width: piece.width, height: piece.height / (to - from) } : { width: piece.width / (to - from), height: piece.height };
 };
+const mainSpan = piece => (piece.payload.slice.dir === "h" ? wholeOf(piece).height : wholeOf(piece).width);
 
 // Splits one artwork into `count` (2..5) equal pieces, vertical cuts ("v": side by side) or horizontal ("h": stacked). NON-destructive: the asset is not touched -
 // every piece is the same artwork showing its own band, so a GIF plays ONE timeline across all pieces (they share the asset). The pieces are grouped (group id = the
 // split set) so they move, resize and layer as one until the owner ungroups them. The first piece keeps the original element's id; they take its layer slot.
+// Every piece records the artwork's pre-split geometry (`src`, so Remove Split restores it exactly) and its source scale (`scale`, "Preserve source scale" - the
+// safe default: moving or resizing a piece never rescales the picture).
 export function splitArtwork(doc, id, count, dir = "v") {
   const found = locate(doc, id);
   if (!found) return fail(doc, "ELEMENT_NOT_FOUND");
@@ -899,17 +911,61 @@ export function splitArtwork(doc, id, count, dir = "v") {
   const edges = Array.from({ length: count + 1 }, (_, i) => Math.round(span * i / count));
   const list = ordered(stage);
   const slot = list.findIndex(element => element.id === id);
+  const src = { x: source.x, y: source.y, w: source.width, h: source.height };
   const pieces = edges.slice(0, -1).map((edge, i) => {
     const piece = clone(source);
     if (i > 0) { piece.id = nextId(next, "el", taken); taken.add(piece.id); }
     const size = edges[i + 1] - edge;
     if (dir === "h") { piece.y = source.y + edge; piece.height = size; } else { piece.x = source.x + edge; piece.width = size; }
     piece.groupId = set;
-    piece.payload = { ...source.payload, slice: { set, dir, from: round6(edge / span), to: round6(edges[i + 1] / span) } };
+    piece.payload = { ...source.payload, slice: { set, dir, from: round6(edge / span), to: round6(edges[i + 1] / span), src: { ...src }, scale: { w: source.width, h: source.height } } };
     return piece;
   });
   assignZ(stage, [...list.slice(0, slot), ...pieces, ...list.slice(slot + 1)]);
   return finish(doc, next, { set, ids: pieces.map(piece => piece.id) });
+}
+
+// With "Preserve source scale": after a piece's box changed from `before` to `after`, re-aim its window so the picture stays exactly where it was on the Wall - a
+// dragged left / top edge moves the window across the artwork instead of dragging or stretching the picture. Returns the new slice (or the old one).
+export function rewindowSlice(before, after, handle) {
+  const slice = before.payload.slice;
+  if (!slice?.scale) return slice;
+  const [sx, sy] = HANDLES[handle] ?? [1, 1];
+  const horizontal = slice.dir === "h";
+  const leftShift = sx < 0 ? before.width - after.width : 0, topShift = sy < 0 ? before.height - after.height : 0;
+  const mainShift = horizontal ? topShift : leftShift, crossShift = horizontal ? leftShift : topShift;
+  const mainScale = horizontal ? slice.scale.h : slice.scale.w, crossScale = horizontal ? slice.scale.w : slice.scale.h;
+  const mainSize = horizontal ? after.height : after.width;
+  const from = Math.min(1 - MIN_SLICE, Math.max(0, slice.from + mainShift / mainScale));
+  const to = Math.min(1, Math.max(from + MIN_SLICE, from + mainSize / mainScale));
+  const cross = Math.min(1, Math.max(-1, (slice.cross ?? 0) + crossShift / crossScale));
+  const next = { ...slice, from: round6(from), to: round6(to) };
+  if (Math.abs(cross) > 1e-6) next.cross = round6(cross); else delete next.cross;
+  return next;
+}
+
+// "Preserve source scale" on / off for the selected pieces. On: each piece keeps the scale it shows NOW (so nothing moves visually). Off: back to the old behaviour,
+// where a piece's picture follows its box when it is resized.
+export function setSplitScaleLock(doc, ids, on) {
+  const next = clone(doc);
+  let changed = 0;
+  for (const id of ids) {
+    const found = locate(next, id);
+    if (!found || found.element.type !== "image" || !found.element.payload.slice) continue;
+    const element = found.element;
+    const slice = { ...element.payload.slice };
+    if (on && !slice.scale) {
+      const whole = wholeOf(element);
+      slice.scale = { w: Math.round(whole.width * 1e4) / 1e4, h: Math.round(whole.height * 1e4) / 1e4 };
+    } else if (!on && slice.scale) {
+      // without a fixed scale the piece shows [from, to) stretched to its box: keep the band it shows now
+      delete slice.scale; delete slice.cross;
+    } else continue;
+    element.payload = { ...element.payload, slice };
+    changed += 1;
+  }
+  if (!changed) return { ok: true, doc };
+  return finish(doc, next);
 }
 
 // Moves the boundary between piece `index` and `index + 1` (in band order) to the fraction `cut` of the whole artwork. The outer edges stay where they are (the
@@ -921,8 +977,7 @@ export function moveSplitBoundary(doc, id, index, cut) {
   const [a, b] = [pieces[index], pieces[index + 1]];
   if (isLocked(a) || isLocked(b)) return fail(doc, "ELEMENT_LOCKED");
   const dir = a.payload.slice.dir;
-  const wholeA = wholeOf(a), wholeB = wholeOf(b);
-  const spanA = dir === "h" ? wholeA.height : wholeA.width, spanB = dir === "h" ? wholeB.height : wholeB.width;
+  const spanA = mainSpan(a), spanB = mainSpan(b);
   const lo = Math.max(a.payload.slice.from + MIN_SLICE, a.payload.slice.from + MIN_SIZE / spanA);
   const hi = Math.min(b.payload.slice.to - MIN_SLICE, b.payload.slice.to - MIN_SIZE / spanB);
   if (lo > hi) return fail(doc, "TOO_SMALL_TO_SPLIT");
@@ -941,42 +996,56 @@ export function moveSplitBoundary(doc, id, index, cut) {
   return finish(doc, next, { cut: at });
 }
 
-// Takes a split back to ONE artwork: the whole artwork is rebuilt from the first piece (its band and size give the whole box), keeping that piece's id, look and the
-// topmost piece's layer slot. Nothing is lost - the split was never baked into the picture.
+// Remove Split: a clean INVERSE of Split. Every piece of the split - on every stage - is removed and ONE artwork comes back:
+//   - geometry: exactly the pre-split x / y / width / height recorded at split time (`src`); no rotation, no group (a split artwork had neither);
+//   - look: the first piece's (crop, mask, opacity, blend, effects, backing, lock, click-through, description, asset - all unchanged), minus every piece of split state;
+//   - layer: the slot of the lowest piece on this stage (where Split put the pieces);
+//   - the id: the first piece's (= the original artwork's id).
+// A split made before `src` existed is rebuilt from its first piece's band (the only record it has).
 export function removeSplit(doc, id) {
-  const pieces = splitPieces(doc, id);
-  if (!pieces.length) return fail(doc, "NOT_SPLIT");
+  const found = locate(doc, id);
+  const set = found?.element.type === "image" ? found.element.payload.slice?.set : null;
+  if (!set) return fail(doc, "NOT_SPLIT");
+  const pieces = allSplitPieces(doc, set);
+  const here = splitPieces(doc, id);
   const first = pieces[0];
-  const { dir, from, set } = first.payload.slice;
-  const whole = wholeOf(first);
+  const record = pieces.find(piece => piece.payload.slice.src)?.payload.slice.src ?? null;
   const next = clone(doc);
-  const stage = locate(next, first.id).stage;
+  const stage = findStage(next, found.stage.id);
   const ids = new Set(pieces.map(piece => piece.id));
   const list = ordered(stage);
-  const topIndex = Math.max(...list.map((element, index) => (ids.has(element.id) ? index : -1)));
+  const bottomIndex = Math.min(...list.map((element, index) => (ids.has(element.id) ? index : Infinity)));
   const merged = clone(first);
-  if (dir === "h") { merged.height = Math.round(whole.height); merged.y = Math.round(first.y - from * whole.height); } else { merged.width = Math.round(whole.width); merged.x = Math.round(first.x - from * whole.width); }
-  const { slice: _slice, ...payload } = merged.payload;
+  const { slice, ...payload } = merged.payload;
   merged.payload = payload;
-  if (merged.groupId === set) delete merged.groupId;
-  if (!clampToCanvas(merged, next.canvas)) return fail(doc, "OUTSIDE_CANVAS");
+  delete merged.groupId;
+  delete merged.rotation;
+  if (record) Object.assign(merged, { x: record.x, y: record.y, width: record.w, height: record.h });
+  else {
+    const anchor = here[0] ?? first;
+    const whole = wholeOf(anchor);
+    Object.assign(merged, { x: anchor.x, y: anchor.y, width: Math.round(whole.width), height: Math.round(whole.height) });
+    if (slice.dir === "h") merged.y = Math.round(anchor.y - anchor.payload.slice.from * whole.height); else merged.x = Math.round(anchor.x - anchor.payload.slice.from * whole.width);
+  }
+  if (!inside(containBounds(merged), next.canvas) && !clampToCanvas(merged, next.canvas)) return fail(doc, "OUTSIDE_CANVAS");
+  for (const other of next.stages) if (other !== stage) { const before = other.elements.length; other.elements = other.elements.filter(element => !ids.has(element.id)); if (other.elements.length !== before) normalizeStageZ(other); }
   const kept = list.filter(element => !ids.has(element.id));
-  const slot = list.slice(0, topIndex + 1).filter(element => !ids.has(element.id)).length;
+  const slot = Number.isFinite(bottomIndex) ? list.slice(0, bottomIndex).filter(element => !ids.has(element.id)).length : kept.length;
   assignZ(stage, [...kept.slice(0, slot), merged, ...kept.slice(slot)]);
   return finish(doc, next, { ids: [merged.id] });
 }
 
-// Reset: the same number of pieces, same direction, equal boundaries again, re-assembled in place (the whole artwork box rebuilt from the first piece).
+// Reset: the same number of pieces, same direction, equal boundaries again, re-assembled in place (Remove Split, then Split).
 export function resetSplit(doc, id) {
   const pieces = splitPieces(doc, id);
   if (!pieces.length) return fail(doc, "NOT_SPLIT");
   const { dir } = pieces[0].payload.slice;
+  const count = allSplitPieces(doc, pieces[0].payload.slice.set).length;
   const merged = removeSplit(doc, id);
   if (!merged.ok) return merged;
-  const again = splitArtwork(merged.doc, merged.ids[0], pieces.length, dir);
+  const again = splitArtwork(merged.doc, merged.ids[0], Math.min(5, Math.max(2, count)), dir);
   return again.ok ? again : fail(doc, ...again.errors);
 }
-
 // Layers drag-and-drop: moves the dragged layer (its whole group, unless it is being reordered INSIDE its own group) directly above or below the target's unit.
 // Groups stay contiguous, so there is one stacking model: the same one Forward / Backward / Front / Back use.
 export function moveLayer(doc, id, targetId, place = "above") {

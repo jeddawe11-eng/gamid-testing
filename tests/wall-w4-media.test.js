@@ -174,10 +174,10 @@ test("asset store: a picture in use is never deleted from under the Wall being e
 // ---------- backgrounds ----------
 const withBg = (background, stageBackground) => { const d = createDocument(); if (background !== undefined) d.background = background; if (stageBackground !== undefined) d.stages[0].background = stageBackground; return d; };
 
-test("background: color, gradient and image kinds are registered with the generic core registry (video is deferred)", () => {
-  assert.deepEqual(backgroundRegistry.keys().sort(), ["color", "gradient", "image"]);
-  assert.deepEqual([...BACKGROUND_KINDS], ["color", "gradient", "image"]);
-  assert.equal(errors(withBg({ kind: "video", assetId: UUID })).join(), "UNKNOWN_BACKGROUND_KIND:wall");
+test("background: color, gradient, image and video kinds are registered with the generic core registry", () => {
+  assert.deepEqual(backgroundRegistry.keys().sort(), ["color", "gradient", "image", "video"]);
+  assert.deepEqual([...BACKGROUND_KINDS], ["color", "gradient", "image", "video"]);
+  assert.equal(errors(withBg({ kind: "video", assetId: UUID })).join(), "BACKGROUND:INVALID_FIT:wall,BACKGROUND:INVALID_POSITION:wall,BACKGROUND:INVALID_OPACITY:wall", "a video background has the image background's fields");
 });
 test("background: Wall-wide and per-stage, each validated by its kind with a scope-tagged code", () => {
   assert.deepEqual(errors(withBg(defaultBackground("color"), defaultBackground("gradient"))), []);

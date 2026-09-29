@@ -10,10 +10,15 @@
 //   5. anything that fails is DELETED from storage and answered with a typed error; a valid image is registered through public.register_verified_wall_asset (service
 //      role only), which re-checks every value in the database.
 // It never logs names, tokens or file contents - only short codes.
+//
+// Background VIDEOS (MP4) are uploaded (resumably) into the separate private `wall-video` bucket as <user id>/<uuid>.mp4. For them the function never downloads the
+// file: it reads only box HEADERS and the `moov` box with range requests, and requires a real ISO-BMFF MP4 (an `ftyp` first, an ISO / MP4 brand), a video track whose
+// sample entry is H.264 (avc1 / avc3 - the codec every browser plays), a real picture size of at most 4096 px a side and at most 50 MiB. Anything else is deleted.
 
 export const WALL_ASSET_ORIGINS = Object.freeze(["https://jeddawe11-eng.github.io", "https://gamid-testing-static.gamid.workers.dev"]);
 export const WALL_ASSET_LIMITS = Object.freeze({ maxBytes: 5 * 1024 * 1024, maxDimension: 8192, gifMaxFrames: 500, gifMaxFramePixels: 50_000_000 });
-export const EXTENSION_TYPES = Object.freeze({ jpg: "image/jpeg", png: "image/png", webp: "image/webp", avif: "image/avif", gif: "image/gif" });
+export const EXTENSION_TYPES = Object.freeze({ jpg: "image/jpeg", png: "image/png", webp: "image/webp", avif: "image/avif", gif: "image/gif", mp4: "video/mp4" });
+export const WALL_VIDEO_LIMITS = Object.freeze({ maxBytes: 50 * 1024 * 1024, maxDimension: 4096, maxMoovBytes: 8 * 1024 * 1024, maxTopLevelBoxes: 256 });
 
 export function readWallAssetEnv(get) {
   return { supabaseUrl: get("SUPABASE_URL"), anonKey: get("SUPABASE_ANON_KEY"), serviceKey: get("SUPABASE_SERVICE_ROLE_KEY") };
@@ -128,11 +133,99 @@ export function assetProblem(image, extension, byteLength) {
   return null;
 }
 
+// ---- MP4 (background video) recognition ------------------------------------------------------------------------------------------------------------------
+const MP4_BRANDS = /^(isom|iso[2-9]|mp41|mp42|avc1|M4V |dash|mmp4)$/;
+// The boxes directly inside [start, end) of `b`: { type, start (payload), end }; null when a size does not fit (a malformed file).
+function boxes(b, start, end) {
+  const out = [];
+  let at = start;
+  while (at + 8 <= end) {
+    let size = u32be(b, at), header = 8;
+    const type = ascii(b, at + 4, 4);
+    if (size === 1) { if (at + 16 > end) return null; size = u32be(b, at + 8) * 2 ** 32 + u32be(b, at + 12); header = 16; }
+    else if (size === 0) size = end - at;
+    if (size < header || at + size > end) return null;
+    out.push({ type, start: at + header, end: at + size });
+    at += size;
+  }
+  return out;
+}
+const child = (b, box, type) => (boxes(b, box.start, box.end) ?? []).find(candidate => candidate.type === type) ?? null;
+
+// Reads the video track out of a `moov` payload. -> { ok, mime, width, height, codec } | { ok: false, code }
+export function parseMoov(b) {
+  const top = boxes(b, 0, b.length);
+  if (!top) return { ok: false, code: "INVALID_VIDEO" };
+  let unsupported = null;
+  for (const trak of top.filter(box => box.type === "trak")) {
+    const mdia = child(b, trak, "mdia"), hdlr = mdia && child(b, mdia, "hdlr");
+    if (!hdlr || hdlr.end - hdlr.start < 12 || ascii(b, hdlr.start + 8, 4) !== "vide") continue;
+    const stbl = child(b, child(b, mdia, "minf") ?? { start: 0, end: 0 }, "stbl");
+    const stsd = stbl && child(b, stbl, "stsd");
+    if (!stsd || stsd.end - stsd.start < 16 + 36) return { ok: false, code: "INVALID_VIDEO" };
+    const entry = stsd.start + 8;                     // version/flags (4) + entry count (4)
+    const codec = ascii(b, entry + 4, 4);
+    if (codec !== "avc1" && codec !== "avc3") { unsupported = codec; continue; }
+    // the sample entry's coded size: after size+type (8), reserved (6) + data ref (2), pre-defined / reserved (16)
+    let width = u16be(b, entry + 32), height = u16be(b, entry + 34);
+    const tkhd = child(b, trak, "tkhd");
+    if (tkhd && tkhd.end - tkhd.start >= 84) {
+      const at = b[tkhd.start] === 1 ? tkhd.start + 88 : tkhd.start + 76;   // display size (16.16 fixed point) at the end of the track header
+      if (at + 8 <= tkhd.end) { const w = Math.round(u32be(b, at) / 65536), h = Math.round(u32be(b, at + 4) / 65536); if (w > 0 && h > 0) { width = w; height = h; } }
+    }
+    return { ok: true, mime: "video/mp4", width, height, codec, frames: null };
+  }
+  return { ok: false, code: unsupported ? "VIDEO_CODEC_UNSUPPORTED" : "INVALID_VIDEO" };
+}
+
+// Walks the top-level boxes with `read(offset, length) -> Uint8Array` (range reads) and inspects the `moov` box. -> like parseMoov
+export async function inspectMp4(read, total) {
+  if (!Number.isSafeInteger(total) || total < 16) return { ok: false, code: "INVALID_VIDEO" };
+  let offset = 0, video = null;
+  // every top-level box must fit the file exactly (a truncated upload fails here even when its moov came first)
+  for (let guard = 0; offset < total && guard < WALL_VIDEO_LIMITS.maxTopLevelBoxes; guard += 1) {
+    if (offset + 8 > total) return { ok: false, code: "INVALID_VIDEO" };
+    const head = await read(offset, Math.min(16, total - offset));
+    if (head.length < 8) return { ok: false, code: "INVALID_VIDEO" };
+    let size = u32be(head, 0), header = 8;
+    const type = ascii(head, 4, 4);
+    if (size === 1) { if (head.length < 16) return { ok: false, code: "INVALID_VIDEO" }; size = u32be(head, 8) * 2 ** 32 + u32be(head, 12); header = 16; }
+    else if (size === 0) size = total - offset;
+    if (offset === 0 && type !== "ftyp") return { ok: false, code: "UNSUPPORTED_VIDEO_TYPE" };   // not an ISO-BMFF file at all (an image, a text file...)
+    if (size < header || offset + size > total) return { ok: false, code: "INVALID_VIDEO" };
+    if (offset === 0) {
+      if (type !== "ftyp" || size > 4096) return { ok: false, code: "UNSUPPORTED_VIDEO_TYPE" };
+      const ftyp = await read(0, size);
+      const brands = [ascii(ftyp, 8, 4)];
+      for (let i = 16; i + 4 <= ftyp.length; i += 4) brands.push(ascii(ftyp, i, 4));
+      if (!brands.some(brand => MP4_BRANDS.test(brand))) return { ok: false, code: "UNSUPPORTED_VIDEO_TYPE" };
+    } else if (type === "moov") {
+      if (size > WALL_VIDEO_LIMITS.maxMoovBytes) return { ok: false, code: "INVALID_VIDEO" };
+      if (video) return { ok: false, code: "INVALID_VIDEO" };
+      const moov = await read(offset, size);
+      if (moov.length !== size) return { ok: false, code: "INVALID_VIDEO" };
+      video = parseMoov(moov.subarray(header));
+      if (!video.ok) return video;
+    }
+    offset += size;
+  }
+  if (offset !== total || !video) return { ok: false, code: "INVALID_VIDEO" };
+  return video;
+}
+
+export function videoProblem(video, byteLength) {
+  if (!Number.isSafeInteger(byteLength) || byteLength < 1 || byteLength > WALL_VIDEO_LIMITS.maxBytes) return "VIDEO_TOO_LARGE";
+  if (!video.ok) return video.code;
+  const side = value => Number.isInteger(value) && value >= 1 && value <= WALL_VIDEO_LIMITS.maxDimension;
+  if (!side(video.width) || !side(video.height)) return "INVALID_WALL_ASSET_SIZE";
+  return null;
+}
+
 // ---- the request handler -----------------------------------------------------------------------------------------------------------------------------
-const PATH = /^([0-9a-f-]{36})\/[0-9a-f-]{36}\.(jpg|png|webp|avif|gif)$/;
+const PATH = /^([0-9a-f-]{36})\/[0-9a-f-]{36}\.(jpg|png|webp|avif|gif|mp4)$/;
 const json = (body, status, extra = {}) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...extra } });
 const corsFor = origin => (WALL_ASSET_ORIGINS.includes(origin) ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : { Vary: "Origin" });
-const DB_ERRORS = { WALL_ASSET_LIMIT: 409, IDENTITY_NOT_FOUND: 409, WALL_ASSET_UPLOAD_NOT_FOUND: 404, INVALID_WALL_ASSET_PATH: 400, INVALID_WALL_ASSET_TYPE: 400, WALL_ASSET_TOO_LARGE: 400, INVALID_WALL_ASSET_SIZE: 400, GIF_TOO_COMPLEX: 400 };
+const DB_ERRORS = { WALL_VIDEO_LIMIT: 409, VIDEO_TOO_LARGE: 400, WALL_ASSET_LIMIT: 409, IDENTITY_NOT_FOUND: 409, WALL_ASSET_UPLOAD_NOT_FOUND: 404, INVALID_WALL_ASSET_PATH: 400, INVALID_WALL_ASSET_TYPE: 400, WALL_ASSET_TOO_LARGE: 400, INVALID_WALL_ASSET_SIZE: 400, GIF_TOO_COMPLEX: 400 };
 
 export async function handleWallAssetRegister({ request, env, fetchImpl = fetch, log = () => {} }) {
   const origin = request.headers.get("origin");
@@ -163,24 +256,48 @@ export async function handleWallAssetRegister({ request, env, fetchImpl = fetch,
   const parts = PATH.exec(path);
   if (!parts || parts[1] !== userId) return json({ error: "INVALID_WALL_ASSET_PATH" }, 400, cors);
   const extension = parts[2];
-  const objectUrl = `${base}/storage/v1/object/wall-media/${path}`;
+  const isVideo = extension === "mp4";
+  const objectUrl = `${base}/storage/v1/object/${isVideo ? "wall-video" : "wall-media"}/${path}`;
   const discard = () => fetchImpl(objectUrl, { method: "DELETE", headers: service }).catch(() => null);
 
   try {
-    // 3. the STORED bytes, read with the service role
-    const stored = await fetchImpl(objectUrl, { headers: service });
-    if (stored.status === 404 || stored.status === 400) return json({ error: "WALL_ASSET_UPLOAD_NOT_FOUND" }, 404, cors);
-    if (!stored.ok) { log("wall-asset", "read_failed"); return json({ error: "register_failed" }, 502, cors); }
-    const bytes = new Uint8Array(await stored.arrayBuffer());
-    // 4. recognise and check
-    const image = sniffImage(bytes);
-    const problem = assetProblem(image, extension, bytes.length);
-    if (problem) { await discard(); log("wall-asset", `rejected_${problem}`); return json({ error: problem }, 400, cors); }
+    let image, byteLength;
+    if (isVideo) {
+      // 3v. an MP4 is inspected with RANGE reads only (headers + moov), never downloaded whole
+      let total = null, missing = false;
+      const read = async (offset, length) => {
+        const response = await fetchImpl(objectUrl, { headers: { ...service, Range: `bytes=${offset}-${offset + length - 1}` } });
+        if (response.status === 404 || response.status === 400) { missing = true; throw new Error("missing"); }
+        if (!response.ok) throw new Error("read_failed");
+        const range = /\/(\d+)\s*$/.exec(response.headers.get("content-range") || "");
+        if (range) total = Number(range[1]);
+        const buffer = new Uint8Array(await response.arrayBuffer());
+        if (!range && response.status === 200) total = buffer.length;   // a server that ignores Range sent the whole file
+        return response.status === 206 ? buffer : buffer.subarray(offset, offset + length);
+      };
+      try { await read(0, 16); } catch { if (missing) return json({ error: "WALL_ASSET_UPLOAD_NOT_FOUND" }, 404, cors); log("wall-asset", "read_failed"); return json({ error: "register_failed" }, 502, cors); }
+      byteLength = total;
+      if (!Number.isSafeInteger(byteLength) || byteLength > WALL_VIDEO_LIMITS.maxBytes) image = { ok: false, code: "VIDEO_TOO_LARGE" };
+      else image = await inspectMp4(read, byteLength).catch(() => ({ ok: false, code: "INVALID_VIDEO" }));
+      const problem = videoProblem(image, byteLength);
+      if (problem) { await discard(); log("wall-asset", `rejected_${problem}`); return json({ error: problem }, 400, cors); }
+    } else {
+      // 3. the STORED bytes, read with the service role
+      const stored = await fetchImpl(objectUrl, { headers: service });
+      if (stored.status === 404 || stored.status === 400) return json({ error: "WALL_ASSET_UPLOAD_NOT_FOUND" }, 404, cors);
+      if (!stored.ok) { log("wall-asset", "read_failed"); return json({ error: "register_failed" }, 502, cors); }
+      const bytes = new Uint8Array(await stored.arrayBuffer());
+      // 4. recognise and check
+      image = sniffImage(bytes);
+      byteLength = bytes.length;
+      const problem = assetProblem(image, extension, bytes.length);
+      if (problem) { await discard(); log("wall-asset", `rejected_${problem}`); return json({ error: problem }, 400, cors); }
+    }
     // 5. register (the database checks every value again)
     const registered = await fetchImpl(`${base}/rest/v1/rpc/register_verified_wall_asset`, {
       method: "POST",
       headers: { ...service, "Content-Type": "application/json" },
-      body: JSON.stringify({ candidate_owner: userId, candidate_path: path, candidate_mime: image.mime, candidate_bytes: bytes.length, candidate_width: image.width, candidate_height: image.height, candidate_frames: image.mime === "image/gif" ? image.frames : null }),
+      body: JSON.stringify({ candidate_owner: userId, candidate_path: path, candidate_mime: image.mime, candidate_bytes: byteLength, candidate_width: image.width, candidate_height: image.height, candidate_frames: image.mime === "image/gif" ? image.frames : null }),
     });
     let payload = null;
     try { payload = await registered.json(); } catch { payload = null; }

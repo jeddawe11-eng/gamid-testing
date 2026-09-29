@@ -30,6 +30,24 @@ export function checkAssetCount(count) {
   return count >= ASSET_LIMITS.maxAssets ? { ok: false, code: "WALL_ASSET_LIMIT", message: `You can keep up to ${ASSET_LIMITS.maxAssets} images. Delete one you no longer use first.` } : { ok: true };
 }
 
+// ---- background VIDEOS (MP4, background only) -------------------------------------------------------------------------------------------------------------
+// The browser's early checks; the wall-video bucket (type + 50 MiB), the wall-asset-register Edge Function (the stored file must be a real MP4 with an H.264 video
+// track of at most 4096 px a side) and the database (type, size, at most 10 videos) all enforce them again.
+export const VIDEO_LIMITS = Object.freeze({ types: Object.freeze(["video/mp4"]), maxBytes: 50 * 1024 * 1024, maxDimension: 4096, maxVideos: 10 });
+export const isVideoAsset = asset => asset?.mime_type === "video/mp4";
+export function checkVideoFile({ type, size }) {
+  if (!VIDEO_LIMITS.types.includes(type)) return { ok: false, code: "INVALID_VIDEO_TYPE", message: "Choose an MP4 video." };
+  if (!Number.isFinite(size) || size < 1) return { ok: false, code: "EMPTY_FILE", message: "That file is empty." };
+  if (size > VIDEO_LIMITS.maxBytes) return { ok: false, code: "VIDEO_TOO_LARGE", message: "Background videos must be 50 MB or smaller." };
+  return { ok: true };
+}
+export function checkVideoMetadata({ width, height, duration } = {}) {
+  const side = value => Number.isInteger(value) && value >= 1 && value <= VIDEO_LIMITS.maxDimension;
+  if (!side(width) || !side(height)) return { ok: false, code: "INVALID_WALL_ASSET_SIZE", message: `Background videos can be at most ${VIDEO_LIMITS.maxDimension} pixels on a side.` };
+  if (!(duration > 0)) return { ok: false, code: "INVALID_VIDEO", message: "That video could not be read. Try another MP4." };
+  return { ok: true };
+}
+
 // A starting element size (canonical units) for a picture of the given pixel size: as large as 640 wide / 900 tall while keeping its proportions.
 export function startingImageSize(width, height) {
   const ratio = width / height;
@@ -53,6 +71,13 @@ export const ASSET_ERROR_MESSAGES = {
   UNSUPPORTED_IMAGE_TYPE: `That file is not a ${ASSET_TYPE_LABEL} image, so it was not added.`,
   INVALID_IMAGE: "That image file is damaged or incomplete, so it was not added.",
   WALL_ASSET_TYPE_MISMATCH: "That file's contents do not match its type, so it was not added.",
+  INVALID_VIDEO_TYPE: "Choose an MP4 video.",
+  VIDEO_TOO_LARGE: "Background videos must be 50 MB or smaller.",
+  UNSUPPORTED_VIDEO_TYPE: "That file is not an MP4 video, so it was not added.",
+  INVALID_VIDEO: "That video could not be read (damaged, incomplete or without a picture track). Try another MP4.",
+  VIDEO_CODEC_UNSUPPORTED: "That MP4 is not H.264, which every browser can play. Export it as H.264 (MP4) and try again.",
+  WALL_VIDEO_LIMIT: "You can keep up to 10 background videos. Delete one you no longer use first.",
+  WALL_VIDEO_UPLOAD_FAILED: "The video upload did not finish. Check your connection and try again.",
   GIF_TOO_COMPLEX: "That GIF is too heavy to animate smoothly on phones (at most 500 frames, and fewer for large GIFs). Try a shorter or smaller GIF.",
   INVALID_WALL_ASSET_PATH: "The upload could not be checked. Try again.",
   IDENTITY_NOT_FOUND: "Create your GamID first, then come back to add images.",

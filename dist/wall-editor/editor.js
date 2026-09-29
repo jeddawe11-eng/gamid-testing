@@ -13,6 +13,7 @@ import { GAMID_BLOCK_INFO } from "../wall-kit/gamid.js";
 import { DATA_FIELD_INFO } from "../wall-kit/gamid-data.js";
 import { createPlayerManager } from "../wall-kit/embed/player.js";
 import { createPosterLoader } from "../wall-kit/posters.js";
+import { createVideoPool } from "../wall-kit/video-background.js";
 import { createCanvas } from "./canvas.js";
 import { createPropertiesPanel } from "./controls.js";
 import { createTools } from "./tools.js";
@@ -72,6 +73,9 @@ $("errorDismiss").addEventListener("click", () => notifier.dismiss());
 const scheduleRender = () => { if (renderQueued) return; renderQueued = true; setTimeout(() => { renderQueued = false; if (workspaceVisible) renderAll(); }, 16); };
 const assetStore = createAssetStore({ api, userId: null, onChange: scheduleRender });
 const posters = createPosterLoader({ endpoint: api.MEDIA_POSTER_URL });
+// background videos: one pool for the canvas (repaints never restart the video) and one for Preview
+const canvasVideos = createVideoPool();
+let previewVideos = null;
 async function refreshGamid() {
   gamidSnapshot = null;
   scheduleRender();
@@ -97,7 +101,7 @@ const canvas = createCanvas({
   viewport: $("viewport"),
   session,
   isMulti: () => multi,
-  getPaintContext: () => ({ assets: assetStore, gamid: gamidSnapshot, posters }),
+  getPaintContext: () => ({ assets: assetStore, gamid: gamidSnapshot, posters, videos: canvasVideos }),
   onSelectedTap: () => { if (isPhone()) openTool("props"); },
   onEditText: () => {
     if (isPhone()) openTool("props");
@@ -340,7 +344,8 @@ function renderPreview() {
   const available = Math.max(280, (scroll.clientWidth || window.innerWidth) - 16);
   const width = previewMode === "mobile" ? Math.min(390, available) : Math.min(900, available);
   // a Wall saved before the player-layering rule existed is shown with that rule applied (nothing drawn over a player); the document itself is not changed
-  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players, posters, details: detailsFor(gamidSnapshot) });
+  previewVideos ??= createVideoPool();
+  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players, posters, details: detailsFor(gamidSnapshot), videos: previewVideos });
   $("previewColumn").replaceChildren(...(painted.ok ? painted.stages : [make("p", "ed-empty", "This Wall cannot be previewed: " + describeErrors(painted.errors).join(" "))]));
   $("previewMobile").setAttribute("aria-pressed", String(previewMode === "mobile"));
   $("previewDesktop").setAttribute("aria-pressed", String(previewMode === "desktop"));
@@ -348,7 +353,7 @@ function renderPreview() {
 $("previewBtn").addEventListener("click", () => { $("preview").hidden = false; renderPreview(); $("previewScroll").scrollTop = 0; });
 $("previewMobile").addEventListener("click", () => { previewMode = "mobile"; renderPreview(); });
 $("previewDesktop").addEventListener("click", () => { previewMode = "desktop"; renderPreview(); });
-$("previewClose").addEventListener("click", () => { players?.destroyAll(); players = null; details?.closeAll(); $("preview").hidden = true; $("previewColumn").replaceChildren(); });
+$("previewClose").addEventListener("click", () => { players?.destroyAll(); players = null; details?.closeAll(); previewVideos?.clear(); previewVideos = null; $("preview").hidden = true; $("previewColumn").replaceChildren(); });
 
 // ---- keyboard (desktop) ------------------------------------------------------------------------------------------------------------------------------
 document.addEventListener("keydown", event => {

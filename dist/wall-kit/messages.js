@@ -52,6 +52,7 @@ const BY_CODE = {
   WALL_DOCUMENT_TOO_LARGE: "The Wall is too large to save (1 MiB limit).",
   WALL_ASSET_NOT_FOUND: "A picture on your Wall is no longer in your Assets, so nothing was saved. Remove it from the Wall or upload it again.",
   WALL_ASSET_IN_USE: "That image is still used on your Wall. Remove it from the Wall first.",
+  WALL_ASSET_KIND_MISMATCH: "A video can only be a background, and a picture only an image or artwork, so nothing was saved.",
   STORED_DOCUMENT_INVALID: "The saved Wall could not be opened safely, so editing is blocked to protect it.",
   WALL_PERSISTENCE_FAILED: "Could not reach the server. Your edits are kept here; try again.",
   WALL_SAVE_FAILED: "Saving failed. Your edits are kept here; try again.",

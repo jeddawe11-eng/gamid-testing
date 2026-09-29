@@ -1,6 +1,6 @@
 // The owner's Wall assets in the editor: list, upload, delete and hand pictures to the painter as blob: URLs. All network goes through the accepted account client (injected as
 // `api`, so this is testable); every rule from wall-kit/assets.js is checked before anything is sent, and the storage bucket and database enforce the same rules again.
-import { checkAssetFile, checkAssetDimensions, checkAssetCount, describeAssetError } from "../wall-kit/assets.js";
+import { checkAssetFile, checkAssetDimensions, checkAssetCount, describeAssetError, checkVideoFile, checkVideoMetadata, isVideoAsset } from "../wall-kit/assets.js";
 import { assetsInUse } from "../wall-kit/ops.js";
 
 async function decodeSize(file) {
@@ -19,28 +19,79 @@ async function decodeSize(file) {
   });
 }
 
-export function createAssetStore({ api, userId, onChange = () => {}, decode = decodeSize }) {
+// A video's real size and duration, read by the browser from the file's own header (the server checks the stored file again).
+async function decodeVideo(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    const done = () => { URL.revokeObjectURL(url); video.removeAttribute("src"); video.load(); };
+    video.onloadedmetadata = () => { const meta = { width: video.videoWidth, height: video.videoHeight, duration: video.duration }; done(); resolve(meta); };
+    video.onerror = () => { done(); reject(new Error("DECODE_FAILED")); };
+    video.src = url;
+  });
+}
+
+// Signed video addresses are short-lived: one is reused until 30 minutes before it expires, then a fresh one is asked for.
+const VIDEO_URL_REUSE_MS = 5.5 * 60 * 60 * 1000;
+
+export function createAssetStore({ api, userId, onChange = () => {}, decode = decodeSize, decodeVideoFile = decodeVideo, now = () => Date.now() }) {
   let currentUserId = userId;
   let assets = [];
-  const urls = new Map();       // assetId -> blob: URL
+  const urls = new Map();       // assetId -> blob: URL (pictures)
   const loading = new Set();    // assetIds being fetched
+  const videoUrls = new Map();  // assetId -> { url, at } (signed https: stream address)
   const byId = id => assets.find(asset => asset.asset_id === id) ?? null;
 
   function ensureUrl(id) {
     if (urls.has(id) || loading.has(id)) return;
     const asset = byId(id);
-    if (!asset) return;
+    if (!asset || isVideoAsset(asset)) return;   // a video is never downloaded whole: it streams (videoUrlFor)
     loading.add(id);
     Promise.resolve(api.loadWallAsset(asset.storage_path)).then(url => { if (url) urls.set(id, url); }).catch(() => { /* the picture shows as a placeholder */ }).finally(() => { loading.delete(id); onChange(); });
+  }
+  function ensureVideoUrl(id) {
+    const known = videoUrls.get(id);
+    if ((known && now() - known.at < VIDEO_URL_REUSE_MS) || loading.has(id)) return;
+    const asset = byId(id);
+    if (!asset || !isVideoAsset(asset) || typeof api.signWallVideo !== "function") return;
+    loading.add(id);
+    Promise.resolve(api.signWallVideo(asset.storage_path)).then(url => { if (url) videoUrls.set(id, { url, at: now() }); }).catch(() => { /* the background stays dark */ }).finally(() => { loading.delete(id); onChange(); });
   }
 
   return {
     get assets() { return assets; },
+    get images() { return assets.filter(asset => !isVideoAsset(asset)); },
+    get videos() { return assets.filter(isVideoAsset); },
+    videoUrlFor(assetId) { ensureVideoUrl(assetId); return videoUrls.get(assetId)?.url ?? null; },
+    isVideo(assetId) { const asset = byId(assetId); return !!asset && isVideoAsset(asset); },
+    // -> { ok: true, asset } | { ok: false, message }
+    async uploadVideo(file, { onProgress } = {}) {
+      const fileCheck = checkVideoFile({ type: file.type, size: file.size });
+      if (!fileCheck.ok) return fileCheck;
+      const countCheck = checkAssetCount(assets.length);
+      if (!countCheck.ok) return countCheck;
+      let meta;
+      try { meta = await decodeVideoFile(file); } catch { return { ok: false, code: "INVALID_VIDEO", message: describeAssetError({ code: "INVALID_VIDEO" }) }; }
+      const metaCheck = checkVideoMetadata(meta);
+      if (!metaCheck.ok) return metaCheck;
+      try {
+        const asset = await api.uploadWallVideo(file, currentUserId, { onProgress });
+        if (!asset) return { ok: false, message: describeAssetError(null) };
+        assets = [asset, ...assets.filter(existing => existing.asset_id !== asset.asset_id)];
+        ensureVideoUrl(asset.asset_id);
+        onChange();
+        return { ok: true, asset };
+      } catch (error) {
+        return { ok: false, code: error?.code, message: describeAssetError(error) };
+      }
+    },
     setUserId(id) { currentUserId = id; },
     urlFor(assetId) { const url = urls.get(assetId); if (!url) ensureUrl(assetId); return url ?? null; },
     async refresh() {
       assets = (await api.listWallAssets()) ?? [];
-      for (const asset of assets) ensureUrl(asset.asset_id);
+      for (const asset of assets) (isVideoAsset(asset) ? ensureVideoUrl : ensureUrl)(asset.asset_id);
       onChange();
       return assets;
     },
@@ -73,6 +124,7 @@ export function createAssetStore({ api, userId, onChange = () => {}, decode = de
         assets = assets.filter(asset => asset.asset_id !== assetId);
         const url = urls.get(assetId);
         if (url) { URL.revokeObjectURL(url); urls.delete(assetId); }
+        videoUrls.delete(assetId);
         onChange();
         return { ok: true };
       } catch (error) {

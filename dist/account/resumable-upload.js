@@ -37,7 +37,7 @@ async function readOffset(uploadUrl, headers, fetcher) {
   return offset;
 }
 
-export async function uploadResumable({ endpoint, bucketName, objectName, contentType, file, token, apikey, fetcher = fetch, retryDelays = RETRY_DELAYS }) {
+export async function uploadResumable({ endpoint, bucketName, objectName, contentType, file, token, apikey, fetcher = fetch, retryDelays = RETRY_DELAYS, onProgress = null }) {
   const authHeaders = { authorization:`Bearer ${token}`, apikey };
   const metadata = [
     ["bucketName",bucketName], ["objectName",objectName], ["contentType",contentType], ["cacheControl","3600"],
@@ -67,7 +67,7 @@ export async function uploadResumable({ endpoint, bucketName, objectName, conten
         if (response.ok) {
           const next = Number(response.headers.get("upload-offset"));
           if (!Number.isSafeInteger(next) || next <= offset || next > file.size) throw new ResumableUploadError("Intro upload returned an invalid chunk position.", 0);
-          offset = next; completed = true; break;
+          offset = next; completed = true; onProgress?.(offset, file.size); break;
         }
         if ([401,403,404,413].includes(response.status)) {
           const permanent = new ResumableUploadError(`Intro upload failed (${response.status}).`, response.status);

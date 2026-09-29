@@ -369,6 +369,9 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       root.append(h("div", { class: "ed-btn-row" },
         h("button", { class: "ed-btn", type: "button", text: "Equal pieces again", onclick: () => exec(ops.resetSplit(session.doc, element.id), { keepResultSelection: true }) }),
         h("button", { class: "ed-btn", type: "button", text: "Remove split", onclick: () => exec(ops.removeSplit(session.doc, element.id), { keepResultSelection: true }) })));
+      // Split hardening: WHERE a piece is and WHICH PART it shows are separate - with the scale preserved, resizing a piece shows more / less of the picture
+      root.append(h("div", { class: "ed-btn-row" }, toggleButton({ label: "Preserve source scale", get: item => !!item.payload.slice?.scale, set: on => ops.setSplitScaleLock(session.doc, session.state.selection, on), key: "splitScale" })));
+      root.append(h("p", { class: "ed-hint", text: "On (recommended): moving or resizing a piece never zooms or stretches the picture - resizing shows more or less of it. Off: the picture stretches with the piece's box." }));
       return;
     }
     if (targets.length !== 1) { root.append(h("p", { class: "ed-hint", text: "Select one artwork to split it." })); return; }
@@ -630,7 +633,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     update() {
       const targets = selectedElements();
       // (an embed's presentation is part of the key: switching Card <-> Player changes which controls apply, e.g. Shape)
-      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}`;
+      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}${element.type === "image" ? `:${element.payload.slice?.set ?? "-"}` : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}`;
       if (key !== builtKey) { builtKey = key; rebuild(targets); }
       if (targets.length) for (const sync of syncers) sync(targets);
     },
