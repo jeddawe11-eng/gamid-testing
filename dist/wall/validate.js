@@ -59,7 +59,7 @@ function validateElement(element, errors) {
 
 // An element with keepInside:false may sit partly or wholly outside the stage (the stage clips it when painted), anywhere within FREE_MARGIN units around it -
 // a sanity bound only, far beyond anything visible. Every other element stays inside the canvas exactly as before.
-export const FREE_MARGIN = 20000;
+export const FREE_MARGIN = 5000;
 const fitsCanvas = (element, canvas) => {
   const margin = element.keepInside === false ? FREE_MARGIN : 0;
   return element.x >= -margin && element.y >= -margin && element.x + element.width <= canvas.width + margin && element.y + element.height <= canvas.height + margin;

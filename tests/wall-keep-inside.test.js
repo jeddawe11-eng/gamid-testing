@@ -133,10 +133,24 @@ test("K7 selections: a group moves as one; one member kept inside keeps the unit
   assert.match(controls, /ops\.setKeepInside\(session\.doc, session\.state\.selection, keep\.checked\)/);
 });
 
-test("K8 the migration only replaces the document validator (no destructive statement) and mirrors the JS margin", () => {
-  const sql = readFileSync(new URL("../supabase/migrations/20260930140000_wall_keep_inside_stage.sql", import.meta.url), "utf8").replace(/--.*$/gm, "");
-  assert.match(sql, /create or replace function private\.wall_document_errors\(doc jsonb\)/);
-  assert.match(sql, /INVALID_KEEP_INSIDE/);
-  assert.match(sql, new RegExp(`then ${FREE_MARGIN} else 0 end`));
-  assert.doesNotMatch(sql, /\b(drop|alter|delete|update|insert|truncate)\b/i);
+test("K8 the migrations only replace the document validator (no destructive statement); the LATEST one mirrors the JS margin exactly", () => {
+  const read = name => readFileSync(new URL(`../supabase/migrations/${name}`, import.meta.url), "utf8").replace(/--.*$/gm, "");
+  const first = read("20260930140000_wall_keep_inside_stage.sql"), latest = read("20260930150000_wall_keep_inside_margin.sql");
+  assert.equal(FREE_MARGIN, 5000, "the out-of-stage sanity limit is +-5000 units");
+  for (const sql of [first, latest]) {
+    assert.match(sql, /create or replace function private\.wall_document_errors\(doc jsonb\)/);
+    assert.match(sql, /INVALID_KEEP_INSIDE/);
+    assert.doesNotMatch(sql, /\b(drop|alter|delete|update|insert|truncate)\b/i);
+  }
+  assert.match(latest, new RegExp(`then ${FREE_MARGIN} else 0 end`));
+  assert.equal(latest.replace(/then 5000 else 0 end/, "then 20000 else 0 end").trim(), first.trim(), "the newer migration differs from the first ONLY in the limit");
+});
+
+test("K9 the limit: OFF elements go up to 5000 units past any edge, and no further", () => {
+  const doc = free(docWith(rect("a")));
+  assert.deepEqual([el(ok(ops.moveElements(doc, ["a"], -999999, 0)), "a").x, el(ok(ops.moveElements(doc, ["a"], 999999, 0)), "a").x], [-5000, W + 5000 - 200]);
+  assert.deepEqual([el(ok(ops.moveElements(doc, ["a"], 0, -999999)), "a").y, el(ok(ops.moveElements(doc, ["a"], 0, 999999)), "a").y], [-5000, H + 5000 - 100]);
+  assert.equal(el(ok(ops.updateGeometry(doc, "a", { x: -7000 })), "a").x, -5000, "a typed position beyond the limit stops at it");
+  const beyond = JSON.parse(JSON.stringify(doc)); el(beyond, "a").x = -5001;
+  assert.deepEqual(validateDocument(beyond).errors, ["OUTSIDE_CANVAS:a"]);
 });
