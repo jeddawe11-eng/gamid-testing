@@ -5,6 +5,7 @@ import { renderDocument } from "../wall/render.js";
 import { HEX_COLOR } from "../wall/fields.js";
 import { fontCss } from "./fonts.js";
 import { isAllowedOpenUrl } from "./embed/engine.js";
+import { isSafeLinkUrl } from "./text.js";
 import { hasPoster } from "./posters.js";
 import { paintGamidBlock } from "./gamid-blocks.js";
 import { paintGamidData } from "./gamid-data-paint.js";
@@ -26,10 +27,23 @@ function paintRect(node, content, scale, item) {
   if (content.radius) style.setProperty("border-radius", px(Math.min(content.radius * scale, Math.min(item.width, item.height) / 2)));
 }
 
-function paintText(node, content, scale, createNode) {
-  const inner = createNode("div");
+// An "Other" link (text.js `link`): in VIEW mode (Preview, a visitor's Wall) the text itself is the link - a real <a> that opens the address in a new tab without
+// giving the opened page any access back (noopener noreferrer). The address is re-checked here against the stored rule; anything else stays plain text. In the
+// editor it is plain text (taps select / drag it), exactly like any other text.
+function paintText(node, content, scale, createNode, ctx = {}) {
+  const href = ctx.mode === "view" && isSafeLinkUrl(content.link?.url) ? content.link.url : null;
+  const inner = createNode(href ? "a" : "div");
   inner.className = "wall-text";
   inner.textContent = content.text;   // text only - never markup
+  if (href) {
+    markInteractive(inner);
+    inner.setAttribute("href", href);
+    inner.setAttribute("target", "_blank");
+    inner.setAttribute("rel", "noopener noreferrer");
+    inner.style.setProperty("display", "block");
+    inner.style.setProperty("cursor", "pointer");
+    node.setAttribute("data-link", "true");
+  }
   const style = inner.style;
   style.setProperty("font-family", fontCss(content.fontFamily));
   style.setProperty("font-size", px(content.fontSize * scale));
@@ -168,17 +182,46 @@ export function paintArtworkFrame(node, look, scale, item, createNode) {
 }
 const LEGACY_BACKDROP = "#14101f";
 
-// The picture inside the frame. Without a crop: the saved fit / position (as before). With a crop: the source is scaled so the crop window fills the frame exactly
-// (the editor keeps the box at the crop's proportions), by percentages only - the same at every size and for every piece of a split.
+// Flip horizontal / vertical of an artwork's media (validated booleans only): a mirror of what is drawn - the file is never changed. null = not flipped.
+export const artworkFlip = content => { const x = content?.flipX === true ? -1 : 1, y = content?.flipY === true ? -1 : 1; return x === 1 && y === 1 ? null : `scale(${x}, ${y})`; };
+// The left / right edge fade (0..50 % of the width each) as a CSS mask on the frame. null = no fade.
+export function artworkFade(fade) {
+  const left = clampNum(fade?.left, 0, 50), right = clampNum(fade?.right, 0, 50);
+  if (!(left > 0) && !(right > 0)) return null;
+  return `linear-gradient(to right, transparent 0%, #000 ${num(left)}%, #000 ${num(100 - right)}%, transparent 100%)`;
+}
+
+// The media (picture or video) inside the frame. Without a crop: the saved fit / position (as before). With a crop: the source is scaled so the crop window fills the
+// frame exactly (the editor keeps the box at the crop's proportions), by percentages only - the same at every size and for every piece of a split. A flip mirrors
+// the media about its own centre; with a crop the window is taken from the mirrored side, so the SAME part of the source is shown, mirrored.
+// Every property is set on every paint: a pooled video element (the same one across repaints) never keeps a value from an earlier look.
+function styleArtworkMedia(media, content, legacy) {
+  const style = media.style;
+  const crop = content.crop && content.crop.w > 0 && content.crop.h > 0 ? content.crop : null;
+  const flipX = content.flipX === true, flipY = content.flipY === true;
+  for (const [name, value] of [["display", "block"], ["pointer-events", "none"], ["object-position", `${num(content.posX)}% ${num(content.posY)}%`],
+    ["opacity", legacy && Number.isFinite(content.opacity) ? num(clampNum(content.opacity, 0, 1)) : "1"], ["transform", artworkFlip(content) ?? "none"]]) style.setProperty(name, value);
+  if (crop) {
+    const left = flipX ? -(1 - crop.x - crop.w) / crop.w : -crop.x / crop.w, top = flipY ? -(1 - crop.y - crop.h) / crop.h : -crop.y / crop.h;
+    for (const [name, value] of [["position", "absolute"], ["max-width", "none"], ["object-fit", "fill"],
+      ["width", `${num(100 / crop.w)}%`], ["height", `${num(100 / crop.h)}%`], ["left", `${num(left * 100)}%`], ["top", `${num(top * 100)}%`]]) style.setProperty(name, value);
+  } else {
+    for (const [name, value] of [["position", "static"], ["max-width", "100%"], ["object-fit", content.fit], ["width", "100%"], ["height", "100%"], ["left", "auto"], ["top", "auto"]]) style.setProperty(name, value);
+  }
+  return media;
+}
 function artworkPicture(createNode, content, url, legacy) {
   const img = pictureNode(createNode, { url, fit: content.fit, posX: content.posX, posY: content.posY, opacity: legacy ? content.opacity : 1, alt: content.alt });
-  const crop = content.crop;
-  if (crop && crop.w > 0 && crop.h > 0) {
-    const style = img.style;
-    for (const [name, value] of [["position", "absolute"], ["max-width", "none"], ["object-fit", "fill"],
-      ["width", `${num(100 / crop.w)}%`], ["height", `${num(100 / crop.h)}%`], ["left", `${num((-crop.x / crop.w) * 100)}%`], ["top", `${num((-crop.y / crop.h) * 100)}%`]]) style.setProperty(name, value);
-  }
-  return img;
+  return styleArtworkMedia(img, content, legacy);
+}
+// A VIDEO artwork (MP4, or WebM with or without alpha): muted, looping, inline, autoplaying where the browser allows it, no controls, never a tap target. The address
+// comes only from the asset resolver (a signed https: or blob: URL of the owner's own asset). The surface's video pool hands the same element back on every repaint,
+// so editing never restarts it (video-background.js).
+function artworkVideo(createNode, content, url, legacy, item, ctx) {
+  const video = ctx.videos ? ctx.videos.take(`el:${item.id}`, url, createNode) : backgroundVideo(url, createNode);
+  video.className = "wall-art-video";
+  if (content.alt) { video.setAttribute("aria-label", content.alt); video.removeAttribute?.("aria-hidden"); } else video.setAttribute("aria-hidden", "true");
+  return styleArtworkMedia(video, content, legacy);
 }
 
 function paintImage(node, content, scale, item, createNode, ctx) {
@@ -187,11 +230,15 @@ function paintImage(node, content, scale, item, createNode, ctx) {
   if (content.locked) node.setAttribute("data-locked", "true");
   if (content.clickThrough) node.setAttribute("data-click-through", "true");
   if (content.slice) node.setAttribute("data-slice-set", content.slice.set);
-  const url = safeBlobUrl(ctx.assets?.urlFor?.(content.assetId));
-  if (url) { frame.append(artworkPicture(createNode, content, url, legacy)); return; }
+  const fade = artworkFade(content.fade);
+  if (fade) { frame.style.setProperty("-webkit-mask-image", fade); frame.style.setProperty("mask-image", fade); }
+  const video = content.media === "video";
+  if (video) node.setAttribute("data-media", "video");
+  const url = video ? safeMediaUrl(ctx.assets?.videoUrlFor?.(content.assetId)) : safeBlobUrl(ctx.assets?.urlFor?.(content.assetId));
+  if (url) { frame.append(video ? artworkVideo(createNode, content, url, legacy, item, ctx) : artworkPicture(createNode, content, url, legacy)); return; }
   const missing = createNode("div");
   missing.className = "wall-image-missing";
-  missing.textContent = "Image";
+  missing.textContent = video ? "Video" : "Image";
   for (const [name, value] of [["display", "grid"], ["place-items", "center"], ["height", "100%"], ["color", "#8f88a3"], ["font", `700 ${px(28 * scale)} system-ui, sans-serif`]]) missing.style.setProperty(name, value);
   frame.append(missing);
 }
@@ -397,7 +444,7 @@ export function paintElement(item, scale, order, createNode, ctx = {}) {
   if (item.rotation) { style.setProperty("transform", `rotate(${num(item.rotation)}deg)`); style.setProperty("transform-origin", "center center"); }
   const content = item.content;
   if (content?.kind === "rect") paintRect(node, content, scale, item);
-  else if (content?.kind === "text") paintText(node, content, scale, createNode);
+  else if (content?.kind === "text") paintText(node, content, scale, createNode, ctx);
   else if (content?.kind === "image") paintImage(node, content, scale, item, createNode, ctx);
   else if (content?.kind === "embed" && content.content?.kind === "embed") paintEmbed(node, content.content, scale, item, createNode, ctx);
   else if (content?.kind === "gamidData") paintGamidData(node, content, scale, item, createNode, ctx, { paintText, paintArtworkFrame, px });

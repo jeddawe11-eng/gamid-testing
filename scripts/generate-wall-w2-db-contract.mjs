@@ -346,8 +346,8 @@ begin
   res := res || jsonb_build_object('step', 'another user cannot see an owner''s wall-video objects (owner-only RLS)', 'pass', out = '0', 'got', out);
   out := pg_temp.w2_run(null, 'anon', 'select count(*)::text from storage.objects where bucket_id = ''wall-video''');
   res := res || jsonb_build_object('step', 'anon cannot see wall-video objects', 'pass', out = '0' or out like 'ERR:%', 'got', out);
-  select public = false and file_size_limit = 52428800 and allowed_mime_types = array['video/mp4'] into flag from storage.buckets where id = 'wall-video';
-  res := res || jsonb_build_object('step', 'the wall-video bucket is private, 50 MiB, video/mp4 only', 'pass', coalesce(flag, false));
+  select public = false and file_size_limit = 52428800 and allowed_mime_types = array['video/mp4', 'video/webm'] into flag from storage.buckets where id = 'wall-video';
+  res := res || jsonb_build_object('step', 'the wall-video bucket is private, 50 MiB, video/mp4 and video/webm only', 'pass', coalesce(flag, false));
   out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''video/mp4'', 4000000, 1920, 1080, null) a', ua, ua::text || '/66666666-6666-4666-8666-666666666666.mp4'));
   res := res || jsonb_build_object('step', 'a verified MP4 in the owner''s wall-video folder is registered (the stored size is recorded)', 'pass', out not like 'ERR:%' and (out::jsonb ->> 'mime_type') = 'video/mp4' and (out::jsonb ->> 'byte_size')::int = 4000000, 'got', left(out, 200));
   out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''video/mp4'', 52428801, 1920, 1080, null) a', ua, ua::text || '/66666666-6666-4666-8666-666666666666.mp4'));
@@ -360,11 +360,26 @@ begin
   res := res || jsonb_build_object('step', 'an MP4 that is not in the owner''s wall-video folder is not registered', 'pass', out like 'ERR:P0002:WALL_ASSET_UPLOAD_NOT_FOUND%', 'got', out);
   out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''video/mp4'', 4000000, 1920, 1080, null) a', ua, ua::text || '/66666666-6666-4666-8666-666666666666.mp4'));
   res := res || jsonb_build_object('step', 'a browser session cannot register a video itself', 'pass', out like 'ERR:%', 'got', out);
+  -- WebM (VP8 / VP9, alpha allowed): same bucket, same limits, its own type
+  insert into storage.objects (bucket_id, name, owner_id, metadata) values ('wall-video', ua::text || '/99999999-9999-4999-8999-999999999999.webm', ua::text, '{"size": 2500000}');
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''video/webm'', 2500000, 1280, 720, null) a', ua, ua::text || '/99999999-9999-4999-8999-999999999999.webm'));
+  res := res || jsonb_build_object('step', 'a verified WebM in the owner''s wall-video folder is registered as video/webm', 'pass', out not like 'ERR:%' and (out::jsonb ->> 'mime_type') = 'video/webm' and (out::jsonb ->> 'byte_size')::int = 2500000, 'got', left(out, 200));
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''video/mp4'', 2500000, 1280, 720, null) a', ua, ua::text || '/99999999-9999-4999-8999-999999999999.webm'));
+  res := res || jsonb_build_object('step', 'a .webm path must be registered as video/webm', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_TYPE%', 'got', out);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''video/webm'', 52428801, 1280, 720, null) a', ua, ua::text || '/99999999-9999-4999-8999-999999999999.webm'));
+  res := res || jsonb_build_object('step', 'a WebM over 50 MiB is refused', 'pass', out like 'ERR:22023:VIDEO_TOO_LARGE%', 'got', out);
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''video/webm'', 2500000, 1280, 720, 12) a', ua, ua::text || '/99999999-9999-4999-8999-999999999999.webm'));
+  res := res || jsonb_build_object('step', 'a WebM never carries a frame count', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_TYPE%', 'got', out);
   delete from public.wall_assets where entity_id = ent_a;
   insert into public.wall_assets (entity_id, storage_path, mime_type, byte_size, width, height)
     select ent_a, ua::text || '/' || gen_random_uuid() || '.mp4', 'video/mp4', 1000, 64, 64 from generate_series(1, 10);
   out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''video/mp4'', 4000000, 1920, 1080, null) a', ua, ua::text || '/66666666-6666-4666-8666-666666666666.mp4'));
-  res := res || jsonb_build_object('step', 'at most 10 background videos per owner', 'pass', out like 'ERR:54000:WALL_VIDEO_LIMIT%', 'got', out);
+  res := res || jsonb_build_object('step', 'at most 10 videos per owner', 'pass', out like 'ERR:54000:WALL_VIDEO_LIMIT%', 'got', out);
+  delete from public.wall_assets where entity_id = ent_a;
+  insert into public.wall_assets (entity_id, storage_path, mime_type, byte_size, width, height)
+    select ent_a, ua::text || '/' || gen_random_uuid() || (case when g % 2 = 0 then '.mp4' else '.webm' end), case when g % 2 = 0 then 'video/mp4' else 'video/webm' end, 1000, 64, 64 from generate_series(1, 10) g;
+  out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''video/webm'', 2500000, 1280, 720, null) a', ua, ua::text || '/99999999-9999-4999-8999-999999999999.webm'));
+  res := res || jsonb_build_object('step', 'the 10-video limit counts MP4 and WebM together', 'pass', out like 'ERR:54000:WALL_VIDEO_LIMIT%', 'got', out);
   delete from public.wall_assets where entity_id = ent_a;
 
   -- ===== HEVC -> H.264 conversion queue (the worker boundary; every call below is what the Edge Function / worker make with the service role) =====
@@ -430,7 +445,8 @@ begin
   -- the assets the corpus documents use (fixed ids), owned by the first user, so valid corpus documents can be persisted: one picture and one video
   insert into public.wall_assets (asset_id, entity_id, storage_path, mime_type, byte_size, width, height)
   values ('3f2b8c1e-5a4d-4e7b-9c60-1d2e3f4a5b6c', ent_a, ua::text || '/3f2b8c1e-5a4d-4e7b-9c60-1d2e3f4a5b6c.png', 'image/png', 1000, 100, 100),
-         ('bbbbbbbb-0000-4000-8000-000000000003', ent_a, ua::text || '/bbbbbbbb-0000-4000-8000-000000000003.mp4', 'video/mp4', 4000000, 1920, 1080);
+         ('bbbbbbbb-0000-4000-8000-000000000003', ent_a, ua::text || '/bbbbbbbb-0000-4000-8000-000000000003.mp4', 'video/mp4', 4000000, 1920, 1080),
+         ('bbbbbbbb-0000-4000-8000-000000000004', ent_a, ua::text || '/bbbbbbbb-0000-4000-8000-000000000004.webm', 'video/webm', 2500000, 1280, 720);
   -- a video can only be a background, and a picture reference never names a video
   out := pg_temp.w2_run(ua, 'authenticated', 'select (select ((to_jsonb(d)->>''revision''))::text from public.get_my_wall_draft() d)');
   rev := out::bigint;
@@ -443,6 +459,28 @@ begin
   out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d',
     '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"background":{"kind":"video","assetId":"bbbbbbbb-0000-4000-8000-000000000003","fit":"cover","posX":50,"posY":50,"opacity":1},"stages":[{"id":"s1","background":{"kind":"image","assetId":"3f2b8c1e-5a4d-4e7b-9c60-1d2e3f4a5b6c","fit":"cover","posX":50,"posY":50,"opacity":1},"elements":[{"id":"e1","type":"image","x":0,"y":0,"width":100,"height":100,"z":0,"payload":{"assetId":"3f2b8c1e-5a4d-4e7b-9c60-1d2e3f4a5b6c","fit":"cover","posX":50,"posY":50,"opacity":1}}]}]}', rev));
   res := res || jsonb_build_object('step', 'a Whole-Wall video background with a picture element and a stage image background saves', 'pass', out2 not like 'ERR:%', 'got', left(out2, 160));
+  -- video LAYERS (media 'video'): MP4 and WebM save; a video layer naming a picture, and a picture layer naming a video, are refused; a used video is never deleted
+  out := pg_temp.w2_run(ua, 'authenticated', 'select (select ((to_jsonb(d)->>''revision''))::text from public.get_my_wall_draft() d)');
+  rev := out::bigint;
+  out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d',
+    '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"background":{"kind":"video","assetId":"bbbbbbbb-0000-4000-8000-000000000004","fit":"cover","posX":50,"posY":50,"opacity":1},"stages":[{"id":"s1","elements":[{"id":"v1","type":"image","x":0,"y":0,"width":400,"height":225,"z":0,"payload":{"assetId":"bbbbbbbb-0000-4000-8000-000000000003","fit":"cover","posX":50,"posY":50,"opacity":1,"media":"video","flipX":true,"fade":{"left":20,"right":10}}},{"id":"v2","type":"image","x":0,"y":300,"width":400,"height":225,"z":1,"payload":{"assetId":"bbbbbbbb-0000-4000-8000-000000000004","fit":"contain","posX":50,"posY":50,"opacity":0.8,"media":"video","flipY":true,"backdrop":"none"}},{"id":"p1","type":"image","x":500,"y":0,"width":100,"height":100,"z":2,"payload":{"assetId":"3f2b8c1e-5a4d-4e7b-9c60-1d2e3f4a5b6c","fit":"cover","posX":50,"posY":50,"opacity":1,"flipX":true}}]}]}', rev));
+  res := res || jsonb_build_object('step', 'an MP4 and a WebM video LAYER (with flip / fade), a flipped picture and a WebM background save', 'pass', out2 not like 'ERR:%', 'got', left(out2, 160));
+  out := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(a)::text from public.delete_my_wall_asset(%L::uuid) a', 'bbbbbbbb-0000-4000-8000-000000000003'));
+  res := res || jsonb_build_object('step', 'a video the saved Wall uses as a LAYER cannot be deleted', 'pass', out like 'ERR:PT409:WALL_ASSET_IN_USE%', 'got', out);
+  out := pg_temp.w2_run(ua, 'authenticated', 'select (select ((to_jsonb(d)->>''revision''))::text from public.get_my_wall_draft() d)');
+  rev := out::bigint;
+  out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d',
+    '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"s1","elements":[{"id":"v1","type":"image","x":0,"y":0,"width":100,"height":100,"z":0,"payload":{"assetId":"3f2b8c1e-5a4d-4e7b-9c60-1d2e3f4a5b6c","fit":"cover","posX":50,"posY":50,"opacity":1,"media":"video"}}]}]}', rev));
+  res := res || jsonb_build_object('step', 'a video layer naming a PICTURE asset is refused (WALL_ASSET_KIND_MISMATCH)', 'pass', out2 like 'ERR:22023:WALL_ASSET_KIND_MISMATCH%', 'got', left(out2, 160));
+  out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d',
+    '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"s1","elements":[{"id":"p1","type":"image","x":0,"y":0,"width":100,"height":100,"z":0,"payload":{"assetId":"bbbbbbbb-0000-4000-8000-000000000004","fit":"cover","posX":50,"posY":50,"opacity":1}}]}]}', rev));
+  res := res || jsonb_build_object('step', 'a picture layer naming a WebM video is refused', 'pass', out2 like 'ERR:22023:WALL_ASSET_KIND_MISMATCH%', 'got', left(out2, 160));
+  out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d',
+    '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"s1","elements":[{"id":"t1","type":"text","x":0,"y":0,"width":800,"height":120,"z":0,"payload":{"text":"Support Me","fontFamily":"system-sans","fontSize":64,"fontWeight":700,"italic":false,"underline":true,"color":"#62e7ff","align":"center","lineHeight":1.2,"letterSpacing":0,"opacity":1,"direction":"auto","wrap":true,"link":{"url":"https://paypal.me/example"}}}]}]}', rev));
+  res := res || jsonb_build_object('step', 'an "Other" text link saves and is read back unchanged', 'pass', out2 not like 'ERR:%' and (out2::jsonb #>> '{document,stages,0,elements,0,payload,link,url}') = 'https://paypal.me/example', 'got', left(out2, 200));
+  out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d',
+    '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"s1","elements":[{"id":"t1","type":"text","x":0,"y":0,"width":800,"height":120,"z":0,"payload":{"text":"Click","fontFamily":"system-sans","fontSize":64,"fontWeight":700,"italic":false,"underline":true,"color":"#62e7ff","align":"center","lineHeight":1.2,"letterSpacing":0,"opacity":1,"direction":"auto","wrap":true,"link":{"url":"javascript:alert(1)"}}}]}]}', rev + 1));
+  res := res || jsonb_build_object('step', 'a javascript: link is refused at save and changes nothing', 'pass', out2 like 'ERR:22023:INVALID_WALL_DOCUMENT%', 'got', left(out2, 200));
   -- ===== W1 <-> database contract corpus =====
   res := res || jsonb_build_object('step', 'corpus size is ${corpus.length} entries (${validCount} valid)', 'pass', jsonb_array_length(corpus) = ${corpus.length});
   bad := 0;

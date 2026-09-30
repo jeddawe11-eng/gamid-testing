@@ -143,6 +143,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-provider-info li { display: grid; gap: .05rem; font-size: .76rem; }
 .ed-provider-info .modes { color: #d5d0df; font-weight: 700; font-size: .7rem; }
 .ed-provider-info .shapes { color: var(--muted); font-size: .66rem; }
+/* Media & Links > Other: URL + Display Text */
+.ed-other { display: grid; gap: .55rem; }
+.ed-other .ed-hint { margin: 0; }
 .ed-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .6rem; }
 .ed-chip { min-width: 2.75rem; min-height: 2.75rem; border-radius: .7rem; border: 1px solid #3a334b; background: #1c1828; font-weight: 800; cursor: pointer; }
 .ed-chip[aria-selected="true"] { border-color: var(--cyan); color: var(--cyan); background: #0d2530; }

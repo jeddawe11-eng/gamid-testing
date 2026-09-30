@@ -383,8 +383,10 @@ export function assetUsage(doc, assetId) {
   if (uses(doc.background)) places.push("Whole Wall background");
   doc.stages.forEach((stage, index) => {
     if (uses(stage.background)) places.push(`Stage ${index + 1} background`);
-    const pictures = stage.elements.filter(element => uses(element.payload)).length;
+    const using = stage.elements.filter(element => uses(element.payload));
+    const videos = using.filter(element => element.payload?.media === "video").length, pictures = using.length - videos;
     if (pictures) places.push(pictures === 1 ? `an image on Stage ${index + 1}` : `${pictures} images on Stage ${index + 1}`);
+    if (videos) places.push(videos === 1 ? `a video on Stage ${index + 1}` : `${videos} videos on Stage ${index + 1}`);
   });
   return places;
 }
@@ -956,6 +958,8 @@ export function splitArtwork(doc, id, count, dir = "v") {
   if (source.type !== "image") return fail(doc, "NOT_AN_ARTWORK");
   if (!SPLIT_COUNTS.includes(count) || !SLICE_DIRS.includes(dir)) return fail(doc, "INVALID_SPLIT");
   if (source.payload.slice) return fail(doc, "ALREADY_SPLIT");
+  // the pieces of a video would each play their own copy, out of step with each other - a video layer is never split
+  if (source.payload.media === "video") return fail(doc, "VIDEO_SPLIT_UNSUPPORTED");
   if (source.rotation) return fail(doc, "ROTATED_SPLIT_UNSUPPORTED");
   if (source.groupId) return fail(doc, "UNGROUP_BEFORE_SPLIT");
   if (isLocked(source)) return fail(doc, "ELEMENT_LOCKED");

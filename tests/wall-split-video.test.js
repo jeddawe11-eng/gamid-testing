@@ -289,10 +289,14 @@ test("V2 the editor's repaint reuses the SAME video element (no restart); Whole 
   });
 });
 
-test("V3 upload rules: MP4 only, at most 50 MB and 4096 px; videos stream (never downloaded whole) and are kept out of Assets / artwork", async () => {
+// (Video media layers task: MP4 AND WebM are accepted - WebM by explicit request, for alpha transparency - and videos are offered in Assets as media layers.
+// Everything else this test pinned still holds: other types refused, 50 MB / 4096 px, streamed never downloaded, image BACKGROUNDS list pictures only.)
+test("V3 upload rules: MP4 or WebM only, at most 50 MB and 4096 px; videos stream (never downloaded whole) and are never offered as a picture", async () => {
   assert.equal(checkVideoFile({ type: "video/mp4", size: 50 * 1024 * 1024 }).ok, true);
+  assert.equal(checkVideoFile({ type: "video/webm", size: 50 * 1024 * 1024 }).ok, true);
   assert.equal(checkVideoFile({ type: "video/mp4", size: 50 * 1024 * 1024 + 1 }).code, "VIDEO_TOO_LARGE");
-  for (const type of ["video/webm", "video/quicktime", "image/gif", ""]) assert.equal(checkVideoFile({ type, size: 10 }).code, "INVALID_VIDEO_TYPE", type);
+  assert.equal(checkVideoFile({ type: "video/webm", size: 50 * 1024 * 1024 + 1 }).code, "VIDEO_TOO_LARGE");
+  for (const type of ["video/quicktime", "video/x-matroska", "image/gif", ""]) assert.equal(checkVideoFile({ type, size: 10 }).code, "INVALID_VIDEO_TYPE", type);
   assert.equal(checkVideoMetadata({ width: 3840, height: 2160, duration: 8 }).ok, true);
   assert.equal(checkVideoMetadata({ width: 7680, height: 4320, duration: 8 }).ok, false);
   const loads = [], signs = [];
@@ -310,7 +314,7 @@ test("V3 upload rules: MP4 only, at most 50 MB and 4096 px; videos stream (never
   assert.deepEqual(store.videos.map(asset => asset.asset_id), [VIDEO]);
   assert.match(store.videoUrlFor(VIDEO), /^https:\/\/project\.supabase\.co\/storage\/v1\/object\/sign\/wall-video\//);
   const tools = text("dist/wall-editor/tools.js");
-  assert.match(tools, /for \(const asset of assets\.images\)/, "Assets and image backgrounds list pictures only");
+  assert.match(tools, /for \(const asset of assets\.images\)/, "image backgrounds list pictures only");
   const client = text("dist/account/supabase-client.js");
   assert.match(client, /bucketName: "wall-video"/, "resumable upload into the private wall-video bucket");
   assert.match(client, /relative\.startsWith\(`\/object\/sign\/\$\{bucket\}\/`\)/, "only a signed address of the owner's own wall-video object is used");

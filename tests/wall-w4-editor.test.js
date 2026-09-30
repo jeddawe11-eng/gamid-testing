@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { ASSET_LIMITS } from "../dist/wall-kit/assets.js";
+import { ASSET_LIMITS, VIDEO_LIMITS } from "../dist/wall-kit/assets.js";
 import { BACKGROUND_KINDS } from "../dist/wall-kit/background.js";
 import { PROVIDERS } from "../dist/wall-kit/embed/index.js";
 
@@ -51,9 +51,10 @@ test("Background: Whole Wall vs This stage, Colour / Gradient / Image / Video (M
   assert.match(tools, /\["none", "None"\], \["color", "Colour"\], \["gradient", "Gradient"\], \["image", "Image"\], \["video", "Video"\]/);
   assert.doesNotMatch(tools, /Video · later/, "video backgrounds are live now");
 });
-test("Assets: the file picker accepts exactly the allowed raster types; limits are stated; nothing but the owner's own images is offered", () => {
+test("Assets: the file picker accepts exactly the allowed raster types and videos; limits are stated; nothing but the owner's own uploads is offered", () => {
   const input = html.match(/<input id="assetFile"[^>]*>/)[0];
-  assert.equal(input.match(/accept="([^"]+)"/)[1], ASSET_LIMITS.types.join(","));
+  // (video media layers task: the allowed raster types, then exactly the allowed video types - MP4 and WebM)
+  assert.equal(input.match(/accept="([^"]+)"/)[1], [...ASSET_LIMITS.types, ...VIDEO_LIMITS.types].join(","));
   assert.doesNotMatch(input, /svg/i);
   assert.match(html, /5 MB each/);
   assert.match(html, /private to you/);

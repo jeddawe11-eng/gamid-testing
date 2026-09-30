@@ -5,6 +5,9 @@
 //   align (left|center|right), lineHeight (0.5..4), letterSpacing (-20..100), opacity (0..1), direction (ltr|rtl|auto), wrap (boolean)
 //   optional: fontRef (opaque string reserved for a future font asset - never inspected here), stroke {color,width}, shadow {color,blur,x,y}, glow {color,blur},
 //             gradient {from,to,angle}
+//             link {url} - "Other" link (Media & Links): on a visitor's Wall (Preview / view mode) the text opens `url` in a new tab (noopener noreferrer). The text is
+//             what shows; the address never does. Only a plain http(s) web address is accepted (LINK_URL): no other scheme (javascript:, data:, ...), no
+//             user name / password in it, no spaces, quotes or angle brackets - and the painter checks it again before it is ever used.
 //
 // All sizes are canonical design units (the 1000-wide stage space), never pixels. Strings are only ever painted as text (textContent), never as markup, and the
 // Wall core's universal unsafe-content scan additionally rejects markup-shaped text before it can be stored.
@@ -46,10 +49,20 @@ export function validateTextPayload(payload) {
   if (isSet(payload.shadow) && !shadow(payload.shadow)) errors.push("INVALID_SHADOW");
   if (isSet(payload.glow) && !glow(payload.glow)) errors.push("INVALID_GLOW");
   if (isSet(payload.gradient) && !isGradient(payload.gradient)) errors.push("INVALID_GRADIENT");
+  if (isSet(payload.link) && !validateLink(payload.link)) errors.push("INVALID_LINK");
   return errors;
 }
 
-const OPTIONAL = ["fontRef", "stroke", "shadow", "glow", "gradient"];
+// ---- links (the "Other" link of Media & Links) --------------------------------------------------------------------------------------------------------------
+// The ONE address rule, mirrored character for character by the database (private.wall_text_payload_errors): http or https, a host name of dot-separated labels
+// (no user name / password - an "@" before the host is refused, so "https://bank.com@evil.test" can never pass), an optional port, then only URL characters.
+export const LINK_MAX = 2000;
+export const LINK_URL = /^https?:\/\/[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+(:[0-9]{1,5})?([/?#][A-Za-z0-9._~:/?#@!$&'()*+,;=%-]*)?$/;
+export const isSafeLinkUrl = url => typeof url === "string" && url.length <= LINK_MAX && LINK_URL.test(url);
+export const validateLink = link => isPlainObject(link) && Object.keys(link).every(key => key === "url") && isSafeLinkUrl(link.url);
+// (turning what a creator TYPES into a stored address lives in links.js - editor input handling, not validation)
+
+const OPTIONAL = ["fontRef", "stroke", "shadow", "glow", "gradient", "link"];
 const CORE = ["text", "fontFamily", "fontSize", "fontWeight", "italic", "underline", "color", "align", "lineHeight", "letterSpacing", "opacity", "direction", "wrap"];
 
 // A plain, JSON-serializable description of how to paint the text (canonical units). Only known fields are copied: unknown payload keys never reach a painter.

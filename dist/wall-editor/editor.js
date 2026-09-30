@@ -199,10 +199,11 @@ function renderStages() {
 }
 
 function layerName(element) {
-  if (element.type === "text") return `Text: ${element.payload.text.replace(/\s+/g, " ").slice(0, 24) || "(empty)"}`;
+  if (element.type === "text") return `${element.payload.link ? "Link" : "Text"}: ${element.payload.text.replace(/\s+/g, " ").slice(0, 24) || "(empty)"}`;
   if (element.type === "rect") return element.payload.radius >= Math.min(element.width, element.height) / 2 && element.width === element.height ? "Circle" : element.payload.radius ? "Rounded rectangle" : "Rectangle";
   if (element.type === "image") {
-    const base = element.payload.alt ? `Artwork: ${element.payload.alt.slice(0, 22)}` : "Artwork";
+    const noun = element.payload.media === "video" ? "Video" : "Artwork";
+    const base = element.payload.alt ? `${noun}: ${element.payload.alt.slice(0, 22)}` : noun;
     const slice = element.payload.slice;
     return slice ? `${base} · piece ${Math.round(slice.from * 100)}–${Math.round(slice.to * 100)}%` : base;
   }

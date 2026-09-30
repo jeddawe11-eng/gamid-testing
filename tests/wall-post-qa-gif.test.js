@@ -132,7 +132,8 @@ test("I client: GIF is an accepted image everywhere the owner adds pictures; the
   assert.match(upload, /body: JSON\.stringify\(\{ path \}\)/, "only the path is sent: type, size and pixels are measured by the server");
   assert.doesNotMatch(upload, /register_my_wall_asset/);
   const html = read("dist/wall-editor/index.html");
-  assert.match(html, /accept="image\/jpeg,image\/png,image\/webp,image\/avif,image\/gif"/);
+  // (video media layers task: the Assets picker also takes MP4 / WebM - videos go through their own resumable upload and check; GIF stays a picture)
+  assert.match(html, /accept="image\/jpeg,image\/png,image\/webp,image\/avif,image\/gif,video\/mp4,video\/webm"/);
   const tools = read("dist/wall-editor/tools.js");
   assert.match(tools, /accept: "video\/mp4"/, "GIF is not video: MP4 is a separate, background-only upload (split hardening + video background pass)");
   assert.match(read("supabase/config.toml"), /\[functions\.wall-asset-register\]\nverify_jwt = true/);

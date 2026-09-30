@@ -3,10 +3,11 @@
 import * as ops from "../wall-kit/ops.js";
 import { elementRegistry } from "../wall/elements.js";
 import { FONT_CATALOG, fontKnown } from "../wall-kit/fonts.js";
-import { TEXT_LIMITS, WEIGHTS } from "../wall-kit/text.js";
+import { TEXT_LIMITS, WEIGHTS, LINK_MAX } from "../wall-kit/text.js";
+import { normalizeLinkInput, LINK_PROBLEMS } from "../wall-kit/links.js";
 import { describeErrors } from "../wall-kit/messages.js";
 import { PROVIDERS, isAllowedOpenUrl } from "../wall-kit/embed/engine.js";
-import { ALT_MAX, MASKS, BLENDS, CROP_PRESETS, SPLIT_COUNTS, EFFECT_LIMITS, cropFor } from "../wall-kit/image.js";
+import { ALT_MAX, MASKS, BLENDS, CROP_PRESETS, SPLIT_COUNTS, EFFECT_LIMITS, FADE_MAX, cropFor } from "../wall-kit/image.js";
 import { DATA_FIELD_INFO, DATA_ITEMS, DATA_TEXT_FIELDS, DATA_COLLECTIONS, dataTextStyle, renderGamidDataPayload } from "../wall-kit/gamid-data.js";
 import { resolveGamidData } from "../wall-kit/gamid-data-paint.js";
 import { GAMID_LAYOUTS, GAMES_INITIAL, GAMID_STYLE_ENUMS, GAMID_STYLE_RANGES, resolveGamidStyle } from "../wall-kit/gamid.js";
@@ -116,8 +117,10 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       area.addEventListener("input", () => exec(write({ text: area.value }), { coalesce: "text" }));
       area.addEventListener("blur", () => { area.value = selectedElements()[0]?.payload.text ?? ""; showErrors([]); });
       syncers.push(targets => { if (document.activeElement !== area) area.value = read(targets[0]).text; });
-      root.append(h("div", { class: "ed-group-title", text: "Content" }), area);
+      const linked = !!selectedElements()[0]?.payload.link;
+      root.append(h("div", { class: "ed-group-title", text: linked ? "Display Text" : "Content" }), area);
       root.append(h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn", type: "button", text: "Fit box height to text", onclick: () => fitTextHeight(session.state.selection[0]) })));
+      if (linked) linkControls(root);
     }
 
     const families = [...new Set(FONT_CATALOG.map(font => font.group))];
@@ -172,6 +175,29 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       box.append(numberSlider({ label: "Blur", min: 0, max: 100, step: 1, get: nested("glow", "blur", 16), set: setNested("glow", "blur", glowDefaults), key: "glowBlur" }));
     } }));
     gradientGroup(root, "Gradient fill", { read, write });
+  }
+
+  // "Other" link: the address this text opens on the Wall (a new tab). Checked with the same rule the database applies before it is stored; a refused address leaves
+  // the saved one unchanged. Remove link turns it back into ordinary text.
+  function linkControls(root) {
+    const input = h("input", { class: "ed-text-line", type: "url", inputmode: "url", autocomplete: "off", spellcheck: "false", maxlength: LINK_MAX, "aria-label": "Destination URL" });
+    const status = h("p", { class: "ed-media-msg", role: "status", hidden: true });
+    const current = () => selectedElements()[0]?.payload.link?.url ?? "";
+    const commit = () => {
+      if (input.value.trim() === current()) { status.hidden = true; return; }
+      const link = normalizeLinkInput(input.value);
+      if (!link.ok) { status.hidden = false; status.textContent = `${LINK_PROBLEMS[link.reason]} The link still opens ${current()}.`; return; }
+      status.hidden = true;
+      const applied = exec(patchAll({ link: { url: link.url } }));
+      if (applied.ok) input.value = link.url;
+    };
+    input.addEventListener("change", commit);
+    input.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); commit(); } });
+    syncers.push(targets => { if (document.activeElement !== input) input.value = targets[0].payload.link?.url ?? ""; });
+    root.append(h("div", { class: "ed-group-title", text: "Link" }),
+      h("label", { class: "ed-stack" }, h("span", { text: "Destination URL" }), input), status,
+      h("p", { class: "ed-hint", text: "Visitors tap the text to open this address in a new tab. Only https:// or http:// addresses." }),
+      h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn", type: "button", text: "Remove link", onclick: () => exec(patchAll({ link: undefined })) })));
   }
 
   function gradientGroup(root, label, { read = payloadOf, write = patchAll } = {}) {
@@ -270,12 +296,30 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     effectsSection.append(h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn", type: "button", text: "Reset effects", onclick: () => exec(write({ effects: undefined })) })));
   }
 
+  // Flip + edge fade (media layers - picture, GIF and video alike): a mirror of what is drawn and a transparency fade at the left / right edges. Never baked in.
+  function flipFadeControls(root) {
+    const flip = (label, key) => toggleButton({ label, get: item => item.payload[key] === true, set: on => patchAll({ [key]: on ? true : undefined }), key: `art-${key}` });
+    root.append(h("div", { class: "ed-btn-row", role: "group", "aria-label": "Flip" }, flip("Flip horizontal", "flipX"), flip("Flip vertical", "flipY")));
+    const fadeOf = item => item.payload.fade ?? {};
+    const setFade = (side, value) => {
+      const fade = { ...fadeOf(selectedElements()[0]) };
+      if (value > 0) fade[side] = value; else delete fade[side];
+      return patchAll({ fade: Object.keys(fade).length ? fade : undefined });
+    };
+    root.append(numberSlider({ label: "Fade left %", min: 0, max: FADE_MAX, step: 1, get: item => fadeOf(item).left ?? 0, set: value => setFade("left", value), key: "artFadeLeft" }));
+    root.append(numberSlider({ label: "Fade right %", min: 0, max: FADE_MAX, step: 1, get: item => fadeOf(item).right ?? 0, set: value => setFade("right", value), key: "artFadeRight" }));
+    root.append(h("p", { class: "ed-hint", text: "Fade: how much of the left / right edge melts into transparency. Flip and fade only change how it is shown - your file is never changed." }));
+  }
+
   function imageControls(root, targets) {
     const element = targets[0];
     const pieces = element.payload.slice ? ops.splitPieces(session.doc, element.id) : [];
     const read = payloadOf, write = patchAll;
+    const video = targets.some(item => item.payload.media === "video");
     const art = section(root, "Artwork", true);
-    art.append(selectField({ label: "Fit", options: [{ value: "cover", label: "Fill the box (crop)" }, { value: "contain", label: "Show whole picture" }, { value: "fill", label: "Stretch" }], get: item => item.payload.fit, set: value => patchAll({ fit: value }), key: "imgFit" }));
+    if (video && targets.every(item => item.payload.media === "video")) art.parentElement.querySelector("summary").textContent = "Video";
+    if (video) art.append(h("p", { class: "ed-hint", text: "Plays muted and on a loop, right on your Wall. A WebM made with transparency (alpha) shows what is behind it; an MP4 always has a solid picture." }));
+    art.append(selectField({ label: "Fit", options: [{ value: "cover", label: "Fill the box (crop)" }, { value: "contain", label: video ? "Show whole video" : "Show whole picture" }, { value: "fill", label: "Stretch" }], get: item => item.payload.fit, set: value => patchAll({ fit: value }), key: "imgFit" }));
     art.append(numberSlider({ label: "Position X %", min: 0, max: 100, step: 1, get: item => item.payload.posX, set: value => patchAll({ posX: value }), key: "imgX" }));
     art.append(numberSlider({ label: "Position Y %", min: 0, max: 100, step: 1, get: item => item.payload.posY, set: value => patchAll({ posY: value }), key: "imgY" }));
     art.append(textInput({ label: "Description", max: ALT_MAX, get: item => item.payload.alt ?? "", set: value => patchAll({ alt: value === "" ? undefined : value }), key: "imgAlt" }));
@@ -292,10 +336,12 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
 
     const mask = section(root, "Mask");
     const split = section(root, "Split");
-    splitControls(split, targets, pieces);
+    if (video) split.append(h("p", { class: "ed-hint", text: "A video can't be split (its pieces would play out of step). Split works on pictures and GIFs." }));
+    else splitControls(split, targets, pieces);
     const appearance = section(root, "Appearance", true);
     const effects = section(root, "Effects");
     lookControls(root, { read, write, maskSection: mask, appearanceSection: appearance, effectsSection: effects });
+    flipFadeControls(appearance);
 
     const layering = section(root, "Layering", true);
     layering.append(h("div", { class: "ed-btn-row" },
@@ -621,7 +667,8 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     const types = [...new Set(targets.map(element => element.type))];
     const single = targets.length === 1;
     const groupedSelection = targets.some(element => element.groupId);
-    title.textContent = single ? `${TYPE_LABEL[types[0]] ?? types[0]}${groupedSelection ? " (in a group)" : ""}` : groupedSelection && new Set(targets.map(element => element.groupId)).size === 1 ? `Group of ${targets.length}` : `${targets.length} elements`;
+    const label = single && targets[0].type === "image" && targets[0].payload.media === "video" ? "Video" : single && targets[0].type === "text" && targets[0].payload.link ? "Link" : TYPE_LABEL[types[0]] ?? types[0];
+    title.textContent = single ? `${label}${groupedSelection ? " (in a group)" : ""}` : groupedSelection && new Set(targets.map(element => element.groupId)).size === 1 ? `Group of ${targets.length}` : `${targets.length} elements`;
     body.append(errorBox);
     stageMoveControls(body);
     if (types.length === 1 && types[0] === "text") textControls(body);
@@ -639,7 +686,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     update() {
       const targets = selectedElements();
       // (an embed's presentation is part of the key: switching Card <-> Player changes which controls apply, e.g. Shape)
-      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}${element.type === "image" ? `:${element.payload.slice?.set ?? "-"}` : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}`;
+      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}${element.type === "image" ? `:${element.payload.slice?.set ?? "-"}` : ""}${element.type === "text" ? `:${element.payload.link ? "link" : "-"}` : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}`;
       if (key !== builtKey) { builtKey = key; rebuild(targets); }
       if (targets.length) for (const sync of syncers) sync(targets);
     },

@@ -88,7 +88,8 @@ test("B4 normal canvas pictures are untouched: an image ELEMENT never gets a fli
   doc.stages[0].elements = [createElement({ id: "pic", type: "image", x: 0, y: 0, width: 200, height: 200, z: 0, payload: createImagePayload(OTHER) })];
   const stage = paintDocument(doc, 400, make, { assets }).stages[0];
   const element = all(stage, node => node.attrs["data-el"] === "pic")[0];
-  assert.equal(all(element, node => node.tag === "img")[0].props.get("transform"), undefined);
+  // (media layers now have their OWN optional flip - an unflipped one always draws "none", so a pooled video never keeps an old mirror)
+  assert.equal(all(element, node => node.tag === "img")[0].props.get("transform"), "none");
   assert.equal(validateDocument({ ...doc, stages: [{ ...doc.stages[0], elements: [{ ...doc.stages[0].elements[0], payload: { ...doc.stages[0].elements[0].payload, flipX: true } }] }] }).valid, true, "(image elements keep their own schema - flipX there is ignored data, not a new control)");
 });
 

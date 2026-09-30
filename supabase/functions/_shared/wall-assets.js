@@ -17,10 +17,12 @@
 // HEVC / H.265 (hvc1 / hev1): when WALL_VIDEO_TRANSCODE_ENABLED is "true" (set only once the worker image that transcodes is deployed), a valid HEVC MP4 within the
 // same limits and the transcoding budget is QUEUED (public.create_wall_video_job) instead: the worker makes a same-resolution H.264 derivative, which becomes the
 // asset, and deletes the source. With the switch off, HEVC is refused exactly as before. H.264 always takes the direct path - never transcoded.
+// WebM videos (<user id>/<uuid>.webm, same bucket and limits) are checked the same way - EBML header (DocType "webm") and the Tracks element only, a VP8 / VP9 video
+// track (alpha transparency allowed and reported), <= 4096 px a side, <= 50 MiB. WebM is never transcoded.
 
 export const WALL_ASSET_ORIGINS = Object.freeze(["https://jeddawe11-eng.github.io", "https://gamid-testing-static.gamid.workers.dev"]);
 export const WALL_ASSET_LIMITS = Object.freeze({ maxBytes: 5 * 1024 * 1024, maxDimension: 8192, gifMaxFrames: 500, gifMaxFramePixels: 50_000_000 });
-export const EXTENSION_TYPES = Object.freeze({ jpg: "image/jpeg", png: "image/png", webp: "image/webp", avif: "image/avif", gif: "image/gif", mp4: "video/mp4" });
+export const EXTENSION_TYPES = Object.freeze({ jpg: "image/jpeg", png: "image/png", webp: "image/webp", avif: "image/avif", gif: "image/gif", mp4: "video/mp4", webm: "video/webm" });
 export const WALL_VIDEO_LIMITS = Object.freeze({ maxBytes: 50 * 1024 * 1024, maxDimension: 4096, maxMoovBytes: 8 * 1024 * 1024, maxTopLevelBoxes: 256, maxTranscodePixelFrames: 3840 * 2160 * 30 * 120 });
 export const HEVC_CODECS = Object.freeze(["hvc1", "hev1"]);
 
@@ -221,6 +223,106 @@ export async function inspectMp4(read, total) {
   return video;
 }
 
+// ---- WebM (video layers / backgrounds) recognition -------------------------------------------------------------------------------------------------------
+// A WebM is an EBML (Matroska) file: an EBML header whose DocType is "webm", then one Segment holding Info, Tracks, Clusters... Only the header and the Tracks
+// element are read (range reads), never the media itself. The video track must be VP8 or VP9 - the WebM codecs that can carry an ALPHA channel and that every
+// browser with WebM support decodes; its AlphaMode flag (1 = the video has transparency) is reported. A file whose sizes do not fit (truncated) is refused.
+export const WEBM_CODECS = Object.freeze(["V_VP8", "V_VP9"]);
+const EBML = Object.freeze({ header: 0x1a45dfa3, docType: 0x4282, segment: 0x18538067, tracks: 0x1654ae6b, cluster: 0x1f43b675, trackEntry: 0xae, trackType: 0x83, codecId: 0x86,
+  video: 0xe0, pixelWidth: 0xb0, pixelHeight: 0xba, displayWidth: 0x54b0, displayHeight: 0x54ba, alphaMode: 0x53c0 });
+const WEBM_LIMITS = Object.freeze({ maxHeaderBytes: 4096, maxTracksBytes: 1024 * 1024, maxSegmentChildren: 256 });
+
+// An EBML variable-length integer at b[i]: an element ID keeps its length marker; a size drops it (all value bits set = "unknown size"). -> { value, length, unknown } | null
+function vint(b, i, isId) {
+  const first = b[i];
+  if (first === undefined || first === 0) return null;
+  let length = 1, mask = 0x80;
+  while (!(first & mask)) { mask >>= 1; length += 1; }
+  if (length > (isId ? 4 : 8) || i + length > b.length) return null;
+  let value = isId ? first : first & (mask - 1), unknown = !isId && (first & (mask - 1)) === mask - 1;
+  for (let k = 1; k < length; k += 1) { value = value * 256 + b[i + k]; if (b[i + k] !== 0xff) unknown = false; }
+  return { value, length, unknown };
+}
+// The element header at b[i] -> { id, dataStart (relative to b), size | null (unknown) } | null
+function ebmlHeader(b, i) {
+  const id = vint(b, i, true);
+  if (!id) return null;
+  const size = vint(b, i + id.length, false);
+  if (!size) return null;
+  return { id: id.value, dataStart: i + id.length + size.length, size: size.unknown ? null : size.value };
+}
+// The children of the master element whose data is b[start, end): [{ id, start, end }]; null when one does not fit.
+function ebmlChildren(b, start, end) {
+  const out = [];
+  for (let at = start; at < end;) {
+    const head = ebmlHeader(b, at);
+    if (!head || head.size === null || head.dataStart + head.size > end) return null;
+    out.push({ id: head.id, start: head.dataStart, end: head.dataStart + head.size });
+    at = head.dataStart + head.size;
+  }
+  return out;
+}
+const ebmlUint = (b, el) => { let value = 0; for (let i = el.start; i < el.end; i += 1) value = value * 256 + b[i]; return el.end - el.start <= 7 ? value : NaN; };
+const ebmlString = (b, el) => String.fromCharCode(...b.subarray(el.start, el.end)).replace(/\0+$/, "");
+
+// Reads the video track out of a Tracks element's data. -> { ok, mime, width, height, codec, alpha } | { ok: false, code }
+export function parseWebmTracks(b) {
+  const entries = ebmlChildren(b, 0, b.length);
+  if (!entries) return { ok: false, code: "INVALID_VIDEO" };
+  let unsupported = null;
+  for (const entry of entries.filter(el => el.id === EBML.trackEntry)) {
+    const fields = ebmlChildren(b, entry.start, entry.end);
+    if (!fields) return { ok: false, code: "INVALID_VIDEO" };
+    const find = id => fields.find(el => el.id === id) ?? null;
+    const type = find(EBML.trackType);
+    if (!type || ebmlUint(b, type) !== 1) continue;   // 1 = video
+    const codecEl = find(EBML.codecId);
+    const codec = codecEl ? ebmlString(b, codecEl) : "";
+    if (!WEBM_CODECS.includes(codec)) { unsupported = codec || "unknown"; continue; }
+    const videoEl = find(EBML.video);
+    const video = videoEl ? ebmlChildren(b, videoEl.start, videoEl.end) : null;
+    if (!video) return { ok: false, code: "INVALID_VIDEO" };
+    const value = id => { const el = video.find(child => child.id === id); return el ? ebmlUint(b, el) : null; };
+    const width = value(EBML.pixelWidth), height = value(EBML.pixelHeight);
+    return { ok: true, mime: "video/webm", width, height, codec, frames: null, alpha: value(EBML.alphaMode) === 1 };
+  }
+  return { ok: false, code: unsupported ? "WEBM_CODEC_UNSUPPORTED" : "INVALID_VIDEO" };
+}
+
+// Walks the EBML header and the Segment's children with `read(offset, length) -> Uint8Array` (range reads) until the Tracks element. -> like parseWebmTracks
+export async function inspectWebm(read, total) {
+  if (!Number.isSafeInteger(total) || total < 16) return { ok: false, code: "INVALID_VIDEO" };
+  const first = await read(0, Math.min(64, total));
+  const header = ebmlHeader(first, 0);
+  if (!header || header.id !== EBML.header) return { ok: false, code: "UNSUPPORTED_VIDEO_TYPE" };   // not an EBML file at all
+  if (header.size === null || header.dataStart + header.size > WEBM_LIMITS.maxHeaderBytes || header.dataStart + header.size > total) return { ok: false, code: "INVALID_VIDEO" };
+  const head = await read(0, header.dataStart + header.size);
+  const docType = (ebmlChildren(head, header.dataStart, header.dataStart + header.size) ?? []).find(el => el.id === EBML.docType);
+  if (!docType || ebmlString(head, docType) !== "webm") return { ok: false, code: "UNSUPPORTED_VIDEO_TYPE" };   // Matroska / anything else is not WebM
+  let offset = header.dataStart + header.size;
+  const segHead = ebmlHeader(await read(offset, Math.min(16, total - offset)), 0);
+  if (!segHead || segHead.id !== EBML.segment) return { ok: false, code: "INVALID_VIDEO" };
+  const segmentStart = offset + segHead.dataStart;
+  // a Segment of known size must end exactly at the end of the file (a truncated upload fails here); a live-recorded file may leave it unknown
+  const segmentEnd = segHead.size === null ? total : segmentStart + segHead.size;
+  if (segmentEnd !== total) return { ok: false, code: "INVALID_VIDEO" };
+  offset = segmentStart;
+  for (let guard = 0; offset < segmentEnd && guard < WEBM_LIMITS.maxSegmentChildren; guard += 1) {
+    const el = ebmlHeader(await read(offset, Math.min(16, segmentEnd - offset)), 0);
+    if (!el) return { ok: false, code: "INVALID_VIDEO" };
+    if (el.id === EBML.cluster) return { ok: false, code: "INVALID_VIDEO" };   // media before any track description
+    if (el.size === null || offset + el.dataStart + el.size > segmentEnd) return { ok: false, code: "INVALID_VIDEO" };
+    if (el.id === EBML.tracks) {
+      if (el.size > WEBM_LIMITS.maxTracksBytes) return { ok: false, code: "INVALID_VIDEO" };
+      const tracks = await read(offset + el.dataStart, el.size);
+      if (tracks.length !== el.size) return { ok: false, code: "INVALID_VIDEO" };
+      return parseWebmTracks(tracks);
+    }
+    offset += el.dataStart + el.size;
+  }
+  return { ok: false, code: "INVALID_VIDEO" };
+}
+
 export function videoProblem(video, byteLength, { transcodeEnabled = false } = {}) {
   if (!Number.isSafeInteger(byteLength) || byteLength < 1 || byteLength > WALL_VIDEO_LIMITS.maxBytes) return "VIDEO_TOO_LARGE";
   if (!video.ok) return video.code;
@@ -235,7 +337,7 @@ export function videoProblem(video, byteLength, { transcodeEnabled = false } = {
 }
 
 // ---- the request handler -----------------------------------------------------------------------------------------------------------------------------
-const PATH = /^([0-9a-f-]{36})\/[0-9a-f-]{36}\.(jpg|png|webp|avif|gif|mp4)$/;
+const PATH = /^([0-9a-f-]{36})\/[0-9a-f-]{36}\.(jpg|png|webp|avif|gif|mp4|webm)$/;
 const json = (body, status, extra = {}) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...extra } });
 const corsFor = origin => (WALL_ASSET_ORIGINS.includes(origin) ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : { Vary: "Origin" });
 const DB_ERRORS = { VIDEO_CODEC_UNSUPPORTED: 400, WALL_VIDEO_LIMIT: 409, VIDEO_TOO_LARGE: 400, WALL_ASSET_LIMIT: 409, IDENTITY_NOT_FOUND: 409, WALL_ASSET_UPLOAD_NOT_FOUND: 404, INVALID_WALL_ASSET_PATH: 400, INVALID_WALL_ASSET_TYPE: 400, WALL_ASSET_TOO_LARGE: 400, INVALID_WALL_ASSET_SIZE: 400, GIF_TOO_COMPLEX: 400 };
@@ -269,14 +371,14 @@ export async function handleWallAssetRegister({ request, env, fetchImpl = fetch,
   const parts = PATH.exec(path);
   if (!parts || parts[1] !== userId) return json({ error: "INVALID_WALL_ASSET_PATH" }, 400, cors);
   const extension = parts[2];
-  const isVideo = extension === "mp4";
+  const isVideo = extension === "mp4" || extension === "webm";
   const objectUrl = `${base}/storage/v1/object/${isVideo ? "wall-video" : "wall-media"}/${path}`;
   const discard = () => fetchImpl(objectUrl, { method: "DELETE", headers: service }).catch(() => null);
 
   try {
     let image, byteLength;
     if (isVideo) {
-      // 3v. an MP4 is inspected with RANGE reads only (headers + moov), never downloaded whole
+      // 3v. a video is inspected with RANGE reads only (MP4: box headers + moov; WebM: EBML header + Tracks), never downloaded whole
       let total = null, missing = false;
       const read = async (offset, length) => {
         const response = await fetchImpl(objectUrl, { headers: { ...service, Range: `bytes=${offset}-${offset + length - 1}` } });
@@ -291,7 +393,7 @@ export async function handleWallAssetRegister({ request, env, fetchImpl = fetch,
       try { await read(0, 16); } catch { if (missing) return json({ error: "WALL_ASSET_UPLOAD_NOT_FOUND" }, 404, cors); log("wall-asset", "read_failed"); return json({ error: "register_failed" }, 502, cors); }
       byteLength = total;
       if (!Number.isSafeInteger(byteLength) || byteLength > WALL_VIDEO_LIMITS.maxBytes) image = { ok: false, code: "VIDEO_TOO_LARGE" };
-      else image = await inspectMp4(read, byteLength).catch(() => ({ ok: false, code: "INVALID_VIDEO" }));
+      else image = await (extension === "webm" ? inspectWebm : inspectMp4)(read, byteLength).catch(() => ({ ok: false, code: "INVALID_VIDEO" }));
       const problem = videoProblem(image, byteLength, { transcodeEnabled: env.transcodeEnabled === true });
       if (problem) { await discard(); log("wall-asset", `rejected_${problem}`); return json({ error: problem }, 400, cors); }
       if (image.transcode) {
@@ -341,8 +443,8 @@ export async function handleWallAssetRegister({ request, env, fetchImpl = fetch,
     }
     const row = Array.isArray(payload) ? payload[0] : null;
     if (!row) { await discard(); return json({ error: "register_failed" }, 502, cors); }
-    log("wall-asset", `registered_${extension}`);
-    return json({ asset: row }, 200, cors);
+    log("wall-asset", `registered_${extension}${image.alpha ? "_alpha" : ""}`);
+    return json({ asset: row, ...(image.alpha ? { alpha: true } : {}) }, 200, cors);
   } catch {
     log("wall-asset", "exception");
     return json({ error: "register_failed" }, 502, cors);

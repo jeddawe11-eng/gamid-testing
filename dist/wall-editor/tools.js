@@ -3,13 +3,15 @@
 // and every change to the Wall is an ops.* result applied with `run` (so it is validated, undoable and unsaved-tracked like every other edit).
 import { createTemplatesPanel } from "./templates.js";
 import * as ops from "../wall-kit/ops.js";
-import { createTextPayload } from "../wall-kit/text.js";
+import { createTextPayload, LINK_MAX } from "../wall-kit/text.js";
+import { normalizeLinkInput, LINK_PROBLEMS } from "../wall-kit/links.js";
+import { describeErrors } from "../wall-kit/messages.js";
 import { FONT_CATALOG, fontCss } from "../wall-kit/fonts.js";
 import { createImagePayload } from "../wall-kit/image.js";
 import { defaultBackground, createImageBackground, createVideoBackground } from "../wall-kit/background.js";
 import { GAMID_BLOCKS, GAMID_BLOCK_INFO, createGamidPayload } from "../wall-kit/gamid.js";
 import { DATA_FIELD_INFO, DATA_ITEMS, DATA_TEXT_FIELDS, createGamidDataPayload, dataTextStyle } from "../wall-kit/gamid-data.js";
-import { startingImageSize, describeVideoJobFailure } from "../wall-kit/assets.js";
+import { startingImageSize, describeVideoJobFailure, isVideoAsset, isVideoFileType } from "../wall-kit/assets.js";
 import { PROVIDERS, detectEmbed, buildEmbedPayload, defaultEmbedSize, humanReason, PRESENTATION_LABELS } from "../wall-kit/embed/engine.js";
 import { mediaCapabilities } from "../wall-kit/embed/index.js";
 import { fitFrame } from "../wall-kit/embed/player.js";
@@ -33,6 +35,11 @@ export const TEXT_PRESETS = Object.freeze([
   { key: "body", label: "Text", note: "A paragraph about you", overrides: { text: "Write something about yourself here.", fontFamily: "system-sans", fontSize: 56, fontWeight: 400, align: "left", lineHeight: 1.35 }, size: { width: 800, height: 260 } },
   { key: "gaming", label: "Gaming title", note: "Condensed with a neon glow", overrides: { text: "GAME ON", fontFamily: "bebas-neue", fontSize: 230, fontWeight: 400, glow: { color: "#62e7ff", blur: 22 } }, size: { width: 900, height: 300 } },
 ]);
+
+// "Other" link (Media & Links): a text element whose words are the link. Starts as a clear, underlined link line; every Text control restyles it.
+export const OTHER_TEXT_MAX = 120;
+export const OTHER_LINK_STYLE = Object.freeze({ fontFamily: "system-sans", fontSize: 64, fontWeight: 700, underline: true, color: "#62e7ff", align: "center", lineHeight: 1.2, wrap: true });
+export const OTHER_LINK_SIZE = Object.freeze({ width: 800, height: 120 });
 
 export function createTools({ session, run, notify, assets, getGamid, refreshGamid, setTool, pickImage }) {
   const doc = () => session.doc;
@@ -76,7 +83,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
 
   // ---- Media & Links -------------------------------------------------------------------------------------------------------------------------
   const mediaUrl = $("mediaUrl"), mediaResult = $("mediaResult");
-  $("mediaSupported").textContent = "Paste a normal web address - never embed code. Only these platforms are accepted.";
+  $("mediaSupported").textContent = "Paste a normal web address - never embed code. Only these platforms are accepted here; for any other website, use Other.";
   // Provider discovery: every supported platform with the modes it HONESTLY supports (derived from the adapters, never a hand-written list). A platform button opens
   // what can be pasted for it, per content type, with its modes and player shapes.
   const providerList = $("mediaProviders"), providerInfo = $("mediaProviderInfo");
@@ -84,6 +91,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
   const capabilities = mediaCapabilities();
   function renderProviderInfo() {
     for (const button of providerList.querySelectorAll("button")) button.setAttribute("aria-expanded", String(button.dataset.provider === openProvider));
+    if (openProvider === OTHER) { providerInfo.hidden = false; providerInfo.replaceChildren(otherForm()); requestAnimationFrame(() => $("otherUrl")?.focus()); return; }
     const entry = capabilities.find(item => item.key === openProvider);
     providerInfo.hidden = !entry;
     if (!entry) { providerInfo.replaceChildren(); return; }
@@ -103,6 +111,37 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
       onclick: () => { openProvider = openProvider === entry.key ? null : entry.key; renderProviderInfo(); } }, h("b", { text: entry.label }), h("small", { text: modes.join(" · ") }));
     button.dataset.provider = entry.key;
     providerList.append(button);
+  }
+  // OTHER: any ordinary web page (a website, a support / payment page...) as a TEXT link - the creator's own words are what shows; the address opens in a new tab on
+  // the Wall. This is deliberately NOT a platform: the paste box above still recognises only the platforms listed, and nothing here is embedded or fetched.
+  const OTHER = "other";
+  const otherButton = h("button", { type: "button", class: "ed-provider", "aria-expanded": "false", "aria-controls": "mediaProviderInfo", role: "listitem",
+    onclick: () => { openProvider = openProvider === OTHER ? null : OTHER; renderProviderInfo(); } }, h("b", { text: "Other" }), h("small", { text: "Text link" }));
+  otherButton.dataset.provider = OTHER;
+  providerList.append(otherButton);
+  function otherForm() {
+    const url = h("input", { id: "otherUrl", class: "ed-text-line", type: "url", inputmode: "url", autocomplete: "off", spellcheck: "false", maxlength: LINK_MAX, placeholder: "mywebsite.com" });
+    const text = h("input", { id: "otherText", class: "ed-text-line", type: "text", autocomplete: "off", maxlength: OTHER_TEXT_MAX, placeholder: "Support Me" });
+    const status = h("p", { class: "ed-media-msg", role: "status", hidden: true });
+    const add = () => {
+      const link = normalizeLinkInput(url.value);
+      if (!link.ok) { status.hidden = false; status.textContent = LINK_PROBLEMS[link.reason]; url.focus(); return; }
+      const shown = text.value.trim() || new URL(link.url).hostname;
+      const result = addCustom("text", createTextPayload({ ...OTHER_LINK_STYLE, text: shown, link: { url: link.url } }), OTHER_LINK_SIZE);
+      if (!result.ok) { status.hidden = false; status.textContent = describeErrors(result.errors).join(" "); return; }
+      openProvider = null;
+      renderProviderInfo();
+      setTool("props");
+    };
+    for (const input of [url, text]) input.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); add(); } });
+    return h("div", { class: "ed-other" },
+      h("strong", { class: "title", text: "Other" }),
+      h("p", { class: "ed-hint", text: "Link to any website - your site, a shop, a support or payment page. Your Display Text is what shows on your Wall; visitors tap it to open the address in a new tab." }),
+      h("label", { class: "ed-stack" }, h("span", { text: "URL" }), url),
+      h("label", { class: "ed-stack" }, h("span", { text: "Display Text" }), text),
+      status,
+      h("button", { class: "ed-btn ed-primary", type: "button", text: "Add to Wall", onclick: add }),
+      h("p", { class: "ed-hint", text: "Only https:// or http:// addresses. Style it like any text (font, size, colour, effects) in Edit; change the text or the address there too." }));
   }
   let timer = 0;
   const choice = { presentation: null, aspect: null, caption: "" };
@@ -365,42 +404,51 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
   }
 
   // ---- Assets --------------------------------------------------------------------------------------------------------------------------------
+  // Pictures (JPG / PNG / WebP / AVIF / GIF) and VIDEOS (MP4 / WebM) side by side. "Add" places either as a media layer with the same artwork controls; a video layer
+  // plays muted and looping. Deleting follows the same safe rule as before (an asset the Wall uses is never deleted from under it).
   const grid = $("assetGrid"), message = $("assetMessage");
   const say = text => { message.textContent = text; };
   let assetsKey = "";
+  const videoKind = asset => (asset.mime_type === "video/webm" ? "WebM" : "MP4");
+  const sizeLabel = bytes => (bytes >= 1024 * 1024 ? `${Math.round(bytes / (1024 * 1024))} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
   function renderAssets(force = false) {
     const used = ops.assetsInUse(doc());
-    const key = JSON.stringify([assets.images.map(asset => [asset.asset_id, !!assets.urlFor(asset.asset_id)]), [...used].sort()]);
+    const key = JSON.stringify([assets.assets.map(asset => [asset.asset_id, isVideoAsset(asset) ? !!assets.videoUrlFor(asset.asset_id) : !!assets.urlFor(asset.asset_id)]), [...used].sort()]);
     if (!force && key === assetsKey) return;
     assetsKey = key;
     grid.replaceChildren();
-    if (!assets.images.length) { grid.append(h("p", { class: "ed-empty", text: "No images yet. Upload one to use it on your Wall or as a background." })); return; }
-    for (const asset of assets.images) {
+    if (!assets.assets.length) { grid.append(h("p", { class: "ed-empty", text: "No images or videos yet. Upload one to use it on your Wall or as a background." })); return; }
+    for (const asset of assets.assets) {
+      const video = isVideoAsset(asset);
       const thumb = h("div", { class: "thumb" });
-      const url = assets.urlFor(asset.asset_id);
-      if (url) thumb.append(h("img", { src: url, alt: "" })); else thumb.textContent = "…";
+      const url = video ? assets.videoUrlFor(asset.asset_id) : assets.urlFor(asset.asset_id);
+      if (url) thumb.append(video ? h("video", { src: url, muted: true, preload: "metadata", playsinline: true, "aria-hidden": "true" }) : h("img", { src: url, alt: "" })); else thumb.textContent = "…";
       const inUse = used.has(asset.asset_id);
+      const noun = video ? "Video" : "Image";
       grid.append(h("div", { class: "ed-asset" }, thumb,
-        h("div", { class: "meta", text: `${asset.width}×${asset.height} · ${Math.max(1, Math.round(asset.byte_size / 1024))} KB` }),
+        h("div", { class: "meta", text: `${video ? `${videoKind(asset)} video · ` : ""}${asset.width}×${asset.height} · ${sizeLabel(asset.byte_size)}` }),
         inUse ? h("div", { class: "used", text: "IN USE" }) : null,
         h("div", { class: "row" },
-          h("button", { class: "ed-btn", type: "button", text: "Add", onclick: () => addImageElement(asset) }),
-          h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete", onclick: async () => { const result = await assets.remove(asset.asset_id, doc()); say(result.ok ? "Image deleted." : result.message); } }))));
+          h("button", { class: "ed-btn", type: "button", text: "Add", "aria-label": `Add this ${noun.toLowerCase()} to the stage`, onclick: () => addImageElement(asset) }),
+          h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete", onclick: async () => { const result = await assets.remove(asset.asset_id, doc()); say(result.ok ? `${noun} deleted.` : result.message); } }))));
     }
   }
+  // Places an asset as a media layer: a picture (image / GIF) or a video (MP4 / WebM - `media: "video"`), at its own proportions.
   function addImageElement(asset) {
     const size = startingImageSize(asset.width, asset.height);
-    const payload = createImagePayload(asset.asset_id, { aw: asset.width, ah: asset.height });
+    const payload = createImagePayload(asset.asset_id, { aw: asset.width, ah: asset.height, ...(isVideoAsset(asset) ? { media: "video" } : {}) });
     const result = addCustom("image", payload, size);
     if (result.ok) setTool("props");
     return result;
   }
-  // Upload -> (optionally) place it. Used by Assets > Upload image and Add > Image.
+  // Upload -> (optionally) place it. Used by Assets > Upload and Add > Image. A video goes up resumably with progress; the server checks the stored file.
   async function uploadFile(file, { place = false } = {}) {
+    const video = isVideoFileType(file.type);
     say("Uploading…");
-    const result = await assets.upload(file);
+    const result = video ? await assets.uploadVideo(file, { onProgress: (done, total) => say(`Uploading… ${Math.round((done / total) * 100)}%`) }) : await assets.upload(file);
     if (!result.ok) { say(result.message); notify(result.message); return null; }
-    say("Image added to your assets.");
+    if (result.job) { say("Processing video… it will appear in your assets when it is ready."); return null; }
+    say(video ? "Video added to your assets." : "Image added to your assets.");
     if (place) addImageElement(result.asset);
     return result.asset;
   }

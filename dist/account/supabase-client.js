@@ -308,17 +308,20 @@ async function registerWallUpload(path, unreachable) {
 // - the video is never loaded into memory as a whole, and no address is ever saved in the Wall.
 export const WALL_VIDEO_MAX_BYTES = 50 * 1024 * 1024;
 export const WALL_VIDEO_URL_SECONDS = 6 * 60 * 60;
-// converted videos (<user>/<job>.h264.mp4) live in the private wall-video-derived bucket, written only by the worker
-const wallBucketFor = path => (/\.h264\.mp4$/.test(String(path)) ? "wall-video-derived" : /\.mp4$/.test(String(path)) ? "wall-video" : "wall-media");
+// converted videos (<user>/<job>.h264.mp4) live in the private wall-video-derived bucket, written only by the worker. WebM videos (VP8 / VP9, alpha allowed) live
+// in wall-video beside the MP4s and are checked the same way.
+const wallBucketFor = path => (/\.h264\.mp4$/.test(String(path)) ? "wall-video-derived" : /\.(mp4|webm)$/.test(String(path)) ? "wall-video" : "wall-media");
+const WALL_VIDEO_TYPES = { "video/mp4": "mp4", "video/webm": "webm" };
 
 export async function uploadWallVideo(file, userId, { onProgress } = {}) {
-  if (file?.type !== "video/mp4") throw new ApiError("Choose an MP4 video.", 400, "INVALID_FILE_TYPE");
-  if (file.size > WALL_VIDEO_MAX_BYTES) throw new ApiError("Background videos must be 50 MB or smaller.", 400, "FILE_TOO_LARGE");
+  const extension = WALL_VIDEO_TYPES[file?.type];
+  if (!extension) throw new ApiError("Choose an MP4 or WebM video.", 400, "INVALID_FILE_TYPE");
+  if (file.size > WALL_VIDEO_MAX_BYTES) throw new ApiError("Videos must be 50 MB or smaller.", 400, "FILE_TOO_LARGE");
   await restoreSession();
   if (!session?.access_token) throw new ApiError("Sign in again to add a video.", 401, "unauthenticated");
-  const path = `${userId}/${crypto.randomUUID()}.mp4`;
+  const path = `${userId}/${crypto.randomUUID()}.${extension}`;
   try {
-    await uploadResumable({ endpoint: STORAGE_UPLOAD_URL, bucketName: "wall-video", objectName: path, contentType: "video/mp4", file, token: session.access_token, apikey: PUBLISHABLE_KEY, onProgress });
+    await uploadResumable({ endpoint: STORAGE_UPLOAD_URL, bucketName: "wall-video", objectName: path, contentType: file.type, file, token: session.access_token, apikey: PUBLISHABLE_KEY, onProgress });
   } catch (error) {
     throw new ApiError("The video upload did not finish. Check your connection and try again.", error?.status ?? 0, error?.status === 413 ? "FILE_TOO_LARGE" : "WALL_VIDEO_UPLOAD_FAILED");
   }
@@ -332,7 +335,7 @@ export async function getMyWallVideoJobs() {
 
 // -> an https: address the browser can stream (range requests) for WALL_VIDEO_URL_SECONDS; only the owner's own object can be signed (storage RLS)
 export async function signWallVideo(path) {
-  if (!/\.mp4$/.test(String(path))) return null;
+  if (!/\.(mp4|webm)$/.test(String(path))) return null;
   await restoreSession();
   const bucket = wallBucketFor(path);
   const signed = await request(`/storage/v1/object/sign/${bucket}/${encodeStoragePath(path)}`, { method: "POST", token: session?.access_token, body: { expiresIn: WALL_VIDEO_URL_SECONDS } });

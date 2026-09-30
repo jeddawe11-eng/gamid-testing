@@ -20,6 +20,11 @@
 //                         resizing a piece changes WHERE it is and WHICH PART it shows - never the picture's scale. Without it (pieces made before this), a
 //                         piece's scale follows its own box, as before.
 //                  cross  -1..1 - with `scale`: how far the window has moved across the cut direction (a fraction of the whole artwork), default 0
+//   optional (media layers):
+//     media      "video" = the asset is one of the owner's uploaded VIDEOS (MP4, or WebM - which may carry alpha transparency), shown as a muted, looping, inline video
+//                layer with every artwork control. ABSENT = a picture (static image or GIF), exactly as before. A video is never split (INVALID_SLICE).
+//     flipX, flipY   true = the media is mirrored horizontally / vertically where it is drawn (the file is never changed). Picture and video alike.
+//     fade       { left, right } - 0..50 each: the percentage of the width over which the left / right edge fades to transparent (a mask, never baked in).
 import { elementRegistry } from "../wall/elements.js";
 import { isSet, isHex, inRange, isPlainObject } from "../wall/fields.js";
 
@@ -97,14 +102,21 @@ export function validateImagePayload(payload) {
   if (isSet(payload.crop) && !validateCrop(payload.crop)) errors.push("INVALID_CROP");
   if (isSet(payload.locked) && typeof payload.locked !== "boolean") errors.push("INVALID_LOCKED");
   if (isSet(payload.clickThrough) && typeof payload.clickThrough !== "boolean") errors.push("INVALID_CLICK_THROUGH");
-  if (isSet(payload.slice) && !validateSlice(payload.slice)) errors.push("INVALID_SLICE");
+  if (isSet(payload.media) && payload.media !== "video") errors.push("INVALID_MEDIA");
+  if ((isSet(payload.slice) && !validateSlice(payload.slice)) || (payload.media === "video" && isSet(payload.slice))) errors.push("INVALID_SLICE");
+  if ((isSet(payload.flipX) && typeof payload.flipX !== "boolean") || (isSet(payload.flipY) && typeof payload.flipY !== "boolean")) errors.push("INVALID_FLIP");
+  if (isSet(payload.fade) && !validateFade(payload.fade)) errors.push("INVALID_FADE");
   return errors;
 }
+
+export const FADE_MAX = 50;
+export const validateFade = fade => onlyKeys(fade, ["left", "right"]) && ["left", "right"].every(side => !isSet(fade[side]) || inRange(fade[side], 0, FADE_MAX));
+export const isVideoMedia = payload => payload?.media === "video";
 
 const LOOK_KEYS = ["backdrop", "mask", "effects", "blend", "radius"];
 export function renderImagePayload(payload) {
   const content = { kind: "image", assetId: payload.assetId, fit: payload.fit, posX: payload.posX, posY: payload.posY, opacity: payload.opacity };
-  for (const key of ["alt", "aw", "ah", "crop", "locked", "clickThrough", "slice", ...LOOK_KEYS]) if (isSet(payload[key])) content[key] = payload[key];
+  for (const key of ["alt", "aw", "ah", "crop", "locked", "clickThrough", "slice", "media", "flipX", "flipY", "fade", ...LOOK_KEYS]) if (isSet(payload[key])) content[key] = payload[key];
   return content;
 }
 

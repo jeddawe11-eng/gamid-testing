@@ -37,7 +37,8 @@ const FIELD_KEYS = Object.freeze({
 export const gameRef = name => Array.from(String(name ?? "").normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim()).slice(0, GAME_REF_MAX).join("").trim();
 
 export function validateDataText(text) {
-  if (!isPlainObject(text) || Object.hasOwn(text, "text")) return false;
+  // a live data field shows GamID data, never an external link: a text STYLE never carries `link`
+  if (!isPlainObject(text) || Object.hasOwn(text, "text") || Object.hasOwn(text, "link")) return false;
   return validateTextPayload({ ...text, text: "" }).length === 0;
 }
 export function validateDataLook(look) {
