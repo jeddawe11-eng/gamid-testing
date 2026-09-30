@@ -190,6 +190,20 @@ export async function rpc(name, body = {}, { anonymous = false } = {}) {
   return request(`/rest/v1/rpc/${name}`, { method: "POST", token, body });
 }
 
+export async function invokeFunction(name, body = {}) {
+  await restoreSession();
+  if (!session?.access_token) throw new ApiError("Sign in required.", 401, "AUTH_REQUIRED");
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+    method: "POST",
+    headers: { ...headers(session.access_token), "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  let payload = null;
+  try { payload = await response.json(); } catch { payload = null; }
+  if (!response.ok) throw new ApiError(payload?.error || "Request failed.", response.status, payload?.error || "FUNCTION_ERROR");
+  return payload;
+}
+
 export async function getIdentity() {
   const rows = await rpc("get_my_gamid");
   return rows?.[0] || null;

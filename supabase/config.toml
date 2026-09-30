@@ -48,3 +48,14 @@ verify_jwt = false
 # GamID data at all: it only fetches public, documented thumbnail sources built from strictly validated provider/kind/id parts, from allowlisted hosts.
 [functions.media-poster]
 verify_jwt = false
+
+# Team Voice: authenticated participants provision/join; Discord's callback is protected by one-time database state.
+# Reconciliation uses a dedicated server secret because it has no member JWT.
+[functions.play-together-voice]
+verify_jwt = true
+[functions.play-together-voice-authorize-start]
+verify_jwt = true
+[functions.play-together-voice-authorize-callback]
+verify_jwt = false
+[functions.play-together-voice-reconcile]
+verify_jwt = false
