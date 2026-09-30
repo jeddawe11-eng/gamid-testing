@@ -1,6 +1,7 @@
 // The tool drawer: Add, Text, Media & Links, Shapes, Background, GamID, Assets, Templates (Layout - stages and layers - is wired in editor.js). Every panel is built
 // with createElement/textContent only. Panels never touch the network themselves: uploads go through the asset store, links go through the provider-neutral engine,
 // and every change to the Wall is an ops.* result applied with `run` (so it is validated, undoable and unsaved-tracked like every other edit).
+import { createTemplatesPanel } from "./templates.js";
 import * as ops from "../wall-kit/ops.js";
 import { createTextPayload } from "../wall-kit/text.js";
 import { FONT_CATALOG, fontCss } from "../wall-kit/fonts.js";
@@ -38,6 +39,8 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
   const stageId = () => session.state.stageId;
   const selectedTextIds = () => { const stage = session.stage; const chosen = new Set(session.state.selection); return stage ? stage.elements.filter(element => chosen.has(element.id) && element.type === "text").map(element => element.id) : []; };
   const addCustom = (type, payload, size, extra = {}) => run(ops.addCustomElement(doc(), stageId(), { type, payload, width: size.width, height: size.height, ...extra }), { keepResultSelection: true });
+
+  const templates = createTemplatesPanel({ host: $("templatesBody"), session, run, getGamid });
 
   // ---- Add -----------------------------------------------------------------------------------------------------------------------------------
   const addActions = {
@@ -404,7 +407,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
 
   return {
     addImageElement, uploadFile,
-    update() { renderBackground(); renderAssets(); renderGamidStatus(); renderGamidData(); },
+    update() { templates.update(); renderBackground(); renderAssets(); renderGamidStatus(); renderGamidData(); },
     invalidate() { renderBackground(true); renderAssets(true); },
     renderAssets, renderBackground,
   };

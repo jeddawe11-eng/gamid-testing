@@ -1,0 +1,8 @@
+.template-card { display: grid; gap: .7rem; }
+.template-card h3, .template-card p { margin: 0; }
+.template-card p { font-size: .78rem; line-height: 1.5; }
+.template-preview { width: 210px; max-width: 100%; margin: .4rem auto; overflow: hidden; pointer-events: none; border: 1px solid #315453; border-radius: 8px; }
+.template-card select { color: #fff; background: #17232c; padding: .5rem; border: 1px solid #52616b; border-radius: 5px; }
+.template-confirm { border: 1px solid #c68765; border-radius: 8px; padding: .8rem; }
+.template-confirm[hidden] { display: none; }
+.template-confirm button { margin-top: .6rem; }

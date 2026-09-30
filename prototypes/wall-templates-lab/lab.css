@@ -1,0 +1,11 @@
+body { overflow: auto; }
+.ed-top { position: static; gap: 10px; flex-wrap: wrap; height: auto; min-height: 62px; }
+.ed-top span { font-size: 12px; color: #91b3ad; }
+.lab-layout { display: grid; grid-template-columns: 280px minmax(360px,1fr) 330px; min-height: calc(100vh - 65px); }
+.ed-panel { position: static; transform: none; border-radius: 0; box-shadow: none; padding: 18px; max-height: calc(100vh - 65px); overflow: auto; }
+.lab-center { min-width: 0; height: calc(100vh - 65px); display: flex; flex-direction: column; }
+.ed-viewport { flex: 1; min-height: 450px; }
+#stages, #layers { padding: 10px; display: flex; flex-wrap: wrap; gap: 5px; }
+#layers { max-height: 120px; overflow: auto; }
+#layers button { font-size: 11px; }
+@media(max-width:900px) { .lab-layout { display: flex; flex-direction: column; } .ed-panel { max-height: none; } .lab-center { height: 850px; } }

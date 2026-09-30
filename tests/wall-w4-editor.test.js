@@ -58,9 +58,12 @@ test("Assets: the file picker accepts exactly the allowed raster types; limits a
   assert.match(html, /5 MB each/);
   assert.match(html, /private to you/);
 });
-test("Templates is a deliberate, honest placeholder - no template code, no marketplace", () => {
+test("Templates mounts the structured recipe panel without a marketplace", () => {
   const panel = html.slice(html.indexOf('data-tool-panel="templates"'), html.indexOf("</aside>"));
-  assert.match(panel, /Coming later/);
+  assert.match(panel, /id="templatesBody"/);
+  assert.match(read("dist/wall-editor/tools.js"), /createTemplatesPanel/);
+  assert.match(read("dist/wall-editor/templates.js"), /paintDocument/);
+  assert.match(read("dist/wall-editor/templates.js"), /Review replacement/);
   assert.doesNotMatch(read("dist/wall-editor/tools.js") + read("dist/wall-editor/editor.js"), /marketplace|applyTemplate|templateLibrary/i);
 });
 test("GamID: real blocks only, with the privacy promise stated in the panel", () => {
