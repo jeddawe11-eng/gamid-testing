@@ -195,7 +195,11 @@ export async function invokeFunction(name, body = {}) {
   if (!session?.access_token) throw new ApiError("Sign in required.", 401, "AUTH_REQUIRED");
   const response = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
     method: "POST",
-    headers: { ...headers(session.access_token), "Content-Type": "application/json" },
+    headers: {
+      apikey: PUBLISHABLE_KEY,
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(body),
   });
   let payload = null;
