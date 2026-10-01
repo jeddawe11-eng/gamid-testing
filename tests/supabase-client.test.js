@@ -85,3 +85,17 @@ test("successful Auth remains usable in memory when browser storage is unavailab
   assert.equal(api.currentSession(), signedIn);
   assert.equal(api.currentSession().access_token, "a.b.c");
 });
+
+test("authenticated Edge Functions receive the project key and bearer session", async () => {
+  const store = browserHarness();
+  store.set("gamid.testing.auth.session.v1", JSON.stringify({ access_token:"voice.jwt", refresh_token:"refresh-1", expires_at:Math.floor(Date.now()/1000)+3600 }));
+  let call;
+  globalThis.fetch = async (url, options = {}) => { call={url,options}; return json({ authorization_url:"https://discord.test/oauth" }); };
+  const api = await import(`../dist/account/supabase-client.js?functions=${Date.now()}`);
+  const result = await api.invokeFunction("play-together-voice-authorize-start",{session_id:"session-1"});
+  assert.equal(result.authorization_url,"https://discord.test/oauth");
+  assert.match(call.url,/\/functions\/v1\/play-together-voice-authorize-start$/);
+  assert.equal(call.options.headers.Authorization,"Bearer voice.jwt");
+  assert.equal(call.options.headers.apikey,api.PUBLISHABLE_KEY);
+  assert.deepEqual(JSON.parse(call.options.body),{session_id:"session-1"});
+});
