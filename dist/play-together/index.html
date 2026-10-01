@@ -8,9 +8,10 @@
 <section id="loadingPanel" class="pt-card pt-loading" aria-live="polite"><div class="loader"></div><p>Loading your Play Together state…</p></section>
 <section id="authPanel" class="pt-card" hidden><p class="eyebrow">SIGN IN REQUIRED</p><h2>Enter your GamID first</h2><p>Play Together is available to authenticated GamID members.</p><a class="primary pt-action-link" href="../account/">GO TO SIGN IN</a></section>
 <section id="loadErrorPanel" class="pt-card" hidden><p class="eyebrow">COULDN'T LOAD PLAY TOGETHER</p><h2>Your GamID session is still signed in</h2><p>We couldn't load Play Together data. Refresh to try again.</p><button id="retryButton" class="primary" type="button">TRY AGAIN</button></section>
+<section id="attentionPanel" class="pt-attention" aria-live="assertive" aria-atomic="false"></section>
 <section id="invitationPanel" class="pt-card" hidden><p class="eyebrow">GROUP INVITATIONS</p><h2>Fresh acceptance required</h2><div id="invitationList" class="pt-stack"></div></section>
 <section id="activePanel" class="pt-card" hidden aria-live="polite"><div class="pt-title-row"><div><p id="activeIntent" class="eyebrow">MY ACTIVE SESSION / INTENT</p><h2 id="activeHeading">Matching</h2></div><span id="activeTiming" class="pt-status">PLAY NOW</span></div>
-<dl id="activeDetails" class="pt-summary"></dl><div id="memberSection"><h3>Group</h3><div id="memberList" class="pt-stack"></div></div>
+<dl id="activeDetails" class="pt-summary"></dl><div id="memberSection"><h3>Current squad</h3><div id="memberList" class="pt-stack"></div></div>
 <div id="matchingSection" hidden><h3 id="matchingHeading">Compatible sessions</h3><p class="pt-help">Eligibility is enforced first; compatibility then ranks region, queue, role, language, and mic.</p><button id="refreshMatchesButton" class="secondary" type="button">REFRESH MATCHES</button><div id="matchList" class="pt-stack"></div></div>
 <div id="requestSection" hidden><h3>Requests for host approval</h3><div id="requestList" class="pt-stack"></div></div>
 <div id="readySection" hidden><h3>Ready Check</h3><p id="readyDeadline" class="pt-help"></p><div id="readyList" class="pt-stack"></div></div>
