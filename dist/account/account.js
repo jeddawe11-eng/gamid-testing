@@ -11,7 +11,8 @@ import { buildLibraryRows, normalizeManualGames, rowGameKey } from "./game-platf
 import { addManualPlatformsToDiscoveredItem, createAddGamePanel, manualGameItem } from "./manual-games.js";
 import { createDuoPanel } from "./my-duo.js";
 import { subscribeDuoRealtime } from "./duo-realtime.js";
-import { createDuoNotifier } from "./duo-notifications.js";
+import { createNotificationCenter } from "../notifications/notification-center.js";
+import { notificationSubscriber } from "../notifications/notification-realtime.js";
 
 const views = [...document.querySelectorAll(".view")];
 const message = document.getElementById("formMessage");
@@ -390,7 +391,9 @@ async function showIdentity(data) {
   await loadLeague();
   showView("identity");
   handleConnectionReturn();
-  loadDuo();   // My Duo fills in on its own (the panel shows its loading line until then)
+  // My Duo fills in on its own (the panel shows its loading line until then); #my-duo (a notification destination) focuses it
+  loadDuo().then(() => { if (location.hash === "#my-duo") openNotificationDestination("account.my_duo"); });
+  mountNotifications();
 }
 
 function permanentGamidUrl() {
@@ -715,10 +718,29 @@ function connectionCard(row) {
   return card;
 }
 
+// GamID Notifications (dist/notifications/): the bell + Notification Log in the header and the live toast. The server writes notifications; this page only reads its
+// owner's log. A notification's typed destination is opened here - never a URL.
+function mountNotifications() {
+  const host = document.getElementById("notificationsHost");
+  if (!host || notificationCenter) return;
+  notificationCenter = createNotificationCenter({ api, onNavigate: openNotificationDestination, subscribe: notificationSubscriber() });
+  notificationCenter.mount(host, document.body);
+}
+function openNotificationDestination(destination) {
+  if (destination !== "account.my_duo") return;
+  const section = document.getElementById("duoSection");
+  if (!section) return;
+  section.setAttribute("tabindex", "-1");
+  section.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  section.focus?.({ preventScroll: true });
+  section.classList.add("is-focused");
+  setTimeout(() => section.classList.remove("is-focused"), 1600);
+}
+
 // My Duo (my-duo.js): a mutual GamID-to-GamID relationship; the panel only renders server state and asks for the confirmations the server requires.
 let duoPanel = null;
 let stopDuoRealtime = null;
-let duoNotifier = null;
+let notificationCenter = null;
 async function loadDuo() {
   const root = document.getElementById("duoPanel");
   if (!root) return;
@@ -727,12 +749,9 @@ async function loadDuo() {
     gamidUrl: handle => new URL(`../@${handle}`, location.href).href,
   });
   await duoPanel.load();
-  // durable notifications about what the OTHER person did (duo-notifications.js): pending ones from while this person was away are fetched now, live ones on each signal
-  duoNotifier ??= createDuoNotifier({ api, notice: document.getElementById("duoNotice") });
-  duoNotifier.check();
   // live: Duo changes made by the other person (or in another tab) re-render this panel without a refresh (duo-realtime.js; private per-user topic)
   if (!stopDuoRealtime) {
-    stopDuoRealtime = subscribeDuoRealtime({ refresh: () => Promise.all([duoPanel.refresh(), duoNotifier.check()]) });
+    stopDuoRealtime = subscribeDuoRealtime({ refresh: () => duoPanel.refresh() });
     window.addEventListener("pagehide", () => { stopDuoRealtime?.(); stopDuoRealtime = null; }, { once: true });
   }
 }
@@ -1832,7 +1851,7 @@ document.getElementById("languageForm").addEventListener("submit", async event =
 document.getElementById("signOutButton").addEventListener("click", async () => {
   if (isProfileDirty() && !window.confirm("Discard your unsaved profile changes and sign out?")) return;
   try { await api.signOut(); }
-  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; duoNotifier?.stop(); duoNotifier = null; introStatusPoller.stop(); releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
+  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; notificationCenter?.destroy(); notificationCenter = null; introStatusPoller.stop(); releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
 });
 window.addEventListener("beforeunload", event => {
   if (!isProfileDirty()) return;

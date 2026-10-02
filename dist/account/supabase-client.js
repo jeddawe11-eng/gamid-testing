@@ -477,9 +477,12 @@ export const respondToDuoRequest = (handle, accept, replaceConfirmed = false) =>
 export const cancelDuoRequest = handle => rpc("cancel_duo_request", { candidate_handle: handle });
 export const removeMyDuo = () => rpc("remove_my_duo");
 export const setMyDuoVisibility = visible => rpc("set_my_duo_visibility", { candidate_visible: Boolean(visible) });
-// Durable My Duo notifications (what ANOTHER person did that affects you): only the caller's own UNSEEN ones, oldest first; marked seen only after the page displayed them.
-export const getMyDuoNotifications = async () => (await rpc("get_my_duo_notifications")) || [];
-export const markMyDuoNotificationsSeen = ids => rpc("mark_my_duo_notifications_seen", { candidate_ids: ids });
+// GamID Notifications (dist/notifications/): the caller's OWN log only (newest first, keyset-paged), its unread count, and marking read. Nothing here can create a
+// notification - only trusted server code does (private.notify).
+export const getMyNotifications = async (beforeId = null, limit = 30) => (await rpc("get_my_notifications", { candidate_before_id: beforeId, candidate_limit: limit })) || [];
+export const getMyUnreadNotificationCount = async () => Number(await rpc("get_my_unread_notification_count")) || 0;
+export const markMyNotificationsRead = ids => rpc("mark_my_notifications_read", { candidate_ids: ids });
+export const markAllMyNotificationsRead = upToId => rpc("mark_all_my_notifications_read", { candidate_up_to_id: upToId });
 
 // Steam "My Games" (discovery only). The browser never supplies or sees a SteamID for this: the backend resolves the account from the
 // signed-in owner's own stored Steam connection. Reading the stored list is a database read; Steam is contacted ONLY by

@@ -507,6 +507,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261002150000_my_duo.sql",   // My Duo V1: adds the public 'duo' section (My Games / League / stats blocks kept verbatim)
       "20261002170000_my_duo_realtime.sql",   // My Duo live state: private Realtime invalidation triggers only
       "20261002190000_my_duo_notifications.sql",   // My Duo durable user-to-user notifications (own table + RPCs; Duo action impls gain notification writes)
+      "20261002210000_gamid_notifications.sql",   // GamID Notifications foundation (general log; My Duo is the first producer)
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );
