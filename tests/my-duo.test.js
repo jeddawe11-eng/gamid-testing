@@ -13,6 +13,7 @@ import { paintGamidBlock, BLOCK_TITLES } from "../dist/wall-kit/gamid-blocks.js"
 import { INTERACTIVE_ATTR } from "../dist/wall-kit/interaction.js";
 import { loadPublicView, loadGamidSnapshot, ownerDuo } from "../dist/wall-editor/gamid-data.js";
 import { createDuoPanel, duoState, sendWarning, acceptWarning, publicHint, duoErrorText } from "../dist/account/my-duo.js";
+import { createTransientMessage, TRANSIENT_MESSAGE_MS } from "../dist/account/transient-message.js";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
 
@@ -215,7 +216,7 @@ function panel(rows, overrides = {}) {
   };
   const root = element("div"), message = element("p");
   const visibilitySwitch = ({ on, onChange, label }) => { const node = element("button", "visibility-switch", `${label}:${on ? "ON" : "OFF"}`); node.addEventListener("click", () => onChange(!on)); return node; };
-  const view = createDuoPanel({ api, root, message, element, visibilitySwitch, isOwnerPublished: () => true });
+  const view = createDuoPanel({ api, root, message, element, visibilitySwitch, isOwnerPublished: () => true, timers: fakeTimers() });
   return { view, root, message, calls, setRows: next => { current = next; } };
 }
 const click = async (root, text) => { const [button] = byText(root, "button", text); assert.ok(button, `button "${text}"`); await button.fire("click"); await tick(); };
@@ -303,6 +304,138 @@ test("owner panel: the public switch is the owner's own; ending a Duo asks first
   await failing.view.load();
   await click(failing.root, "Decline");
   assert.equal(failing.message.textContent, "That Duo request is no longer waiting. The list has been refreshed.");
+});
+
+// ---------- GamID UX rule: transient feedback shows at once and disappears after 5 s; persistent state never auto-disappears ----------
+function fakeTimers() {
+  let next = 1;
+  const pending = new Map();
+  return {
+    setTimeout(fn, ms) { const id = next++; pending.set(id, { fn, ms }); return id; },
+    clearTimeout(id) { pending.delete(id); },
+    get delays() { return [...pending.values()].map(entry => entry.ms); },
+    runAll() { const due = [...pending.entries()]; pending.clear(); for (const [, entry] of due) entry.fn(); },
+  };
+}
+
+test("UX rule module: shown immediately, hidden after exactly 5 s, a newer message restarts the clock, an in-flight progress line never expires on its own", () => {
+  const timers = fakeTimers();
+  const line = element("p");
+  line.hidden = true;
+  const toned = [];
+  line.classList = { toggle: (name, on) => { if (on) toned.push(name); } };
+  const message = createTransientMessage(line, { timers });
+  assert.equal(TRANSIENT_MESSAGE_MS, 5000);
+  message.show("Saved.", { tone: "success" });
+  assert.equal(line.hidden, false);
+  assert.equal(line.textContent, "Saved.");
+  assert.ok(toned.includes("success"));
+  assert.deepEqual(timers.delays, [5000]);
+  message.show("Another one.", { tone: "warning" });
+  assert.deepEqual(timers.delays, [5000], "the previous timer is replaced, not stacked");
+  assert.ok(toned.includes("is-warning"));
+  timers.runAll();
+  assert.equal(line.hidden, true, "gone after 5 s without any refresh");
+  message.show("Working…", { progress: true });
+  assert.deepEqual(timers.delays, [], "progress lasts exactly as long as the request");
+  assert.equal(line.hidden, false);
+  message.show("Couldn't do that.", { tone: "error" });
+  assert.deepEqual(timers.delays, [5000], "its outcome is transient again");
+  message.hide();
+  assert.equal(line.hidden, true);
+  assert.deepEqual(timers.delays, []);
+  message.show("");
+  assert.equal(line.hidden, true, "an empty message just hides the line");
+});
+
+function livePanel(initialRows, actions) {
+  const timers = fakeTimers();
+  let rows = initialRows;
+  const calls = [];
+  const api = {
+    getMyDuo: async () => rows,
+    searchDuoCandidates: async () => [{ gamid_handle: "newbie", display_name: "New", is_published: true }],
+    ...Object.fromEntries(Object.entries(actions).map(([name, next]) => [name, async (...args) => { calls.push([name, ...args]); if (next instanceof Error) throw next; rows = next(rows, ...args); }])),
+  };
+  const root = element("div"), message = element("p");
+  message.hidden = true;
+  const visibilitySwitch = ({ on, onChange, label }) => { const node = element("button", "visibility-switch", `${label}:${on ? "ON" : "OFF"}`); node.addEventListener("click", () => onChange(!on)); return node; };
+  const view = createDuoPanel({ api, root, message, element, visibilitySwitch, isOwnerPublished: () => true, timers });
+  return { view, root, message, timers, calls };
+}
+
+test("My Duo Request: the SENT card appears from the server's answer without a refresh; the confirmation shows for 5 s; the pending card stays", async () => {
+  const p = livePanel([], { sendDuoRequest: (rows, handle) => [...rows, { relation: "SENT", gamid_handle: handle, display_name: "New", is_published: true }] });
+  await p.view.load();
+  const input = all(p.root, node => node.tag === "input")[0];
+  input.value = "newbie"; await input.fire("input");
+  await all(p.root, node => node.tag === "form")[0].fire("submit"); await tick();
+  await click(p.root, "Request");
+  assert.match(p.root.textContent, /REQUEST SENT/, "state updated immediately");
+  assert.match(p.root.textContent, /Waiting for @newbie to accept/);
+  assert.equal(p.message.hidden, false);
+  assert.equal(p.message.textContent, "Duo request sent to @newbie.");
+  assert.deepEqual(p.timers.delays, [5000]);
+  p.timers.runAll();
+  assert.equal(p.message.hidden, true, "the confirmation is gone after 5 s");
+  assert.match(p.root.textContent, /REQUEST SENT/, "the pending request is persistent state - it does not disappear");
+});
+
+test("My Duo Accept with replacement: the warning is persistent until answered; after Accept the new Duo shows at once and the outcome (naming the ended Duo) hides after 5 s", async () => {
+  const p = livePanel([DUO, { relation: "RECEIVED", gamid_handle: "fan1", display_name: "Fan" }], {
+    respondToDuoRequest: () => [{ relation: "DUO", gamid_handle: "fan1", display_name: "Fan", is_published: true, show_public: false }],
+  });
+  await p.view.load();
+  await click(p.root, "Accept");
+  assert.match(p.root.textContent, /Accepting replaces your current Duo, @zshot/);
+  assert.deepEqual(p.timers.delays, [], "the replacement warning is state, not a timed message");
+  await click(p.root, "Accept and replace");
+  assert.deepEqual(p.calls.at(-1), ["respondToDuoRequest", "fan1", true, true]);
+  assert.match(p.root.textContent, /MY DUO/);
+  assert.match(p.root.textContent, /@fan1/);
+  assert.doesNotMatch(p.root.textContent, /DUO REQUEST|@zshot/, "the old Duo and the request are gone without a refresh");
+  assert.equal(p.message.textContent, "@fan1 is now your Duo. Your Duo with @zshot has ended.");
+  assert.deepEqual(p.timers.delays, [5000]);
+  p.timers.runAll();
+  assert.equal(p.message.hidden, true);
+});
+
+test("My Duo Decline / Cancel / End Duo / Show switch: each re-renders from the server at once and confirms for 5 s; a recoverable error also shows for 5 s and the state is re-read", async () => {
+  const cases = [
+    { rows: [{ relation: "RECEIVED", gamid_handle: "fan1" }], action: "respondToDuoRequest", next: () => [], press: ["Decline"], text: "Declined @fan1's Duo request.", gone: /DUO REQUEST/ },
+    { rows: [{ relation: "SENT", gamid_handle: "next" }], action: "cancelDuoRequest", next: () => [], press: ["Cancel request"], text: "Cancelled your Duo request to @next.", gone: /REQUEST SENT/ },
+    { rows: [DUO], action: "removeMyDuo", next: () => [], press: ["End Duo", "End Duo"], text: "Your Duo has ended.", gone: /MUTUAL|End Duo/ },
+  ];
+  for (const item of cases) {
+    const p = livePanel(item.rows, { [item.action]: item.next });
+    await p.view.load();
+    for (const label of item.press) await click(p.root, label);
+    assert.doesNotMatch(p.root.textContent, item.gone, `${item.action}: state updated without a refresh`);
+    assert.equal(p.message.textContent, item.text);
+    assert.deepEqual(p.timers.delays, [5000], item.action);
+    p.timers.runAll();
+    assert.equal(p.message.hidden, true, item.action);
+  }
+  const visible = livePanel([DUO], { setMyDuoVisibility: rows => rows.map(row => ({ ...row, show_public: true })) });
+  await visible.view.load();
+  await byClass(visible.root, "visibility-switch")[0].fire("click"); await tick();
+  assert.match(visible.root.textContent, /Show My Duo on my GamID:ON/, "the switch reflects the server at once");
+  assert.deepEqual(visible.timers.delays, [5000]);
+
+  const failing = livePanel([{ relation: "RECEIVED", gamid_handle: "fan1" }], { respondToDuoRequest: Object.assign(new Error("DUO_REQUEST_NOT_FOUND"), { code: "DUO_REQUEST_NOT_FOUND" }) });
+  await failing.view.load();
+  await click(failing.root, "Decline");
+  assert.equal(failing.message.textContent, "That Duo request is no longer waiting. The list has been refreshed.");
+  assert.deepEqual(failing.timers.delays, [5000], "recoverable errors are transient too");
+  failing.timers.runAll();
+  assert.equal(failing.message.hidden, true);
+});
+
+test("My Duo keeps no message of its own timing: every status line goes through the 5 s rule module", () => {
+  const source = read("dist/account/my-duo.js").replace(/\/\/.*$/gm, "");
+  assert.match(source, /import \{ createTransientMessage \} from "\.\/transient-message\.js";/);
+  assert.doesNotMatch(source, /setTimeout|clearTimeout|8000|10000/, "no private timers or other durations");
+  assert.doesNotMatch(source, /message\.(textContent|hidden)\s*=/, "the status line is only written by the rule module");
 });
 
 // ---------- layout regression (manual QA: a search result's name and @handle broke one character per line under a full-width Request button) ----------

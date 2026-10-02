@@ -3,6 +3,7 @@
 // owner, replacing a current Duo needs an explicit confirmation, and accepting ends the previous Duo of BOTH people atomically. This panel only shows the state the
 // server returns and asks for the confirmations the server requires - it never decides who is whose Duo.
 import { isHandle, normalizeHandle, relationshipBadge } from "../public/identity-link.js";
+import { createTransientMessage } from "./transient-message.js";
 
 export const DUO_ERRORS = Object.freeze({
   DUO_SELF: "You can't be your own Duo.",
@@ -46,22 +47,17 @@ export function publicHint(duo, ownerPublished) {
 }
 
 // mounts into `root`; `message` is the status line; helpers come from the account page (its element() / visibilitySwitch()).
-export function createDuoPanel({ api, root, message, element, visibilitySwitch, isOwnerPublished = () => false, gamidUrl = handle => `../@${handle}` }) {
+export function createDuoPanel({ api, root, message, element, visibilitySwitch, isOwnerPublished = () => false, gamidUrl = handle => `../@${handle}`, timers = globalThis }) {
   let state = null;          // null = could not be read
   let busy = false;
   let confirm = null;        // { kind: "send" | "accept" | "remove", handle }
   let results = null;        // search results, null = no search yet
   let query = "";
   const avatars = new Map(); // avatar path -> blob URL (public avatars only)
-  let messageTimer;
-
-  const say = (text, success = false) => {
-    clearTimeout(messageTimer);
-    message.textContent = text;
-    message.classList.toggle("success", success);
-    message.hidden = !text;
-    if (text) messageTimer = setTimeout(() => { message.hidden = true; }, 8000);
-  };
+  // transient feedback follows the GamID rule (transient-message.js): shown at once, gone after 5 s. Pending / incoming requests and the replacement warnings are
+  // persistent STATE (cards and warning boxes rendered from the server's answer), never messages, so they stay until the person acts.
+  const feedback = createTransientMessage(message, { timers });
+  const say = (text, tone = "error") => feedback.show(text, { tone });
   const button = (text, className, onClick, disabled = false) => {
     const node = element("button", className, text);
     node.type = "button";
@@ -91,16 +87,21 @@ export function createDuoPanel({ api, root, message, element, visibilitySwitch, 
     return row;
   }
 
+  // Every action: the server answers, the visible Duo state is re-read and re-rendered right away (no page refresh), and the outcome shows for 5 s.
   async function act(run, success) {
     if (busy) return;
-    busy = true; render(); say("Working…");
-    try { await run(); say(success, true); confirm = null; results = null; query = ""; }
-    catch (error) { say(duoErrorText(error)); if (error?.message === "DUO_REQUEST_NOT_FOUND") confirm = null; }
+    busy = true; render(); feedback.show("Working…", { tone: "info", progress: true });
+    let outcome;
+    try { await run(); outcome = [success, "success"]; confirm = null; results = null; query = ""; }
+    catch (error) { outcome = [duoErrorText(error), "error"]; if (error?.message === "DUO_REQUEST_NOT_FOUND") confirm = null; }
     busy = false;
     await load();
+    say(...outcome);
   }
-  const send = (handle, replace = false) => act(() => api.sendDuoRequest(handle, replace), `Duo request sent to @${handle}.`);
-  const accept = (handle, replace = false) => act(() => api.respondToDuoRequest(handle, true, replace), `@${handle} is now your Duo.`);
+  const send = (handle, replace = false) => act(() => api.sendDuoRequest(handle, replace),
+    replace && state?.duo ? `Duo request sent to @${handle}. @${state.duo.handle} stays your Duo unless @${handle} accepts.` : `Duo request sent to @${handle}.`);
+  const accept = (handle, replace = false) => act(() => api.respondToDuoRequest(handle, true, replace),
+    replace && state?.duo ? `@${handle} is now your Duo. Your Duo with @${state.duo.handle} has ended.` : `@${handle} is now your Duo.`);
   const decline = handle => act(() => api.respondToDuoRequest(handle, false, false),`Declined @${handle}'s Duo request.`);
   const cancel = handle => act(() => api.cancelDuoRequest(handle), `Cancelled your Duo request to @${handle}.`);
   const remove = () => act(() => api.removeMyDuo(), "Your Duo has ended.");
@@ -110,9 +111,9 @@ export function createDuoPanel({ api, root, message, element, visibilitySwitch, 
     event?.preventDefault?.();
     if (busy) return;
     const value = query.trim();
-    if (value.replace(/[^a-z0-9]/gi, "").length < 3) { say(DUO_ERRORS.SEARCH_TOO_SHORT); return; }
+    if (value.replace(/[^a-z0-9]/gi, "").length < 3) { say(DUO_ERRORS.SEARCH_TOO_SHORT, "warning"); return; }
     busy = true; render();
-    try { results = (await api.searchDuoCandidates(value)).map(row => duoState([{ ...row, relation: "DUO" }]).duo).filter(Boolean); say(""); }
+    try { results = (await api.searchDuoCandidates(value)).map(row => duoState([{ ...row, relation: "DUO" }]).duo).filter(Boolean); feedback.hide(); }
     catch (error) { results = null; say(duoErrorText(error)); }
     busy = false; render();
   }
