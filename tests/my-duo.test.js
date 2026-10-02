@@ -12,7 +12,8 @@ import { GAMID_BLOCKS, GAMID_BLOCK_INFO, createGamidPayload } from "../dist/wall
 import { paintGamidBlock, BLOCK_TITLES } from "../dist/wall-kit/gamid-blocks.js";
 import { INTERACTIVE_ATTR } from "../dist/wall-kit/interaction.js";
 import { loadPublicView, loadGamidSnapshot, ownerDuo } from "../dist/wall-editor/gamid-data.js";
-import { createDuoPanel, duoState, sendWarning, acceptWarning, publicHint, duoErrorText, describeDuoChange, NEUTRAL_CHANGE } from "../dist/account/my-duo.js";
+import { createDuoPanel, duoState, sendWarning, acceptWarning, publicHint, duoErrorText } from "../dist/account/my-duo.js";
+import { createDuoNotifier, notificationText, DUO_NOTIFICATION_MS, DUO_NOTIFICATION_KINDS } from "../dist/account/duo-notifications.js";
 import { createTransientMessage, TRANSIENT_MESSAGE_MS } from "../dist/account/transient-message.js";
 import { subscribeDuoRealtime, createDuoRefreshScheduler } from "../dist/account/duo-realtime.js";
 import { subscribePrivateBroadcast } from "../dist/account/realtime-client.js";
@@ -456,7 +457,7 @@ function fakeRealtime() {
   return { FakeSocket, sockets };
 }
 
-async function openLiveSession({ rows, userId = "11111111-1111-4111-8111-111111111111", storage = null, now = () => 1_000_000, api: extraApi = {} }) {
+async function openLiveSession({ rows, userId = "11111111-1111-4111-8111-111111111111", api: extraApi = {} }) {
   const server = { rows };
   const timers = fakeTimers();
   const { FakeSocket, sockets } = fakeRealtime();
@@ -465,7 +466,7 @@ async function openLiveSession({ rows, userId = "11111111-1111-4111-8111-1111111
   const root = element("div"), message = element("p");
   message.hidden = true;
   const visibilitySwitch = ({ on, label }) => element("button", "visibility-switch", `${label}:${on ? "ON" : "OFF"}`);
-  const view = createDuoPanel({ api, root, message, element, visibilitySwitch, isOwnerPublished: () => true, timers, storage, now });
+  const view = createDuoPanel({ api, root, message, element, visibilitySwitch, isOwnerPublished: () => true, timers });
   await view.load();
   const subscribe = options => subscribePrivateBroadcast({ ...options, WebSocketImpl: FakeSocket, getSession: async () => ({ access_token: "token-for-test" }), setTimer: () => 0, clearTimer: () => {}, setIntervalImpl: () => 0, clearIntervalImpl: () => {} });
   const stop = subscribeDuoRealtime({ refresh: () => view.refresh(), subscribe, getUserId: () => userId, timers, win: null, doc: null });
@@ -496,120 +497,189 @@ test("live: the page joins ONLY its own private topic identity:user:<uid> (the r
   assert.ok(a.sockets[0].closed);
 });
 
-test("live: B sends A a request -> A's open page shows the incoming request (and says so for ~3 s); B cancels -> it disappears (and says so); no manual refresh", async () => {
+test("live: B sends A a request -> A's open page shows the incoming request; B cancels -> it disappears; no manual refresh", async () => {
   const a = await openLiveSession({ rows: [] });
   assert.match(a.root.textContent, /You don't have a Duo yet/);
   a.server.rows = [{ relation: "RECEIVED", gamid_handle: "zshot", display_name: "zshot", is_published: true }];
   await a.signal();
   assert.match(a.root.textContent, /DUO REQUEST/);
   assert.match(a.root.textContent, /@zshot wants to be your Duo/);
-  assert.equal(a.message.textContent, "@zshot sent you a Duo request.");
-  a.timers.runAll(); await tick();
-  assert.equal(a.message.hidden, true, "the explanation is transient");
-  assert.match(a.root.textContent, /DUO REQUEST/, "the request card is persistent state");
+  assert.equal(a.message.hidden, true, "the state is redrawn silently - what the other person did is told by the durable notification (tests below), never guessed");
   a.server.rows = [];
   await a.signal();
   assert.doesNotMatch(a.root.textContent, /DUO REQUEST/);
-  assert.equal(a.message.textContent, "@zshot cancelled their Duo request.");
+  assert.equal(a.message.hidden, true);
   a.stop();
 });
 
-// ---------- explaining someone else's change (remote-action feedback) ----------
+// ---------- durable user-to-user notifications (what ANOTHER person did): survive offline, shown 5 s from display, marked seen only once displayed ----------
 const person = (relation, handle, extra = {}) => ({ relation, gamid_handle: handle, display_name: handle, is_published: true, show_public: false, ...extra });
-const st = rows => duoState(rows);
+function notificationServer(initial = []) {
+  const rows = initial.map(row => ({ ...row, seen: false }));
+  const marks = [];
+  return {
+    rows, marks,
+    add(row) { rows.push({ ...row, seen: false }); },
+    api: {
+      getMyDuoNotifications: async () => rows.filter(row => !row.seen).map(({ seen, ...row }) => row),
+      markMyDuoNotificationsSeen: async ids => { marks.push(ids); for (const row of rows) if (ids.includes(row.notification_id)) row.seen = true; return ids.length; },
+    },
+  };
+}
+function notifierPage(server, { visible = true } = {}) {
+  const timers = fakeTimers();
+  const notice = element("p");
+  notice.hidden = true;
+  const page = { visible };
+  const notifier = createDuoNotifier({ api: server.api, notice, timers, isVisible: () => page.visible });
+  return { notifier, notice, timers, page };
+}
+const note = (id, kind, actor = "zshot") => ({ notification_id: id, kind, actor_handle: actor, actor_display_name: actor, created_at: `2026-10-02T17:00:0${id}Z` });
 
-test("remote feedback (pure): each unambiguous transition of the SECURED before/after state gets its own message; nothing visible changed = no message", () => {
-  const cases = [
-    ["request received", [], [person("RECEIVED", "zshot")], "@zshot sent you a Duo request."],
-    ["request cancelled", [person("RECEIVED", "zshot")], [], "@zshot cancelled their Duo request."],
-    ["request declined", [person("SENT", "zshot")], [], "@zshot declined your Duo request."],
-    ["request accepted", [person("SENT", "zshot")], [person("DUO", "zshot")], "@zshot accepted your Duo request. You're now Duo."],
-    ["request accepted, replacing my Duo", [person("DUO", "black"), person("SENT", "zshot")], [person("DUO", "zshot")], "@zshot accepted your Duo request. You're now Duo. Your Duo with @black has ended."],
-    ["Duo ended", [person("DUO", "zshot")], [], "Your Duo with @zshot has ended."],
-    ["Duo published", [person("DUO", "zshot", { is_published: false })], [person("DUO", "zshot")], "@zshot published their GamID."],
-  ];
-  for (const [name, before, after, text] of cases) assert.equal(describeDuoChange(st(before), st(after))?.text, text, name);
-  assert.equal(describeDuoChange(st([person("DUO", "zshot")]), st([person("DUO", "zshot")])), null, "a signal with no visible change says nothing");
-  assert.equal(describeDuoChange(st([person("DUO", "zshot")]), st([person("DUO", "zshot", { display_name: "Z" })])), null, "a cosmetic change (name) is not announced");
+test("notifications: the authoritative event kind decides the wording (never inferred from state); an unknown kind or unsafe handle is never shown", () => {
+  const expected = {
+    DUO_REQUEST_RECEIVED: "@zshot sent you a Duo request.",
+    DUO_REQUEST_CANCELLED: "@zshot cancelled their Duo request.",
+    DUO_REQUEST_DECLINED: "@zshot declined your Duo request.",
+    DUO_REQUEST_ACCEPTED: "@zshot accepted your Duo request. You're now Duo.",
+    DUO_ENDED: "@zshot ended your Duo.",
+    DUO_REPLACED: "Your Duo with @zshot has ended because @zshot chose a new Duo.",
+  };
+  assert.deepEqual([...DUO_NOTIFICATION_KINDS].sort(), Object.keys(expected).sort());
+  for (const [kind, text] of Object.entries(expected)) assert.equal(notificationText(note(1, kind)).text, text, kind);
+  assert.equal(notificationText(note(1, "SOMETHING_ELSE")), null);
+  assert.equal(notificationText({ ...note(1, "DUO_ENDED"), actor_handle: "<b>x</b>" }), null);
+  assert.equal(DUO_NOTIFICATION_MS, 5000, "5 seconds for user-to-user notifications");
+  assert.equal(TRANSIENT_MESSAGE_MS, 3000, "own-action feedback stays ~3 s");
+  const migration = read("supabase/migrations/20261002190000_my_duo_notifications.sql");
+  for (const kind of Object.keys(expected)) assert.match(migration, new RegExp(`'${kind}'`), `${kind} is written by the action itself`);
 });
 
-test("remote feedback (pure): what the secured state cannot tell apart is never guessed - a replaced Duo reads exactly like an ended one; several changes or owner-only changes are neutral", () => {
-  // @zshot accepted someone else (replacement): the new Duo of @zshot is not visible to this owner, so the state is identical to an ended Duo
-  assert.equal(describeDuoChange(st([person("DUO", "zshot")]), st([]))?.text, "Your Duo with @zshot has ended.", "no 'ended it' / 'chose a new Duo' claim");
-  const neutral = [
-    ["two things at once", [person("SENT", "zshot")], [person("RECEIVED", "fan1")]],
-    ["a Duo this owner accepted somewhere else", [person("RECEIVED", "fan1")], [person("DUO", "fan1")]],
-    ["a request this owner sent somewhere else", [], [person("SENT", "next")]],
-    ["this owner's own public switch", [person("DUO", "zshot")], [person("DUO", "zshot", { show_public: true })]],
-    ["an unexplained new Duo", [person("DUO", "black")], [person("DUO", "zshot")]],
-  ];
-  for (const [name, before, after] of neutral) assert.equal(describeDuoChange(st(before), st(after))?.text, NEUTRAL_CHANGE, name);
-  assert.equal(NEUTRAL_CHANGE, "Your My Duo status changed.");
+test("notifications: recipient online - B acts, the signal arrives, the notice appears at once, is marked seen once, and hides 5 s later", async () => {
+  const server = notificationServer();
+  const a = notifierPage(server);
+  await a.notifier.check();                          // page load: nothing pending
+  assert.equal(a.notice.hidden, true);
+  server.add(note(1, "DUO_REQUEST_DECLINED"));        // B declines while A is online
+  await a.notifier.check(); await tick();            // the Realtime signal's fetch
+  assert.equal(a.notice.hidden, false);
+  assert.equal(a.notice.textContent, "@zshot declined your Duo request.");
+  assert.deepEqual(server.marks, [[1]], "marked seen once - when displayed");
+  assert.deepEqual(a.timers.delays, [DUO_NOTIFICATION_MS]);
+  a.timers.runAll();
+  assert.equal(a.notice.hidden, true, "gone after 5 s");
+  await a.notifier.check(); await tick();
+  assert.equal(a.notice.hidden, true, "not shown again");
+  assert.deepEqual(server.marks, [[1]]);
 });
 
-test("remote feedback (live): A's open page - B declines, B accepts, B ends, B's replacement - redraws at once and explains for ~3 s; the cards stay persistent", async () => {
-  const flows = [
-    { name: "declined", rows: [person("SENT", "zshot")], next: [], text: "@zshot declined your Duo request.", card: /You don't have a Duo yet/ },
-    { name: "accepted", rows: [person("SENT", "zshot")], next: [person("DUO", "zshot")], text: "@zshot accepted your Duo request. You're now Duo.", card: /MY DUO/ },
-    { name: "ended", rows: [person("DUO", "zshot")], next: [], text: "Your Duo with @zshot has ended.", card: /You don't have a Duo yet/ },
-    { name: "replaced (zshot accepted someone else)", rows: [person("DUO", "zshot")], next: [], text: "Your Duo with @zshot has ended.", card: /You don't have a Duo yet/ },
-  ];
-  for (const flow of flows) {
-    const a = await openLiveSession({ rows: flow.rows });
-    assert.equal(a.message.hidden, true, `${flow.name}: nothing announced on load`);
-    a.server.rows = flow.next;
-    await a.signal();
-    assert.match(a.root.textContent, flow.card, `${flow.name}: redrawn`);
-    assert.equal(a.message.hidden, false);
-    assert.equal(a.message.textContent, flow.text, flow.name);
-    assert.deepEqual(a.timers.delays, [TRANSIENT_MESSAGE_MS], `${flow.name}: ~3 s`);
-    a.timers.runAll(); await tick();
-    assert.equal(a.message.hidden, true);
-    assert.match(a.root.textContent, flow.card, `${flow.name}: the state itself stays`);
-    a.stop();
-  }
+test("notifications: recipient offline - the action happens while A is away; A signs in later and still gets it (it was never marked seen by the event or a signal)", async () => {
+  const server = notificationServer([note(7, "DUO_ENDED")]);   // stored while A was offline
+  assert.deepEqual(server.marks, []);
+  const later = notifierPage(server);
+  await later.notifier.check(); await tick();
+  assert.equal(later.notice.textContent, "@zshot ended your Duo.");
+  assert.deepEqual(server.marks, [[7]]);
 });
 
-test("remote feedback (live): no duplicate for the owner's OWN action - not in the tab that acted, not in another open tab of the same browser; an ambiguous change is neutral", async () => {
-  // the acting tab: its own result message only, even when the live signal for the same change arrives afterwards
-  const acting = await openLiveSession({ rows: [person("RECEIVED", "fan1")], api: { respondToDuoRequest: async () => { acting.server.rows = []; } } });
-  await click(acting.root, "Decline");
-  assert.equal(acting.message.textContent, "Declined @fan1's Duo request.");
-  await acting.signal();
-  assert.equal(acting.message.textContent, "Declined @fan1's Duo request.", "no second, remote-style message");
-  acting.stop();
-
-  // another tab of the same owner (shared localStorage marker): the change is drawn, but not explained as someone else's
-  const store = new Map();
-  const storage = { getItem: key => store.get(key) ?? null, setItem: (key, value) => store.set(key, String(value)) };
-  let clock = 5_000_000;
-  const tab1 = await openLiveSession({ rows: [person("RECEIVED", "fan1")], storage, now: () => clock, api: { respondToDuoRequest: async () => { tab1.server.rows = []; } } });
-  const tab2 = await openLiveSession({ rows: [person("RECEIVED", "fan1")], storage, now: () => clock });
-  await click(tab1.root, "Decline");
-  tab2.server.rows = [];
-  await tab2.signal();
-  assert.doesNotMatch(tab2.root.textContent, /DUO REQUEST/, "the other tab is redrawn");
-  assert.equal(tab2.message.hidden, true, "and does not claim @fan1 cancelled");
-  clock += 60_000;   // long after the own action: someone else's change is explained again
-  tab2.server.rows = [person("RECEIVED", "fan2")];
-  await tab2.signal();
-  assert.equal(tab2.message.textContent, "@fan2 sent you a Duo request.");
-  tab1.stop(); tab2.stop();
-
-  // ambiguous: two things changed in one signal
-  const both = await openLiveSession({ rows: [person("SENT", "zshot")] });
-  both.server.rows = [person("RECEIVED", "fan1")];
-  await both.signal();
-  assert.equal(both.message.textContent, "Your My Duo status changed.");
-  both.stop();
+test("notifications: the 5 s begin when it is DISPLAYED - a hidden tab keeps it pending (not shown, not marked) until the person looks", async () => {
+  const server = notificationServer([note(1, "DUO_REQUEST_ACCEPTED")]);
+  const a = notifierPage(server, { visible: false });
+  await a.notifier.check(); await tick();
+  assert.equal(a.notice.hidden, true, "not displayed in a background tab");
+  assert.deepEqual(server.marks, [], "not marked seen merely because it was fetched");
+  assert.deepEqual(a.timers.delays, [], "no clock running yet");
+  a.page.visible = true;
+  a.notifier.pump(); await tick();                   // the tab became visible (duo-realtime.js re-checks on visibilitychange)
+  assert.equal(a.notice.textContent, "@zshot accepted your Duo request. You're now Duo.");
+  assert.deepEqual(a.timers.delays, [DUO_NOTIFICATION_MS], "the 5 s start now");
+  assert.deepEqual(server.marks, [[1]]);
 });
 
-test("remote feedback: the Realtime signal stays data-free - the explanation is derived only from the secured state", () => {
-  const sql = read("supabase/migrations/20261002170000_my_duo_realtime.sql");
-  assert.match(sql, /realtime\.send\(jsonb_build_object\('kind', 'DUO'\), 'duo_changed'/);
-  const client = read("dist/account/duo-realtime.js").replace(/\/\/.*$/gm, "");
-  assert.match(client, /onMessage: \(\) => schedule\(\)/, "the payload is ignored");
-  assert.match(read("dist/account/my-duo.js"), /const change = state \? describeDuoChange\(state, next\) : null;/);
+test("notifications: once seen, a later visit / refresh shows nothing again", async () => {
+  const server = notificationServer([note(1, "DUO_REQUEST_RECEIVED")]);
+  const first = notifierPage(server);
+  await first.notifier.check(); await tick();
+  assert.equal(first.notice.textContent, "@zshot sent you a Duo request.");
+  const second = notifierPage(server);               // the page is reloaded
+  await second.notifier.check(); await tick();
+  assert.equal(second.notice.hidden, true);
+  assert.deepEqual(server.marks, [[1]]);
+});
+
+test("notifications: a Realtime fetch racing the page-load fetch (both return the same unseen row) shows it once and marks it once", async () => {
+  let release;
+  const server = notificationServer([note(4, "DUO_REQUEST_CANCELLED")]);
+  const slow = { ...server.api, getMyDuoNotifications: async () => { await new Promise(resolve => { release = resolve; }); return server.api.getMyDuoNotifications(); } };
+  const timers = fakeTimers();
+  const notice = element("p");
+  const notifier = createDuoNotifier({ api: slow, notice, timers, isVisible: () => true });
+  const load = notifier.check();
+  const live = notifier.check();                     // the signal arrives while the first fetch is still running
+  release(); await tick(); release?.(); await load; await live; await tick(); await tick();
+  assert.equal(notice.textContent, "@zshot cancelled their Duo request.");
+  assert.deepEqual(server.marks, [[4]], "one display, one mark");
+  timers.runAll(); await tick();
+  assert.equal(notice.hidden, true, "and nothing queued behind it");
+
+  // the same row returned twice by two separate fetches (mark not yet applied on the server) is still shown once
+  const racing = notificationServer([note(5, "DUO_ENDED")]);
+  const stale = { ...racing.api, markMyDuoNotificationsSeen: async ids => { racing.marks.push(ids); return 1; } };   // the mark has not landed yet
+  const page = notifierPage({ api: stale });
+  await page.notifier.check(); await tick();
+  await page.notifier.check(); await tick();
+  page.timers.runAll(); await tick();
+  assert.equal(page.notice.hidden, true, "not repeated after it hid");
+  assert.deepEqual(racing.marks, [[5]]);
+});
+
+test("notifications: several that piled up while offline are shown one by one, oldest first, 5 s each, each marked only when its turn comes", async () => {
+  const server = notificationServer([note(3, "DUO_REQUEST_DECLINED", "third"), note(1, "DUO_REQUEST_RECEIVED", "first"), note(2, "DUO_REQUEST_CANCELLED", "first")]);
+  const a = notifierPage(server);
+  await a.notifier.check(); await tick();
+  const seen = [a.notice.textContent];
+  assert.deepEqual(server.marks, [[1]], "only the one on screen is marked");
+  a.timers.runAll(); await tick();
+  seen.push(a.notice.textContent);
+  assert.deepEqual(server.marks, [[1], [2]]);
+  a.timers.runAll(); await tick();
+  seen.push(a.notice.textContent);
+  assert.deepEqual(seen, ["@first sent you a Duo request.", "@first cancelled their Duo request.", "@third declined your Duo request."]);
+  assert.deepEqual(server.marks, [[1], [2], [3]]);
+  a.timers.runAll(); await tick();
+  assert.equal(a.notice.hidden, true);
+});
+
+test("notifications: the persistent Duo cards are separate - the request card stays after its notification was seen; own actions keep their ~3 s result line", async () => {
+  const a = await openLiveSession({ rows: [person("RECEIVED", "zshot")] });
+  const server = notificationServer([note(1, "DUO_REQUEST_RECEIVED")]);
+  const n = notifierPage(server);
+  await n.notifier.check(); await tick();
+  n.timers.runAll();
+  assert.equal(n.notice.hidden, true);
+  await a.signal();
+  assert.match(a.root.textContent, /DUO REQUEST/, "the pending request is still on screen until answered");
+  a.stop();
+  const html = read("dist/account/index.html");
+  assert.match(html, /<p id="duoNotice" class="connections-message duo-notice" role="status" aria-live="polite" hidden><\/p>/, "notifications have their own line, apart from the own-action result line");
+  const wiring = read("dist/account/account.js");
+  assert.match(wiring, /duoNotifier\.check\(\);/, "pending notifications are fetched when the page loads");
+  assert.match(wiring, /subscribeDuoRealtime\(\{ refresh: \(\) => Promise\.all\(\[duoPanel\.refresh\(\), duoNotifier\.check\(\)\]\) \}\)/, "and on every live signal");
+});
+
+test("notifications: privacy - stored per recipient, RPC-only, marking is scoped to the caller, the actor is never notified, the signal stays data-free", () => {
+  const sql = read("supabase/migrations/20261002190000_my_duo_notifications.sql");
+  assert.match(sql, /alter table public\.identity_notifications enable row level security;\nrevoke all on table public\.identity_notifications from public, anon, authenticated;/);
+  assert.match(sql, /where n\.recipient_entity_id = me and n\.seen_at is null and n\.notification_id = any \(candidate_ids\)/, "only the caller's own, only unseen");
+  assert.match(sql, /where n\.recipient_entity_id = me and n\.seen_at is null\s+order by n\.notification_id/, "only the caller's own, oldest first");
+  assert.match(sql, /where candidate_recipient is not null and candidate_actor is not null and candidate_recipient <> candidate_actor/, "nobody is notified of their own action");
+  assert.doesNotMatch(sql.replace(/^\s*--.*$/gm, ""), /realtime\.send/, "no new Realtime payload: the existing data-free signal wakes the page");
+  assert.match(sql, /constraint identity_notifications_not_self check \(recipient_entity_id <> actor_entity_id\)/);
+  const table = sql.slice(sql.indexOf("create table public.identity_notifications"), sql.indexOf(");", sql.indexOf("create table public.identity_notifications")));
+  assert.deepEqual([...table.matchAll(/^\s+([a-z_]+) (bigint|uuid|text|timestamptz)/gm)].map(match => match[1]), ["notification_id", "recipient_entity_id", "actor_entity_id", "kind", "created_at", "seen_at"], "minimal: no message text, handles or relationship ids are stored");
+  const client = read("dist/account/duo-notifications.js").replace(/\/\/.*$/gm, "");
+  assert.match(client, /api\.markMyDuoNotificationsSeen\(\[id\]\)/, "the page marks exactly the one it displayed");
+  assert.doesNotMatch(read("dist/account/my-duo.js"), /describeDuoChange|ownActionRecently/, "no more guessing from before/after state");
 });
 
 test("live: B accepts / declines A's request -> A's 'Request sent' card turns into MY DUO / disappears", async () => {
@@ -724,7 +794,7 @@ test("live: the migration signals both participants of every relationship change
   assert.doesNotMatch(sql.replace(/^\s*--.*$/gm, ""), /create table|alter table|drop |insert into public|update public|delete from public/i, "no business data or rule changes");
   const client = read("dist/account/duo-realtime.js").replace(/\/\/.*$/gm, "");
   assert.doesNotMatch(client, /setInterval/, "no polling");
-  assert.match(read("dist/account/account.js"), /stopDuoRealtime = subscribeDuoRealtime\(\{ refresh: \(\) => duoPanel\.refresh\(\) \}\);/);
+  assert.match(read("dist/account/account.js"), /stopDuoRealtime = subscribeDuoRealtime\(\{ refresh: \(\) => Promise\.all\(\[duoPanel\.refresh\(\), duoNotifier\.check\(\)\]\) \}\);/);
 });
 
 // ---------- layout regression (manual QA: a search result's name and @handle broke one character per line under a full-width Request button) ----------

@@ -21,7 +21,6 @@ export const DUO_ERRORS = Object.freeze({
   IDENTITY_NOT_FOUND: "We couldn't find your GamID. Please refresh the page.",
   NETWORK_ERROR: "Couldn't reach the server. Check your connection and try again.",
 });
-function safeLocalStorage() { try { return globalThis.localStorage ?? null; } catch { return null; } }
 export const duoErrorText =error => DUO_ERRORS[error?.message] || DUO_ERRORS[error?.code] || "Something went wrong. Please try again.";
 
 // get_my_duo rows -> { duo, sent, received[] } (anything malformed is dropped)
@@ -48,55 +47,7 @@ export function publicHint(duo, ownerPublished) {
 }
 
 // mounts into `root`; `message` is the status line; helpers come from the account page (its element() / visibilitySwitch()).
-// ---- explaining a change someone else made (live update) ----------------------------------------------------------------------------------------------------
-// Input: the last state this page showed and the new SECURED state (both from get_my_duo). The Realtime signal itself says nothing but "changed".
-// Output: { text, tone } for exactly ONE transition that the two states make unambiguous, the neutral line when several things changed or the change could only have
-// been made by this owner elsewhere, or null when nothing the person can see changed. What the states CANNOT tell apart is never guessed:
-//   - a Duo that disappears was either ended by the other person OR replaced because they accepted someone else (that new Duo is not visible to this owner), so the
-//     message says only that it ended;
-//   - the owner's own actions on another device look like the other person's; actions in another tab of this browser are recognised (see markOwnAction).
-export const NEUTRAL_CHANGE = "Your My Duo status changed.";
-const OWN_ACTION_KEY = "gamid.myDuo.ownActionAt";
-const OWN_ACTION_WINDOW_MS = 15_000;
-
-export function describeDuoChange(before, after) {
-  const events = [];
-  let ownOnly = false;   // a change only this owner can make (from somewhere else)
-  const has = (list, handle) => list.some(person => person.handle === handle);
-  const prevDuo = before.duo, nextDuo = after.duo;
-  const acceptedMine = nextDuo && before.sent?.handle === nextDuo.handle && prevDuo?.handle !== nextDuo.handle;
-  // the Duo
-  if (acceptedMine) {
-    events.push({ text: prevDuo ? `@${nextDuo.handle} accepted your Duo request. You're now Duo. Your Duo with @${prevDuo.handle} has ended.` : `@${nextDuo.handle} accepted your Duo request. You're now Duo.`, tone: "success" });
-  } else if (nextDuo && prevDuo?.handle !== nextDuo.handle) {
-    ownOnly = true;   // a new Duo the other side did not request: only this owner can have accepted it
-  } else if (prevDuo && !nextDuo) {
-    events.push({ text: `Your Duo with @${prevDuo.handle} has ended.`, tone: "warning" });
-  } else if (prevDuo && nextDuo && prevDuo.isPublished !== nextDuo.isPublished) {
-    events.push(nextDuo.isPublished
-      ? { text: `@${nextDuo.handle} published their GamID.`, tone: "info" }
-      : { text: `@${nextDuo.handle}'s GamID is no longer published, so My Duo is hidden from public view for now.`, tone: "info" });
-  }
-  if (prevDuo && nextDuo && prevDuo.handle === nextDuo.handle && prevDuo.showPublic !== nextDuo.showPublic) ownOnly = true;   // this owner's own switch
-  // my outgoing request
-  if (before.sent && after.sent?.handle !== before.sent.handle && !acceptedMine) {
-    if (after.sent) ownOnly = true;                                  // replaced by another request: only this owner sends
-    else events.push({ text: `@${before.sent.handle} declined your Duo request.`, tone: "info" });
-  } else if (!before.sent && after.sent) ownOnly = true;
-  // requests waiting for me
-  for (const person of after.received) if (!has(before.received, person.handle)) events.push({ text: `@${person.handle} sent you a Duo request.`, tone: "info" });
-  for (const person of before.received) {
-    if (has(after.received, person.handle)) continue;
-    if (nextDuo?.handle === person.handle) ownOnly = true;            // accepted - by this owner
-    else events.push({ text: `@${person.handle} cancelled their Duo request.`, tone: "info" });
-  }
-  if (ownOnly) return { text: NEUTRAL_CHANGE, tone: "info" };
-  if (events.length === 1) return events[0];
-  if (events.length > 1) return { text: NEUTRAL_CHANGE, tone: "info" };
-  return null;
-}
-
-export function createDuoPanel({ api, root, message, element, visibilitySwitch, isOwnerPublished = () => false, gamidUrl = handle => `../@${handle}`, timers = globalThis, storage = safeLocalStorage(), now = () => Date.now() }) {
+export function createDuoPanel({ api, root, message, element, visibilitySwitch, isOwnerPublished = () => false, gamidUrl = handle => `../@${handle}`, timers = globalThis }) {
   let state = null;          // null = could not be read
   let busy = false;
   let confirm = null;        // { kind: "send" | "accept" | "remove", handle }
@@ -141,11 +92,9 @@ export function createDuoPanel({ api, root, message, element, visibilitySwitch, 
     if (busy) return;
     busy = true; render(); feedback.show("Working…", { tone: "info", progress: true });
     let outcome;
-    markOwnAction();
     try { await run(); outcome = [success, "success"]; confirm = null; results = null; query = ""; }
     catch (error) { outcome = [duoErrorText(error), "error"]; if (error?.message === "DUO_REQUEST_NOT_FOUND") confirm = null; }
-    markOwnAction();
-    // still busy while the new state is read: a live signal for this same change can never be mistaken for someone else's action
+    // still busy while the new state is read, so a live re-read for this same change cannot interleave with it
     await load();
     busy = false;
     render();
@@ -266,24 +215,16 @@ export function createDuoPanel({ api, root, message, element, visibilitySwitch, 
     render();
   }
 
-  // This owner's own actions, shared across this browser's tabs (localStorage), so another open tab never explains the owner's own change as someone else's.
-  function markOwnAction() { try { storage?.setItem(OWN_ACTION_KEY, String(now())); } catch { /* storage unavailable: only this tab knows */ } }
-  function ownActionRecently() {
-    try { const at = Number(storage?.getItem(OWN_ACTION_KEY)); return Number.isFinite(at) && at > 0 && now() - at < OWN_ACTION_WINDOW_MS; } catch { return false; }
-  }
-
-  // A change made ELSEWHERE (duo-realtime.js: the other person acted, or this owner in another tab): re-read the SECURED state, compare it with what this page last
-  // showed, re-render in place, and - only for someone else's change - explain it in the ~3 s status line (describeDuoChange: specific when the before/after state
-  // makes it unambiguous, neutral otherwise). While this page's own action is running it is skipped (that action re-reads the state when it finishes and shows its own
-  // result). An open confirmation is kept only while what it confirms still exists; a failed re-read keeps the last good state on screen.
+  // A change made ELSEWHERE (duo-realtime.js: the other person acted, or this owner in another tab): re-read the SECURED state and re-render it in place. The page
+  // does not guess what happened from the difference: what another person did is explained by the durable notifications (duo-notifications.js), which carry the
+  // authoritative event. While this page's own action is running it is skipped (that action re-reads the state when it finishes). An open confirmation is kept only
+  // while what it confirms still exists; a failed re-read keeps the last good state on screen.
   async function refresh() {
     if (busy) return;
     let next;
     try { next = duoState(await api.getMyDuo()); } catch { return; }
     if (busy) return;
-    const change = state ? describeDuoChange(state, next) : null;
     state = next;
-    if (change && !ownActionRecently()) say(change.text, change.tone);
     if (confirm?.kind === "accept" && !state.received.some(person => person.handle === confirm.handle)) confirm = null;
     if (confirm?.kind === "remove" && !state.duo) confirm = null;
     if (confirm?.kind === "send" && state.sent) confirm = null;

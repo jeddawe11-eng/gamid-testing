@@ -11,6 +11,7 @@ import { buildLibraryRows, normalizeManualGames, rowGameKey } from "./game-platf
 import { addManualPlatformsToDiscoveredItem, createAddGamePanel, manualGameItem } from "./manual-games.js";
 import { createDuoPanel } from "./my-duo.js";
 import { subscribeDuoRealtime } from "./duo-realtime.js";
+import { createDuoNotifier } from "./duo-notifications.js";
 
 const views = [...document.querySelectorAll(".view")];
 const message = document.getElementById("formMessage");
@@ -717,6 +718,7 @@ function connectionCard(row) {
 // My Duo (my-duo.js): a mutual GamID-to-GamID relationship; the panel only renders server state and asks for the confirmations the server requires.
 let duoPanel = null;
 let stopDuoRealtime = null;
+let duoNotifier = null;
 async function loadDuo() {
   const root = document.getElementById("duoPanel");
   if (!root) return;
@@ -725,9 +727,12 @@ async function loadDuo() {
     gamidUrl: handle => new URL(`../@${handle}`, location.href).href,
   });
   await duoPanel.load();
+  // durable notifications about what the OTHER person did (duo-notifications.js): pending ones from while this person was away are fetched now, live ones on each signal
+  duoNotifier ??= createDuoNotifier({ api, notice: document.getElementById("duoNotice") });
+  duoNotifier.check();
   // live: Duo changes made by the other person (or in another tab) re-render this panel without a refresh (duo-realtime.js; private per-user topic)
   if (!stopDuoRealtime) {
-    stopDuoRealtime = subscribeDuoRealtime({ refresh: () => duoPanel.refresh() });
+    stopDuoRealtime = subscribeDuoRealtime({ refresh: () => Promise.all([duoPanel.refresh(), duoNotifier.check()]) });
     window.addEventListener("pagehide", () => { stopDuoRealtime?.(); stopDuoRealtime = null; }, { once: true });
   }
 }
@@ -1827,7 +1832,7 @@ document.getElementById("languageForm").addEventListener("submit", async event =
 document.getElementById("signOutButton").addEventListener("click", async () => {
   if (isProfileDirty() && !window.confirm("Discard your unsaved profile changes and sign out?")) return;
   try { await api.signOut(); }
-  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; introStatusPoller.stop(); releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
+  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; duoNotifier?.stop(); duoNotifier = null; introStatusPoller.stop(); releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
 });
 window.addEventListener("beforeunload", event => {
   if (!isProfileDirty()) return;

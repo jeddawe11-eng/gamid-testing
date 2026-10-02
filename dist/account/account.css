@@ -226,6 +226,8 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .game-library .game-edit-button:hover{border-color:#51456e}
 /* MY DUO (my-duo.js): a mutual GamID-to-GamID relationship. The badge (two linked rings) means only "mutually accepted", never "verified". */
 .duo-panel{display:grid;gap:.7rem;margin-top:.75rem}
+/* durable notifications about what the other person did (duo-notifications.js): shown 5 s each, above the cards */
+.duo-notice{margin:.75rem 0 0}
 .duo-card{display:grid;gap:.55rem;padding:.85rem;border:1px solid var(--line);border-radius:.9rem;background:var(--card)}
 .duo-card.is-duo{border-color:rgba(255,92,205,.45);background:linear-gradient(120deg,rgba(255,92,205,.07),rgba(98,231,255,.05)),var(--card)}
 .duo-card.is-request{border-color:rgba(98,231,255,.4)}

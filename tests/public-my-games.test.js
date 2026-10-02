@@ -506,6 +506,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20260930170000_play_together_team_room_voice.sql", "20261001090000_play_together_realtime.sql", "20261001112124_play_together_voice_provision_aggregate_order.sql", "20261001160000_play_together_acceptance_fixes.sql", "20261001173000_play_together_voice_pgcrypto_schema.sql", "20261001180000_play_together_voice_oauth_consume_pgcrypto.sql", "20261002034358_play_together_voice_channel_names.sql", // Slice 2A: additive private Team Voice lifecycle and acceptance fixes; Public My Games remains untouched
       "20261002150000_my_duo.sql",   // My Duo V1: adds the public 'duo' section (My Games / League / stats blocks kept verbatim)
       "20261002170000_my_duo_realtime.sql",   // My Duo live state: private Realtime invalidation triggers only
+      "20261002190000_my_duo_notifications.sql",   // My Duo durable user-to-user notifications (own table + RPCs; Duo action impls gain notification writes)
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

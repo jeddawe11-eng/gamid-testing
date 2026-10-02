@@ -51,7 +51,7 @@ begin
   out := pg_temp.rt_run(ua, 'authenticated', 'select public.send_duo_request(''zrtb'')');
   res := res || jsonb_build_object('step', 'A sends a request: A and B are signalled, C is not', 'pass', out = 'SENT' and pg_temp.rt_count(ua) = 1 and pg_temp.rt_count(ub) = 1 and pg_temp.rt_count(uc) = 0,
     'got', jsonb_build_array(out, pg_temp.rt_count(ua), pg_temp.rt_count(ub), pg_temp.rt_count(uc)));
-  select bool_and(m.payload = '{"kind": "DUO"}'::jsonb and m.private and m.extension = 'broadcast') into flag from realtime.messages m where m.topic in ('identity:user:' || ua, 'identity:user:' || ub);
+  select bool_and((m.payload - 'id') = '{"kind": "DUO"}'::jsonb   /* 'id' = Realtime's own random message id */ and m.private and m.extension = 'broadcast') into flag from realtime.messages m where m.topic in ('identity:user:' || ua, 'identity:user:' || ub);
   res := res || jsonb_build_object('step', 'the signal is private and carries no data but {"kind":"DUO"} (no ids, handles or state)', 'pass', coalesce(flag, false));
 
   -- ===== Realtime authorization: each user receives only their own topic =====
