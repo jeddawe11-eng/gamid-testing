@@ -230,20 +230,21 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .duo-card-head{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
 .duo-card .section-visibility{margin-top:.1rem}
 .duo-card .section-visibility-hint{margin:0}
-.duo-person{display:flex;align-items:center;gap:.7rem;min-width:0}
+/* one identity row for every My Duo state (search result, request sent, request received, accepted Duo): avatar + identity keep a readable width (the name column's basis is 9rem, words only break when a single word cannot fit); the action keeps its own size at the end of the row and wraps below the identity when the row is too narrow - never over it */
+.duo-person{display:flex;flex-wrap:wrap;align-items:center;gap:.55rem .7rem;min-width:0;max-width:100%}
 .duo-avatar{flex:0 0 auto;display:grid;place-items:center;width:2.75rem;height:2.75rem;border-radius:50%;overflow:hidden;background:linear-gradient(145deg,#4d2eb1,#3bcbe7);color:#fff;font-weight:900}
 .duo-card.is-duo .duo-avatar{box-shadow:0 0 0 2px #11101a,0 0 0 4px rgba(255,122,217,.75)}
 .duo-avatar img{width:100%;height:100%;object-fit:cover;display:block}
-.duo-names{display:grid;gap:.05rem;min-width:0;flex:1 1 auto}
-.duo-names strong{overflow-wrap:anywhere}
-.duo-handle{color:var(--muted);font-size:.78rem;overflow-wrap:anywhere}
+.duo-names{display:grid;grid-template-columns:minmax(0,1fr);gap:.05rem;min-width:0;flex:1 1 9rem}
+.duo-names strong{overflow-wrap:break-word;word-break:normal}
+.duo-handle{color:var(--muted);font-size:.78rem;overflow-wrap:break-word;word-break:normal}
 a.duo-handle{color:var(--cyan);text-decoration:none}
 a.duo-handle:hover,a.duo-handle:focus-visible{text-decoration:underline}
 .duo-note{margin:0;color:var(--muted);font-size:.82rem;line-height:1.45}
 .duo-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
 .duo-button{min-height:2.4rem}
-.duo-person .duo-button{flex:0 0 auto}
-.duo-tag{flex:0 0 auto;padding:.25rem .5rem;border:1px solid #3a334b;border-radius:999px;color:var(--muted);font-size:.6rem;font-weight:800;letter-spacing:.08em}
+.duo-person .duo-button{flex:0 0 auto;width:auto;min-height:2.6rem;margin:0 0 0 auto;padding:.55rem 1.1rem}
+.duo-tag{flex:0 0 auto;margin-left:auto;padding:.25rem .5rem;border:1px solid #3a334b;border-radius:999px;color:var(--muted);font-size:.6rem;font-weight:800;letter-spacing:.08em}
 .duo-warning{display:grid;gap:.55rem;padding:.75rem;border:1px solid rgba(255,200,87,.55);border-radius:.8rem;background:rgba(255,196,77,.07)}
 .duo-warning p{margin:0;color:#ffe2a6;font-size:.84rem;line-height:1.45}
 .duo-search{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end}

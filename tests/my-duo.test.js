@@ -305,6 +305,51 @@ test("owner panel: the public switch is the owner's own; ending a Duo asks first
   assert.equal(failing.message.textContent, "That Duo request is no longer waiting. The list has been refreshed.");
 });
 
+// ---------- layout regression (manual QA: a search result's name and @handle broke one character per line under a full-width Request button) ----------
+const cssRule = (css, selector) => { const at = css.indexOf(`${selector}{`); assert.ok(at >= 0, `rule ${selector}`); return css.slice(at + selector.length + 1, css.indexOf("}", at)); };
+
+test("layout: every My Duo state draws its person through ONE identity row (avatar, identity, then the action) - search result, request sent, request received, accepted Duo", async () => {
+  const p = panel([DUO, { relation: "RECEIVED", gamid_handle: "fan1" }]);
+  await p.view.load();
+  const input = all(p.root, node => node.tag === "input")[0];
+  input.value = "newbie"; await input.fire("input");
+  await all(p.root, node => node.tag === "form")[0].fire("submit"); await tick();
+  const sent = panel([{ relation: "SENT", gamid_handle: "next" }]);
+  await sent.view.load();
+  const rows = [...byClass(p.root, "duo-person"), ...byClass(sent.root, "duo-person")];
+  assert.equal(rows.length, 4, "accepted Duo, received request, search result, sent request");
+  for (const row of rows) {
+    assert.deepEqual(row.children.slice(0, 2).map(child => child.className), ["duo-avatar", "duo-names"], "avatar, then identity");
+    for (const extra of row.children.slice(2)) assert.ok(/duo-button|duo-tag/.test(extra.className), "only an action may follow the identity, inside the same row");
+  }
+  const result = byClass(p.root, "duo-results")[0];
+  const action = byClass(result, "duo-person")[0].children[2];
+  assert.equal(action.tag, "button");
+  assert.match(action.className, /\bduo-button\b/);
+});
+
+test("layout: the identity keeps a readable width, the action never takes the row (the page-wide full-width button rule is overridden), and narrow rows wrap instead of overlapping", () => {
+  const css = read("dist/account/account.css");
+  assert.match(css, /\.primary,\.secondary,\.text-button\{width:100%/, "the page-wide rule this row must override");
+  const row = cssRule(css, ".duo-person");
+  assert.match(row, /display:flex/);
+  assert.match(row, /flex-wrap:wrap/, "the action moves below the identity when the row is too narrow");
+  assert.match(row, /min-width:0/);
+  const names = cssRule(css, ".duo-names");
+  assert.match(names, /flex:1 1 9rem/, "the identity column keeps a readable basis");
+  assert.match(names, /grid-template-columns:minmax\(0,1fr\)/, "a long unbroken name can never push the card wider");
+  assert.match(names, /min-width:0/);
+  const action = cssRule(css, ".duo-person .duo-button");
+  assert.match(action, /flex:0 0 auto/);
+  assert.match(action, /width:auto/, "the action is its own size, never 100% of the row");
+  assert.match(action, /margin:0 0 0 auto/, "end of the row (or of its own line once wrapped)");
+  assert.match(cssRule(css, ".duo-tag"), /margin-left:auto/);
+  const duoRules = css.slice(css.indexOf("/* MY DUO (my-duo.js)"), css.indexOf("/* Steam Connection Foundation:"));
+  assert.doesNotMatch(duoRules, /overflow-wrap:anywhere|word-break:break-all/, "names and @handles break only between words (a single over-long word only when it cannot fit at all)");
+  assert.match(cssRule(css, ".duo-names strong"), /overflow-wrap:break-word/);
+  assert.match(cssRule(css, ".duo-handle"), /overflow-wrap:break-word/);
+});
+
 // ---------- source guards ----------
 test("migration: RPC-only table, owner from auth.uid(), no relationship id accepted from a client, atomic replacement under locks", () => {
   const sql = read("supabase/migrations/20261002150000_my_duo.sql");
