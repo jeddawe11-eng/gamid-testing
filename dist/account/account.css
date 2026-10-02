@@ -250,7 +250,7 @@ a.duo-handle:hover,a.duo-handle:focus-visible{text-decoration:underline}
 .duo-search-label{display:grid;gap:.3rem;flex:1 1 14rem;min-width:0;font-size:.8rem;color:var(--muted)}
 .duo-search-label input{width:100%;min-width:0}
 .duo-results{display:grid;gap:.55rem;padding:.7rem;border:1px solid var(--line);border-radius:.8rem}
-.duo-section .identity-rel-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.16rem .5rem .16rem .38rem;border:1px solid rgba(255,92,205,.6);border-radius:999px;background:linear-gradient(120deg,rgba(255,92,205,.16),rgba(98,231,255,.14));color:#ffd6f4;font-size:.56rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.duo-section .identity-rel-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.16rem .5rem .16rem .38rem;border:1px solid rgba(255,92,205,.6);border-radius:999px;background:linear-gradient(120deg,rgba(255,92,205,.16),rgba(98,231,255,.14));color:#ffd6f4;font-size:.56rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
 .duo-section .identity-rel-badge svg{width:1.05rem;height:.7rem;color:#ff7ad9;flex:none}
 /* Steam Connection Foundation: the SteamID64 is the whole identity, so on the Steam card it wraps and is never ellipsized (same approach as
    the League card fix). Scoped to the Steam card only: Discord and League styling is untouched. */

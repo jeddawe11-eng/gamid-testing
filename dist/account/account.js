@@ -386,9 +386,9 @@ async function showIdentity(data) {
   renderShare();
   await loadConnections();
   await loadLeague();
-  await loadDuo();
   showView("identity");
   handleConnectionReturn();
+  loadDuo();   // My Duo fills in on its own (the panel shows its loading line until then)
 }
 
 function permanentGamidUrl() {

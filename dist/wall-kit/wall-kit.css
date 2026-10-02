@@ -26,7 +26,7 @@
 .wall-gamid-name { font-size: 1.15em; overflow-wrap: anywhere; }
 .wall-gamid-handle { color: var(--g-muted, #c8bafc); font-size: .8em; font-weight: 700; }
 /* My Duo: the relationship badge (two linked rings - a mutual GamID relationship, deliberately not a verification check) and the Duo card (a link in view mode) */
-.identity-rel-badge { display: inline-flex; align-items: center; gap: .35em; padding: .15em .6em .15em .45em; border: 1px solid rgba(255, 92, 205, .6); border-radius: 999px; background: linear-gradient(120deg, rgba(255, 92, 205, .16), rgba(98, 231, 255, .14)); color: #ffd6f4; font-size: .5em; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+.identity-rel-badge { display: inline-flex; align-items: center; gap: .35em; padding: .15em .6em .15em .45em; border: 1px solid rgba(255, 92, 205, .6); border-radius: 999px; background: linear-gradient(120deg, rgba(255, 92, 205, .16), rgba(98, 231, 255, .14)); color: #ffd6f4; font-size: .5em; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .identity-rel-badge svg { width: 1.6em; height: 1.05em; color: #ff7ad9; flex: none; }
 .wall-gamid-duo .wall-gamid-head { justify-content: flex-start; }
 .wall-gamid-duo .wall-gamid-private { margin-left: auto; }
