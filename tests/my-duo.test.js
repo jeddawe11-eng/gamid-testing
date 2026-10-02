@@ -14,6 +14,8 @@ import { INTERACTIVE_ATTR } from "../dist/wall-kit/interaction.js";
 import { loadPublicView, loadGamidSnapshot, ownerDuo } from "../dist/wall-editor/gamid-data.js";
 import { createDuoPanel, duoState, sendWarning, acceptWarning, publicHint, duoErrorText } from "../dist/account/my-duo.js";
 import { createTransientMessage, TRANSIENT_MESSAGE_MS } from "../dist/account/transient-message.js";
+import { subscribeDuoRealtime, createDuoRefreshScheduler } from "../dist/account/duo-realtime.js";
+import { subscribePrivateBroadcast } from "../dist/account/realtime-client.js";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
 
@@ -306,7 +308,7 @@ test("owner panel: the public switch is the owner's own; ending a Duo asks first
   assert.equal(failing.message.textContent, "That Duo request is no longer waiting. The list has been refreshed.");
 });
 
-// ---------- GamID UX rule: transient feedback shows at once and disappears after 5 s; persistent state never auto-disappears ----------
+// ---------- GamID UX rule: transient feedback shows at once and disappears after ~3 s; persistent state never auto-disappears ----------
 function fakeTimers() {
   let next = 1;
   const pending = new Map();
@@ -318,29 +320,29 @@ function fakeTimers() {
   };
 }
 
-test("UX rule module: shown immediately, hidden after exactly 5 s, a newer message restarts the clock, an in-flight progress line never expires on its own", () => {
+test("UX rule module: shown immediately, hidden after exactly TRANSIENT_MESSAGE_MS (3 s), a newer message restarts the clock, an in-flight progress line never expires on its own", () => {
   const timers = fakeTimers();
   const line = element("p");
   line.hidden = true;
   const toned = [];
   line.classList = { toggle: (name, on) => { if (on) toned.push(name); } };
   const message = createTransientMessage(line, { timers });
-  assert.equal(TRANSIENT_MESSAGE_MS, 5000);
+  assert.equal(TRANSIENT_MESSAGE_MS, 3000, "about 3 seconds (the corrected GamID rule)");
   message.show("Saved.", { tone: "success" });
   assert.equal(line.hidden, false);
   assert.equal(line.textContent, "Saved.");
   assert.ok(toned.includes("success"));
-  assert.deepEqual(timers.delays, [5000]);
+  assert.deepEqual(timers.delays, [TRANSIENT_MESSAGE_MS]);
   message.show("Another one.", { tone: "warning" });
-  assert.deepEqual(timers.delays, [5000], "the previous timer is replaced, not stacked");
+  assert.deepEqual(timers.delays, [TRANSIENT_MESSAGE_MS], "the previous timer is replaced, not stacked");
   assert.ok(toned.includes("is-warning"));
   timers.runAll();
-  assert.equal(line.hidden, true, "gone after 5 s without any refresh");
+  assert.equal(line.hidden, true, "gone after 3 s without any refresh");
   message.show("Working…", { progress: true });
   assert.deepEqual(timers.delays, [], "progress lasts exactly as long as the request");
   assert.equal(line.hidden, false);
   message.show("Couldn't do that.", { tone: "error" });
-  assert.deepEqual(timers.delays, [5000], "its outcome is transient again");
+  assert.deepEqual(timers.delays, [TRANSIENT_MESSAGE_MS], "its outcome is transient again");
   message.hide();
   assert.equal(line.hidden, true);
   assert.deepEqual(timers.delays, []);
@@ -364,7 +366,7 @@ function livePanel(initialRows, actions) {
   return { view, root, message, timers, calls };
 }
 
-test("My Duo Request: the SENT card appears from the server's answer without a refresh; the confirmation shows for 5 s; the pending card stays", async () => {
+test("My Duo Request: the SENT card appears from the server's answer without a refresh; the confirmation shows for ~3 s; the pending card stays", async () => {
   const p = livePanel([], { sendDuoRequest: (rows, handle) => [...rows, { relation: "SENT", gamid_handle: handle, display_name: "New", is_published: true }] });
   await p.view.load();
   const input = all(p.root, node => node.tag === "input")[0];
@@ -375,13 +377,13 @@ test("My Duo Request: the SENT card appears from the server's answer without a r
   assert.match(p.root.textContent, /Waiting for @newbie to accept/);
   assert.equal(p.message.hidden, false);
   assert.equal(p.message.textContent, "Duo request sent to @newbie.");
-  assert.deepEqual(p.timers.delays, [5000]);
+  assert.deepEqual(p.timers.delays, [TRANSIENT_MESSAGE_MS]);
   p.timers.runAll();
-  assert.equal(p.message.hidden, true, "the confirmation is gone after 5 s");
+  assert.equal(p.message.hidden, true, "the confirmation is gone after ~3 s");
   assert.match(p.root.textContent, /REQUEST SENT/, "the pending request is persistent state - it does not disappear");
 });
 
-test("My Duo Accept with replacement: the warning is persistent until answered; after Accept the new Duo shows at once and the outcome (naming the ended Duo) hides after 5 s", async () => {
+test("My Duo Accept with replacement: the warning is persistent until answered; after Accept the new Duo shows at once and the outcome (naming the ended Duo) hides after ~3 s", async () => {
   const p = livePanel([DUO, { relation: "RECEIVED", gamid_handle: "fan1", display_name: "Fan" }], {
     respondToDuoRequest: () => [{ relation: "DUO", gamid_handle: "fan1", display_name: "Fan", is_published: true, show_public: false }],
   });
@@ -395,12 +397,12 @@ test("My Duo Accept with replacement: the warning is persistent until answered; 
   assert.match(p.root.textContent, /@fan1/);
   assert.doesNotMatch(p.root.textContent, /DUO REQUEST|@zshot/, "the old Duo and the request are gone without a refresh");
   assert.equal(p.message.textContent, "@fan1 is now your Duo. Your Duo with @zshot has ended.");
-  assert.deepEqual(p.timers.delays, [5000]);
+  assert.deepEqual(p.timers.delays, [TRANSIENT_MESSAGE_MS]);
   p.timers.runAll();
   assert.equal(p.message.hidden, true);
 });
 
-test("My Duo Decline / Cancel / End Duo / Show switch: each re-renders from the server at once and confirms for 5 s; a recoverable error also shows for 5 s and the state is re-read", async () => {
+test("My Duo Decline / Cancel / End Duo / Show switch: each re-renders from the server at once and confirms for ~3 s; a recoverable error also shows for ~3 s and the state is re-read", async () => {
   const cases = [
     { rows: [{ relation: "RECEIVED", gamid_handle: "fan1" }], action: "respondToDuoRequest", next: () => [], press: ["Decline"], text: "Declined @fan1's Duo request.", gone: /DUO REQUEST/ },
     { rows: [{ relation: "SENT", gamid_handle: "next" }], action: "cancelDuoRequest", next: () => [], press: ["Cancel request"], text: "Cancelled your Duo request to @next.", gone: /REQUEST SENT/ },
@@ -412,7 +414,7 @@ test("My Duo Decline / Cancel / End Duo / Show switch: each re-renders from the 
     for (const label of item.press) await click(p.root, label);
     assert.doesNotMatch(p.root.textContent, item.gone, `${item.action}: state updated without a refresh`);
     assert.equal(p.message.textContent, item.text);
-    assert.deepEqual(p.timers.delays, [5000], item.action);
+    assert.deepEqual(p.timers.delays, [TRANSIENT_MESSAGE_MS], item.action);
     p.timers.runAll();
     assert.equal(p.message.hidden, true, item.action);
   }
@@ -420,22 +422,208 @@ test("My Duo Decline / Cancel / End Duo / Show switch: each re-renders from the 
   await visible.view.load();
   await byClass(visible.root, "visibility-switch")[0].fire("click"); await tick();
   assert.match(visible.root.textContent, /Show My Duo on my GamID:ON/, "the switch reflects the server at once");
-  assert.deepEqual(visible.timers.delays, [5000]);
+  assert.deepEqual(visible.timers.delays, [TRANSIENT_MESSAGE_MS]);
 
   const failing = livePanel([{ relation: "RECEIVED", gamid_handle: "fan1" }], { respondToDuoRequest: Object.assign(new Error("DUO_REQUEST_NOT_FOUND"), { code: "DUO_REQUEST_NOT_FOUND" }) });
   await failing.view.load();
   await click(failing.root, "Decline");
   assert.equal(failing.message.textContent, "That Duo request is no longer waiting. The list has been refreshed.");
-  assert.deepEqual(failing.timers.delays, [5000], "recoverable errors are transient too");
+  assert.deepEqual(failing.timers.delays, [TRANSIENT_MESSAGE_MS], "recoverable errors are transient too");
   failing.timers.runAll();
   assert.equal(failing.message.hidden, true);
 });
 
-test("My Duo keeps no message of its own timing: every status line goes through the 5 s rule module", () => {
+test("My Duo keeps no message of its own timing: every status line goes through the shared ~3 s rule module", () => {
   const source = read("dist/account/my-duo.js").replace(/\/\/.*$/gm, "");
   assert.match(source, /import \{ createTransientMessage \} from "\.\/transient-message\.js";/);
   assert.doesNotMatch(source, /setTimeout|clearTimeout|8000|10000/, "no private timers or other durations");
   assert.doesNotMatch(source, /message\.(textContent|hidden)\s*=/, "the status line is only written by the rule module");
+});
+
+// ---------- live shared state: A has the page open, B changes the Duo state, A's page updates without a manual refresh ----------
+// A fake Supabase Realtime socket for the REAL private-broadcast client (realtime-client.js), so the whole path is exercised: join -> broadcast -> re-read -> re-render.
+function fakeRealtime() {
+  const sockets = [];
+  class FakeSocket {
+    static OPEN = 1;
+    constructor(url) { this.url = url; this.readyState = 0; this.sent = []; this.listeners = {}; sockets.push(this); }
+    addEventListener(type, handler) { (this.listeners[type] ||= []).push(handler); }
+    send(text) { this.sent.push(JSON.parse(text)); }
+    close() { this.readyState = 3; this.closed = true; }
+    open() { this.readyState = 1; for (const handler of this.listeners.open || []) handler(); }
+    deliver(envelope) { for (const handler of this.listeners.message || []) handler({ data: JSON.stringify(envelope) }); }
+  }
+  return { FakeSocket, sockets };
+}
+
+async function openLiveSession({ rows, userId = "11111111-1111-4111-8111-111111111111" }) {
+  const server = { rows };
+  const timers = fakeTimers();
+  const { FakeSocket, sockets } = fakeRealtime();
+  const reads = { count: 0 };
+  const api = { getMyDuo: async () => { reads.count++; return server.rows; } };
+  const root = element("div"), message = element("p");
+  message.hidden = true;
+  const visibilitySwitch = ({ on, label }) => element("button", "visibility-switch", `${label}:${on ? "ON" : "OFF"}`);
+  const view = createDuoPanel({ api, root, message, element, visibilitySwitch, isOwnerPublished: () => true, timers });
+  await view.load();
+  const subscribe = options => subscribePrivateBroadcast({ ...options, WebSocketImpl: FakeSocket, getSession: async () => ({ access_token: "token-for-test" }), setTimer: () => 0, clearTimer: () => {}, setIntervalImpl: () => 0, clearIntervalImpl: () => {} });
+  const stop = subscribeDuoRealtime({ refresh: () => view.refresh(), subscribe, getUserId: () => userId, timers, win: null, doc: null });
+  await tick();
+  sockets[0].open();
+  // the server signals this user's private topic (what the database trigger sends after B's action)
+  const signal = async () => {
+    sockets[0].deliver({ topic: `realtime:identity:user:${userId}`, event: "broadcast", payload: { event: "duo_changed", payload: { kind: "DUO" } } });
+    timers.runAll();
+    await tick(); await tick();
+  };
+  return { server, view, root, message, timers, sockets, signal, stop, reads, userId };
+}
+
+test("live: the page joins ONLY its own private topic identity:user:<uid> (the realtime.messages policy authorizes exactly that) and listens for duo_changed", async () => {
+  const a = await openLiveSession({ rows: [] });
+  const join = a.sockets[0].sent[0];
+  assert.equal(join.event, "phx_join");
+  assert.equal(join.topic, `realtime:identity:user:${a.userId}`);
+  assert.equal(join.payload.config.private, true, "a private channel: Realtime checks the RLS policy");
+  assert.equal(join.payload.access_token, "token-for-test");
+  const other = await openLiveSession({ rows: [] });
+  other.sockets[0].deliver({ topic: "realtime:identity:user:someone-else", event: "broadcast", payload: { event: "duo_changed", payload: { kind: "DUO" } } });
+  other.sockets[0].deliver({ topic: `realtime:identity:user:${other.userId}`, event: "broadcast", payload: { event: "state_changed", payload: {} } });
+  other.timers.runAll(); await tick();
+  assert.equal(other.reads.count, 1, "another topic or another event never triggers a re-read");
+  a.stop(); other.stop();
+  assert.ok(a.sockets[0].closed);
+});
+
+test("live: B sends A a request -> A's open page shows the incoming request; B cancels -> it disappears; no manual refresh, no message", async () => {
+  const a = await openLiveSession({ rows: [] });
+  assert.match(a.root.textContent, /You don't have a Duo yet/);
+  a.server.rows = [{ relation: "RECEIVED", gamid_handle: "zshot", display_name: "zshot", is_published: true }];
+  await a.signal();
+  assert.match(a.root.textContent, /DUO REQUEST/);
+  assert.match(a.root.textContent, /@zshot wants to be your Duo/);
+  assert.equal(a.message.hidden, true, "shared-state changes are rendered state, not a timed message");
+  assert.deepEqual(a.timers.delays, []);
+  a.server.rows = [];
+  await a.signal();
+  assert.doesNotMatch(a.root.textContent, /DUO REQUEST/);
+  a.stop();
+});
+
+test("live: B accepts / declines A's request -> A's 'Request sent' card turns into MY DUO / disappears", async () => {
+  const sentToB = [{ relation: "SENT", gamid_handle: "zshot", display_name: "zshot", is_published: true }];
+  const accepted = await openLiveSession({ rows: sentToB });
+  assert.match(accepted.root.textContent, /REQUEST SENT/);
+  accepted.server.rows = [{ relation: "DUO", gamid_handle: "zshot", display_name: "zshot", is_published: true, show_public: false }];
+  await accepted.signal();
+  assert.doesNotMatch(accepted.root.textContent, /REQUEST SENT/);
+  assert.match(accepted.root.textContent, /MY DUO/);
+  assert.match(accepted.root.textContent, /Mutual Duo/);
+  accepted.stop();
+  const declined = await openLiveSession({ rows: sentToB });
+  declined.server.rows = [];
+  await declined.signal();
+  assert.doesNotMatch(declined.root.textContent, /REQUEST SENT|MY DUO/);
+  assert.match(declined.root.textContent, /You don't have a Duo yet/);
+  declined.stop();
+});
+
+test("live: B ends the Duo, or B's acceptance of someone else replaces it -> A's Duo card disappears; B publishing / unpublishing updates A's card", async () => {
+  const duo = { relation: "DUO", gamid_handle: "zshot", display_name: "zshot", is_published: false, show_public: true };
+  const a = await openLiveSession({ rows: [duo] });
+  assert.match(a.root.textContent, /GamID not published/);
+  a.server.rows = [{ ...duo, is_published: true }];
+  await a.signal();
+  assert.doesNotMatch(a.root.textContent, /GamID not published/, "the Duo published their GamID");
+  assert.match(a.root.textContent, /Shown on your public GamID/);
+  a.server.rows = [];
+  await a.signal();
+  assert.doesNotMatch(a.root.textContent, /MY DUOMutual|@zshot/);
+  assert.match(a.root.textContent, /You don't have a Duo yet/);
+  a.stop();
+});
+
+test("live: a confirmation the person has open survives a signal only while what it confirms still exists; a burst of signals is ONE re-read", async () => {
+  const a = await openLiveSession({ rows: [DUO, { relation: "RECEIVED", gamid_handle: "fan1" }] });
+  await click(a.root, "Accept");
+  assert.match(a.root.textContent, /Accepting replaces your current Duo/);
+  await a.signal();
+  assert.match(a.root.textContent, /Accepting replaces your current Duo/, "unrelated change: the open warning stays");
+  a.server.rows = [DUO];
+  await a.signal();
+  assert.doesNotMatch(a.root.textContent, /Accepting replaces|DUO REQUEST/, "the request was withdrawn: its warning goes with it");
+  const before = a.reads.count;
+  for (let i = 0; i < 3; i++) a.sockets[0].deliver({ topic: `realtime:identity:user:${a.userId}`, event: "broadcast", payload: { event: "duo_changed", payload: { kind: "DUO" } } });
+  a.timers.runAll(); await tick(); await tick();
+  assert.equal(a.reads.count, before + 1, "an accept that also ends older Duos sends several signals - one re-read");
+  a.stop();
+});
+
+test("live scheduler + reconnect catch-up: signals during a re-read schedule exactly one more; becoming visible again re-reads once", async () => {
+  const timers = fakeTimers();
+  let release, runs = 0;
+  const schedule = createDuoRefreshScheduler(() => { runs++; return new Promise(resolve => { release = resolve; }); }, { timers });
+  schedule(); schedule(); timers.runAll(); await tick();
+  assert.equal(runs, 1);
+  schedule(); schedule();
+  assert.deepEqual(timers.delays, [], "nothing queued while running");
+  release(); await tick(); await tick();
+  timers.runAll(); await tick();
+  assert.equal(runs, 2, "exactly one follow-up");
+  release(); await tick();
+
+  const doc = { visibilityState: "visible", handlers: {}, addEventListener(type, fn) { this.handlers[type] = fn; }, removeEventListener(type) { delete this.handlers[type]; } };
+  let refreshed = 0;
+  const stop = subscribeDuoRealtime({ refresh: async () => { refreshed++; }, subscribe: () => () => {}, getUserId: () => "u1", timers, win: null, doc });
+  doc.handlers.visibilitychange(); timers.runAll(); await tick();
+  assert.equal(refreshed, 1, "back to the tab: one catch-up re-read (broadcasts are not replayed after a disconnect)");
+  doc.visibilityState = "hidden"; doc.handlers.visibilitychange(); timers.runAll(); await tick();
+  assert.equal(refreshed, 1, "not while hidden");
+  stop();
+  assert.equal(doc.handlers.visibilitychange, undefined);
+  assert.deepEqual(subscribeDuoRealtime({ refresh: () => {}, subscribe: () => { throw new Error("must not subscribe"); }, getUserId: () => null })(), undefined, "signed out: nothing to join");
+});
+
+test("live: a re-read never interrupts the page's own running action, and a failed re-read keeps the state on screen", async () => {
+  let resolveSend;
+  const server = { rows: [] };
+  const api = {
+    getMyDuo: async () => { if (server.fail) throw new Error("offline"); return server.rows; },
+    searchDuoCandidates: async () => [{ gamid_handle: "newbie", display_name: "New", is_published: true }],
+    sendDuoRequest: () => new Promise(resolve => { resolveSend = resolve; }),
+  };
+  const root = element("div"), message = element("p");
+  const view = createDuoPanel({ api, root, message, element, visibilitySwitch: () => element("span"), timers: fakeTimers() });
+  await view.load();
+  const input = all(root, node => node.tag === "input")[0];
+  input.value = "newbie"; await input.fire("input");
+  await all(root, node => node.tag === "form")[0].fire("submit"); await tick();
+  const [request] = byText(root, "button", "Request");
+  const pending = request.fire("click");
+  server.rows = [{ relation: "RECEIVED", gamid_handle: "other" }];
+  await view.refresh();
+  assert.doesNotMatch(root.textContent, /DUO REQUEST/, "skipped while the own action runs");
+  server.rows = [{ relation: "SENT", gamid_handle: "newbie" }];
+  resolveSend(); await pending; await tick();
+  assert.match(root.textContent, /REQUEST SENT/, "the action itself re-reads when it finishes");
+  server.fail = true;
+  await view.refresh();
+  assert.match(root.textContent, /REQUEST SENT/, "a failed live re-read keeps the last good state");
+});
+
+test("live: the migration signals both participants of every relationship change (and Duo partners of a GamID publication / name / avatar change) with a data-free private broadcast", () => {
+  const sql = read("supabase/migrations/20261002170000_my_duo_realtime.sql");
+  assert.match(sql, /create policy "identity_relationship_broadcasts"\s+on realtime\.messages for select to authenticated\s+using \(\s+extension = 'broadcast'\s+and realtime\.topic\(\) = 'identity:user:' \|\| \(select auth\.uid\(\)\)::text\s+\);/);
+  assert.match(sql, /realtime\.send\(jsonb_build_object\('kind', 'DUO'\), 'duo_changed', 'identity:user:' \|\| candidate_user_id::text, true\)/, "private, no ids");
+  assert.match(sql, /after insert or update or delete on public\.identity_relationships/);
+  assert.match(sql, /old\.requester_entity_id[\s\S]*old\.addressee_entity_id[\s\S]*new\.requester_entity_id[\s\S]*new\.addressee_entity_id/, "old and new row: an ended Duo signals its former partner too");
+  assert.match(sql, /after update of visibility, display_name, avatar_media_reference on public\.entities/);
+  assert.match(sql, /exception when others then\s+-- live delivery must never roll back/);
+  assert.doesNotMatch(sql.replace(/^\s*--.*$/gm, ""), /create table|alter table|drop |insert into public|update public|delete from public/i, "no business data or rule changes");
+  const client = read("dist/account/duo-realtime.js").replace(/\/\/.*$/gm, "");
+  assert.doesNotMatch(client, /setInterval/, "no polling");
+  assert.match(read("dist/account/account.js"), /stopDuoRealtime = subscribeDuoRealtime\(\{ refresh: \(\) => duoPanel\.refresh\(\) \}\);/);
 });
 
 // ---------- layout regression (manual QA: a search result's name and @handle broke one character per line under a full-width Request button) ----------

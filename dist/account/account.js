@@ -10,6 +10,7 @@ import { attachGameProfile, indexGameProfiles, profileForGame } from "./game-pro
 import { buildLibraryRows, normalizeManualGames, rowGameKey } from "./game-platforms.js";
 import { addManualPlatformsToDiscoveredItem, createAddGamePanel, manualGameItem } from "./manual-games.js";
 import { createDuoPanel } from "./my-duo.js";
+import { subscribeDuoRealtime } from "./duo-realtime.js";
 
 const views = [...document.querySelectorAll(".view")];
 const message = document.getElementById("formMessage");
@@ -715,6 +716,7 @@ function connectionCard(row) {
 
 // My Duo (my-duo.js): a mutual GamID-to-GamID relationship; the panel only renders server state and asks for the confirmations the server requires.
 let duoPanel = null;
+let stopDuoRealtime = null;
 async function loadDuo() {
   const root = document.getElementById("duoPanel");
   if (!root) return;
@@ -723,6 +725,11 @@ async function loadDuo() {
     gamidUrl: handle => new URL(`../@${handle}`, location.href).href,
   });
   await duoPanel.load();
+  // live: Duo changes made by the other person (or in another tab) re-render this panel without a refresh (duo-realtime.js; private per-user topic)
+  if (!stopDuoRealtime) {
+    stopDuoRealtime = subscribeDuoRealtime({ refresh: () => duoPanel.refresh() });
+    window.addEventListener("pagehide", () => { stopDuoRealtime?.(); stopDuoRealtime = null; }, { once: true });
+  }
 }
 
 function renderConnections() {
@@ -1820,7 +1827,7 @@ document.getElementById("languageForm").addEventListener("submit", async event =
 document.getElementById("signOutButton").addEventListener("click", async () => {
   if (isProfileDirty() && !window.confirm("Discard your unsaved profile changes and sign out?")) return;
   try { await api.signOut(); }
-  finally { introStatusPoller.stop(); releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
+  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; introStatusPoller.stop(); releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
 });
 window.addEventListener("beforeunload", event => {
   if (!isProfileDirty()) return;

@@ -54,7 +54,7 @@ export function createDuoPanel({ api, root, message, element, visibilitySwitch, 
   let results = null;        // search results, null = no search yet
   let query = "";
   const avatars = new Map(); // avatar path -> blob URL (public avatars only)
-  // transient feedback follows the GamID rule (transient-message.js): shown at once, gone after 5 s. Pending / incoming requests and the replacement warnings are
+  // transient feedback follows the GamID rule (transient-message.js): shown at once, gone after ~3 s. Pending / incoming requests and the replacement warnings are
   // persistent STATE (cards and warning boxes rendered from the server's answer), never messages, so they stay until the person acts.
   const feedback = createTransientMessage(message, { timers });
   const say = (text, tone = "error") => feedback.show(text, { tone });
@@ -87,7 +87,7 @@ export function createDuoPanel({ api, root, message, element, visibilitySwitch, 
     return row;
   }
 
-  // Every action: the server answers, the visible Duo state is re-read and re-rendered right away (no page refresh), and the outcome shows for 5 s.
+  // Every action: the server answers, the visible Duo state is re-read and re-rendered right away (no page refresh), and the outcome shows for ~3 s.
   async function act(run, success) {
     if (busy) return;
     busy = true; render(); feedback.show("Working…", { tone: "info", progress: true });
@@ -213,5 +213,20 @@ export function createDuoPanel({ api, root, message, element, visibilitySwitch, 
     render();
   }
 
-  return { load, render, get state() { return state; } };
+  // A change made ELSEWHERE (duo-realtime.js: the other person acted, or this owner in another tab): re-read the state and re-render it in place. No message - the
+  // cards themselves change. While this page's own action is running it is skipped (that action re-reads the state when it finishes). An open confirmation is kept
+  // only while what it confirms still exists; a failed re-read keeps the last good state on screen instead of replacing it with an error.
+  async function refresh() {
+    if (busy) return;
+    let next;
+    try { next = duoState(await api.getMyDuo()); } catch { return; }
+    if (busy) return;
+    state = next;
+    if (confirm?.kind === "accept" && !state.received.some(person => person.handle === confirm.handle)) confirm = null;
+    if (confirm?.kind === "remove" && !state.duo) confirm = null;
+    if (confirm?.kind === "send" && state.sent) confirm = null;
+    render();
+  }
+
+  return { load, refresh, render, get state() { return state; } };
 }
