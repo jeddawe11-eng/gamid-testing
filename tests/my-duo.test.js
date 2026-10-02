@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { isHandle, normalizeDuo, gamidHref, backHandle, goBack, relationshipBadge, RELATIONSHIP_BADGE_TEXT } from "../dist/public/identity-link.js";
 import { duoSection } from "../dist/public/public-duo.js";
+import { createVisitorNav } from "../dist/public/visitor-nav.js";
 import { validateDocument } from "../dist/wall/validate.js";
 import { createDocument, createElement } from "../dist/wall/schema.js";
 import { GAMID_BLOCKS, GAMID_BLOCK_INFO, createGamidPayload } from "../dist/wall-kit/gamid.js";
@@ -195,9 +196,9 @@ test("Public Profile: the Duo card links to /@duo carrying `from`, shows MY DUO 
 test("public page: the Duo leads the sections, the Back control is built from `from` and returns via goBack", () => {
   const source = read("dist/public/public.js");
   assert.match(source, /renderPublicSections\(sectionsPanel, identity\.public_sections, \{ ownerHandle: identity\.gamid_handle, pathname: location\.pathname, loadAvatar: loadPublicAvatar \}\)/);
-  assert.match(source, /renderBackControl\(backHandle\(location\.search, identity\?\.gamid_handle \?\? handle\)\)/);
-  assert.match(source, /goBack\(event, \{ href, referrer: document\.referrer, origin: location\.origin, history \}\)/);
-  assert.match(read("dist/public/public.css"), /\.identity-back\{position:fixed;z-index:30/, "above the Intro (z 20), below dialogs (z 50)");
+  assert.match(source, /visitorNav = createVisitorNav\(\{ from: backHandle\(location\.search, identity\?\.gamid_handle \?\? handle\), pathname: location\.pathname, referrer: document\.referrer, origin: location\.origin, history,/);
+  assert.match(read("dist/public/visitor-nav.js"), /goBack\(event, \{ href, referrer, origin, history \}\)/);
+  assert.match(read("dist/public/public.css"), /\.identity-nav\{position:fixed;z-index:30/, "above the Intro (z 20), below dialogs (z 50)");
   assert.match(read("dist/public/public-wall.js"), /gamidHref\(duo, \{ from: handle, pathname \}\)/, "a published Wall's Duo navigates in place with `from`");
 });
 
@@ -694,4 +695,49 @@ test("My Duo is kept apart from Avoid Playing With (Play Together's matchmaking 
     assert.doesNotMatch(code, /play_together|avoid/i, path);
   }
   assert.match(read("supabase/migrations/20261002150000_my_duo.sql"), /kind text not null check \(kind in \('DUO'\)\)/, "only DUO is built");
+});
+
+// ---------- visitor navigation during the Intro: Back to @previous + Skip Intro ----------
+test("visitor nav: arriving from another GamID shows Back to @previous; Skip Intro appears only while this GamID's Intro plays and asks the Intro to skip", async () => {
+  const skips = [];
+  const doc = { createElement: make };
+  const nav = createVisitorNav({ from: "black", pathname: "/@zshot", doc, onSkip: () => skips.push("skip") });
+  const back = byClass(nav.element, "identity-back")[0];
+  const skip = byClass(nav.element, "identity-skip")[0];
+  assert.equal(back.href, "/@black");
+  assert.match(back.textContent, /Back to @black/);
+  assert.equal(skip.hidden, true, "nothing to skip before the Intro starts");
+  nav.setIntroState("intro");
+  assert.equal(skip.hidden, false, "both actions while the Intro plays");
+  assert.match(skip.textContent, /Skip Intro/);
+  await skip.fire("click");
+  assert.deepEqual(skips, ["skip"]);
+  assert.equal(skip.hidden, true);
+  nav.setIntroState("transitioning");
+  assert.equal(skip.hidden, true, "not during the closing transition");
+  nav.setIntroState("profile");
+  assert.equal(skip.hidden, true, "after entering the GamID only Back remains (Replay Intro is the page's own control)");
+  assert.equal(back.parent, nav.element, "Back stays");
+  nav.setIntroState("intro");
+  assert.equal(skip.hidden, false, "a replay can be skipped too, like the Intro's own Skip");
+  assert.equal(createVisitorNav({ from: "", doc }), null, "no `from`: nothing rendered - the page is exactly as before");
+  assert.equal(createVisitorNav({ from: "bad handle", doc }), null);
+});
+
+test("visitor nav wiring: the page sends the skip to the Intro frame, follows the frame's state, and tells the frame to hide its own Skip (never two)", () => {
+  const page = read("dist/public/public.js");
+  assert.match(page, /onSkip: \(\) => frame\.contentWindow\?\.postMessage\(\{ type: "gamid-intro-preview-skip" \}, location\.origin\)/);
+  assert.match(page, /if \(wall\) showWall\(event\.data\.state\);\n      visitorNav\?\.setIntroState\(event\.data\.state\);/);
+  assert.match(page, /if \(visitorNav\) config = \{ \.\.\.config, hostSkip: true \};/);
+  assert.match(page, /config = wall \? \{ \.\.\.built, hostReveal: true \} : built;/, "Intro -> published Wall (or Public Profile) is unchanged");
+  const frame = read("dist/account/intro-preview.js");
+  const routine = frame.slice(frame.indexOf("function skipIntro(){"), frame.indexOf("els.skipButton.addEventListener"));
+  assert.ok(routine.startsWith("function skipIntro(){token+=1;clearTimeout(transitionTimer);") && routine.includes('setState("SKIP");'), "one skip routine");
+  assert.match(frame, /els\.skipButton\.addEventListener\("click",skipIntro\);/, "the frame's own Skip is unchanged");
+  assert.match(frame, /addEventListener\("message",event=>\{if\(event\.origin===location\.origin&&event\.data\?\.type==="gamid-intro-preview-skip"&&state!=="profile"\)skipIntro\(\);\}\);/, "same-origin only, only while playing");
+  assert.match(frame, /document\.documentElement\.classList\.toggle\("host-skip",config\.hostSkip===true\);/);
+  assert.match(read("dist/account/intro-preview.css"), /html\.host-skip \.skip\{display:none\}/);
+  const css = read("dist/public/public.css");
+  assert.match(css, /\.identity-nav\{[^}]*flex-wrap:wrap[^}]*max-width:calc\(100vw - 1\.5rem\)/, "wraps instead of overflowing on phones");
+  assert.match(css, /\.identity-skip\[hidden\]\{display:none\}/);
 });

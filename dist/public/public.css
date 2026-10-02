@@ -134,7 +134,11 @@ html.is-public-wall .public-shell .replay-button{grid-area:2/1;justify-self:star
 .public-duo-names{display:grid;gap:.05rem;min-width:0}
 .public-duo-names strong{font-size:.95rem;overflow-wrap:anywhere}
 .public-duo-chevron{margin-left:auto;color:var(--muted);font-size:1.4rem;line-height:1}
-/* Back to the GamID the visitor came from: above the Intro (z 20) and the page, below dialogs (z 50) */
-.identity-back{position:fixed;z-index:30;top:max(.75rem,env(safe-area-inset-top));right:max(.75rem,env(safe-area-inset-right));display:inline-flex;align-items:center;gap:.4rem;max-width:calc(100vw - 1.5rem);padding:.6rem .95rem .6rem .75rem;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(10,8,16,.82);color:#fff;font-size:.8rem;font-weight:750;text-decoration:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);overflow-wrap:anywhere}
-.identity-back:hover,.identity-back:focus-visible{border-color:var(--cyan);outline:none}
-.identity-back-arrow{font-size:1.2rem;line-height:1}
+/* The visitor came from another GamID (visitor-nav.js): Back to @previous + (while this GamID's Intro plays) Skip Intro, one group top-right - above the Intro (z 20)
+   and the page, below dialogs (z 50). It wraps on narrow screens instead of overflowing. */
+.identity-nav{position:fixed;z-index:30;top:max(.75rem,env(safe-area-inset-top));right:max(.75rem,env(safe-area-inset-right));display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:.5rem;max-width:calc(100vw - 1.5rem)}
+.identity-back,.identity-skip{display:inline-flex;align-items:center;gap:.4rem;max-width:100%;box-sizing:border-box;margin:0;padding:.6rem .95rem .6rem .75rem;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(10,8,16,.82);color:#fff;font:inherit;font-size:.8rem;font-weight:750;text-decoration:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);overflow-wrap:anywhere;cursor:pointer}
+.identity-skip{padding:.6rem .75rem .6rem .95rem}
+.identity-skip[hidden]{display:none}
+.identity-back:hover,.identity-back:focus-visible,.identity-skip:hover,.identity-skip:focus-visible{border-color:var(--cyan);outline:none}
+.identity-back-arrow,.identity-skip-arrow{font-size:1.2rem;line-height:1}

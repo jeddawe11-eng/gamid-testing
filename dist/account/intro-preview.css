@@ -34,3 +34,5 @@ html[data-flow="on"] .preview-only:not(.is-experiencing) .profile{height:auto;mi
    published Wall) nothing here applies. */
 html.host-reveal,html.host-reveal body,html.host-reveal .experience{background:transparent}
 html.host-reveal .profile{visibility:hidden}
+/* the public host shows its own Skip Intro beside Back to @handle (config.hostSkip): this frame's own Skip is hidden so there is never two */
+html.host-skip .skip{display:none}

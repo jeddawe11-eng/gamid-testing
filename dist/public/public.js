@@ -2,7 +2,8 @@ import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicA
 import { createFlowLayout } from "../flow-layout.js";
 import { normalizeLibrary, renderGamesPreview, createGamesLibrary } from "./public-games.js";
 import { preparePublicWall, createPublicWallView } from "./public-wall.js";
-import { gamidHref, backHandle, goBack } from "./identity-link.js";
+import { backHandle } from "./identity-link.js";
+import { createVisitorNav } from "./visitor-nav.js";
 import { duoSection } from "./public-duo.js";
 
 const catalogLabel = (catalog, key) => catalog?.find(item => item.key === key)?.label || key || "";
@@ -100,18 +101,6 @@ export function resolveHandle(search, pathname) {
   try { return decodeURIComponent(match[1]).trim().replace(/^@/, ""); } catch { return ""; }
 }
 
-function renderBackControl(from) {
-  if (!from) return;
-  const href = gamidHref(from, { pathname: location.pathname });
-  if (!href) return;
-  const back = node("a", "identity-back", "");
-  back.href = href;
-  back.setAttribute("aria-label", `Back to @${from}`);
-  back.append(node("span", "identity-back-arrow", "‹"), node("span", "", `Back to @${from}`));
-  back.addEventListener("click", event => goBack(event, { href, referrer: document.referrer, origin: location.origin, history }));
-  document.body.append(back);
-}
-
 async function render() {
   const loading = document.getElementById("loadingState");
   const notFound = document.getElementById("notFoundState");
@@ -127,6 +116,7 @@ async function render() {
   // The owner's PUBLISHED Wall (the published-Wall module), when there is one: once the Intro is over it replaces the profile body (the profile card, sections and My Games);
   // Replay Intro still plays the Intro. Without one, `wall` stays null and every line below behaves exactly as before.
   let wall = null;
+  let visitorNav = null;   // Back to @previous + Skip Intro, when the visitor came from another GamID
 
   // Layout mode. While the Intro plays (and before anything is known) the stage is a full-viewport overlay ("experience"). Once the profile shows, the page becomes
   // ordinary document flow ("flow"): the iframe takes exactly the height the profile inside it reports, so the profile, the provider panel and Replay Intro are simply
@@ -160,6 +150,7 @@ async function render() {
       if (event.data.state !== "profile") gamesLibrary?.close();
       layout.setProfileShowing(event.data.state === "profile");
       if (wall) showWall(event.data.state);
+      visitorNav?.setIntroState(event.data.state);
     }
     if (event.data?.type === "gamid-intro-preview-height") {
       // the profile reports how tall its content really is (initially, and again whenever wrapping / fonts / content change); flow-layout.js ignores anything but a sane number
@@ -193,8 +184,10 @@ async function render() {
     try { identity = await getPublicIdentityByQr(qrToken); } catch { identity = null; }
   }
 
-  // Back to the GamID the visitor came from (a Duo link carries ?from=<handle>): shown above everything, the Intro included, whatever this GamID's state.
-  renderBackControl(backHandle(location.search, identity?.gamid_handle ?? handle));
+  // Came from another GamID (a Duo link carries ?from=<handle>): Back to it, and - while this GamID's Intro plays - Skip Intro (visitor-nav.js), above everything.
+  visitorNav = createVisitorNav({ from: backHandle(location.search, identity?.gamid_handle ?? handle), pathname: location.pathname, referrer: document.referrer, origin: location.origin, history,
+    onSkip: () => frame.contentWindow?.postMessage({ type: "gamid-intro-preview-skip" }, location.origin) });
+  if (visitorNav) document.body.append(visitorNav.element);
 
   if (!identity) { loading.hidden = true; notFound.hidden = false; return; }
 
@@ -223,6 +216,7 @@ async function render() {
   }
   // with a published Wall the Intro frame shows no profile card and stays transparent (hostReveal): its transition reveals the Wall behind it
   config = wall ? { ...built, hostReveal: true } : built;
+  if (visitorNav) config = { ...config, hostSkip: true };   // the frame hides its own Skip: the visitor's Skip Intro sits beside Back
   hasIntro = Boolean(config.videoUrl);
   sendInitial();
 }
