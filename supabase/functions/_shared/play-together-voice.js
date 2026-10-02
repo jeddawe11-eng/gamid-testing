@@ -110,6 +110,7 @@ export async function handleVoiceReconcile({ request, env, fetchImpl = fetch, lo
   for (const row of rows) {
     let result;
     try { result = await voiceProvider({ discord: createDiscordVoiceProvider({ env, fetchImpl }) }, row.provider_key).endSession({ channelId: row.provider_channel_id }); } catch { result = { ok: false, code: "VOICE_PROVIDER_UNAVAILABLE" }; }
+    if (!result.ok) log("voice-cleanup-failed", `${result.code}_http_${result.httpStatus || 0}_discord_${result.discordCode || 0}`);
     await rpc(fetchImpl, env, "finish_play_together_voice_cleanup", { candidate_voice_session_id: row.voice_session_id, candidate_deleted: result.ok, candidate_error_code: result.ok ? null : result.code }, null, true);
     result.ok ? ended++ : failed++;
   }

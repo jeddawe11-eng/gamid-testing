@@ -23,6 +23,7 @@ for (const forbidden of [false, true]) test(forbidden ? "Discord rejection is pe
   let created = 0;
   let savedError = null;
   const fetchImpl = async (url, init = {}) => {
+    if (url.endsWith('/users/@me')) return reply({ id: env.discordBotUserId, bot: true });
     if (url.endsWith("/ensure_play_together_voice_session")) return reply(sid);
     if (url.endsWith("/claim_play_together_voice_provision")) return reply(state === "READY" ? { status: "READY" } : { status: "CLAIMED", channel_key: "team-111111111111", members });
     if (url.endsWith("/finish_play_together_voice_provision")) {

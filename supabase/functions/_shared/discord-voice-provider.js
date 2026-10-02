@@ -47,14 +47,18 @@ export function createDiscordVoiceProvider({ env, fetchImpl = fetch }) {
       return { ok: false, code: result.status === 429 ? "DISCORD_RATE_LIMIT" : result.status === 401 || result.status === 403 ? "DISCORD_GUILD_JOIN_FORBIDDEN" : "DISCORD_GUILD_JOIN_FAILED", retryAfter: result.retryAfter };
     },
     async ensureSession({ channelKey, members }) {
-      if (!/^team-[0-9a-f]{12}$/.test(channelKey) || !Array.isArray(members) || !members.length || members.some(m => !snowflake(m.provider_account_id))) return { ok: false, code: "DISCORD_CHANNEL_INPUT_INVALID" };
+      if (typeof channelKey !== "string" || channelKey.length > 100 || !/^(?:team-[0-9a-f]{12}|[a-z0-9]+(?:-[a-z0-9]+){2,}-[0-9]{4})$/.test(channelKey) || !Array.isArray(members) || !members.length || members.some(m => !snowflake(m.provider_account_id))) return { ok: false, code: "DISCORD_CHANNEL_INPUT_INVALID" };
       const listed = await discord(fetchImpl, env, `/guilds/${env.discordGuildId}/channels`);
       if (!listed.ok) return { ok: false, code: listed.status === 429 ? "DISCORD_RATE_LIMIT" : "DISCORD_CHANNEL_LIST_FAILED", retryAfter: listed.retryAfter };
       const existing = Array.isArray(listed.body) ? listed.body.find(channel => channel?.type === 2 && channel?.name === channelKey && (!env.discordCategoryId || channel.parent_id === env.discordCategoryId)) : null;
       if (existing && snowflake(existing.id)) return { ok: true, guildId: env.discordGuildId, channelId: existing.id, recovered: true };
+      // The configured ID can belong to another account. Bind permissions to the
+      // authenticated bot itself so @everyone's deny cannot lock it out.
+      const identity = await discord(fetchImpl, env, "/users/@me");
+      if (!identity.ok || !snowflake(identity.body?.id) || identity.body?.bot !== true) return { ok: false, code: "DISCORD_BOT_IDENTITY_FAILED" };
       const created = await discord(fetchImpl, env, `/guilds/${env.discordGuildId}/channels`, {
         method: "POST",
-        body: JSON.stringify({ name: channelKey, type: 2, user_limit: Math.min(members.length, 99), ...(env.discordCategoryId ? { parent_id: env.discordCategoryId } : {}), permission_overwrites: channelOverwrites(env.discordGuildId, env.discordBotUserId, members), reason: "GamID Play Together temporary Team Voice" }),
+        body: JSON.stringify({ name: channelKey, type: 2, user_limit: Math.min(members.length, 99), ...(env.discordCategoryId ? { parent_id: env.discordCategoryId } : {}), permission_overwrites: channelOverwrites(env.discordGuildId, identity.body.id, members), reason: "GamID Play Together temporary Team Voice" }),
       });
       if (!created.ok || !snowflake(created.body?.id)) return { ok: false, code: created.status === 429 ? "DISCORD_RATE_LIMIT" : created.status === 403 ? "DISCORD_CHANNEL_FORBIDDEN" : "DISCORD_CHANNEL_CREATE_FAILED", retryAfter: created.retryAfter };
       return { ok: true, guildId: env.discordGuildId, channelId: created.body.id, recovered: false };
@@ -65,9 +69,9 @@ export function createDiscordVoiceProvider({ env, fetchImpl = fetch }) {
     },
     async endSession({ channelId }) {
       if (!snowflake(channelId)) return { ok: false, code: "DISCORD_CHANNEL_INVALID" };
-      const removed = await discord(fetchImpl, env, `/channels/${channelId}`, { method: "DELETE", body: JSON.stringify({ reason: "GamID Play Together session ended" }) });
+      const removed = await discord(fetchImpl, env, `/channels/${channelId}`, { method: "DELETE", headers: { "X-Audit-Log-Reason": "GamID Play Together session ended" } });
       if (removed.ok || removed.status === 404) return { ok: true };
-      return { ok: false, code: removed.status === 429 ? "DISCORD_RATE_LIMIT" : "DISCORD_CHANNEL_DELETE_FAILED", retryAfter: removed.retryAfter };
+      return { ok: false, code: removed.status === 429 ? "DISCORD_RATE_LIMIT" : "DISCORD_CHANNEL_DELETE_FAILED", retryAfter: removed.retryAfter, httpStatus: removed.status, discordCode: Number.isInteger(removed.body?.code) ? removed.body.code : 0 };
     },
   };
 }

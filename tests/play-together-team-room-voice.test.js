@@ -51,13 +51,14 @@ test("new Discord channel is private, bounded to the squad, and uses the configu
   const calls = [];
   const fetchImpl = async (url, init = {}) => {
     calls.push({ url, init });
+    if (url.endsWith('/users/@me')) return response({ id: env.discordBotUserId, bot: true });
     if (!init.method) return response([]);
     return response({ id: snow(90) }, 201);
   };
   const members = Array.from({ length: 5 }, (_, i) => ({ provider_account_id: snow(20 + i) }));
   const result = await createDiscordVoiceProvider({ env, fetchImpl }).ensureSession({ channelKey: "team-abcdef123456", members });
   assert.equal(result.ok, true);
-  const payload = JSON.parse(calls[1].init.body);
+  const payload = JSON.parse(calls.find(call => call.init.method === 'POST').init.body);
   assert.equal(payload.type, 2);
   assert.equal(payload.user_limit, 5);
   assert.equal(payload.parent_id, env.discordCategoryId);
