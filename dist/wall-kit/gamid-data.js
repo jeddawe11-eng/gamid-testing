@@ -1,4 +1,4 @@
-// The Wall `gamidData` element type (Round 3): ONE live piece of the owner's GamID placed anywhere on the Wall - the profile picture, the display name, the @GamID,
+// The Wall `gamidData` element type (Round 3): ONE live piece of the owner's GamID placed anywhere on the Wall - the avatar, the display name, the @GamID,
 // the bio, one role, one game, one connection, or a whole collection (roles / games / connections). The element stores a BINDING (which field, and for a single
 // item a reference to it), never a copy of the data: what is drawn is resolved when the Wall is drawn, so it is always the current value, and a visitor only
 // ever gets what the owner's GamID shows publicly right now (the anonymous public view - see dist/wall-editor/gamid-data.js).
@@ -114,7 +114,7 @@ function scaleGamidDataPayload(payload, factor) {
 
 // Sizes (canonical units) the editor starts each field at, and the smallest useful box.
 export const DATA_FIELD_INFO = Object.freeze({
-  avatar: { label: "Profile picture", size: { width: 320, height: 320 } },
+  avatar: { label: "Avatar", size: { width: 320, height: 320 } },
   displayName: { label: "Display name", size: { width: 800, height: 140 } },
   handle: { label: "@GamID", size: { width: 700, height: 90 } },
   bio: { label: "Bio", size: { width: 800, height: 260 } },

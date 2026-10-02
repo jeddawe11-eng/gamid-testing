@@ -104,7 +104,7 @@ function pictureNode(createNode, { url, fit, posX, posY, opacity, alt }) {
   return img;
 }
 
-// ---- the Artwork engine (Round 3): one painter for every picture look - uploaded artwork and the live GamID profile picture alike -------------------------
+// ---- the Artwork engine (Round 3): one painter for every picture look - uploaded artwork and the live GamID avatar alike -------------------------
 // Structure:  node (.wall-el: filter effects, blend, opacity)  >  [piece window, a split piece only]  >  frame (.wall-art-frame: mask, corner radius, backdrop)  >  picture
 // Every value comes from an enumerated key or a validated number / #rrggbb colour (image.js); nothing from the document is ever used as CSS text.
 export const MASK_CLIP = Object.freeze({

@@ -79,7 +79,7 @@ export function validateSlice(slice) {
   return true;
 }
 
-// The shared LOOK of any picture on the Wall (an uploaded artwork, or a live GamID profile picture - gamid-data-elements.js): one visual engine, one validator.
+// The shared LOOK of any picture on the Wall (an uploaded artwork, or the owner's live GamID avatar - gamid-data.js): one visual engine, one validator.
 export function validateArtworkLook(payload, errors) {
   if (isSet(payload.backdrop) && !(payload.backdrop === "none" || isHex(payload.backdrop))) errors.push("INVALID_BACKDROP");
   if (isSet(payload.mask) && !MASKS.includes(payload.mask)) errors.push("INVALID_MASK");

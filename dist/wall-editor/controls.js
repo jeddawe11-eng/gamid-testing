@@ -259,7 +259,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     return Object.keys(effects).length ? effects : undefined;
   };
 
-  // The shared LOOK controls (an artwork, or a live profile picture): backing, mask, corner radius, opacity, blend, effects.
+  // The shared LOOK controls (an artwork, or the live GamID avatar): backing, mask, corner radius, opacity, blend, effects.
   function lookControls(root, { read, write, maskSection, appearanceSection, effectsSection }) {
     maskSection.append(selectField({ label: "Mask", options: [{ value: "", label: "None" }, ...MASKS.map(value => ({ value, label: MASK_LABELS[value] }))], get: element => read(element).mask ?? "", set: value => write({ mask: value || undefined }), key: "artMask" }));
     maskSection.append(numberSlider({ label: "Corner radius", min: 0, max: 1000, sliderMax: 300, step: 1, get: element => read(element).radius ?? 0, set: value => write({ radius: value === 0 ? undefined : value }), key: "artRadius" }));
