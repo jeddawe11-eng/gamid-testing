@@ -242,6 +242,17 @@ test("route: nothing else links to or serves the editor - it is not wired into A
       assert.deepEqual([...text.matchAll(/"(\.\.\/[^"]+\.css)"/g)].map(match => match[1]), ["../wall-kit/wall-kit.css", "../wall-kit/game-details.css"], "the only pages it links are the kit's own stylesheets");
       continue;
     }
+    // (My Crew Slice 2) the Crew Mini Wall paints its typed model with the SHARED Wall kit (paint + interaction) and the kit's stylesheet - never the editor, a draft or
+    // any owner Wall call; the personal Wall is not linked, loaded or served from there.
+    if (file === "dist/crew/crew-wall.js") {
+      assert.deepEqual([...text.matchAll(/from "\.\.\/wall-kit\/([^"]+)"/g)].map(match => match[1]).sort(), ["interaction.js", "paint.js"]);
+      assert.doesNotMatch(text, /wall-editor|wall_drafts|get_my_wall|save_my_wall|publish_my_wall/);
+      continue;
+    }
+    if (file === "dist/crew/index.html") {
+      assert.deepEqual([...text.matchAll(/(wall-kit|wall-editor)[^"]*/g)].map(match => match[0]), ["wall-kit/wall-kit.css"]);
+      continue;
+    }
     assert.doesNotMatch(text, /wall-editor|wall-kit/, file);
   }
   const worker = read("cf-worker/worker.mjs");

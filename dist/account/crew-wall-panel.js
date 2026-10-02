@@ -1,4 +1,4 @@
-// The Crew Wall editor on the owner's Account page (inside their Crew card). Deliberately small - it is NOT the personal Wall editor: the owner only chooses which
+// The Crew Wall panel on the owner's Account page (inside their Crew card). Deliberately small - it is NOT the personal Wall editor: the owner only chooses which
 // current members appear, orders them, moves them between the Crew's stages (up to the server's allowance, 2 today), removes a card from the Wall (the person stays
 // in the Crew), previews and publishes. Every change is saved through save_crew_wall with the Wall's revision; the server re-checks everything (owner only, ACTIVE
 // members of this Crew only, stage allowance), so this file only builds the next layout.

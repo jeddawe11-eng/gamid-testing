@@ -8,7 +8,7 @@ import { validateDocument } from "../dist/wall/validate.js";
 import { elementRegistry } from "../dist/wall/elements.js";
 import { crewIdFromSearch, crewWallHref, goBack } from "../dist/public/identity-link.js";
 import { createVisitorNav } from "../dist/public/visitor-nav.js";
-import { wallState, normalize, ops, renderCrewWallBox, crewWallHrefFor } from "../dist/account/crew-wall-editor.js";
+import { wallState, normalize, ops, renderCrewWallBox, crewWallHrefFor } from "../dist/account/crew-wall-panel.js";
 import { createCrewPanel } from "../dist/account/my-crew.js";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8").replace(/\r\n/g, "\n");

@@ -4,7 +4,7 @@
 // ~3 s GamID rule (transient-message.js); what OTHER people did arrives as GamID Notifications (the bell); the Crews / invitations shown here are persistent state.
 import { isHandle, normalizeHandle } from "../public/identity-link.js";
 import { createTransientMessage } from "./transient-message.js";
-import { wallState, renderCrewWallBox, crewWallHrefFor } from "./crew-wall-editor.js";
+import { wallState, renderCrewWallBox, crewWallHrefFor } from "./crew-wall-panel.js";
 
 export const CREW_ERRORS = Object.freeze({
   CREW_ALREADY_IN_GAME: "You already belong to a Crew for this game. Leave it (or delete yours) first.",
