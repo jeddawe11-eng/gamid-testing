@@ -232,15 +232,29 @@ test("route: nothing else links to or serves the editor - it is not wired into A
     // the ONE product entry point: the authenticated Account identity view links to the editor (plain link - no script, no auth code, no second login)
     if (file === "dist/account/index.html") { assert.match(text, /<a class="primary play-together-link" href="\.\.\/wall-editor\/">EDIT WALL<\/a>/); assert.equal((text.match(/wall-editor/g) ?? []).length, 1); continue; }
     if (file === "dist/account/post-auth-return.js") { assert.match(text, /ALLOWED_RETURN_PATHS = Object\.freeze\(\["\/wall-editor\/"\]\)/); continue; }
+    // (Public Wall publishing) the visitor page's ONE Wall module draws the PUBLISHED Wall with the shared kit (the Preview pipeline) and reuses exactly one editor
+    // data module - the anonymous visitor view of live GamID data. It never links to, loads or serves the editor page, its draft or its owner calls.
+    if (file === "dist/public/public-wall.js") {
+      assert.deepEqual([...text.matchAll(/from "\.\.\/wall-editor\/([^"]+)"/g)].map(match => match[1]), ["gamid-data.js"]);
+      assert.doesNotMatch(text, /wall-editor\/(?!gamid-data\.js")|wall_drafts|get_my_wall|save_my_wall|publish_my_wall/);
+      assert.deepEqual([...text.matchAll(/"(\.\.\/[^"]+\.css)"/g)].map(match => match[1]), ["../wall-kit/wall-kit.css", "../wall-kit/game-details.css"], "the only pages it links are the kit's own stylesheets");
+      continue;
+    }
     assert.doesNotMatch(text, /wall-editor|wall-kit/, file);
   }
   const worker = read("cf-worker/worker.mjs");
   assert.doesNotMatch(worker, /get_public_wall|public.?wall|wall_drafts/i);
 });
-test("no public Wall route exists yet: no public wall RPC in any migration and no wall path in the public profile", () => {
-  const migrations = readdirSync("supabase/migrations").map(name => read(`supabase/migrations/${name}`)).join("\n");
-  assert.doesNotMatch(migrations, /function public\.get_public_wall|function public\.\w*public_wall/i);
-  assert.doesNotMatch(read("dist/public/public.js"), /\bwall\b/i);
+// (Public Wall publishing replaced "no public Wall route exists yet": the ONLY public Wall route is the published snapshot - one visitor RPC, defined in one
+//  migration, read by the public page through public-wall.js only. The draft never reaches it.)
+test("the only public Wall route is the PUBLISHED snapshot: one visitor RPC in one migration, read only through public-wall.js", () => {
+  const names = readdirSync("supabase/migrations");
+  const defining = names.filter(name => /function public\.\w*public_wall/i.test(read(`supabase/migrations/${name}`)));
+  assert.deepEqual(defining, ["20261002120000_wall_public_publishing.sql"]);
+  const page = read("dist/public/public.js");
+  assert.deepEqual([...page.matchAll(/\bgetPublicWall\b/g)].length, 2, "imported once, called once");
+  assert.doesNotMatch(page, /wall_drafts|get_my_wall|save_my_wall|wall-editor|wall-kit/);
+  assert.doesNotMatch(read("dist/public/public-wall.js"), /wall_drafts|get_my_wall_draft|ensure_my_wall_draft|save_my_wall_draft/);
 });
 
 // ---------- shipped-file integrity ----------

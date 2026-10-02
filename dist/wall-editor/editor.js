@@ -2,7 +2,7 @@
 // through the W2 owner RPCs, which resolve the owner on the server. The editor edits the Wall Document directly; there is no second document format.
 import * as api from "../account/supabase-client.js";
 import { restoreSession, rpc } from "../account/supabase-client.js";
-import { createWallPersistence } from "../wall/persistence.js";
+import { createWallPersistence, publicationState } from "../wall/persistence.js";
 import { createEditorSession } from "../wall-kit/session.js";
 import * as ops from "../wall-kit/ops.js";
 import { paintDocument } from "../wall-kit/paint.js";
@@ -41,6 +41,7 @@ let workspaceVisible = false;
 let pendingStageDelete = null;
 let gamidSnapshot = null;
 let renderQueued = false;
+let publication = { known: false, record: null, busy: false };   // the owner's publish status (see "publishing" below)
 const session = createEditorSession({ persistence, onChange: () => renderAll() });
 
 // Applies an operation result to the session. A failed operation changes nothing and tells the owner why.
@@ -166,6 +167,7 @@ function updateChrome() {
   $("redoBtn").disabled = !session.canRedo;
   $("previewBtn").disabled = !workspaceVisible;
   $("conflict").hidden = status !== "conflict";
+  updatePublishChrome();
   if (status !== lastStatus && status === "error" && session.state.errorCode) notifyError(describeCode(session.state.errorCode));
   lastStatus = status;
   const index = session.doc.stages.findIndex(stage => stage.id === session.state.stageId);
@@ -323,6 +325,68 @@ async function save() {
   await session.save();
 }
 $("saveBtn").addEventListener("click", save);
+
+// ---- publishing (owner-only) -------------------------------------------------------------------------------------------------------------------------------
+// The draft stays private. Publish copies the SAVED draft to the snapshot visitors of /@handle see (unsaved edits are saved first, so what is published is
+// exactly what is on screen); further edits only reach visitors on the next Publish. Unpublish shows visitors the Public Profile again; the draft is kept.
+const PUBLISH_TEXT = { unpublished: "Not published", published: "Published", changes: "Unpublished changes" };
+function updatePublishChrome() {
+  const known = publication.known && workspaceVisible;
+  const state = publicationState(publication.record, { revision: session.state.revision, dirty: session.dirty });
+  $("publishState").hidden = !known;
+  $("publishState").dataset.publish = known ? state : "unknown";
+  $("publishState").textContent = PUBLISH_TEXT[state];
+  const blocked = ["loading", "saving", "conflict", "blocked"].includes(session.status);
+  $("publishBtn").disabled = !known || publication.busy || blocked || state === "published";
+  $("publishBtn").textContent = state === "changes" ? "Publish changes" : "Publish";
+  $("unpublishBtn").hidden = !known || !publication.record;
+  $("unpublishBtn").disabled = publication.busy;
+  const handle = gamidSnapshot?.profile?.handle;
+  $("publicLink").hidden = !known || !publication.record || !handle;
+  if (handle) $("publicLink").href = new URL(`../@${encodeURIComponent(handle)}`, location.href).href;
+}
+async function refreshPublication() {
+  try { publication = { ...publication, known: true, record: await persistence.loadPublication() }; }
+  catch { publication = { ...publication, known: false }; }   // the status simply is not shown; editing is unaffected
+  updateChrome();
+}
+async function publish() {
+  if (publication.busy) return;
+  publication = { ...publication, busy: true };
+  updateChrome();
+  try {
+    if (session.dirty || session.status === "unsaved" || session.status === "error") {
+      await save();
+      if (session.dirty || session.status !== "saved") return;   // the save did not go through (its own message is already shown); nothing is published
+    }
+    const record = await persistence.publish(session.state.revision);
+    publication = { ...publication, record };
+    notify("Published. Visitors to your GamID now see this Wall.");
+  } catch (error) {
+    notify(describeCode(error?.code || "WALL_SAVE_FAILED"));
+    await refreshPublication();
+  } finally {
+    publication = { ...publication, busy: false };
+    updateChrome();
+  }
+}
+async function unpublish() {
+  if (publication.busy || !window.confirm("Unpublish your Wall? Visitors will see your Public Profile again. Your Wall draft is kept.")) return;
+  publication = { ...publication, busy: true };
+  updateChrome();
+  try {
+    await persistence.unpublish();
+    publication = { ...publication, record: null };
+    notify("Unpublished. Visitors see your Public Profile again.");
+  } catch (error) {
+    notify(describeCode(error?.code || "WALL_SAVE_FAILED"));
+  } finally {
+    publication = { ...publication, busy: false };
+    updateChrome();
+  }
+}
+$("publishBtn").addEventListener("click", publish);
+$("unpublishBtn").addEventListener("click", unpublish);
 $("conflictReload").addEventListener("click", async () => { await session.reloadLatest(); tools.invalidate(); });
 $("conflictOverwrite").addEventListener("click", async () => {
   if (window.confirm("Overwrite the newer saved version of your Wall with what you have here? The newer version will be replaced.")) await session.overwriteWithMine();
@@ -424,6 +488,7 @@ async function boot() {
   assetStore.setUserId(api.userIdFromToken());
   assetStore.refresh().catch(() => { /* Assets shows an empty state; the Wall itself is unaffected */ });
   refreshGamid().catch(() => { /* blocks show a plain "not available" note */ });
+  refreshPublication();
 }
 $("gateRetry").addEventListener("click", boot);
 boot();

@@ -180,6 +180,7 @@ test("no fixed pixel/rem/viewport HEIGHT exists anywhere in the public page styl
     ".experience-wrap iframe { display:block;width:100%;height:100%;border:0 }",                                // the Intro overlay
     ".is-public-live .public-shell { display:block;min-height:0;padding:0 }",                                    // resets the loading screen's height
     ".replay-button { position:relative;z-index:1;justify-self:start;margin:1.25rem max(1rem,env(safe-area-inset-left)) calc(1.25rem + env(safe-area-inset-bottom));min-height:2.6rem;padding:.6rem 1rem;border:1px solid rgba(255,255,255,.25);border-radius:999px;background:rgba(10,8,16,.72);color:#fff;font-size:.78rem;font-weight:750 }",   // a touch-target minimum only
+    "html.is-public-wall .public-shell { display:grid;grid-template-columns:minmax(0,1fr);align-content:start;justify-items:center;min-height:0;padding:0;background:#090811 }",   // (published Wall) resets the loading screen's height, like is-public-live
   ]);
   assert.doesNotMatch(publicCss, /height:\s*\d{3,}px|height:\s*\d{3,}(\.\d+)?rem/, "no magic height (no 1200px)");
 });

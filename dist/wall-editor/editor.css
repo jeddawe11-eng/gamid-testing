@@ -19,6 +19,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-state[data-state="saving"], .ed-state[data-state="loading"] { color: var(--cyan); border-color: rgba(98, 231, 255, .35); }
 .ed-state[data-state="error"], .ed-state[data-state="conflict"], .ed-state[data-state="blocked"] { color: var(--danger); border-color: rgba(255, 120, 144, .45); }
 .ed-top-actions { display: flex; gap: .3rem; margin-left: auto; }
+/* Publishing: the draft is private; Publish copies the SAVED draft to what visitors of /@handle see */
+.ed-publish { border-color: rgba(110, 240, 181, .45); color: var(--green); }
+.ed-publish-state { margin-left: 0; }
+.ed-publish-state[data-publish="published"] { color: var(--green); border-color: rgba(110, 240, 181, .35); }
+.ed-publish-state[data-publish="changes"] { color: var(--warn); border-color: rgba(255, 200, 87, .45); }
+.ed-publish-state[data-publish="unpublished"] { color: var(--muted); }
+.ed-link { color: var(--cyan); font-size: .68rem; font-weight: 800; white-space: nowrap; }
+.ed-mini-text { flex: none; min-height: 1.9rem; padding: .2rem .55rem; font-size: .66rem; }
 .ed-title { flex: 1 1 auto; }
 
 @media (max-width: 599px) {

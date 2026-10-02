@@ -430,8 +430,10 @@ test("source-level guarantee: the built-in element types are registered generica
 });
 
 // ------------------------------------------------------------------------------------------------------------------------------ isolation: nothing in the real product references the still-unlaunched Wall foundation
-test("isolation: no real product page/script references dist/wall/ (no live route exists yet - foundation only)", () => {
+test("isolation: no real product page/script references dist/wall/ directly (the public page reaches the PUBLISHED Wall only through public-wall.js)", () => {
   for (const path of ["dist/index.html", "dist/public/public.js", "dist/account/account.js"]) {
-    assert.doesNotMatch(read(path), /dist\/wall|\bwall\.js\b/i, path);
+    // (Public Wall publishing: public.js imports its one published-Wall module; nothing else, and never the draft / editor)
+    const source = path === "dist/public/public.js" ? read(path).replace('from "./public-wall.js"', "") : read(path);
+    assert.doesNotMatch(source, /dist\/wall|\bwall\.js\b/i, path);
   }
 });

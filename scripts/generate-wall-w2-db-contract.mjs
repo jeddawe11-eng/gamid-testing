@@ -227,8 +227,10 @@ begin
   res := res || jsonb_build_object('step', 'the wall-media bucket is private, 5 MiB, and allows only jpeg/png/webp/avif/gif (no SVG)', 'pass', cnt = 1);
   select count(*) into cnt from pg_policies p where p.schemaname = 'storage' and p.tablename = 'objects' and p.policyname in ('users upload wall media to their folder', 'users read their wall media', 'users delete their wall media') and p.roles = array['authenticated']::name[];
   res := res || jsonb_build_object('step', 'wall-media has exactly the three owner-only policies, all for authenticated (no public or anon read)', 'pass', cnt = 3);
-  select count(*) into cnt from pg_policies p where p.schemaname = 'storage' and p.tablename = 'objects' and (coalesce(p.qual, '') || coalesce(p.with_check, '')) like '%wall-media%' and (p.roles && array['anon', 'public']::name[]);
-  res := res || jsonb_build_object('step', 'no storage policy exposes wall-media to anon/public', 'pass', cnt = 0);
+  -- (Public Wall publishing: exactly ONE anon policy may touch wall media - the published-media read, gated per object by private.wall_object_is_published)
+  select count(*) into cnt from pg_policies p where p.schemaname = 'storage' and p.tablename = 'objects' and (coalesce(p.qual, '') || coalesce(p.with_check, '')) like '%wall-media%' and (p.roles && array['anon', 'public']::name[])
+    and not (p.policyname = 'published wall media is readable' and p.cmd = 'SELECT' and coalesce(p.qual, '') like '%wall_object_is_published%' and p.with_check is null);
+  res := res || jsonb_build_object('step', 'no storage policy exposes wall-media to anon/public except the published-Wall read (SELECT only, per published object)', 'pass', cnt = 0);
   select relrowsecurity into flag from pg_class where oid = 'public.wall_assets'::regclass;
   res := res || jsonb_build_object('step', 'RLS is enabled on wall_assets and no client role has a table privilege', 'pass', coalesce(flag, false) and not (has_table_privilege('anon', 'public.wall_assets', 'select') or has_table_privilege('authenticated', 'public.wall_assets', 'select') or has_table_privilege('authenticated', 'public.wall_assets', 'insert') or has_table_privilege('authenticated', 'public.wall_assets', 'delete')));
   res := res || jsonb_build_object('step', 'asset RPCs: the owner lists / deletes (authenticated, never anon); ONLY service_role (the verifying Edge Function) registers; wrappers are SECURITY INVOKER',

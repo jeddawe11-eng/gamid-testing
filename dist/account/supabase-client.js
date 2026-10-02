@@ -612,6 +612,36 @@ export async function loadPublicAvatar(path) {
   return URL.createObjectURL(await response.blob());
 }
 
+// ---- the PUBLISHED Wall (visitors) ----------------------------------------------------------------------------------------------------------------
+// The published snapshot of a PUBLIC GamID (never the private draft), with the storage location of only the assets it references; null when there is none.
+export async function getPublicWall(handle) {
+  const rows = await rpc("get_public_wall", { candidate_handle: handle }, { anonymous: true });
+  return rows?.[0] || null;
+}
+// A published Wall's media is readable anonymously ONLY while the published snapshot of a public GamID references it (storage policy "published wall media is
+// readable"); everything else in these buckets stays owner-only. Same anonymous read as the public avatar / Intro.
+export const publicWallBucketFor = (path, mime) => (/\.h264\.mp4$/.test(String(path)) ? "wall-video-derived" : /^video\//.test(String(mime)) ? "wall-video" : "wall-media");
+export async function loadPublicWallPicture(path) {
+  if (!path) return null;
+  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/wall-media/${encodeStoragePath(path)}`, { headers: { apikey: PUBLISHABLE_KEY } });
+  if (!response.ok) return null;
+  return URL.createObjectURL(await response.blob());
+}
+// A published video streams (range requests) from a short-lived signed address of that one object - never downloaded whole. Falls back to null (the layer shows
+// its placeholder) if the object is not published.
+export async function signPublicWallVideo(path, mime) {
+  if (!path) return null;
+  const bucket = publicWallBucketFor(path, mime);
+  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/${bucket}/${encodeStoragePath(path)}`, {
+    method: "POST", headers: { apikey: PUBLISHABLE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ expiresIn: WALL_VIDEO_URL_SECONDS }),
+  });
+  if (!response.ok) return null;
+  const signed = await response.json().catch(() => null);
+  const relative = signed?.signedURL ?? signed?.signedUrl;
+  if (typeof relative !== "string" || !relative.startsWith(`/object/sign/${bucket}/`)) return null;
+  return `${SUPABASE_URL}/storage/v1${relative}`;
+}
+
 export async function loadPublicIntroMedia(path) {
   if (!path) return null;
   const response = await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/intro-media/${encodeStoragePath(path)}`, {

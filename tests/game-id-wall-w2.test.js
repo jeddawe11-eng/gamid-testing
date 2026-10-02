@@ -16,7 +16,9 @@ const MIGRATION = "supabase/migrations/20260925120000_wall_persistence_foundatio
 // W3 (the editor) taught the database validator the new element types in a forward migration; the SQL port is the union of the Wall migrations
 const EDITOR_MIGRATION = "supabase/migrations/20260925140000_wall_editor_element_types.sql";
 // every Wall migration (persistence, editor types, revision status, assets, media/blocks/backgrounds): the SQL port is their union
-const migration = readdirSync("supabase/migrations").filter(name => /_wall_/.test(name)).sort().map(name => read(`supabase/migrations/${name}`)).join("\n");
+// (Public Wall publishing - 20261002120000_wall_public_publishing - is NOT part of the private-draft foundation pinned here: it adds the separate published snapshot
+//  and the one anonymous read path, and has its own security-shape tests in tests/wall-public-publishing.test.js. Every draft guard below still holds unchanged.)
+const migration = readdirSync("supabase/migrations").filter(name => /_wall_/.test(name) && !/_wall_public_publishing/.test(name)).sort().map(name => read(`supabase/migrations/${name}`)).join("\n");
 // the migration text without SQL comments, for "does the code do X" assertions
 const migrationCode = migration.replace(/--.*$/gm, "");
 
@@ -217,6 +219,8 @@ test("scope: persistence is not wired into any page, route, worker or public pat
     assert.ok(!/wall_drafts|ensure_my_wall_draft|get_my_wall_draft|save_my_wall_draft|wall\/persistence/.test(text), `${file} must not reference Wall persistence`);
   }
   const source = read("dist/wall/persistence.js");
-  assert.ok(!/anonymous|publish|autosave|localStorage|fetch\(/i.test(source.replace(/\/\/.*$/gm, "")), "no public/anon/autosave/network code in the persistence module");
+  // (Public Wall publishing: the module gained the OWNER's publish / unpublish / status calls - still no anonymous or visitor path, no autosave, no network of its own)
+  assert.ok(!/anonymous|get_public_wall|autosave|localStorage|fetch\(/i.test(source.replace(/\/\/.*$/gm, "")), "no public/anon/autosave/network code in the persistence module");
+  assert.deepEqual([...source.matchAll(/call\("(\w+)"/g)].map(match => match[1]).sort(), ["ensure_my_wall_draft", "get_my_wall_draft", "get_my_wall_publication", "publish_my_wall", "save_my_wall_draft", "unpublish_my_wall"], "owner RPCs only");
   assert.ok(!/from "\.\.\/account/.test(source), "wall persistence does not import the account app");
 });

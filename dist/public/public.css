@@ -110,3 +110,14 @@ html.is-games-open{overflow:hidden}
 .pg-trust.is-caution{border-color:#5a4a1e;background:rgba(255,196,77,.08);color:#ffd27a}
 .pg-source-line{margin:0;color:var(--muted);font-size:.74rem;overflow-wrap:anywhere}
 @media(min-width:40rem){.pg-modal{align-items:center;padding:1.5rem}.pg-panel{width:min(40rem,100%);max-height:min(46rem,90svh);border:1px solid rgba(255,255,255,.2);border-radius:1.1rem;box-shadow:0 30px 80px rgba(0,0,0,.55)}}
+/* PUBLISHED WALL (public-wall.js). Only while html.is-public-wall is set - i.e. the owner published a Wall and the Intro is over: the Wall replaces the profile body
+   (profile frame, sections, My Games) as ordinary page content that scrolls; Replay Intro sits below it. Nothing here applies to a GamID without a published Wall. */
+html.is-public-live.is-public-wall{overflow-x:hidden;overflow-y:auto}
+html.is-public-wall{scrollbar-gutter:stable}
+html.is-public-wall .public-shell{display:grid;grid-template-columns:minmax(0,1fr);align-content:start;justify-items:center;min-height:0;padding:0;background:#090811}
+html.is-public-wall .experience-wrap{display:none}
+html.is-public-wall .public-shell .public-wall{grid-area:1/1}
+html.is-public-wall .public-shell .replay-button{grid-area:2/1;justify-self:start}
+.public-wall{position:relative;z-index:1;width:100%;min-width:0;display:flex;justify-content:center}
+.public-wall[hidden]{display:none}
+.public-wall-column{max-width:100%}

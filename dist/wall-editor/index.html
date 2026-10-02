@@ -21,6 +21,7 @@
       <button id="redoBtn" class="ed-btn ed-icon" type="button" aria-label="Redo" disabled>&#8631;</button>
       <button id="previewBtn" class="ed-btn" type="button" disabled>Preview</button>
       <button id="saveBtn" class="ed-btn ed-primary" type="button" disabled>Save</button>
+      <button id="publishBtn" class="ed-btn ed-publish" type="button" disabled>Publish</button>
     </div>
   </header>
 
@@ -160,6 +161,9 @@
         <span id="stageLabel" class="ed-stage-label">Stage 1 of 1</span>
         <button id="multiBtn" class="ed-btn" type="button" aria-pressed="false">Multi-select</button>
         <span id="saveState" class="ed-state" role="status" aria-live="polite" data-state="loading">Loading&hellip;</span>
+        <span id="publishState" class="ed-state ed-publish-state" role="status" aria-live="polite" data-publish="unknown" hidden></span>
+        <a id="publicLink" class="ed-link" target="_blank" rel="noopener" hidden>View public page</a>
+        <button id="unpublishBtn" class="ed-btn ed-mini-text" type="button" hidden>Unpublish</button>
         <span id="selInfo" class="ed-sel-info"></span>
       </div>
       <div id="viewport" class="ed-viewport"><div id="stageHost" class="ed-stage-host"></div></div>

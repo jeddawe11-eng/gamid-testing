@@ -5,7 +5,8 @@
 // validate.js kept in step by tests/game-id-wall-w2.test.js) and resolves the owner from the signed-in session, never from anything this client sends.
 //
 // This module is deliberately transport-agnostic: `rpc` is injected (dist/account's supabase-client.js exposes exactly this shape), so nothing here imports
-// the account app or any UI. It does not autosave, does not publish and has no public/anonymous entry point.
+// the account app or any UI. It does not autosave and has no public/anonymous entry point. Publishing (owner-only) copies the SAVED draft into the published
+// snapshot visitors see; the draft itself stays private (see supabase/migrations/20261002120000_wall_public_publishing.sql).
 import { validateDocument } from "./validate.js";
 
 // Typed persistence errors. `code` is the database's typed code (AUTH_REQUIRED, IDENTITY_NOT_FOUND, WALL_DRAFT_NOT_FOUND, INVALID_WALL_DOCUMENT,
@@ -69,5 +70,25 @@ export function createWallPersistence({ rpc }) {
       if (!local.valid) throw new WallPersistenceError("INVALID_WALL_DOCUMENT", { errors: local.errors });
       return toDraftRecord(await call("save_my_wall_draft", { candidate_document: document, candidate_expected_revision: expectedRevision }));
     },
+    // ---- publishing (owner-only) ----
+    // Which saved draft revision visitors currently see, or null when the Wall is not published.
+    loadPublication: async () => toPublicationRecord(await call("get_my_wall_publication", {})),
+    // Publishes the saved draft at `expectedRevision` (the one the owner is looking at); a newer saved revision is refused (WALL_REVISION_CONFLICT).
+    publish: async expectedRevision => toPublicationRecord(await call("publish_my_wall", { candidate_expected_revision: expectedRevision })),
+    // Visitors see the Public Profile again; the draft is untouched. -> whether a published Wall existed
+    unpublish: async () => (await call("unpublish_my_wall", {})) === true,
   };
+}
+
+// { draftRevision, publishedAt } | null
+export function toPublicationRecord(row) {
+  if (!row || typeof row !== "object" || row.draft_revision == null) return null;
+  return { draftRevision: Number(row.draft_revision), publishedAt: row.published_at ?? null };
+}
+
+// What the owner is told about publishing: never published, the saved draft IS what visitors see, or the draft (saved or not) differs from it.
+// -> "unpublished" | "published" | "changes"
+export function publicationState(publication, { revision, dirty }) {
+  if (!publication) return "unpublished";
+  return publication.draftRevision === revision && !dirty ? "published" : "changes";
 }

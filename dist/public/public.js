@@ -1,6 +1,7 @@
-import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, loadPublicIntroMedia } from "../account/supabase-client.js";
+import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, loadPublicIntroMedia, getPublicWall } from "../account/supabase-client.js";
 import { createFlowLayout } from "../flow-layout.js";
 import { normalizeLibrary, renderGamesPreview, createGamesLibrary } from "./public-games.js";
+import { preparePublicWall, createPublicWallView } from "./public-wall.js";
 
 const catalogLabel = (catalog, key) => catalog?.find(item => item.key === key)?.label || key || "";
 
@@ -106,6 +107,9 @@ async function render() {
   let hasSections = false;
   let hasGames = false;
   let gamesLibrary = null;
+  // The owner's PUBLISHED Wall (the published-Wall module), when there is one: once the Intro is over it replaces the profile body (the profile card, sections and My Games);
+  // Replay Intro still plays the Intro. Without one, `wall` stays null and every line below behaves exactly as before.
+  let wall = null;
 
   // Layout mode. While the Intro plays (and before anything is known) the stage is a full-viewport overlay ("experience"). Once the profile shows, the page becomes
   // ordinary document flow ("flow"): the iframe takes exactly the height the profile inside it reports, so the profile, the provider panel and Replay Intro are simply
@@ -138,12 +142,21 @@ async function render() {
       gamesBlock.hidden = !hasGames || event.data.state !== "profile";
       if (event.data.state !== "profile") gamesLibrary?.close();
       layout.setProfileShowing(event.data.state === "profile");
+      if (wall) showWall(event.data.state === "profile");
     }
     if (event.data?.type === "gamid-intro-preview-height") {
       // the profile reports how tall its content really is (initially, and again whenever wrapping / fonts / content change); flow-layout.js ignores anything but a sane number
       layout.setHeight(event.data.height);
     }
   });
+  // the Wall takes the profile's place after the Intro (html.is-public-wall hides the profile frame and makes the Wall ordinary scrolling content), and gives it
+  // back while the Intro replays
+  function showWall(showing) {
+    const root = document.documentElement;
+    if (showing) { sectionsPanel.hidden = true; gamesBlock.hidden = true; }   // the Wall IS the profile body (the sections / My Games are what it replaces)
+    if (showing && !wall.showing) { root.classList.add("is-public-wall"); experienceWrap.hidden = true; wall.show(); scrollTo(0, 0); }
+    else if (!showing && wall.showing) { wall.hide(); root.classList.remove("is-public-wall"); experienceWrap.hidden = false; }
+  }
   frame.addEventListener("load", () => { frameReady = true; sendInitial(); });
   replayButton.addEventListener("click", layout.enterExperience);   // the Intro needs the full viewport again (registered first, so it runs before the config is sent)
   replayButton.addEventListener("click", sendReplay);
@@ -174,7 +187,17 @@ async function render() {
     renderGamesPreview({ element: node, container: gamesBlock, library: gamesPreview, onOpenGame: (game, opener) => gamesLibrary.openGame(game, opener), onViewAll: opener => gamesLibrary.openLibrary(opener) });
     hasGames = true;
   }
-  config = await buildConfig(identity);
+  // the published Wall is looked up alongside the Intro config (one anonymous call); its media and data load while the Intro plays
+  const [built, published] = await Promise.all([buildConfig(identity), getPublicWall(identity.gamid_handle).catch(() => null)]);
+  if (published?.document) {
+    const host = node("section", "public-wall");
+    host.id = "publicWall";
+    host.setAttribute("aria-label", "GamID Wall");
+    host.hidden = true;
+    replayButton.before(host);
+    wall = createPublicWallView({ host, prepared: preparePublicWall(published, identity.gamid_handle).catch(() => null), handle: identity.gamid_handle });
+  }
+  config = built;
   hasIntro = Boolean(config.videoUrl);
   sendInitial();
 }
