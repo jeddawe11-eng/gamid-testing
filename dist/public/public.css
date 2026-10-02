@@ -116,6 +116,8 @@ html.is-public-live.is-public-wall{overflow-x:hidden;overflow-y:auto}
 html.is-public-wall{scrollbar-gutter:stable}
 html.is-public-wall .public-shell{display:grid;grid-template-columns:minmax(0,1fr);align-content:start;justify-items:center;min-height:0;padding:0;background:#090811}
 html.is-public-wall .experience-wrap{display:none}
+/* during the Intro's own transition the (transparent, hostReveal) Intro frame stays on top of the Wall, so the transition reveals the Wall - never the profile */
+html.is-public-wall.is-public-wall-reveal .experience-wrap{display:block;background:transparent}
 html.is-public-wall .public-shell .public-wall{grid-area:1/1}
 html.is-public-wall .public-shell .replay-button{grid-area:2/1;justify-self:start}
 .public-wall{position:relative;z-index:1;width:100%;min-width:0;display:flex;justify-content:center}

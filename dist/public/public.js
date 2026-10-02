@@ -142,7 +142,7 @@ async function render() {
       gamesBlock.hidden = !hasGames || event.data.state !== "profile";
       if (event.data.state !== "profile") gamesLibrary?.close();
       layout.setProfileShowing(event.data.state === "profile");
-      if (wall) showWall(event.data.state === "profile");
+      if (wall) showWall(event.data.state);
     }
     if (event.data?.type === "gamid-intro-preview-height") {
       // the profile reports how tall its content really is (initially, and again whenever wrapping / fonts / content change); flow-layout.js ignores anything but a sane number
@@ -150,12 +150,16 @@ async function render() {
     }
   });
   // the Wall takes the profile's place after the Intro (html.is-public-wall hides the profile frame and makes the Wall ordinary scrolling content), and gives it
-  // back while the Intro replays
-  function showWall(showing) {
+  // back while the Intro replays. The frame was asked for hostReveal (no profile card, transparent), so during the Intro's own transition the Wall is already
+  // drawn BEHIND it (html.is-public-wall-reveal keeps the transparent frame on top): the transition reveals the Wall - the old profile is never on screen.
+  function showWall(state) {
     const root = document.documentElement;
-    if (showing) { sectionsPanel.hidden = true; gamesBlock.hidden = true; }   // the Wall IS the profile body (the sections / My Games are what it replaces)
-    if (showing && !wall.showing) { root.classList.add("is-public-wall"); experienceWrap.hidden = true; wall.show(); scrollTo(0, 0); }
-    else if (!showing && wall.showing) { wall.hide(); root.classList.remove("is-public-wall"); experienceWrap.hidden = false; }
+    if (state === "profile" || state === "transitioning") {
+      sectionsPanel.hidden = true; gamesBlock.hidden = true;   // the Wall IS the profile body (the sections / My Games are what it replaces)
+      if (!wall.showing) { root.classList.add("is-public-wall"); wall.show(); scrollTo(0, 0); }
+      root.classList.toggle("is-public-wall-reveal", state === "transitioning");
+      experienceWrap.hidden = state === "profile";
+    } else if (wall.showing) { wall.hide(); root.classList.remove("is-public-wall", "is-public-wall-reveal"); experienceWrap.hidden = false; }
   }
   frame.addEventListener("load", () => { frameReady = true; sendInitial(); });
   replayButton.addEventListener("click", layout.enterExperience);   // the Intro needs the full viewport again (registered first, so it runs before the config is sent)
@@ -197,7 +201,8 @@ async function render() {
     replayButton.before(host);
     wall = createPublicWallView({ host, prepared: preparePublicWall(published, identity.gamid_handle).catch(() => null), handle: identity.gamid_handle });
   }
-  config = built;
+  // with a published Wall the Intro frame shows no profile card and stays transparent (hostReveal): its transition reveals the Wall behind it
+  config = wall ? { ...built, hostReveal: true } : built;
   hasIntro = Boolean(config.videoUrl);
   sendInitial();
 }

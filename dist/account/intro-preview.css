@@ -29,3 +29,8 @@ html[data-flow="on"] .preview-only .hero-card{margin-top:clamp(1rem,calc(var(--p
 html[data-flow="on"] .preview-only:not(.is-experiencing) .prototype-shell{min-height:0}
 html[data-flow="on"] .preview-only:not(.is-experiencing) .experience{height:auto;min-height:0}
 html[data-flow="on"] .preview-only:not(.is-experiencing) .profile{height:auto;min-height:0;overflow:visible}
+/* Public Wall: when the visitor's GamID has a published Wall, the host page shows the Wall BEHIND this frame and sends hostReveal. The Intro and its transition are
+   unchanged; what the transition reveals is the host (the Wall) - this profile card is never shown. Without hostReveal (every owner preview, every GamID without a
+   published Wall) nothing here applies. */
+html.host-reveal,html.host-reveal body,html.host-reveal .experience{background:transparent}
+html.host-reveal .profile{visibility:hidden}

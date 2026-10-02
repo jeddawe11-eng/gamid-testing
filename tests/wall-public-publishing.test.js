@@ -136,18 +136,32 @@ test("V2 /@handle: Intro -> Published Wall when one exists (it replaces the prof
   const page = read("dist/public/public.js");
   // the accepted handshake lines are unchanged
   for (const line of ['replayButton.hidden = !hasIntro || event.data.state !== "profile";', 'sectionsPanel.hidden = !hasSections || event.data.state !== "profile";', 'gamesBlock.hidden = !hasGames || event.data.state !== "profile";', 'layout.setProfileShowing(event.data.state === "profile");']) assert.ok(page.includes(line), line);
-  assert.match(page, /if \(wall\) showWall\(event\.data\.state === "profile"\);/, "the Wall only exists once a published one was found");
+  assert.match(page, /if \(wall\) showWall\(event\.data\.state\);/, "the Wall only exists once a published one was found");
   assert.match(page, /const \[built, published\] = await Promise\.all\(\[buildConfig\(identity\), getPublicWall\(identity\.gamid_handle\)\.catch\(\(\) => null\)\]\);/, "a lookup failure falls back to the Public Profile");
   assert.match(page, /if \(published\?\.document\) \{/);
-  assert.match(page, /if \(showing\) \{ sectionsPanel\.hidden = true; gamesBlock\.hidden = true; \}/);
-  assert.match(page, /root\.classList\.add\("is-public-wall"\); experienceWrap\.hidden = true; wall\.show\(\);/);
-  assert.match(page, /wall\.hide\(\); root\.classList\.remove\("is-public-wall"\); experienceWrap\.hidden = false;/, "Replay Intro gives the stage back to the Intro");
+  assert.match(page, /if \(state === "profile" \|\| state === "transitioning"\) \{\s+sectionsPanel\.hidden = true; gamesBlock\.hidden = true;/);
+  assert.match(page, /if \(!wall\.showing\) \{ root\.classList\.add\("is-public-wall"\); wall\.show\(\); scrollTo\(0, 0\); \}/);
+  assert.match(page, /root\.classList\.toggle\("is-public-wall-reveal", state === "transitioning"\);\s+experienceWrap\.hidden = state === "profile";/, "during the transition the Wall is behind the Intro frame");
+  assert.match(page, /\} else if \(wall\.showing\) \{ wall\.hide\(\); root\.classList\.remove\("is-public-wall", "is-public-wall-reveal"\); experienceWrap\.hidden = false; \}/, "Replay Intro gives the stage back to the Intro");
   const css = read("dist/public/public.css");
   assert.match(css, /html\.is-public-wall \.experience-wrap\{display:none\}/);
+  assert.match(css, /html\.is-public-wall\.is-public-wall-reveal \.experience-wrap\{display:block;background:transparent\}/);
   assert.match(css, /html\.is-public-live\.is-public-wall\{overflow-x:hidden;overflow-y:auto\}/, "the Wall scrolls like a page (vertically only)");
   assert.match(css, /html\.is-public-wall\{scrollbar-gutter:stable\}/, "the page scrollbar never changes the Wall's width (like the flow mode)");
   // the Worker's crawler metadata is unchanged (the Identity Card stays the share preview)
   assert.doesNotMatch(read("cf-worker/worker.mjs"), /wall/i);
+});
+
+test("V2b no flash: with a published Wall the Intro frame is asked for hostReveal - its transition reveals the Wall, the old profile card is never shown; opt-in only", () => {
+  const page = read("dist/public/public.js");
+  assert.match(page, /config = wall \? \{ \.\.\.built, hostReveal: true \} : built;/, "only when a published Wall exists");
+  const frameJs = read("dist/account/intro-preview.js");
+  assert.match(frameJs, /function play\(config\)\{ document\.documentElement\.dataset\.flow=config\.publicMode===true\?"on":"";document\.documentElement\.classList\.toggle\("host-reveal",config\.hostReveal===true\);/, "set (or cleared) on every play, Replay included");
+  assert.equal([...frameJs.matchAll(/hostReveal/g)].length, 1, "the Intro's own logic and transitions are otherwise untouched");
+  const frameCss = read("dist/account/intro-preview.css");
+  assert.match(frameCss, /html\.host-reveal,html\.host-reveal body,html\.host-reveal \.experience\{background:transparent\}\nhtml\.host-reveal \.profile\{visibility:hidden\}/);
+  assert.equal([...frameCss.matchAll(/host-reveal/g)].length, 4, "every rule is scoped to host-reveal: owner previews and GamIDs without a Wall are unchanged");
+  assert.doesNotMatch(read("dist/account/account.js"), /hostReveal/, "the owner's own Intro preview never asks for it");
 });
 
 test("V3 one renderer: the visitor Wall is painted by the same Preview pipeline (paintDocument in VIEW mode, players, posters, details, video pool)", () => {
