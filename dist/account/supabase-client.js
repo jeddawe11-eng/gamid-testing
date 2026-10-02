@@ -488,6 +488,14 @@ export const respondToCrewInvite = (crewId, accept) => rpc("respond_to_crew_invi
 export const removeCrewMember = (crewId, handle) => rpc("remove_crew_member", { candidate_crew: crewId, candidate_handle: handle });
 export const leaveCrew = crewId => rpc("leave_crew", { candidate_crew: crewId });
 export const deleteCrew = crewId => rpc("delete_crew", { candidate_crew: crewId });
+// Crew Mini Wall (dist/crew/): the owner edits a typed layout (stages + member placements, by @handle); visitors read only a PUBLISHED Wall, and only members whose own
+// GamID is public. The stage allowance and usage are server-authoritative (get_crew_wall_usage is what a future Usage & Limits screen reads).
+export const getMyCrewWall = crewId => rpc("get_my_crew_wall", { candidate_crew: crewId });
+export const saveCrewWall = (crewId, stageCount, cards, expectedRevision) => rpc("save_crew_wall", { candidate_crew: crewId, candidate_stage_count: stageCount, candidate_cards: cards, candidate_expected_revision: expectedRevision });
+export const setCrewWallPublished = (crewId, published) => rpc("set_crew_wall_published", { candidate_crew: crewId, candidate_published: Boolean(published) });
+export const getCrewWallUsage = async crewId => ((await rpc("get_crew_wall_usage", { candidate_crew: crewId })) || [])[0] || null;
+export const getCrewWallPreview = crewId => rpc("get_crew_wall_preview", { candidate_crew: crewId });
+export const getPublicCrewWall = crewId => rpc("get_public_crew_wall", { candidate_crew: crewId }, { anonymous: true });
 // GamID Notifications (dist/notifications/): the caller's OWN log only (newest first, keyset-paged), its unread count, and marking read. Nothing here can create a
 // notification - only trusted server code does (private.notify).
 export const getMyNotifications = async (beforeId = null, limit = 30) => (await rpc("get_my_notifications", { candidate_before_id: beforeId, candidate_limit: limit })) || [];

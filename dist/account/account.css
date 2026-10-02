@@ -240,6 +240,18 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .crew-games{display:grid;gap:.45rem}
 .crew-game-pick{width:100%;text-align:left}
 .crew-conflict{color:#ffe2a6}
+/* Crew Wall editor (crew-wall-editor.js) inside the owner's Crew card */
+.crew-wall-box{display:grid;gap:.55rem;padding-top:.6rem;border-top:1px solid var(--line)}
+.crew-wall-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
+.crew-wall-head .eyebrow{margin:0}
+.crew-wall-open{display:inline-flex;align-items:center;justify-content:center;width:auto;min-height:2.4rem;padding:.55rem 1rem;text-decoration:none}
+.crew-wall-stage{display:grid;gap:.45rem;padding:.6rem;border:1px solid var(--line);border-radius:.8rem}
+.crew-wall-stage .eyebrow{margin:0}
+.crew-wall-card{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.35rem .6rem;min-width:0}
+.crew-wall-card-name{flex:1 1 10rem;min-width:0;font-size:.84rem;overflow-wrap:break-word}
+.crew-wall-card-actions{display:flex;flex-wrap:wrap;gap:.3rem;justify-content:flex-end}
+.crew-wall-mini{width:auto;min-height:2.2rem;padding:.3rem .65rem;font-size:.74rem;border:1px solid #3a334b;border-radius:999px}
+.crew-wall-limit{color:#c8bafc}
 .danger-fill{background:linear-gradient(90deg,#d6336c,#ff5c8a)}
 /* GamID Notifications bell in the header (../notifications/notifications.css) + the My Duo destination highlight */
 .site-head-end{display:flex;align-items:center;gap:.6rem}

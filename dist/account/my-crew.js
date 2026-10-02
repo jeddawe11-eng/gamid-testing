@@ -4,6 +4,7 @@
 // ~3 s GamID rule (transient-message.js); what OTHER people did arrives as GamID Notifications (the bell); the Crews / invitations shown here are persistent state.
 import { isHandle, normalizeHandle } from "../public/identity-link.js";
 import { createTransientMessage } from "./transient-message.js";
+import { wallState, renderCrewWallBox, crewWallHrefFor } from "./crew-wall-editor.js";
 
 export const CREW_ERRORS = Object.freeze({
   CREW_ALREADY_IN_GAME: "You already belong to a Crew for this game. Leave it (or delete yours) first.",
@@ -24,6 +25,10 @@ export const CREW_ERRORS = Object.freeze({
   AUTH_REQUIRED: "Please sign in again, then try again.",
   IDENTITY_NOT_FOUND: "We couldn't find your GamID. Please refresh the page.",
   NETWORK_ERROR: "Couldn't reach the server. Check your connection and try again.",
+  CREW_WALL_STAGE_LIMIT: "Your Crew Wall already uses every stage available.",
+  CREW_WALL_NOT_A_MEMBER: "Only current members of this Crew can be on its Wall. The list has been refreshed.",
+  CREW_WALL_REVISION_CONFLICT: "The Crew Wall changed in another tab. It has been refreshed - try again.",
+  INVALID_CREW_WALL_CARDS: "That Crew Wall change isn't valid.",
 });
 export const crewErrorText = error => CREW_ERRORS[error?.message] || CREW_ERRORS[error?.code] || "Something went wrong. Please try again.";
 export const CREW_NAME = Object.freeze({ min: 2, max: 40 });
@@ -55,6 +60,8 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
   const invite = new Map();       // crew id -> { query, results }
   const create = { open: false, query: "", results: null, game: null, name: "" };
   const avatars = new Map();
+  const walls = new Map();        // crew id -> Crew Wall editing model (owner Crews only)
+  const editingWall = new Set();  // crew ids whose Wall editor is open
   const feedback = createTransientMessage(message, { timers });
   const say = (text, tone = "error") => feedback.show(text, { tone });
 
@@ -146,6 +153,13 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     card.append(list);
 
     if (crew.role === "OWNER") {
+      const wall = walls.get(crew.id) ?? null;
+      card.append(renderCrewWallBox({
+        crew, wall, members: rows, element, button, editing: editingWall.has(crew.id),
+        onToggleEdit: () => { if (editingWall.has(crew.id)) editingWall.delete(crew.id); else editingWall.add(crew.id); render(); },
+        save: (cards, stageCount = wall.stageCount) => act(() => api.saveCrewWall(crew.id, stageCount, cards, wall.revision), "Crew Wall saved."),
+        publish: published => act(() => api.setCrewWallPublished(crew.id, published), published ? `${crew.name}'s Crew Wall is published.` : `${crew.name}'s Crew Wall is no longer public.`),
+      }));
       const pending = rows.filter(row => row.status === "INVITED");
       if (pending.length) {
         const box = element("div", "crew-pending");
@@ -185,7 +199,9 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
       card.append(warning(leaveWarning(crew), "Leave Crew", () => act(() => api.leaveCrew(crew.id), `You left ${crew.name}.`)));
     } else {
       const actions = element("div", "duo-actions");
-      actions.append(button("Leave Crew", "text-button danger duo-button", () => { confirm = { kind: "leave", crewId: crew.id }; render(); }));
+      const open = element("a", "secondary duo-button crew-wall-open", "Open Crew Wall");
+      open.href = crewWallHrefFor(crew.id); open.target = "_blank"; open.rel = "noopener";
+      actions.append(open, button("Leave Crew", "text-button danger duo-button", () => { confirm = { kind: "leave", crewId: crew.id }; render(); }));
       card.append(actions);
     }
     return card;
@@ -279,12 +295,18 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
   async function read() {
     const next = crewState(await api.getMyCrews());
     const lists = await Promise.all(next.crews.map(crew => api.getCrewMembers(crew.id).then(rows => [crew.id, Array.isArray(rows) ? rows : []], () => [crew.id, []])));
-    return { next, lists };
+    const wallList = typeof api.getMyCrewWall === "function"
+      ? await Promise.all(next.crews.filter(crew => crew.role === "OWNER").map(crew => api.getMyCrewWall(crew.id).then(view => [crew.id, wallState(view)], () => [crew.id, null])))
+      : [];
+    return { next, lists, wallList };
   }
-  function apply({ next, lists }) {
+  function apply({ next, lists, wallList = [] }) {
     state = next;
     members.clear();
     for (const [id, rows] of lists) members.set(id, rows);
+    walls.clear();
+    for (const [id, wall] of wallList) walls.set(id, wall);
+    for (const id of [...editingWall]) if (!walls.has(id)) editingWall.delete(id);
     for (const id of [...invite.keys()]) if (!state.crews.some(crew => crew.id === id && crew.role === "OWNER")) invite.delete(id);
     if (confirm && !state.crews.some(crew => crew.id === confirm.crewId)) confirm = null;
     if (confirm?.kind === "remove" && !(members.get(confirm.crewId) ?? []).some(row => row.gamid_handle === confirm.handle && row.status === "ACTIVE")) confirm = null;

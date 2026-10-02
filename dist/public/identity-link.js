@@ -38,6 +38,16 @@ export function gamidHref(handle, { from = "", pathname = "/" } = {}) {
   return `/@${target}${back ? `?from=${encodeURIComponent(back)}` : ""}`;
 }
 
+// My Crew: a member card on a Crew Wall links to the member's GamID with ?crew=<crew id>; that page returns to the Crew Wall, /crew/?c=<id> (the permanent route; on
+// the temporary GitHub Pages route, the crew/ folder beside public/). Only a well-formed id is ever used.
+const CREW_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const crewIdFromSearch = search => { const id = String(new URLSearchParams(search).get("crew") ?? "").trim().toLowerCase(); return CREW_ID.test(id) ? id : ""; };
+export function crewWallHref(crewId, { pathname = "/" } = {}) {
+  if (!CREW_ID.test(String(crewId))) return null;
+  const base = /\/public\/(index\.html)?$/.test(pathname) ? pathname.replace(/public\/(index\.html)?$/, "") : "/";
+  return `${base}crew/?c=${crewId}`;
+}
+
 // The GamID a visitor came from (the `from` the link above added), or "" - ignored when it is malformed or names the page itself.
 export function backHandle(search, currentHandle) {
   const from = normalizeHandle(new URLSearchParams(search).get("from") ?? "");
@@ -51,6 +61,14 @@ export function goBack(event, { href, referrer = "", origin = "", history = null
   try { previous = referrer ? new URL(referrer) : null; } catch { previous = null; }
   if (!href || !previous || previous.origin !== origin || !history || history.length < 2) return false;
   const wanted = new URL(href, origin);
+  // a Crew Wall: the previous page IS that Crew Wall when it is /crew/ with the same ?c= (history.back keeps the stage and scroll position)
+  if (/\/crew\/(index\.html)?$/.test(wanted.pathname)) {
+    const same = /\/crew\/(index\.html)?$/.test(previous.pathname) && previous.searchParams.get("c") === wanted.searchParams.get("c") && Boolean(wanted.searchParams.get("c"));
+    if (!same) return false;
+    event?.preventDefault?.();
+    history.back();
+    return true;
+  }
   const previousHandle = /^\/@([^/]+)\/?$/.exec(previous.pathname)?.[1] ?? new URLSearchParams(previous.search).get("handle") ?? "";
   const wantedHandle = /^\/@([^/]+)\/?$/.exec(wanted.pathname)?.[1] ?? new URLSearchParams(wanted.search).get("handle") ?? "";
   if (!previousHandle || normalizeHandle(decodeURIComponent(previousHandle)) !== normalizeHandle(decodeURIComponent(wantedHandle))) return false;

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#08070d" />
+  <meta name="robots" content="noindex" />
+  <meta name="description" content="A GamID Crew." />
+  <title>GamID Crew</title>
+  <link rel="stylesheet" href="../wall-kit/wall-kit.css" />
+  <link rel="stylesheet" href="crew.css" />
+</head>
+<body>
+  <header class="crew-head"><a href="../" class="crew-brand" aria-label="GamID">GAM<span>ID</span></a><span class="crew-badge">TESTING · CREW</span></header>
+  <main id="crewShell" class="crew-shell">
+    <div id="crewLoading" class="crew-state"><div class="crew-loader"></div><p>Loading Crew…</p></div>
+    <div id="crewMissing" class="crew-state" hidden><h1>This Crew Wall isn't public.</h1><p>The Crew doesn't exist, or its owner hasn't published its Wall.</p></div>
+    <p id="crewPreviewBanner" class="crew-preview" role="status" hidden>Preview - only you can see this. Visitors see it once you publish the Crew Wall.</p>
+    <section id="crewWall" class="crew-wall" aria-label="Crew Wall" hidden></section>
+  </main>
+  <script type="module" src="crew.js"></script>
+</body>
+</html>

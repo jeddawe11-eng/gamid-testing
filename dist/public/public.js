@@ -1,8 +1,8 @@
-import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, loadPublicIntroMedia, getPublicWall } from "../account/supabase-client.js";
+import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, loadPublicIntroMedia, getPublicWall, getPublicCrewWall } from "../account/supabase-client.js";
 import { createFlowLayout } from "../flow-layout.js";
 import { normalizeLibrary, renderGamesPreview, createGamesLibrary } from "./public-games.js";
 import { preparePublicWall, createPublicWallView } from "./public-wall.js";
-import { backHandle } from "./identity-link.js";
+import { backHandle, crewIdFromSearch } from "./identity-link.js";
 import { createVisitorNav } from "./visitor-nav.js";
 import { duoSection } from "./public-duo.js";
 
@@ -185,9 +185,12 @@ async function render() {
   }
 
   // Came from another GamID (a Duo link carries ?from=<handle>): Back to it, and - while this GamID's Intro plays - Skip Intro (visitor-nav.js), above everything.
-  visitorNav = createVisitorNav({ from: backHandle(location.search, identity?.gamid_handle ?? handle), pathname: location.pathname, referrer: document.referrer, origin: location.origin, history,
+  // ... or from a Crew Wall (?crew=<id>): Back to that Crew (its name comes from the public Crew Wall; until then / if it is not public, "Back to Crew").
+  const fromCrew = crewIdFromSearch(location.search);
+  visitorNav = createVisitorNav({ crew: fromCrew, from: fromCrew ? "" : backHandle(location.search, identity?.gamid_handle ?? handle), pathname: location.pathname, referrer: document.referrer, origin: location.origin, history,
     onSkip: () => frame.contentWindow?.postMessage({ type: "gamid-intro-preview-skip" }, location.origin) });
   if (visitorNav) document.body.append(visitorNav.element);
+  if (visitorNav && fromCrew) getPublicCrewWall(fromCrew).then(view => visitorNav.setBackName(view?.crew_name), () => {});
 
   if (!identity) { loading.hidden = true; notFound.hidden = false; return; }
 

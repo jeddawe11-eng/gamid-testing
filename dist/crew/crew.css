@@ -1,0 +1,43 @@
+/* The public Crew Wall page (crew.js / crew-wall.js). The stages themselves are the accepted Wall engine's (wall-kit.css); this file styles the page and the Crew's
+   own two blocks (title, member card). Sizes inside a block are em of the Wall-scaled font-size set by the renderer, like GamID blocks. */
+:root{color-scheme:dark;--crew-bg:#07060b;--crew-text:#f7f5ff;--crew-muted:#aaa4b7;--crew-cyan:#62e7ff}
+*{box-sizing:border-box}
+body{margin:0;min-width:320px;min-height:100svh;background:var(--crew-bg);color:var(--crew-text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+.crew-head{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.9rem 1rem;border-bottom:1px solid rgba(255,255,255,.07)}
+.crew-brand{color:#fff;text-decoration:none;font-weight:950;letter-spacing:.08em}
+.crew-brand span{color:var(--crew-cyan)}
+.crew-badge{font-size:.62rem;letter-spacing:.13em;border:1px solid #4a3e78;border-radius:999px;padding:.32rem .55rem;color:#c7b8ff}
+.crew-shell{display:grid;justify-items:center;gap:1rem;padding:1rem;min-width:0}
+.crew-state{display:grid;justify-items:center;gap:.6rem;padding:3rem 1rem;text-align:center;color:var(--crew-muted)}
+.crew-state[hidden],.crew-wall[hidden],.crew-preview[hidden]{display:none}
+.crew-state h1{margin:0;color:var(--crew-text);font-size:1.3rem}
+.crew-loader{width:2.3rem;aspect-ratio:1;border:3px solid #292438;border-top-color:var(--crew-cyan);border-radius:50%;animation:crew-spin .8s linear infinite}
+@keyframes crew-spin{to{transform:rotate(1turn)}}
+.crew-preview{margin:0;padding:.6rem .9rem;border:1px solid rgba(255,200,87,.55);border-radius:.8rem;background:rgba(255,196,77,.07);color:#ffe2a6;font-size:.82rem}
+.crew-wall{width:100%;min-width:0;display:flex;justify-content:center}
+.crew-wall-column{display:grid;gap:1rem;max-width:100%}
+.crew-stage{border-radius:1.2rem;box-shadow:0 18px 60px rgba(0,0,0,.45)}
+
+/* title block */
+.crew-title{display:grid;align-content:center;gap:.25em;width:100%;height:100%;padding:.6em .9em;border-radius:1em;background:linear-gradient(120deg,rgba(8,6,16,.55),rgba(8,6,16,.15));border:1px solid rgba(255,255,255,.12)}
+.crew-title-game{margin:0;color:var(--crew-cyan);font-size:.75em;font-weight:900;letter-spacing:.22em}
+.crew-title-name{margin:0;font-size:2.6em;line-height:1.05;font-weight:950;letter-spacing:.01em;overflow-wrap:break-word}
+.crew-title-meta{margin:0;color:var(--crew-muted);font-size:.8em;font-weight:700}
+
+/* member card */
+.crew-card{display:flex;align-items:center;gap:.75em;width:100%;height:100%;padding:.8em;border-radius:1em;border:1px solid rgba(139,93,255,.45);background:linear-gradient(145deg,rgba(27,20,48,.92),rgba(13,11,20,.94));color:var(--crew-text);text-decoration:none;overflow:hidden}
+a.crew-card{cursor:pointer;transition:border-color .15s ease,transform .15s ease}
+a.crew-card:hover,a.crew-card:focus-visible{border-color:var(--crew-cyan);outline:none}
+.crew-card.is-owner{border-color:rgba(98,231,255,.6)}
+.crew-card.is-hidden{opacity:.6;border-style:dashed}
+.crew-card-avatar{flex:none;width:3.3em;aspect-ratio:1;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:linear-gradient(145deg,#4d2eb1,#3bcbe7);font-weight:900;font-size:1.2em;box-shadow:0 0 0 .12em rgba(8,6,16,.9),0 0 0 .24em rgba(139,93,255,.7)}
+.crew-card.is-owner .crew-card-avatar{box-shadow:0 0 0 .12em rgba(8,6,16,.9),0 0 0 .24em rgba(98,231,255,.8)}
+.crew-card-avatar img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.crew-card-body{display:grid;gap:.15em;min-width:0}
+.crew-card-top{display:flex}
+.crew-card-chip{padding:.15em .55em;border:1px solid rgba(139,93,255,.6);border-radius:999px;color:#c8bafc;font-size:.5em;font-weight:900;letter-spacing:.14em}
+.crew-card.is-owner .crew-card-chip{border-color:rgba(98,231,255,.7);color:var(--crew-cyan)}
+.crew-card-name{font-size:1.05em;overflow-wrap:break-word}
+.crew-card-handle{color:var(--crew-cyan);font-size:.72em;font-weight:700;overflow-wrap:break-word}
+.crew-card-role,.crew-card-game{color:var(--crew-muted);font-size:.66em;overflow-wrap:break-word}
+.crew-card-note{color:#ffe2a6;font-size:.62em}

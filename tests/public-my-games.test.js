@@ -509,6 +509,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261002190000_my_duo_notifications.sql",   // My Duo durable user-to-user notifications (own table + RPCs; Duo action impls gain notification writes)
       "20261002210000_gamid_notifications.sql",   // GamID Notifications foundation (general log; My Duo is the first producer)
       "20261003100000_my_crew.sql",   // My Crew V1 Slice 1 (own tables; notifications gain optional subject / context)
+      "20261003120000_crew_wall.sql",   // My Crew V1 Slice 2: Crew Mini Wall (own tables; personal Wall untouched)
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );
