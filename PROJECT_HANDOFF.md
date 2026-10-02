@@ -46,7 +46,16 @@ The current entity is **SOLO**. **Team**, **Organization**, and **Company** are 
 | Public Profile Expansion — Phase 1 (per-section visibility + public-safe data foundation) | **IMPLEMENTED AND ACCEPTED** (Mazen accepted it, stated at the start of the Steam Connection Foundation task) | Implementation `2e0c433eb37458e943dbdd1d3f0d259105ba46a7`, docs `50737ba408d9ab1c3894d4713efa5df5b3743f17`; see section 7l |
 | Steam Connection Foundation (Steam OpenID 2.0 as a Gaming Connection) | **IMPLEMENTED AND ACCEPTED** (Mazen completed the real Steam OpenID sign-in successfully) | Implementation `48efec8857a2773d3b3f678cfc7a2ec9f7cbc04a`, docs `c46a00d162b58f86ac0a4d172beca56dd95a0cd7`; see section 7m |
 | Steam My Games (owner-triggered game discovery via the official Steam Web API; private, discovery only) | **IMPLEMENTED; MIGRATION + EDGE FUNCTION + SITE DEPLOYED TO TESTING; BLOCKED ON THE MANUAL `STEAM_WEB_API_KEY` SETUP; AWAITING MAZEN'S REAL LIBRARY CHECK** | Implementation `aa4aa5e03ecaff15f50d86b03ebb8313a6641b95`; see section 7n |
+| My Duo V1 + GamID Notifications foundation | **IMPLEMENTED AND ACCEPTED** (Mazen's manual acceptance, 2026-10-02) | Accepted checkpoint `237903a15e0e3ba13f203f929c8256b2cf484719` (branch `feature/my-duo-v1`), landed on `main` by fast-forward from `f609e76`; see section "My Duo + Notifications acceptance" below |
 | Post-3C phases | **APPROVED DIRECTION / IDEA ONLY** | See `GAMID_ROADMAP.md`; none is authorized to start |
+
+### My Duo + Notifications acceptance (2026-10-02)
+
+Accepted checkpoint `237903a15e0e3ba13f203f929c8256b2cf484719` (tree `fc9c341237209d7b60b538920c32e6a931c4d8d6`), TESTING only. Migrations (applied to TESTING, recorded in the migration history): `20261002150000_my_duo`, `20261002170000_my_duo_realtime`, `20261002190000_my_duo_notifications`, `20261002210000_gamid_notifications`.
+
+Manually accepted by Mazen: My Duo search and request; mutual consent; realtime request/state updates without refresh; accept / decline / cancel / end; one Duo maximum; replacement rules; independent public visibility control; public My Duo presentation; navigation from one GamID to the Duo's GamID; Back to the previous GamID; Skip Intro during Duo navigation; normal Intro completion; Replay Intro preserved; offline durable notifications; live notifications; notification bell; unread count; individual Mark read; Mark all as read; read notifications remain in history; offline notifications do not replay as old toasts; 5-second live toast; mobile / public navigation layout.
+
+**Not manually tested:** the third-account replacement path (a GamID with a Duo accepting / being accepted by a third GamID, which ends the previous Duo and notifies it with `duo.replaced`) - only two test accounts were available. Its automated and database coverage passed (`tests/integration/my-duo-db.sql`, `tests/integration/notifications-db.sql`, `tests/my-duo.test.js`).
 
 Mazen intentionally deferred further Slice 3C manual testing and fixes. Do not resume them automatically and do not infer acceptance from technical completion.
 
