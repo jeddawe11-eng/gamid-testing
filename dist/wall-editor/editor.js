@@ -80,7 +80,8 @@ let previewVideos = null;
 async function refreshGamid() {
   gamidSnapshot = null;
   scheduleRender();
-  gamidSnapshot = await loadGamidSnapshot(api);
+  // Preview opens the Duo's GamID in a new tab (the editor is never left), at the same permanent /@handle address the account page shares
+  gamidSnapshot = await loadGamidSnapshot(api, { duoLink: { newTab: true, href: handle => new URL(`../@${handle}`, location.href).pathname } });
   scheduleRender();
 }
 

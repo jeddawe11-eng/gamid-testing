@@ -9,8 +9,9 @@
 import { buildGameLibrary, gameListView, gameListToggleLabel } from "../account/game-list.js";
 import { sourceBadges } from "../public/public-games.js";
 import { markInteractive } from "./interaction.js";
+import { relationshipBadge, RELATIONSHIP_LABELS } from "../public/identity-link.js";
 
-export const BLOCK_TITLES = Object.freeze({ profile: "GAMID", roles: "GAMING ROLES", games: "GAMES", connections: "CONNECTIONS" });
+export const BLOCK_TITLES = Object.freeze({ profile: "GAMID", roles: "GAMING ROLES", games: "GAMES", connections: "CONNECTIONS", duo: RELATIONSHIP_LABELS.duo });
 
 export const hoursLabel = minutes => (Number.isFinite(minutes) && minutes > 0 ? (minutes >= 600 ? `${Math.round(minutes / 60)} h` : `${(Math.round(minutes / 6) / 10).toString()} h`) : "");
 export const roleLabel = key => String(key).replace(/[_-]+/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
@@ -30,6 +31,21 @@ export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onCh
   head.append(el("span", "wall-gamid-title", BLOCK_TITLES[content.block] ?? "GAMID"));
   root.append(head);
   if (!snapshot) { root.append(el("p", "wall-gamid-empty", "GamID data is not available here.")); return root; }
+  // My Duo: VIEW mode draws ONLY the visitor's view (snapshot.public.duo: accepted, shown by its owner, the Duo's GamID published) and opens that GamID; EDIT mode draws
+  // the owner's own Duo (labelled Private while visitors would not see it).
+  if (content.block === "duo") {
+    head.append(relationshipBadge("duo", createNode));
+    if (interactive && snapshot.public) {
+      if (!snapshot.public.available) { root.append(el("p", "wall-gamid-empty", "Visitors don't see this yet: your GamID is not public.")); return root; }
+      if (!snapshot.public.duo) { root.append(el("p", "wall-gamid-empty", "My Duo isn't shown on this GamID.")); return root; }
+      root.append(duoCard(snapshot.public.duo, el, createNode, true));
+      return root;
+    }
+    if (snapshot.visibility && snapshot.visibility.duo === false) head.append(el("span", "wall-gamid-private", "PRIVATE"));
+    if (!snapshot.duo) root.append(el("p", "wall-gamid-empty", "No Duo yet. Send a Duo request from your GamID page."));
+    else root.append(duoCard(snapshot.duo, el, createNode, false));
+    return root;
+  }
   if (interactive && snapshot.public && (content.block === "games" || content.block === "connections")) {
     const view = snapshot.public;
     if (!view.available) { root.append(el("p", "wall-gamid-empty", "Visitors don't see this yet: your GamID is not public.")); return root; }
@@ -169,6 +185,27 @@ function paintVisitorConnections(root, view, el, details, posters) {
   }
   markInteractive(list);
   root.append(list);
+}
+
+// The Duo card: avatar (a blob: URL from GamID's own avatar read, else the initial), display name and @handle. In VIEW mode it is a link to that GamID's public page -
+// only a same-origin path built by identity-link.js (gamidHref) is ever followed; in the editor's Preview it opens in a new tab so the editor is never left.
+function duoCard(duo, el, createNode, interactive) {
+  const href = interactive && typeof duo.href === "string" && /^\/(?!\/)/.test(duo.href) ? duo.href : null;
+  const card = el(href ? "a" : "div", "wall-duo-card");
+  if (href) {
+    card.setAttribute("href", href);
+    card.setAttribute("aria-label", `My Duo: ${duo.displayName} (@${duo.handle}). Open their GamID`);
+    if (duo.newTab) { card.setAttribute("target", "_blank"); card.setAttribute("rel", "noopener"); }
+    markInteractive(card);
+  }
+  const avatar = el("div", "wall-gamid-avatar wall-duo-avatar");
+  if (typeof duo.avatarUrl === "string" && /^blob:/.test(duo.avatarUrl)) { const img = createNode("img"); img.setAttribute("src", duo.avatarUrl); img.setAttribute("alt", ""); img.setAttribute("loading", "lazy"); avatar.append(img); }
+  else avatar.textContent = (duo.displayName || duo.handle || "G").trim()[0]?.toUpperCase() || "G";
+  const names = el("div", "wall-gamid-names");
+  names.append(el("strong", "wall-gamid-name", duo.displayName || `@${duo.handle}`), el("span", "wall-gamid-handle", `@${duo.handle}`));
+  card.append(avatar, names);
+  if (href) card.append(el("span", "wall-duo-chevron", "›"));
+  return card;
 }
 
 // A connection's own public avatar (e.g. the Steam persona picture), through GamID's image proxy only; shown once decoded, removed on any failure.

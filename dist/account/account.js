@@ -9,6 +9,7 @@ import { buildGameLibrary } from "./game-list.js";
 import { attachGameProfile, indexGameProfiles, profileForGame } from "./game-profile.js";
 import { buildLibraryRows, normalizeManualGames, rowGameKey } from "./game-platforms.js";
 import { addManualPlatformsToDiscoveredItem, createAddGamePanel, manualGameItem } from "./manual-games.js";
+import { createDuoPanel } from "./my-duo.js";
 
 const views = [...document.querySelectorAll(".view")];
 const message = document.getElementById("formMessage");
@@ -385,6 +386,7 @@ async function showIdentity(data) {
   renderShare();
   await loadConnections();
   await loadLeague();
+  await loadDuo();
   showView("identity");
   handleConnectionReturn();
 }
@@ -709,6 +711,18 @@ function connectionCard(row) {
   }
   if (actions.childElementCount) card.append(actions);
   return card;
+}
+
+// My Duo (my-duo.js): a mutual GamID-to-GamID relationship; the panel only renders server state and asks for the confirmations the server requires.
+let duoPanel = null;
+async function loadDuo() {
+  const root = document.getElementById("duoPanel");
+  if (!root) return;
+  duoPanel ??= createDuoPanel({
+    api, root, message: document.getElementById("duoMessage"), element, visibilitySwitch, isOwnerPublished: isGamidPublished,
+    gamidUrl: handle => new URL(`../@${handle}`, location.href).href,
+  });
+  await duoPanel.load();
 }
 
 function renderConnections() {

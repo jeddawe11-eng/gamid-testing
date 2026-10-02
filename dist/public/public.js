@@ -2,6 +2,8 @@ import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicA
 import { createFlowLayout } from "../flow-layout.js";
 import { normalizeLibrary, renderGamesPreview, createGamesLibrary } from "./public-games.js";
 import { preparePublicWall, createPublicWallView } from "./public-wall.js";
+import { gamidHref, backHandle, goBack } from "./identity-link.js";
+import { duoSection } from "./public-duo.js";
 
 const catalogLabel = (catalog, key) => catalog?.find(item => item.key === key)?.label || key || "";
 
@@ -23,8 +25,11 @@ function leagueRankLine(league) {
   return `${titleCase(league.tier)}${division} · ${league.lp} LP${record}`;
 }
 
-export function renderPublicSections(panel, sections) {
+export function renderPublicSections(panel, sections, duoOptions = null) {
   const blocks = [];
+  // My Duo (public-duo.js) leads: it is the GamID's own identity relationship, not an external account
+  const duo = duoOptions ? duoSection(sections?.duo, duoOptions) : null;
+  if (duo) blocks.push(duo);
   const discord = sections?.discord;
   if (discord && (discord.display_name || discord.username)) {
     const block = node("section", "public-section");
@@ -93,6 +98,18 @@ export function resolveHandle(search, pathname) {
   const match = /^\/@([^/]+)\/?$/.exec(pathname);
   if (!match) return "";
   try { return decodeURIComponent(match[1]).trim().replace(/^@/, ""); } catch { return ""; }
+}
+
+function renderBackControl(from) {
+  if (!from) return;
+  const href = gamidHref(from, { pathname: location.pathname });
+  if (!href) return;
+  const back = node("a", "identity-back", "");
+  back.href = href;
+  back.setAttribute("aria-label", `Back to @${from}`);
+  back.append(node("span", "identity-back-arrow", "‹"), node("span", "", `Back to @${from}`));
+  back.addEventListener("click", event => goBack(event, { href, referrer: document.referrer, origin: location.origin, history }));
+  document.body.append(back);
 }
 
 async function render() {
@@ -176,9 +193,12 @@ async function render() {
     try { identity = await getPublicIdentityByQr(qrToken); } catch { identity = null; }
   }
 
+  // Back to the GamID the visitor came from (a Duo link carries ?from=<handle>): shown above everything, the Intro included, whatever this GamID's state.
+  renderBackControl(backHandle(location.search, identity?.gamid_handle ?? handle));
+
   if (!identity) { loading.hidden = true; notFound.hidden = false; return; }
 
-  hasSections = renderPublicSections(sectionsPanel, identity.public_sections) > 0;
+  hasSections = renderPublicSections(sectionsPanel, identity.public_sections, { ownerHandle: identity.gamid_handle, pathname: location.pathname, loadAvatar: loadPublicAvatar }) > 0;
   // My Games: the server sends the section only when the owner switched it ON (and there is at least one game): the first six games + the true count. The full
   // library, its search and Game Details load through the same public function, page by page, only when a visitor asks for them.
   const gamesPreview = normalizeLibrary(identity.public_sections?.my_games, LEAGUE_SOURCE_LABELS);

@@ -25,6 +25,16 @@
 .wall-gamid-names { display: grid; gap: .1em; min-width: 0; }
 .wall-gamid-name { font-size: 1.15em; overflow-wrap: anywhere; }
 .wall-gamid-handle { color: var(--g-muted, #c8bafc); font-size: .8em; font-weight: 700; }
+/* My Duo: the relationship badge (two linked rings - a mutual GamID relationship, deliberately not a verification check) and the Duo card (a link in view mode) */
+.identity-rel-badge { display: inline-flex; align-items: center; gap: .35em; padding: .15em .6em .15em .45em; border: 1px solid rgba(255, 92, 205, .6); border-radius: 999px; background: linear-gradient(120deg, rgba(255, 92, 205, .16), rgba(98, 231, 255, .14)); color: #ffd6f4; font-size: .5em; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+.identity-rel-badge svg { width: 1.6em; height: 1.05em; color: #ff7ad9; flex: none; }
+.wall-gamid-duo .wall-gamid-head { justify-content: flex-start; }
+.wall-gamid-duo .wall-gamid-private { margin-left: auto; }
+.wall-duo-card { display: flex; align-items: center; gap: .8em; min-height: 0; padding: .45em .6em .45em .45em; border: 1px solid var(--g-row-border, rgba(255, 92, 205, .35)); border-radius: .9em; background: var(--g-row-bg, linear-gradient(120deg, rgba(255, 92, 205, .08), rgba(98, 231, 255, .06))); color: inherit; text-decoration: none; }
+a.wall-duo-card { cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
+a.wall-duo-card:hover, a.wall-duo-card:focus-visible { border-color: #ff7ad9; outline: none; }
+.wall-duo-avatar { box-shadow: 0 0 0 .12em rgba(8, 6, 16, .9), 0 0 0 .24em rgba(255, 122, 217, .75); }
+.wall-duo-chevron { margin-left: auto; color: var(--g-muted, #c8bafc); font-size: 1.4em; line-height: 1; }
 ul.wall-gamid-chips, ul.wall-gamid-connections { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4em; }
 .wall-gamid-chips li { padding: .25em .8em; border: 1px solid var(--g-chip-border, rgba(139, 93, 255, .55)); border-radius: 999px; font-size: .75em; font-weight: 700; background: var(--g-chip-bg, rgba(139, 93, 255, .12)); }
 .wall-gamid-chips li.is-primary { border-color: var(--g-heading, #62e7ff); color: var(--g-heading, #62e7ff); }

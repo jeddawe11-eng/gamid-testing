@@ -13,6 +13,7 @@
 import { normalizeLibrary } from "../public/public-games.js";
 import { LEAGUE_LABELS } from "../account/game-profile-league-compat.js";
 import { gameRef } from "../wall-kit/gamid-data.js";
+import { normalizeDuo, gamidHref, isHandle, normalizeHandle } from "../public/identity-link.js";
 
 const PROVIDER_LABELS = { steam: "Steam", discord: "Discord", riot: "Riot", league: "League of Legends", xbox: "Xbox", playstation: "PlayStation" };
 export const providerLabel = key => PROVIDER_LABELS[key] ?? String(key).replace(/[_-]+/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
@@ -83,9 +84,20 @@ export function publicConnections(sections) {
   return list;
 }
 
+// My Duo as a visitor sees it: only what the server's public 'duo' section holds (it is there only while the Duo is accepted, shown by this owner and published), the
+// Duo's public avatar through the same anonymous read, and the address of the Duo's GamID. `link` decides that address and whether it opens in a new tab: a visitor's
+// Wall navigates in place and carries `from` (Back control); the editor's Preview opens a new tab.
+async function publicDuo(api, section, link) {
+  const duo = normalizeDuo(section);
+  if (!duo) return null;
+  const avatarUrl = duo.avatarPath && typeof api.loadPublicAvatar === "function" ? await safely(() => api.loadPublicAvatar(duo.avatarPath), null) : null;
+  const href = (link?.href ?? (h => gamidHref(h)))(duo.handle);
+  return { handle: duo.handle, displayName: duo.displayName, avatarUrl, href: typeof href === "string" ? href : null, newTab: link?.newTab === true };
+}
+
 // The visitor's view of this GamID. `games` is null when the owner's My Games is off (or there are none); its list grows page by page (50 at a time, the public
 // function's own paging) only when a visitor asks for more, so a library of thousands never loads at once.
-export async function loadPublicView(api, handle) {
+export async function loadPublicView(api, handle, { duoLink = null } = {}) {
   if (!handle || typeof api.getPublicIdentity !== "function") return { available: false, handle: handle || "", games: null, connections: [] };
   const identity = await safely(() => api.getPublicIdentity(handle), null);
   if (!identity) return { available: false, handle, games: null, connections: [] };
@@ -133,11 +145,22 @@ export async function loadPublicView(api, handle) {
     found.set(ref, lookup);
     return lookup;
   }
-  return { available: true, handle, games, connections: publicConnections(sections), profile, roles, findGame };
+  const duo = await publicDuo(api, sections.duo, duoLink);
+  return { available: true, handle, games, connections: publicConnections(sections), profile, roles, findGame, duo };
 }
 
-export async function loadGamidSnapshot(api) {
-  const [account, profile, connections, publicSettings, display, discovered, manual] = await Promise.all([
+// The owner's own Duo for designing (EDIT mode): only an ACCEPTED Duo (get_my_duo relation DUO), its public avatar when its GamID is published, and whether visitors
+// would see it now (the owner's switch is ON and the Duo's GamID is published).
+export function ownerDuo(rows, avatarUrl = null) {
+  const row = (Array.isArray(rows) ? rows : []).find(item => item?.relation === "DUO");
+  const handle = normalizeHandle(row?.gamid_handle);
+  if (!row || !isHandle(handle)) return null;
+  const displayName = typeof row.display_name === "string" && row.display_name.trim() ? row.display_name.trim().slice(0, 60) : `@${handle}`;
+  return { handle, displayName, avatarUrl, isPublished: row.is_published === true, showPublic: row.show_public === true, shownToVisitors: row.is_published === true && row.show_public === true };
+}
+
+export async function loadGamidSnapshot(api, { duoLink = null } = {}) {
+  const [account, profile, connections, publicSettings, display, discovered, manual, duoRows] = await Promise.all([
     safely(() => api.getIdentity(), null),
     safely(() => api.getIdentityProfile(), null),
     safely(() => api.getMyConnections(), []),
@@ -145,6 +168,7 @@ export async function loadGamidSnapshot(api) {
     safely(() => api.getMyGameDisplaySettings(), { show_game_playtime: false }),
     safely(() => api.getMyDiscoveredGames("steam", 1000), []),
     safely(() => api.getMyManualGames(), []),
+    safely(() => (typeof api.getMyDuo === "function" ? api.getMyDuo() : []), []),
   ]);
   const identity = { ...(account ?? {}), ...(profile ?? {}) };
   let avatarUrl = null;
@@ -170,9 +194,15 @@ export async function loadGamidSnapshot(api) {
     items.push({ name, minutes: null, ref: gameRef(name), refName: name });
   }
   items.sort((a, b) => a.name.localeCompare(b.name));
-  const publicView = await safely(() => loadPublicView(api, identity.gamid_handle), { available: false, handle: identity.gamid_handle ?? "", games: null, connections: [] });
+  const publicView = await safely(() => loadPublicView(api, identity.gamid_handle, { duoLink: duoLink ?? { newTab: true } }), { available: false, handle: identity.gamid_handle ?? "", games: null, connections: [], duo: null });
+  let duo = ownerDuo(duoRows);
+  if (duo) {
+    const avatarPath = duoRows.find(row => row?.relation === "DUO")?.avatar_media_reference;
+    if (avatarPath && typeof api.loadPublicAvatar === "function") duo = { ...duo, avatarUrl: await safely(() => api.loadPublicAvatar(avatarPath), null) };
+  }
 
   return {
+    duo,
     public: publicView,
     profile: { displayName: identity.display_name ?? "", handle: identity.gamid_handle ?? "", initial: (identity.display_name ?? "G").trim()[0]?.toUpperCase() ?? "G", avatarUrl, bio: typeof identity.bio === "string" ? identity.bio.trim() : "" },
     roles: roleKeys.map(key => ({ key, label: roleCatalog.get(key) || roleLabel(key), primary: key === identity.primary_role_key })),
@@ -183,6 +213,6 @@ export async function loadGamidSnapshot(api) {
     }),
     games: { total: items.length, items, playtimeAllowed: display?.show_game_playtime === true },
     connectionLabels: Object.fromEntries(Object.keys(PROVIDER_LABELS).map(key => [key, PROVIDER_LABELS[key]])),   // for "<provider> connection is no longer available."
-    visibility: { profile: true, roles: true, connections: publicConnections.length > 0, games: publicSettings?.show_my_games === true },
+    visibility: { profile: true, roles: true, connections: publicConnections.length > 0, games: publicSettings?.show_my_games === true, duo: duo?.shownToVisitors === true },
   };
 }

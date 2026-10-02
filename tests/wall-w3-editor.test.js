@@ -221,6 +221,8 @@ test("route: the editor's imports are limited to the Wall core, the kit, its own
       // the ONE deliberate exception (post-QA, Games on the Wall): the accepted public My Games COMPONENT module (DOM-free; the caller injects `element`) is reused
       // for Game Details so the Wall shows exactly what the public profile shows. The public PAGE (public.js) and everything else under /public/ stay off limits.
       if (/\/dist\/public\/public-games\.js$/.test(target)) continue;
+      // My Duo V1: the shared identity-navigation helpers (pure; no page code, the caller injects `createNode`) so the editor's Duo link uses the public page's own rules
+      if (/\/dist\/public\/identity-link\.js$/.test(target)) continue;
       assert.doesNotMatch(target, /play-together|\/public\//);
     }
   }

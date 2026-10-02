@@ -256,7 +256,7 @@ test("assetsInUse: every picture the Wall uses, in elements and in backgrounds, 
 // ---------- GamID blocks ----------
 test("GamID blocks: only real, existing blocks are accepted - stats, ranks and other future blocks are rejected, not faked", () => {
   for (const block of GAMID_BLOCKS) assert.deepEqual(errors(docWith(gamid("g", createGamidPayload(block)))), [], block);
-  assert.deepEqual([...GAMID_BLOCKS], ["profile", "roles", "games", "connections"]);
+  assert.deepEqual([...GAMID_BLOCKS], ["profile", "roles", "games", "connections", "duo"]);   // + My Duo (20261002150000_my_duo)
   for (const block of ["stats", "ranks", "achievements", "play_together", "teams", "tournaments", "history", "", undefined, 5]) assert.deepEqual(errors(docWith(gamid("g", { block }))), ["INVALID_BLOCK:g"], String(block));
   assert.deepEqual(errors(docWith(gamid("g", { block: "games", layout: "grid" }))), ["INVALID_LAYOUT:g"]);
   assert.deepEqual(errors(docWith(gamid("g", { block: "games", showPlaytime: "yes" }))), ["INVALID_SHOW_PLAYTIME:g"]);
@@ -357,7 +357,8 @@ test("GamID data snapshot: built from the accepted account APIs, public-safe onl
   assert.deepEqual(snap.games.items.map(game => game.name), ["Apex", "Chess", "Halo"], "provider-neutral, de-duplicated, sorted");
   assert.equal(snap.games.total, 3);
   assert.equal(snap.games.playtimeAllowed, false);
-  assert.deepEqual(snap.visibility, { profile: true, roles: true, connections: true, games: false });
+  assert.deepEqual(snap.visibility, { profile: true, roles: true, connections: true, games: false, duo: false });   // My Duo V1: + duo (no accepted Duo here)
+  assert.equal(snap.duo, null);
   const dump = JSON.stringify(snap);
   assert.doesNotMatch(dump, /SECRET|76561198000000000|12345|PrivateOne|NotConnected|access_token|provider_account/);
   assert.equal(providerLabel("steam"), "Steam");

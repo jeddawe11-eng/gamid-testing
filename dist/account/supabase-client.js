@@ -468,6 +468,16 @@ export async function setSectionVisibility(section, visible) {
   return rows?.[0] || null;
 }
 
+// My Duo (a mutual GamID-to-GamID relationship). Every action names the OTHER GamID by its @handle; the server resolves the caller's own GamID from the session and
+// acts only on relationships the caller is part of (no relationship id ever leaves the browser). Replacing a current Duo needs `replaceConfirmed` (the UI's warning).
+export const getMyDuo = async () => (await rpc("get_my_duo")) || [];
+export const searchDuoCandidates = async query => (await rpc("search_duo_candidates", { candidate_query: query })) || [];
+export const sendDuoRequest = (handle, replaceConfirmed = false) => rpc("send_duo_request", { candidate_handle: handle, candidate_replace_confirmed: Boolean(replaceConfirmed) });
+export const respondToDuoRequest = (handle, accept, replaceConfirmed = false) => rpc("respond_to_duo_request", { candidate_handle: handle, candidate_accept: Boolean(accept), candidate_replace_confirmed: Boolean(replaceConfirmed) });
+export const cancelDuoRequest = handle => rpc("cancel_duo_request", { candidate_handle: handle });
+export const removeMyDuo = () => rpc("remove_my_duo");
+export const setMyDuoVisibility = visible => rpc("set_my_duo_visibility", { candidate_visible: Boolean(visible) });
+
 // Steam "My Games" (discovery only). The browser never supplies or sees a SteamID for this: the backend resolves the account from the
 // signed-in owner's own stored Steam connection. Reading the stored list is a database read; Steam is contacted ONLY by
 // refreshSteamGames(), which the owner triggers with a button (there is no polling).

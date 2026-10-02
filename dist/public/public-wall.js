@@ -15,6 +15,7 @@ import { createPosterLoader } from "../wall-kit/posters.js";
 import { createVideoPool } from "../wall-kit/video-background.js";
 import { createWallDetails } from "../wall-kit/gamid-details.js";
 import { loadPublicView, providerLabel, PUBLIC_SOURCE_LABELS } from "../wall-editor/gamid-data.js";
+import { gamidHref } from "./identity-link.js";
 
 export const WALL_MAX_WIDTH = 900;
 export const WALL_MIN_WIDTH = 280;
@@ -43,7 +44,9 @@ export async function preparePublicWall(published, handle, api = defaultApi) {
       else { const url = await api.loadPublicWallPicture(path); if (url) pictures.set(id, url); }
     } catch { /* this one asset shows its placeholder */ }
   }));
-  const view = await loadPublicView(api, handle).catch(() => null);
+  // My Duo opens the Duo's GamID in place, carrying `from` so that page offers "Back to @<this handle>"
+  const pathname = globalThis.location?.pathname ?? "/";
+  const view = await loadPublicView(api, handle, { duoLink: { newTab: false, href: duo => gamidHref(duo, { from: handle, pathname }) } }).catch(() => null);
   return {
     doc: normalizeEmbedLayering(doc).doc,   // the same layering rule Preview applies (nothing is drawn over a player)
     assets: { urlFor: id => pictures.get(id) ?? null, videoUrlFor: id => videos.get(id) ?? null },

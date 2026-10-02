@@ -123,3 +123,18 @@ html.is-public-wall .public-shell .replay-button{grid-area:2/1;justify-self:star
 .public-wall{position:relative;z-index:1;width:100%;min-width:0;display:flex;justify-content:center}
 .public-wall[hidden]{display:none}
 .public-wall-column{max-width:100%}
+/* MY DUO (identity-link.js): the Duo card links to the Duo's GamID; the badge (two linked rings) means only "mutually accepted", never "verified" */
+.public-duo-head{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
+.public-duo .identity-rel-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.16rem .5rem .16rem .38rem;border:1px solid rgba(255,92,205,.6);border-radius:999px;background:linear-gradient(120deg,rgba(255,92,205,.16),rgba(98,231,255,.14));color:#ffd6f4;font-size:.56rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.public-duo .identity-rel-badge svg{width:1.05rem;aspect-ratio:3/2;color:#ff7ad9;flex:none}
+.public-duo-card{display:flex;align-items:center;gap:.75rem;min-width:0;margin-top:.25rem;padding:.55rem .7rem .55rem .55rem;border:1px solid rgba(255,92,205,.35);border-radius:.85rem;background:linear-gradient(120deg,rgba(255,92,205,.08),rgba(98,231,255,.06));color:var(--text);text-decoration:none;transition:border-color .15s ease}
+.public-duo-card:hover,.public-duo-card:focus-visible{border-color:#ff7ad9;outline:none}
+.public-duo-avatar{flex:none;width:2.6rem;aspect-ratio:1;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:linear-gradient(145deg,#4d2eb1,#3bcbe7);font-weight:900;box-shadow:0 0 0 2px #0a0810,0 0 0 4px rgba(255,122,217,.75)}
+.public-duo-avatar img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.public-duo-names{display:grid;gap:.05rem;min-width:0}
+.public-duo-names strong{font-size:.95rem;overflow-wrap:anywhere}
+.public-duo-chevron{margin-left:auto;color:var(--muted);font-size:1.4rem;line-height:1}
+/* Back to the GamID the visitor came from: above the Intro (z 20) and the page, below dialogs (z 50) */
+.identity-back{position:fixed;z-index:30;top:max(.75rem,env(safe-area-inset-top));right:max(.75rem,env(safe-area-inset-right));display:inline-flex;align-items:center;gap:.4rem;max-width:calc(100vw - 1.5rem);padding:.6rem .95rem .6rem .75rem;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(10,8,16,.82);color:#fff;font-size:.8rem;font-weight:750;text-decoration:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);overflow-wrap:anywhere}
+.identity-back:hover,.identity-back:focus-visible{border-color:var(--cyan);outline:none}
+.identity-back-arrow{font-size:1.2rem;line-height:1}

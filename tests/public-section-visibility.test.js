@@ -180,7 +180,8 @@ test("the switch styles are generic (not League-only) and respect reduced motion
 // ------------------------------------------------------------------------------------------------ the public page (minimum presentation)
 
 test("the public page renders only what the anonymous response contains, as text, and only once the profile is revealed", () => {
-  assert.match(publicJs, /renderPublicSections\(sectionsPanel, identity\.public_sections\)/);
+  // My Duo V1 adds one options argument (the owner's handle / route / anonymous avatar read) for the Duo card; the sections still come only from the response
+  assert.match(publicJs, /renderPublicSections\(sectionsPanel, identity\.public_sections(, \{ ownerHandle: identity\.gamid_handle, pathname: location\.pathname, loadAvatar: loadPublicAvatar \})?\)/);
   assert.doesNotMatch(publicJs, /innerHTML|outerHTML|insertAdjacentHTML|document\.write/);
   assert.match(publicJs, /sectionsPanel\.hidden = !hasSections \|\| event\.data\.state !== "profile"/);
   assert.doesNotMatch(publicJs, /\.visible\b|is_public|show_education|hidden_sections/, "no client-side hiding logic: the server omits hidden sections");

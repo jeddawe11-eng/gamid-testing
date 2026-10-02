@@ -283,7 +283,7 @@ export const CORPUS = [
   { name: "image: rotated and grouped", doc: docWith(imageEl("i1", {}, { rotation: 15, groupId: "g1" }), imageEl("i2", {}, { x: 300, groupId: "g1" })) },
 
   // ---- GamID blocks ----
-  ...["profile", "roles", "games", "connections"].map(block => ({ name: `gamid: ${block} block`, doc: docWith(gamidEl("g1", { block })) })),
+  ...["profile", "roles", "games", "connections", "duo"].map(block => ({ name: `gamid: ${block} block`, doc: docWith(gamidEl("g1", { block })) })),
   { name: "gamid: every option", doc: docWith(gamidEl("g1", { block: "games", layout: "compact", showPlaytime: true, initial: 24 })) },
   { name: "gamid: initial lower bound", doc: docWith(gamidEl("g1", { block: "games", initial: 3 })) },
   { name: "gamid: initial below 3", doc: docWith(gamidEl("g1", { block: "games", initial: 2 })) },

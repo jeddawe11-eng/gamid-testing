@@ -221,6 +221,37 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .game-library .game-manual-line{color:var(--text)}
 .game-library .game-edit-button{flex:0 0 auto;width:auto;min-height:2.75rem;min-width:2.75rem;margin-left:auto;padding:0 .7rem;border:1px solid var(--line);border-radius:.65rem;background:rgba(255,255,255,.03);color:var(--cyan);font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;touch-action:manipulation}
 .game-library .game-edit-button:hover{border-color:#51456e}
+/* MY DUO (my-duo.js): a mutual GamID-to-GamID relationship. The badge (two linked rings) means only "mutually accepted", never "verified". */
+.duo-panel{display:grid;gap:.7rem;margin-top:.75rem}
+.duo-card{display:grid;gap:.55rem;padding:.85rem;border:1px solid var(--line);border-radius:.9rem;background:var(--card)}
+.duo-card.is-duo{border-color:rgba(255,92,205,.45);background:linear-gradient(120deg,rgba(255,92,205,.07),rgba(98,231,255,.05)),var(--card)}
+.duo-card.is-request{border-color:rgba(98,231,255,.4)}
+.duo-card .eyebrow{margin:0}
+.duo-card-head{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
+.duo-card .section-visibility{margin-top:.1rem}
+.duo-card .section-visibility-hint{margin:0}
+.duo-person{display:flex;align-items:center;gap:.7rem;min-width:0}
+.duo-avatar{flex:0 0 auto;display:grid;place-items:center;width:2.75rem;height:2.75rem;border-radius:50%;overflow:hidden;background:linear-gradient(145deg,#4d2eb1,#3bcbe7);color:#fff;font-weight:900}
+.duo-card.is-duo .duo-avatar{box-shadow:0 0 0 2px #11101a,0 0 0 4px rgba(255,122,217,.75)}
+.duo-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.duo-names{display:grid;gap:.05rem;min-width:0;flex:1 1 auto}
+.duo-names strong{overflow-wrap:anywhere}
+.duo-handle{color:var(--muted);font-size:.78rem;overflow-wrap:anywhere}
+a.duo-handle{color:var(--cyan);text-decoration:none}
+a.duo-handle:hover,a.duo-handle:focus-visible{text-decoration:underline}
+.duo-note{margin:0;color:var(--muted);font-size:.82rem;line-height:1.45}
+.duo-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.duo-button{min-height:2.4rem}
+.duo-person .duo-button{flex:0 0 auto}
+.duo-tag{flex:0 0 auto;padding:.25rem .5rem;border:1px solid #3a334b;border-radius:999px;color:var(--muted);font-size:.6rem;font-weight:800;letter-spacing:.08em}
+.duo-warning{display:grid;gap:.55rem;padding:.75rem;border:1px solid rgba(255,200,87,.55);border-radius:.8rem;background:rgba(255,196,77,.07)}
+.duo-warning p{margin:0;color:#ffe2a6;font-size:.84rem;line-height:1.45}
+.duo-search{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end}
+.duo-search-label{display:grid;gap:.3rem;flex:1 1 14rem;min-width:0;font-size:.8rem;color:var(--muted)}
+.duo-search-label input{width:100%;min-width:0}
+.duo-results{display:grid;gap:.55rem;padding:.7rem;border:1px solid var(--line);border-radius:.8rem}
+.duo-section .identity-rel-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.16rem .5rem .16rem .38rem;border:1px solid rgba(255,92,205,.6);border-radius:999px;background:linear-gradient(120deg,rgba(255,92,205,.16),rgba(98,231,255,.14));color:#ffd6f4;font-size:.56rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.duo-section .identity-rel-badge svg{width:1.05rem;height:.7rem;color:#ff7ad9;flex:none}
 /* Steam Connection Foundation: the SteamID64 is the whole identity, so on the Steam card it wraps and is never ellipsized (same approach as
    the League card fix). Scoped to the Steam card only: Discord and League styling is untouched. */
 .connection-card[data-provider="steam"] .connection-head{flex-wrap:wrap;row-gap:.6rem}
