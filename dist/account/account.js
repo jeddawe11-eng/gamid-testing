@@ -10,6 +10,8 @@ import { attachGameProfile, indexGameProfiles, profileForGame } from "./game-pro
 import { buildLibraryRows, normalizeManualGames, rowGameKey } from "./game-platforms.js";
 import { addManualPlatformsToDiscoveredItem, createAddGamePanel, manualGameItem } from "./manual-games.js";
 import { createDuoPanel } from "./my-duo.js";
+import { createCrewPanel } from "./my-crew.js";
+import { subscribeCrewRealtime } from "./crew-realtime.js";
 import { subscribeDuoRealtime } from "./duo-realtime.js";
 import { createNotificationCenter } from "../notifications/notification-center.js";
 import { notificationSubscriber } from "../notifications/notification-realtime.js";
@@ -393,6 +395,7 @@ async function showIdentity(data) {
   handleConnectionReturn();
   // My Duo fills in on its own (the panel shows its loading line until then); #my-duo (a notification destination) focuses it
   loadDuo().then(() => { if (location.hash === "#my-duo") openNotificationDestination("account.my_duo"); });
+  loadCrew().then(() => { if (location.hash === "#my-crew") openNotificationDestination("account.my_crew"); });
   mountNotifications();
 }
 
@@ -718,6 +721,19 @@ function connectionCard(row) {
   return card;
 }
 
+// My Crew (my-crew.js): one Crew per game, invitation-based membership. Live: Crew changes made by others (or in another tab) re-render the panel (crew-realtime.js).
+let crewPanel = null;
+let stopCrewRealtime = null;
+async function loadCrew() {
+  const root = document.getElementById("crewPanel");
+  if (!root) return;
+  crewPanel ??= createCrewPanel({ api, root, message: document.getElementById("crewMessage"), element, gamidUrl: handle => new URL(`../@${handle}`, location.href).href });
+  await crewPanel.load();
+  if (!stopCrewRealtime) {
+    stopCrewRealtime = subscribeCrewRealtime({ refresh: () => crewPanel.refresh() });
+    window.addEventListener("pagehide", () => { stopCrewRealtime?.(); stopCrewRealtime = null; }, { once: true });
+  }
+}
 // GamID Notifications (dist/notifications/): the bell + Notification Log in the header and the live toast. The server writes notifications; this page only reads its
 // owner's log. A notification's typed destination is opened here - never a URL.
 function mountNotifications() {
@@ -727,8 +743,9 @@ function mountNotifications() {
   notificationCenter.mount(host, document.body);
 }
 function openNotificationDestination(destination) {
-  if (destination !== "account.my_duo") return;
-  const section = document.getElementById("duoSection");
+  const sectionId = { "account.my_duo": "duoSection", "account.my_crew": "crewSection" }[destination];
+  if (!sectionId) return;
+  const section = document.getElementById(sectionId);
   if (!section) return;
   section.setAttribute("tabindex", "-1");
   section.scrollIntoView?.({ behavior: "smooth", block: "start" });
@@ -1851,7 +1868,7 @@ document.getElementById("languageForm").addEventListener("submit", async event =
 document.getElementById("signOutButton").addEventListener("click", async () => {
   if (isProfileDirty() && !window.confirm("Discard your unsaved profile changes and sign out?")) return;
   try { await api.signOut(); }
-  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; notificationCenter?.destroy(); notificationCenter = null; introStatusPoller.stop(); releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
+  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; stopCrewRealtime?.(); stopCrewRealtime = null; crewPanel = null; notificationCenter?.destroy(); notificationCenter = null; introStatusPoller.stop(); releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
 });
 window.addEventListener("beforeunload", event => {
   if (!isProfileDirty()) return;

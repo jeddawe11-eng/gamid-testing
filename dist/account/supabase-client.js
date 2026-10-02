@@ -477,6 +477,17 @@ export const respondToDuoRequest = (handle, accept, replaceConfirmed = false) =>
 export const cancelDuoRequest = handle => rpc("cancel_duo_request", { candidate_handle: handle });
 export const removeMyDuo = () => rpc("remove_my_duo");
 export const setMyDuoVisibility = visible => rpc("set_my_duo_visibility", { candidate_visible: Boolean(visible) });
+// My Crew (dist/account/my-crew.js): the caller's own Crews and invitations. Every action is decided on the server for the signed-in owner; other GamIDs are named by
+// @handle and a crew id is only a lookup key (the server checks the caller's role / invitation in that Crew).
+export const getMyCrews = async () => (await rpc("get_my_crews")) || [];
+export const getCrewMembers = async crewId => (await rpc("get_crew_members", { candidate_crew: crewId })) || [];
+export const createCrew = (gameKey, name) => rpc("create_crew", { candidate_game_key: gameKey, candidate_name: name });
+export const inviteToCrew = (crewId, handle) => rpc("invite_to_crew", { candidate_crew: crewId, candidate_handle: handle });
+export const cancelCrewInvite = (crewId, handle) => rpc("cancel_crew_invite", { candidate_crew: crewId, candidate_handle: handle });
+export const respondToCrewInvite = (crewId, accept) => rpc("respond_to_crew_invite", { candidate_crew: crewId, candidate_accept: Boolean(accept) });
+export const removeCrewMember = (crewId, handle) => rpc("remove_crew_member", { candidate_crew: crewId, candidate_handle: handle });
+export const leaveCrew = crewId => rpc("leave_crew", { candidate_crew: crewId });
+export const deleteCrew = crewId => rpc("delete_crew", { candidate_crew: crewId });
 // GamID Notifications (dist/notifications/): the caller's OWN log only (newest first, keyset-paged), its unread count, and marking read. Nothing here can create a
 // notification - only trusted server code does (private.notify).
 export const getMyNotifications = async (beforeId = null, limit = 30) => (await rpc("get_my_notifications", { candidate_before_id: beforeId, candidate_limit: limit })) || [];

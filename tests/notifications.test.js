@@ -230,9 +230,9 @@ test("12. clicking a My Duo notification opens/focuses My Duo through the page's
   assert.deepEqual(opened, [["account.my_duo", 3]], "a URL is never a destination");
   assert.equal(destinationOf({ destination: "account.my_duo" }), "account.my_duo");
   assert.equal(destinationOf({ destination: "javascript:alert(1)" }), null);
-  assert.deepEqual(Object.keys(DESTINATIONS), ["account.my_duo"]);
+  assert.deepEqual(Object.keys(DESTINATIONS), ["account.my_duo", "account.my_crew"]);   // + My Crew (20261003100000_my_crew)
   const account = read("dist/account/account.js");
-  assert.match(account, /function openNotificationDestination\(destination\) \{\n  if \(destination !== "account\.my_duo"\) return;\n  const section = document\.getElementById\("duoSection"\);/);
+  assert.match(account, /function openNotificationDestination\(destination\) \{\n  const sectionId = \{ "account\.my_duo": "duoSection", "account\.my_crew": "crewSection" \}\[destination\];\n  if \(!sectionId\) return;/);
   assert.match(account, /if \(location\.hash === "#my-duo"\) openNotificationDestination\("account\.my_duo"\);/);
 });
 
@@ -258,7 +258,7 @@ test("wording comes from the authoritative type (never guessed); unsafe handles 
     "duo.ended": "@zshot ended your Duo.",
     "duo.replaced": "Your Duo with @zshot has ended because @zshot chose a new Duo.",
   };
-  assert.deepEqual(Object.keys(NOTIFICATION_TEXT).sort(), Object.keys(expected).sort());
+  assert.deepEqual(Object.keys(NOTIFICATION_TEXT).filter(type => type.startsWith("duo.")).sort(), Object.keys(expected).sort());   // My Duo's six (My Crew's are pinned in my-crew.test.js)
   for (const [type, text] of Object.entries(expected)) assert.equal(notificationText(note(1, type)), text, type);
   assert.equal(notificationText(note(1, "duo.ended", "<img>")), "A GamID ended your Duo.");
   assert.equal(notificationText({ type_key: "future.thing" }), "You have a new GamID notification.");
