@@ -52,7 +52,7 @@ async function main() {
     try { view = await getPublicCrewWall(crewId); } catch { view = null; }
     preview = false;
     if (!view) {   // not published: the signed-in owner may preview it (the server refuses everyone else)
-      try { await restoreSession(); view = await getCrewWallPreview(crewId); preview = Boolean(view); } catch { view = null; }
+      try { const session = await restoreSession(); if (session?.access_token) { view = await getCrewWallPreview(crewId); preview = Boolean(view); } } catch { view = null; }
     }
     model = crewWallModel(view);
     people = model ? await resolvePeople(model) : new Map();
