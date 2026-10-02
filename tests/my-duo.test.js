@@ -12,7 +12,7 @@ import { GAMID_BLOCKS, GAMID_BLOCK_INFO, createGamidPayload } from "../dist/wall
 import { paintGamidBlock, BLOCK_TITLES } from "../dist/wall-kit/gamid-blocks.js";
 import { INTERACTIVE_ATTR } from "../dist/wall-kit/interaction.js";
 import { loadPublicView, loadGamidSnapshot, ownerDuo } from "../dist/wall-editor/gamid-data.js";
-import { createDuoPanel, duoState, sendWarning, acceptWarning, publicHint, duoErrorText } from "../dist/account/my-duo.js";
+import { createDuoPanel, duoState, sendWarning, acceptWarning, publicHint, duoErrorText, describeDuoChange, NEUTRAL_CHANGE } from "../dist/account/my-duo.js";
 import { createTransientMessage, TRANSIENT_MESSAGE_MS } from "../dist/account/transient-message.js";
 import { subscribeDuoRealtime, createDuoRefreshScheduler } from "../dist/account/duo-realtime.js";
 import { subscribePrivateBroadcast } from "../dist/account/realtime-client.js";
@@ -456,16 +456,16 @@ function fakeRealtime() {
   return { FakeSocket, sockets };
 }
 
-async function openLiveSession({ rows, userId = "11111111-1111-4111-8111-111111111111" }) {
+async function openLiveSession({ rows, userId = "11111111-1111-4111-8111-111111111111", storage = null, now = () => 1_000_000, api: extraApi = {} }) {
   const server = { rows };
   const timers = fakeTimers();
   const { FakeSocket, sockets } = fakeRealtime();
   const reads = { count: 0 };
-  const api = { getMyDuo: async () => { reads.count++; return server.rows; } };
+  const api = { getMyDuo: async () => { reads.count++; return server.rows; }, ...extraApi };
   const root = element("div"), message = element("p");
   message.hidden = true;
   const visibilitySwitch = ({ on, label }) => element("button", "visibility-switch", `${label}:${on ? "ON" : "OFF"}`);
-  const view = createDuoPanel({ api, root, message, element, visibilitySwitch, isOwnerPublished: () => true, timers });
+  const view = createDuoPanel({ api, root, message, element, visibilitySwitch, isOwnerPublished: () => true, timers, storage, now });
   await view.load();
   const subscribe = options => subscribePrivateBroadcast({ ...options, WebSocketImpl: FakeSocket, getSession: async () => ({ access_token: "token-for-test" }), setTimer: () => 0, clearTimer: () => {}, setIntervalImpl: () => 0, clearIntervalImpl: () => {} });
   const stop = subscribeDuoRealtime({ refresh: () => view.refresh(), subscribe, getUserId: () => userId, timers, win: null, doc: null });
@@ -496,19 +496,120 @@ test("live: the page joins ONLY its own private topic identity:user:<uid> (the r
   assert.ok(a.sockets[0].closed);
 });
 
-test("live: B sends A a request -> A's open page shows the incoming request; B cancels -> it disappears; no manual refresh, no message", async () => {
+test("live: B sends A a request -> A's open page shows the incoming request (and says so for ~3 s); B cancels -> it disappears (and says so); no manual refresh", async () => {
   const a = await openLiveSession({ rows: [] });
   assert.match(a.root.textContent, /You don't have a Duo yet/);
   a.server.rows = [{ relation: "RECEIVED", gamid_handle: "zshot", display_name: "zshot", is_published: true }];
   await a.signal();
   assert.match(a.root.textContent, /DUO REQUEST/);
   assert.match(a.root.textContent, /@zshot wants to be your Duo/);
-  assert.equal(a.message.hidden, true, "shared-state changes are rendered state, not a timed message");
-  assert.deepEqual(a.timers.delays, []);
+  assert.equal(a.message.textContent, "@zshot sent you a Duo request.");
+  a.timers.runAll(); await tick();
+  assert.equal(a.message.hidden, true, "the explanation is transient");
+  assert.match(a.root.textContent, /DUO REQUEST/, "the request card is persistent state");
   a.server.rows = [];
   await a.signal();
   assert.doesNotMatch(a.root.textContent, /DUO REQUEST/);
+  assert.equal(a.message.textContent, "@zshot cancelled their Duo request.");
   a.stop();
+});
+
+// ---------- explaining someone else's change (remote-action feedback) ----------
+const person = (relation, handle, extra = {}) => ({ relation, gamid_handle: handle, display_name: handle, is_published: true, show_public: false, ...extra });
+const st = rows => duoState(rows);
+
+test("remote feedback (pure): each unambiguous transition of the SECURED before/after state gets its own message; nothing visible changed = no message", () => {
+  const cases = [
+    ["request received", [], [person("RECEIVED", "zshot")], "@zshot sent you a Duo request."],
+    ["request cancelled", [person("RECEIVED", "zshot")], [], "@zshot cancelled their Duo request."],
+    ["request declined", [person("SENT", "zshot")], [], "@zshot declined your Duo request."],
+    ["request accepted", [person("SENT", "zshot")], [person("DUO", "zshot")], "@zshot accepted your Duo request. You're now Duo."],
+    ["request accepted, replacing my Duo", [person("DUO", "black"), person("SENT", "zshot")], [person("DUO", "zshot")], "@zshot accepted your Duo request. You're now Duo. Your Duo with @black has ended."],
+    ["Duo ended", [person("DUO", "zshot")], [], "Your Duo with @zshot has ended."],
+    ["Duo published", [person("DUO", "zshot", { is_published: false })], [person("DUO", "zshot")], "@zshot published their GamID."],
+  ];
+  for (const [name, before, after, text] of cases) assert.equal(describeDuoChange(st(before), st(after))?.text, text, name);
+  assert.equal(describeDuoChange(st([person("DUO", "zshot")]), st([person("DUO", "zshot")])), null, "a signal with no visible change says nothing");
+  assert.equal(describeDuoChange(st([person("DUO", "zshot")]), st([person("DUO", "zshot", { display_name: "Z" })])), null, "a cosmetic change (name) is not announced");
+});
+
+test("remote feedback (pure): what the secured state cannot tell apart is never guessed - a replaced Duo reads exactly like an ended one; several changes or owner-only changes are neutral", () => {
+  // @zshot accepted someone else (replacement): the new Duo of @zshot is not visible to this owner, so the state is identical to an ended Duo
+  assert.equal(describeDuoChange(st([person("DUO", "zshot")]), st([]))?.text, "Your Duo with @zshot has ended.", "no 'ended it' / 'chose a new Duo' claim");
+  const neutral = [
+    ["two things at once", [person("SENT", "zshot")], [person("RECEIVED", "fan1")]],
+    ["a Duo this owner accepted somewhere else", [person("RECEIVED", "fan1")], [person("DUO", "fan1")]],
+    ["a request this owner sent somewhere else", [], [person("SENT", "next")]],
+    ["this owner's own public switch", [person("DUO", "zshot")], [person("DUO", "zshot", { show_public: true })]],
+    ["an unexplained new Duo", [person("DUO", "black")], [person("DUO", "zshot")]],
+  ];
+  for (const [name, before, after] of neutral) assert.equal(describeDuoChange(st(before), st(after))?.text, NEUTRAL_CHANGE, name);
+  assert.equal(NEUTRAL_CHANGE, "Your My Duo status changed.");
+});
+
+test("remote feedback (live): A's open page - B declines, B accepts, B ends, B's replacement - redraws at once and explains for ~3 s; the cards stay persistent", async () => {
+  const flows = [
+    { name: "declined", rows: [person("SENT", "zshot")], next: [], text: "@zshot declined your Duo request.", card: /You don't have a Duo yet/ },
+    { name: "accepted", rows: [person("SENT", "zshot")], next: [person("DUO", "zshot")], text: "@zshot accepted your Duo request. You're now Duo.", card: /MY DUO/ },
+    { name: "ended", rows: [person("DUO", "zshot")], next: [], text: "Your Duo with @zshot has ended.", card: /You don't have a Duo yet/ },
+    { name: "replaced (zshot accepted someone else)", rows: [person("DUO", "zshot")], next: [], text: "Your Duo with @zshot has ended.", card: /You don't have a Duo yet/ },
+  ];
+  for (const flow of flows) {
+    const a = await openLiveSession({ rows: flow.rows });
+    assert.equal(a.message.hidden, true, `${flow.name}: nothing announced on load`);
+    a.server.rows = flow.next;
+    await a.signal();
+    assert.match(a.root.textContent, flow.card, `${flow.name}: redrawn`);
+    assert.equal(a.message.hidden, false);
+    assert.equal(a.message.textContent, flow.text, flow.name);
+    assert.deepEqual(a.timers.delays, [TRANSIENT_MESSAGE_MS], `${flow.name}: ~3 s`);
+    a.timers.runAll(); await tick();
+    assert.equal(a.message.hidden, true);
+    assert.match(a.root.textContent, flow.card, `${flow.name}: the state itself stays`);
+    a.stop();
+  }
+});
+
+test("remote feedback (live): no duplicate for the owner's OWN action - not in the tab that acted, not in another open tab of the same browser; an ambiguous change is neutral", async () => {
+  // the acting tab: its own result message only, even when the live signal for the same change arrives afterwards
+  const acting = await openLiveSession({ rows: [person("RECEIVED", "fan1")], api: { respondToDuoRequest: async () => { acting.server.rows = []; } } });
+  await click(acting.root, "Decline");
+  assert.equal(acting.message.textContent, "Declined @fan1's Duo request.");
+  await acting.signal();
+  assert.equal(acting.message.textContent, "Declined @fan1's Duo request.", "no second, remote-style message");
+  acting.stop();
+
+  // another tab of the same owner (shared localStorage marker): the change is drawn, but not explained as someone else's
+  const store = new Map();
+  const storage = { getItem: key => store.get(key) ?? null, setItem: (key, value) => store.set(key, String(value)) };
+  let clock = 5_000_000;
+  const tab1 = await openLiveSession({ rows: [person("RECEIVED", "fan1")], storage, now: () => clock, api: { respondToDuoRequest: async () => { tab1.server.rows = []; } } });
+  const tab2 = await openLiveSession({ rows: [person("RECEIVED", "fan1")], storage, now: () => clock });
+  await click(tab1.root, "Decline");
+  tab2.server.rows = [];
+  await tab2.signal();
+  assert.doesNotMatch(tab2.root.textContent, /DUO REQUEST/, "the other tab is redrawn");
+  assert.equal(tab2.message.hidden, true, "and does not claim @fan1 cancelled");
+  clock += 60_000;   // long after the own action: someone else's change is explained again
+  tab2.server.rows = [person("RECEIVED", "fan2")];
+  await tab2.signal();
+  assert.equal(tab2.message.textContent, "@fan2 sent you a Duo request.");
+  tab1.stop(); tab2.stop();
+
+  // ambiguous: two things changed in one signal
+  const both = await openLiveSession({ rows: [person("SENT", "zshot")] });
+  both.server.rows = [person("RECEIVED", "fan1")];
+  await both.signal();
+  assert.equal(both.message.textContent, "Your My Duo status changed.");
+  both.stop();
+});
+
+test("remote feedback: the Realtime signal stays data-free - the explanation is derived only from the secured state", () => {
+  const sql = read("supabase/migrations/20261002170000_my_duo_realtime.sql");
+  assert.match(sql, /realtime\.send\(jsonb_build_object\('kind', 'DUO'\), 'duo_changed'/);
+  const client = read("dist/account/duo-realtime.js").replace(/\/\/.*$/gm, "");
+  assert.match(client, /onMessage: \(\) => schedule\(\)/, "the payload is ignored");
+  assert.match(read("dist/account/my-duo.js"), /const change = state \? describeDuoChange\(state, next\) : null;/);
 });
 
 test("live: B accepts / declines A's request -> A's 'Request sent' card turns into MY DUO / disappears", async () => {
