@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { compatibilityScore, maxSeatsForQueue, sharesLanguage, validateDraft, validateSchedule } from "../dist/play-together/domain.js";
 
 const root=new URL("../",import.meta.url);
@@ -73,7 +74,8 @@ test("Ready Check is explicit, race-safe and gates canonical room creation",()=>
 test("room state is canonical and Discord stays an empty external boundary",()=>{
  assert.match(migration,/external_communication jsonb not null default '\{\}'::jsonb/);
  assert.doesNotMatch(migration,/discord_(channel|guild|voice)_id/);
- assert.match(js,/advance_play_together_room/);
+ assert.match(js,/createRoomActions/);
+ assert.match(readFileSync(new URL("dist/play-together/room-actions.js",root),"utf8"),/advance_play_together_room/);
 });
 test("Last Setup is player-level, written only after successful ready formation, and excludes seats",()=>{
  const table=migration.match(/create table private\.play_together_last_setup \([\s\S]*?\n\);/)?.[0]||"";

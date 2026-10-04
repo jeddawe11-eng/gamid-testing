@@ -66,6 +66,21 @@ async function page(server, { visible = true, onNavigate = () => {} } = {}) {
   return { center, timers, state, bell, badge, panel, rows, toast: center.toast, signal: async () => { await signal(); await tick(); } };
 }
 
+test("Account and Play Together centers share owner unread/read state across live tabs and navigation", async () => {
+  const server = fakeServer([note(1, "duo.request_received"), note(2, "crew.invite_received")]);
+  const account = await page(server), playTogether = await page(server);
+  assert.equal(account.center.unread, 2); assert.equal(playTogether.center.unread, 2);
+  await playTogether.center.markRead([1]); await account.signal();
+  assert.equal(account.center.unread, 1); assert.equal(account.center.items.find(n => n.notification_id === 1).read_at !== null, true);
+  server.add(note(3, "crew.invite_accepted")); await account.signal(); await playTogether.signal();
+  assert.equal(account.center.unread, 2); assert.equal(playTogether.center.unread, 2);
+  await account.center.markAllRead(); await playTogether.signal(); assert.equal(playTogether.center.unread, 0);
+  account.center.destroy(); playTogether.center.destroy();
+  const returningAccount = await page(server);
+  assert.equal(returningAccount.center.unread, 0); assert.equal(returningAccount.toast.hidden, true);
+  assert.ok(returningAccount.center.items.every(n => n.read_at));
+});
+
 // ---------- 1 + 2: live toast vs offline backlog ----------
 test("1. online: a NEW notification shows a 5 s live toast; after it hides the notification is still UNREAD in the log and the badge stays", async () => {
   const server = fakeServer();
