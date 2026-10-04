@@ -373,7 +373,7 @@ export async function handleWallAssetRegister({ request, env, fetchImpl = fetch,
   const extension = parts[2];
   const isVideo = extension === "mp4" || extension === "webm";
   const objectUrl = `${base}/storage/v1/object/${isVideo ? "wall-video" : "wall-media"}/${path}`;
-  const discard = () => fetchImpl(objectUrl, { method: "DELETE", headers: service }).catch(() => null);
+  const discard = () => fetchImpl(`${base}/functions/v1/usage-upload/object/${isVideo?'wall-video':'wall-media'}/${path}`, { method: "DELETE", headers: service }).catch(() => null);
 
   try {
     let image, byteLength;

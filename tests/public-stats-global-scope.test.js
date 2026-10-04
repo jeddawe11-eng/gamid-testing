@@ -175,7 +175,7 @@ test("Steam icon: the standard Steam glyph, embedded locally as a data-URI mask 
   assert.doesNotMatch(publicCss, /url\(\s*["']?https?:/i, "no remote asset");
   assert.doesNotMatch(publicCss.replace(/\/\*[\s\S]*?\*\//g, "") + read("dist/public/index.html") + read("dist/public/public.js").replace(/\/\/.*$/gm, ""), /steamstatic|steamcommunity|steampowered|cdn\.|font-awesome|fontawesome|unpkg|jsdelivr/i, "the profile never depends on an external icon URL");
   assert.doesNotMatch(steamRule, /circle/, "the old generic circle mark is gone");
-  assert.doesNotMatch(read("package.json"), /"(dependencies|devDependencies)"/, "no runtime dependency was added");
+  assert.equal(JSON.parse(read('package.json')).dependencies,undefined,'no browser/runtime dependency was added (isolated Postgres tests may use dev dependencies)');
   assert.match(publicCss, /simple-icons "steam" path, CC0/, "the source and license of the glyph are recorded next to it");
 });
 

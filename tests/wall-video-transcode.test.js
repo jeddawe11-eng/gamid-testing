@@ -68,7 +68,9 @@ function fakeBackend({ claim = null, completeError = null } = {}) {
   const calls = [];
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
   const fetchImpl = async (url, options = {}) => {
-    calls.push({ url, method: options.method ?? "GET", body: options.body && typeof options.body === "string" ? JSON.parse(options.body) : null });
+    calls.push({ url, method: options.method ?? "GET", headers:options.headers, body: options.body && typeof options.body === "string" ? JSON.parse(options.body) : null });
+    if(url.endsWith('/usage-upload/tus'))return new Response(null,{status:201,headers:{Location:'https://upvtrczefcvigxdyuylw.supabase.co/functions/v1/usage-upload/tus/fixture'}});
+    if(options.method==='PATCH')return new Response(null,{status:204,headers:{'Upload-Offset':'1024'}});
     if (url.endsWith("/rpc/worker_claim_wall_video_job")) return json(claim ? [claim] : []);
     if (url.endsWith("/rpc/worker_complete_wall_video_job")) return completeError ? json({ message: completeError }, 400) : json([{ asset_id: "aaaaaaaa-0000-4000-8000-00000000000a" }]);
     if (url.endsWith("/rpc/worker_wall_video_cleanup_candidates")) return json(claim ? [{ job_id: claim.job_id, source_path: claim.source_path, derivative_path: completeError ? claim.derivative_path : null }] : []);
@@ -76,7 +78,7 @@ function fakeBackend({ claim = null, completeError = null } = {}) {
     if (url.includes("/object/authenticated/wall-video/")) return new Response(new Uint8Array([0, 0, 0, 8, 102, 116, 121, 112]), { status: 200 });
     return new Response("{}", { status: 200 });
   };
-  return { calls, fetchImpl, backend: { url: "https://project.supabase.co", headers: type => ({ apikey: "k", ...(type ? { "Content-Type": type } : {}) }) } };
+  return { calls, fetchImpl, backend: { url: "https://upvtrczefcvigxdyuylw.supabase.co", headers: type => ({ apikey: "k", ...(type ? { "Content-Type": type } : {}) }) } };
 }
 const JOB = { job_id: "11111111-2222-4333-8444-555555555555", owner_user_id: "99999999-8888-4777-8666-555555555555", source_path: "99999999-8888-4777-8666-555555555555/abcabcab-0000-4000-8000-000000000001.mp4", derivative_path: "99999999-8888-4777-8666-555555555555/11111111-2222-4333-8444-555555555555.h264.mp4", source_width: 3840, source_height: 2160 };
 const fakeTranscode = async (input, output) => { const { writeFileSync } = await import("node:fs"); writeFileSync(output, Buffer.alloc(1024)); return { result: { video: { width: 3840, height: 2160 } }, encodingMs: 1 }; };
@@ -85,11 +87,12 @@ test("T4 worker: claim -> stream the private source -> convert -> upload into th
   const { calls, fetchImpl, backend } = fakeBackend({ claim: JOB });
   const done = await processOneWallVideoJob(backend, { fetchImpl, transcode: fakeTranscode });
   assert.deepEqual([done.processed, done.width, done.height], [true, 3840, 2160]);
-  const upload = calls.find(call => call.method === "POST" && call.url.includes("/storage/v1/object/wall-video-derived/"));
-  assert.ok(upload.url.endsWith(`/wall-video-derived/${JOB.derivative_path}`), "only the path the database assigned");
+  const upload = calls.find(call => call.method === "POST" && call.url.endsWith('/usage-upload/tus'));
+  assert.ok(upload.headers['Upload-Metadata'].includes(`objectName ${btoa(JOB.derivative_path)}`), "only the path the database assigned");
+  assert.ok(upload.headers['Upload-Metadata'].includes(`bucketName ${btoa('wall-video-derived')}`));
   const complete = calls.find(call => call.url.endsWith("/rpc/worker_complete_wall_video_job"));
   assert.deepEqual([complete.body.candidate_width, complete.body.candidate_height], [3840, 2160]);
-  assert.ok(calls.some(call => call.method === "DELETE" && call.url.endsWith(`/storage/v1/object/wall-video/${JOB.source_path}`)), "the HEVC source is deleted after success");
+  assert.ok(calls.some(call => call.method === "DELETE" && call.url.endsWith(`/usage-upload/object/wall-video/${JOB.source_path}`)), "the HEVC source is deleted after success");
   assert.ok(!calls.some(call => call.method === "DELETE" && call.url.includes("wall-video-derived")), "the durable derivative is never deleted");
   assert.ok(calls.some(call => call.url.endsWith("/rpc/worker_confirm_wall_video_cleanup")));
 });
@@ -109,7 +112,7 @@ test("T4 worker: a failed conversion marks the job failed, attaches nothing, and
 test("T4 the same Cloud Run Job serves both queues; the dispatcher accepts only the two known tables", () => {
   const worker = text("worker/intro-worker.mjs");
   assert.match(worker, /processOneWallVideoJob\(/, "one Job execution drains a Wall video when no Intro is waiting");
-  assert.match(text("worker/Dockerfile"), /COPY wall-video\.mjs/);
+  assert.match(text("worker/Dockerfile"), /COPY worker\/wall-video\.mjs/);
   assert.equal(validateWebhookPayload({ type: "INSERT", schema: "public", table: "wall_video_jobs", record: { state: "pending", job_id: "x" } }), true);
   assert.equal(validateWebhookPayload({ type: "INSERT", schema: "public", table: "wall_assets", record: { state: "pending", job_id: "x" } }), false);
 });

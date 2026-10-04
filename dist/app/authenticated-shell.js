@@ -2,6 +2,7 @@ import * as api from "../account/supabase-client.js";
 import { createNotificationCenter } from "../notifications/notification-center.js";
 import { notificationSubscriber } from "../notifications/notification-realtime.js";
 import { DESTINATIONS } from "../notifications/notification-types.js";
+import { createUsageCenter } from "../usage/usage-center.js";
 
 export function shellEligible(doc, win) {
   return win?.parent === win && doc?.documentElement?.dataset?.gamidSurface !== "public";
@@ -9,9 +10,10 @@ export function shellEligible(doc, win) {
 
 // One owner center per document, including sign-in, sign-out and bfcache restores.
 // There is no shell unread store: the existing owner RPCs remain the authority.
-export function createAuthenticatedShell({ doc = document, win = window, client = api, createCenter = createNotificationCenter, subscribe = notificationSubscriber(), navigate = url => win.location.assign(url) } = {}) {
-  let center = null, owner = null, host = null, stopped = false, chain = Promise.resolve();
-  const clear = () => { center?.destroy(); center = null; owner = null; host?.remove(); host = null; };
+export function createAuthenticatedShell({ doc = document, win = window, client = api, createCenter = createNotificationCenter, createUsage = createUsageCenter, subscribe = null, navigate = url => win.location.assign(url) } = {}) {
+  let center = null, usage = null, owner = null, host = null, stopped = false, chain = Promise.resolve();
+  const notifySubscribe = subscribe || notificationSubscriber({onUsageChange:()=>usage?.refresh()});
+  const clear = () => { usage?.destroy(); usage=null; center?.destroy(); center = null; owner = null; host?.remove(); host = null; };
   function destination(key) {
     const target = Object.hasOwn(DESTINATIONS, key) && DESTINATIONS[key];
     if (!target) return;
@@ -36,9 +38,11 @@ export function createAuthenticatedShell({ doc = document, win = window, client 
     const slot = header.querySelector(".site-head-end") || header;
     slot.append(host);
     owner = uid;
-    center = createCenter({ api: client, doc, subscribe, onNavigate: destination });
+    usage = createUsage({api:client,doc,onOpen:()=>center?.setOpen?.(false)});
+    center = createCenter({ api: client, doc, subscribe:notifySubscribe, onNavigate: destination });
     const mounted = center;
-    await mounted.mount(host, doc.body);
+    // Both controls mount immediately. Usage availability never delays the bell.
+    await Promise.all([usage.mount(host), mounted.mount(host, doc.body)]);
     // An auth event can destroy a center while its initial read is in flight.
     if (stopped || client.userIdFromToken() !== uid) { if (center === mounted) clear(); else mounted.destroy(); }
   }
@@ -59,6 +63,7 @@ export function createAuthenticatedShell({ doc = document, win = window, client 
   return {
     sync,
     get center() { return center; },
+    get usage() {return usage;},
     destroy() {
       stopped = true; clear();
       win.removeEventListener(api.AUTH_SESSION_EVENT, onAuth);
@@ -73,7 +78,7 @@ let shell = null;
 export async function bootAuthenticatedShell() {
   if (!shellEligible(document, window)) return null;
   if (!shell) {
-    for (const path of ["../notifications/notifications.css", "./authenticated-shell.css"]) {
+    for (const path of ["../notifications/notifications.css", "../usage/usage.css", "./authenticated-shell.css"]) {
       const link = document.createElement("link"); link.rel = "stylesheet"; link.href = new URL(path, import.meta.url).href; document.head.append(link);
     }
     shell = createAuthenticatedShell();

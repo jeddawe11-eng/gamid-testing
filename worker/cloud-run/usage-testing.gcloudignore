@@ -1,0 +1,15 @@
+# Explicit source allowlist; never upload local credentials or fixture media.
+**
+!worker/
+!worker/Dockerfile
+!worker/intro-worker.mjs
+!worker/intro-dispatcher.mjs
+!worker/wall-video.mjs
+!worker/usage-upload.mjs
+!worker/usage-smoke.mjs
+!worker/cloud-run/
+!worker/cloud-run/cloudbuild-usage-testing.yaml
+!dist/
+!dist/account/
+!dist/account/resumable-upload.js
+!package.json

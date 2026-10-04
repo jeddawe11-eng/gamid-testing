@@ -6,13 +6,14 @@
 // duration; it is H.264 High, yuv420p, MP4 with the index first (fast start), with no audio (a Wall background always plays muted). ffprobe then validates the
 // result and ANY difference in width / height fails the job - there is no lower-resolution fallback. The database checks the dimensions a second time.
 import { execFile } from "node:child_process";
-import { createReadStream, createWriteStream } from "node:fs";
+import { createWriteStream } from "node:fs";
 import { mkdtemp, open, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
+import { uploadGatewayFile,deleteGatewayObject } from './usage-upload.mjs';
 
 const run = promisify(execFile);
 
@@ -124,7 +125,6 @@ export async function processOneWallVideoJob(backend, { fetchImpl = fetch, trans
   if (!job) { await cleanupWallVideo(backend, { fetchImpl, call }); return { processed: false }; }
   const dir = await mkdtemp(join(tmpdir(), "gamid-wall-video-"));
   const input = join(dir, "source.mp4"), output = join(dir, "background.h264.mp4");
-  let outgoing = null;
   try {
     // stream the private source to disk (never held whole in memory)
     const source = await fetchImpl(`${backend.url}/storage/v1/object/authenticated/wall-video/${storagePath(job.source_path)}`, { headers: backend.headers(null) });
@@ -133,12 +133,7 @@ export async function processOneWallVideoJob(backend, { fetchImpl = fetch, trans
     const { result, encodingMs } = await transcode(input, output, { expectedWidth: job.source_width, expectedHeight: job.source_height });
     // stream the derivative into the owner's folder of the private derived bucket
     const { size } = await stat(output);
-    outgoing = createReadStream(output);
-    const uploaded = await fetchImpl(`${backend.url}/storage/v1/object/wall-video-derived/${storagePath(job.derivative_path)}`, {
-      method: "POST", headers: { ...backend.headers("video/mp4"), "Content-Length": String(size), "x-upsert": "true", "cache-control": "3600" },
-      body: Readable.toWeb(outgoing), duplex: "half",
-    });
-    if (!uploaded.ok) throw new Error(`DERIVATIVE_UPLOAD_${uploaded.status}`);
+    await uploadGatewayFile({backend,bucket:'wall-video-derived',path:job.derivative_path,filePath:output,mime:'video/mp4',fetchImpl});
     const completed = await call("worker_complete_wall_video_job", { candidate_job_id: job.job_id, candidate_derivative_path: job.derivative_path, candidate_bytes: size, candidate_width: result.video.width, candidate_height: result.video.height });
     await cleanupWallVideo(backend, { fetchImpl, call });
     return { processed: true, jobId: job.job_id, assetId: completed?.[0]?.asset_id ?? null, encodingMs, width: result.video.width, height: result.video.height, bytes: size };
@@ -147,7 +142,6 @@ export async function processOneWallVideoJob(backend, { fetchImpl = fetch, trans
     try { await cleanupWallVideo(backend, { fetchImpl, call }); } catch { /* the next run cleans up */ }
     throw error;
   } finally {
-    outgoing?.destroy();
     // the temporary copies never outlive the run (and a cleanup problem never hides the real result)
     try { await rm(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); } catch { /* the container's /tmp is discarded with it */ }
   }
@@ -159,8 +153,7 @@ export async function cleanupWallVideo(backend, { fetchImpl = fetch, call }) {
   for (const row of rows || []) {
     const remove = async (bucket, path) => {
       if (!path) return false;
-      const response = await fetchImpl(`${backend.url}/storage/v1/object/${bucket}/${storagePath(path)}`, { method: "DELETE", headers: backend.headers(null) });
-      return response.ok || response.status === 404 || response.status === 400;   // already gone counts as deleted
+      try {await deleteGatewayObject(backend,bucket,path,fetchImpl);return true;}catch{return false;}
     };
     const sourceDeleted = await remove("wall-video", row.source_path);
     const derivativeDeleted = await remove("wall-video-derived", row.derivative_path);

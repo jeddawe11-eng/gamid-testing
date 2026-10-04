@@ -4,4 +4,5 @@ supabase/.temp/
 
 .cloudflare-stage/
 .wrangler/
+node_modules/
 social-lab/assets/

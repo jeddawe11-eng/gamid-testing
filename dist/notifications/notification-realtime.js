@@ -7,14 +7,14 @@ import { userIdFromToken } from "../account/supabase-client.js";
 export const NOTIFICATIONS_TOPIC_PREFIX = "notifications:user:";
 export const NOTIFICATIONS_EVENT = "notifications_changed";
 
-export function notificationSubscriber({ subscribe = subscribePrivateBroadcast, getUserId = userIdFromToken, timers = globalThis, delay = 120, win = globalThis.window, doc = globalThis.document } = {}) {
+export function notificationSubscriber({ subscribe = subscribePrivateBroadcast, getUserId = userIdFromToken, timers = globalThis, delay = 120, win = globalThis.window, doc = globalThis.document, onUsageChange = null } = {}) {
   return onChange => {
     const userId = getUserId();
     if (!userId) return () => {};
-    let timer = null;
-    const schedule = () => { if (timer !== null) timers.clearTimeout(timer); timer = timers.setTimeout(() => { timer = null; onChange(); }, delay); };
-    const stop = subscribe({ topic: `${NOTIFICATIONS_TOPIC_PREFIX}${userId}`, event: NOTIFICATIONS_EVENT, onMessage: () => schedule() });
-    const onVisible = () => { if (doc?.visibilityState !== "hidden") schedule(); };
+    let timer = null, notify=false, usage=false;
+    const schedule = (n=true,u=false) => { notify ||= n;usage ||= u; if (timer !== null) timers.clearTimeout(timer); timer = timers.setTimeout(() => { timer = null; const readNotifications=notify,readUsage=usage;notify=usage=false;if(readNotifications)onChange();if(readUsage)onUsageChange?.(); }, delay); };
+    const stop = subscribe({ topic: `${NOTIFICATIONS_TOPIC_PREFIX}${userId}`, event: onUsageChange?[NOTIFICATIONS_EVENT,'usage_changed']:NOTIFICATIONS_EVENT, onMessage: (_payload,event) => schedule(event!=='usage_changed',event==='usage_changed') });
+    const onVisible = () => { if (doc?.visibilityState !== "hidden") schedule(true,!!onUsageChange); };
     doc?.addEventListener?.("visibilitychange", onVisible);
     win?.addEventListener?.("online", onVisible);
     return () => {

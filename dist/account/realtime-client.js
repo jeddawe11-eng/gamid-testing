@@ -32,7 +32,7 @@ export function subscribePrivateBroadcast({ topic, event, onMessage, WebSocketIm
     socket.addEventListener("message", message => {
       let envelope;
       try { envelope = JSON.parse(message.data); } catch { return; }
-      if (envelope.topic === socketTopic && envelope.event === "broadcast" && envelope.payload?.event === event) onMessage(envelope.payload.payload);
+      if (envelope.topic === socketTopic && envelope.event === "broadcast" && (Array.isArray(event)?event.includes(envelope.payload?.event):envelope.payload?.event === event)) onMessage(envelope.payload.payload,envelope.payload.event);
       if (envelope.topic === socketTopic && envelope.event === "phx_error") socket?.close();
     });
     socket.addEventListener("close", () => { if (heartbeat) clearIntervalImpl(heartbeat); heartbeat = null; scheduleReconnect(); });

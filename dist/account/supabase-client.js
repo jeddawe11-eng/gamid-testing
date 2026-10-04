@@ -4,7 +4,7 @@ import { takeReturnTo } from "./post-auth-return.js";
 
 export const SUPABASE_PROJECT_ID = "upvtrczefcvigxdyuylw";
 export const SUPABASE_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co`;
-const STORAGE_UPLOAD_URL = `https://${SUPABASE_PROJECT_ID}.storage.supabase.co/storage/v1/upload/resumable`;
+const STORAGE_UPLOAD_URL = `${SUPABASE_URL}/functions/v1/usage-upload/tus`;
 export const PUBLISHABLE_KEY = "sb_publishable_ovl-uegBzJlWPJcTF_dviw_6uf1aVYg";
 export const AUTH_SESSION_EVENT = "gamid:auth-session-changed";
 const SESSION_KEY = "gamid.testing.auth.session.v1";
@@ -42,7 +42,7 @@ async function request(path, { method = "GET", body, token, headers = {} } = {})
   const payload = contentType.includes("json") ? await response.json() : await response.text();
   if (!response.ok) {
     const message = payload?.message || payload?.msg || payload?.error_description || payload?.error || `Request failed (${response.status})`;
-    throw new ApiError(message, response.status, payload?.code || payload?.error_code || message);
+    throw new ApiError(message==='ACCOUNT_STORAGE_QUOTA_EXCEEDED'?'This upload would exceed your 200 MB storage allowance. Remove stored media and try again.':message, response.status, payload?.code || payload?.error_code || message);
   }
   return payload;
 }
@@ -244,7 +244,7 @@ export async function uploadAvatar(file, userId, { attach = true } = {}) {
   if (!extension) throw new ApiError("Choose a JPG, PNG, WebP, or AVIF image.", 400, "INVALID_FILE_TYPE");
   if (file.size > 5 * 1024 * 1024) throw new ApiError("Avatar must be 5 MB or smaller.", 400, "FILE_TOO_LARGE");
   const path = `${userId}/avatar-${crypto.randomUUID()}.${extension}`;
-  await request(`/storage/v1/object/avatars/${path}`, {
+  await request(`/functions/v1/usage-upload/object/avatars/${path}`, {
     method: "POST",
     token: session?.access_token,
     body: file,
@@ -292,7 +292,7 @@ export async function uploadWallAsset(file, userId) {
   await restoreSession();
   if (!session?.access_token) throw new ApiError("Sign in again to add images.", 401, "unauthenticated");
   const path = `${userId}/${crypto.randomUUID()}.${extension}`;
-  await request(`/storage/v1/object/wall-media/${path}`, { method: "POST", token: session.access_token, body: file, headers: { "Content-Type": file.type, "x-upsert": "false" } });
+  await request(`/functions/v1/usage-upload/object/wall-media/${path}`, { method: "POST", token: session.access_token, body: file, headers: { "Content-Type": file.type, "x-upsert": "false" } });
   return registerWallUpload(path, "The image service could not be reached.");
 }
 
@@ -307,7 +307,7 @@ async function registerWallUpload(path, unreachable) {
       body: JSON.stringify({ path }),
     });
   } catch {
-    try { await request(`/storage/v1/object/${bucket}/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* the orphan is private and only the owner can reach it */ }
+    try { await request(`/functions/v1/usage-upload/object/${bucket}/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* retained files continue to count until cleanup succeeds */ }
     throw new ApiError(unreachable, 0, "NETWORK_ERROR");
   }
   let payload = null;
@@ -316,7 +316,7 @@ async function registerWallUpload(path, unreachable) {
   if (response.ok && payload?.job?.job_id) return { job: payload.job };
   if (!response.ok || !payload?.asset) {
     // the function already deleted a file it refused; this removes one it never got to see
-    try { await request(`/storage/v1/object/${bucket}/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* private orphan, owner-only */ }
+    try { await request(`/functions/v1/usage-upload/object/${bucket}/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* retained files continue to count until cleanup succeeds */ }
     throw new ApiError(payload?.error || `Request failed (${response.status})`, response.status, payload?.error || "register_failed");
   }
   return payload.asset;
@@ -341,8 +341,9 @@ export async function uploadWallVideo(file, userId, { onProgress } = {}) {
   if (!session?.access_token) throw new ApiError("Sign in again to add a video.", 401, "unauthenticated");
   const path = `${userId}/${crypto.randomUUID()}.${extension}`;
   try {
-    await uploadResumable({ endpoint: STORAGE_UPLOAD_URL, bucketName: "wall-video", objectName: path, contentType: file.type, file, token: session.access_token, apikey: PUBLISHABLE_KEY, onProgress });
+    await uploadResumable({ endpoint: STORAGE_UPLOAD_URL, bucketName: "wall-video", objectName: path, contentType: file.type, file, token: session.access_token, apikey: PUBLISHABLE_KEY, onProgress, terminateOnFailure:true });
   } catch (error) {
+    if(error?.code==='ACCOUNT_STORAGE_QUOTA_EXCEEDED') throw new ApiError(error.message,413,error.code);
     throw new ApiError("The video upload did not finish. Check your connection and try again.", error?.status ?? 0, error?.status === 413 ? "FILE_TOO_LARGE" : "WALL_VIDEO_UPLOAD_FAILED");
   }
   return registerWallUpload(path, "The video service could not be reached.");
@@ -373,7 +374,7 @@ export async function loadWallAsset(path) {
 export async function deleteWallAsset(assetId) {
   const rows = await rpc("delete_my_wall_asset", { candidate_asset_id: assetId });
   const path = rows?.[0]?.storage_path;
-  if (path) { try { await request(`/storage/v1/object/${wallBucketFor(path)}/${path}`, { method: "DELETE", token: session?.access_token }); } catch { /* the registry row is gone; the private object is unreachable by anyone else */ } }
+  if (path) { await request(`/functions/v1/usage-upload/object/${wallBucketFor(path)}/${path}`, { method: "DELETE", token: session?.access_token }); }
   return true;
 }
 export async function getMyIntro() {
@@ -389,15 +390,18 @@ export async function uploadIntroSource(file, userId, jobId) {
   const path = `${userId}/${jobId}/source.${extension}`;
   await uploadResumable({
     endpoint:STORAGE_UPLOAD_URL, bucketName:"intro-sources", objectName:path,
-    contentType:file.type, file, token:session.access_token, apikey:PUBLISHABLE_KEY,
+    contentType:file.type, file, token:session.access_token, apikey:PUBLISHABLE_KEY, terminateOnFailure:true,
   });
   return path;
 }
 
 export async function deleteIntroSource(path) {
   if (!path) return;
-  return request(`/storage/v1/object/intro-sources/${encodeStoragePath(path)}`, { method:"DELETE", token:session?.access_token });
+  return request(`/functions/v1/usage-upload/object/intro-sources/${encodeStoragePath(path)}`, { method:"DELETE", token:session?.access_token });
 }
+
+export async function getMyUsage() { return rpc('get_my_usage'); }
+export async function reconcileUsageUploads() {return request('/functions/v1/usage-upload/cleanup',{method:'POST',token:session?.access_token});}
 
 export async function queueIntro({ jobId, sourcePath, transitionKey, sourceMime, sourceSize, durationMs }) {
   const rows = await rpc("queue_my_intro", {

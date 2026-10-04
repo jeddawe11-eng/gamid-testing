@@ -20,7 +20,7 @@ export function auditAuthenticatedSurfaces(root) {
       const file = resolve(dir, entry.name);
       if (entry.isDirectory()) { walk(file); continue; }
       const modulePath = relative(root, file).replaceAll("\\", "/");
-      if (entry.name.endsWith(".js") && !modulePath.startsWith("app/") && !modulePath.startsWith("notifications/") && /\b(?:createNotificationCenter|notificationSubscriber)\s*\(/.test(readFileSync(file, "utf8"))) {
+      if (entry.name.endsWith(".js") && !modulePath.startsWith("app/") && !modulePath.startsWith("notifications/") && !modulePath.startsWith("usage/") && /\b(?:createNotificationCenter|notificationSubscriber|createUsageCenter)\s*\(/.test(readFileSync(file, "utf8"))) {
         throw Error(`${modulePath}: duplicate page notification lifecycle`);
       }
       if (!entry.name.endsWith(".html")) continue;
@@ -30,7 +30,7 @@ export function auditAuthenticatedSurfaces(root) {
       const visitor = /data-gamid-surface=["']public["']/.test(html);
       if (authenticatedClient && !visitor) {
         if (!/<header\b/.test(html)) throw Error(`${path}: authenticated surface requires a shared-shell header`);
-        if (/notificationsHost|createNotificationCenter|notificationSubscriber/.test(html)) throw Error(`${path}: notification mounting belongs to the shared shell`);
+        if (/notificationsHost|createNotificationCenter|notificationSubscriber|createUsageCenter/.test(html)) throw Error(`${path}: notification mounting belongs to the shared shell`);
         const csp = html.match(/<meta[^>]+Content-Security-Policy[^>]+content="([^"]+)"/i)?.[1];
         if (csp && !csp.includes("wss://upvtrczefcvigxdyuylw.supabase.co")) throw Error(`${path}: CSP blocks private TESTING Realtime`);
       }

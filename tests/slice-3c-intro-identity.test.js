@@ -74,7 +74,8 @@ test("provider-neutral worker applies and validates the approved D3 profile", ()
 
 test("browser uploads source and queues work but never transcodes", () => {
   assert.match(client,/uploadIntroSource/);
-  assert.match(client,/storage\.supabase\.co\/storage\/v1\/upload\/resumable/);
+  assert.match(client,/functions\/v1\/usage-upload\/tus/);
+  assert.match(client,/uploadResumable/);
   assert.match(client,/queue_my_intro/);
   assert.match(controller,/createOwnedUploadBlob\(file\)/);
   assert.match(controller,/visibilitychange/);

@@ -16,7 +16,7 @@ function fixture() {
   const win = { location: {}, addEventListener: (key, fn) => events.set(key, fn), removeEventListener: key => events.delete(key), CustomEvent: class { constructor(type, options) { Object.assign(this, options); this.type = type; this.defaultPrevented = false; } preventDefault() { this.defaultPrevented = true; } }, dispatchEvent(event) { events.get(event.type)?.(event); return !event.defaultPrevented; } }; win.parent = win;
   const client = { restoreSession: async () => user ? { access_token: "fixture" } : null, userIdFromToken: () => user };
   const subscribe = () => {};
-  const shell = createAuthenticatedShell({ doc, win, client, subscribe, navigate: url => urls.push(url), createCenter: options => { const center = { options, destroyed: false, mount: async () => {}, destroy() { this.destroyed = true; } }; created.push(center); return center; } });
+  const shell = createAuthenticatedShell({ doc, win, client, subscribe, createUsage:()=>({mount:async()=>{},refresh:()=>{},destroy:()=>{}}), navigate: url => urls.push(url), createCenter: options => { const center = { options, destroyed: false, mount: async () => {}, destroy() { this.destroyed = true; } }; created.push(center); return center; } });
   return { shell, client, doc, win, events, created, urls, nodes, subscribe, setUser: id => { user = id; } };
 }
 

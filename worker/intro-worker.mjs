@@ -1,9 +1,10 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { processOneWallVideoJob, transcodeWallBackground } from "./wall-video.mjs";
+import { uploadGatewayFile, deleteGatewayObject } from './usage-upload.mjs';
 
 const run = promisify(execFile);
 const MAX_SOURCE_BYTES = 150 * 1024 * 1024;   // 150 MiB = 157,286,400 bytes; duration (30 s), D3 settings and the derivative ceiling are unchanged
@@ -57,8 +58,9 @@ async function cleanupEligible() {
   const rows = await api("/rest/v1/rpc/worker_intro_cleanup_candidates", { body:{ candidate_limit:20 } });
   for (const row of rows || []) {
     let sourceDeleted=false, derivativeDeleted=false;
-    if (row.source_path) { await api(`/storage/v1/object/intro-sources/${storagePath(row.source_path)}`, { method:"DELETE" }); sourceDeleted=true; }
-    if (row.derivative_path) { await api(`/storage/v1/object/intro-media/${storagePath(row.derivative_path)}`, { method:"DELETE" }); derivativeDeleted=true; }
+    const {url,key}=environment();const backend={url,headers:()=>backendAuthHeaders(key)};
+    if (row.source_path) { await deleteGatewayObject(backend,'intro-sources',row.source_path); sourceDeleted=true; }
+    if (row.derivative_path) { await deleteGatewayObject(backend,'intro-media',row.derivative_path); derivativeDeleted=true; }
     await api("/rest/v1/rpc/worker_confirm_intro_cleanup", { body:{ candidate_job_id:row.job_id,candidate_source_deleted:sourceDeleted,candidate_derivative_deleted:derivativeDeleted } });
   }
 }
@@ -76,8 +78,8 @@ export async function processOneRemoteJob() {
   try {
     const source = await api(`/storage/v1/object/authenticated/intro-sources/${storagePath(job.source_path)}`, { method:"GET", contentType:null,raw:true });
     await writeFile(input,Buffer.from(await source.arrayBuffer()));
-    const encoded = await encodeD3(input,output); const bytes=await readFile(output);
-    await api(`/storage/v1/object/intro-media/${storagePath(job.derivative_path)}`, { body:bytes,contentType:"video/webm" });
+    const encoded = await encodeD3(input,output);
+    const {url,key}=environment();await uploadGatewayFile({backend:{url,headers:()=>backendAuthHeaders(key)},bucket:'intro-media',path:job.derivative_path,filePath:output,mime:'video/webm'});
     const { result }=encoded;
     await api("/rest/v1/rpc/worker_complete_intro_job", { body:{ candidate_job_id:job.job_id,candidate_derivative_path:job.derivative_path,candidate_size:result.size,candidate_duration_ms:Math.round(result.duration*1000),candidate_width:result.video.width,candidate_height:result.video.height,candidate_fps:result.fps,candidate_video_bitrate:Number(result.video.bit_rate||0),candidate_audio_bitrate:Number(result.audio?.bit_rate||0),candidate_total_bitrate:result.totalBitrate,candidate_has_audio:Boolean(result.audio) } });
     await cleanupEligible(); return { processed:true,jobId:job.job_id,encodingMs:encoded.encodingMs };
@@ -94,5 +96,8 @@ if (command === "encode") {
 } else if (command === "transcode-wall") {
   if (!input || !output) throw new Error("Usage: node worker/intro-worker.mjs transcode-wall INPUT OUTPUT");
   console.log(JSON.stringify(await transcodeWallBackground(input,output),null,2));
+} else if(command==='usage-smoke') {
+ const {smokeUsageGateway}=await import('./usage-smoke.mjs');const {url,key}=environment();
+ console.log(JSON.stringify(await smokeUsageGateway({url,headers:()=>backendAuthHeaders(key)})));
 } else if (command === "once") console.log(JSON.stringify(await processOneRemoteJob()));
 else if (import.meta.url === `file://${process.argv[1]}`) throw new Error("Use encode or once");

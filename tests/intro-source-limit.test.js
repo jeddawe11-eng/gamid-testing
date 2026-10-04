@@ -94,7 +94,9 @@ test("no other place in the product still enforces the old Intro source number",
   const roots = ["dist/account/account.js", "dist/account/domain.js", "dist/account/supabase-client.js", "dist/account/resumable-upload.js", "dist/account/index.html", "worker/intro-worker.mjs", "worker/intro-dispatcher.mjs"];
   for (const path of roots) assert.doesNotMatch(read(path), /104857600|100 \* 1024 \* 1024|100 ?MB|100 ?MiB/, path);
   const later = readdirSync(new URL("../supabase/migrations/", import.meta.url)).filter(name => name > "20260916170000_slice_3c_intro_identity.sql");
-  for (const name of later.filter(item => item !== migrationName)) assert.doesNotMatch(stripSql(read(`supabase/migrations/${name}`)), /queue_my_intro_impl|intro-sources/, `${name} does not redefine the Intro source limit`);
+  for (const name of later.filter(item => item !== migrationName && item !== '20261004170252_global_usage_gateway.sql')) assert.doesNotMatch(stripSql(read(`supabase/migrations/${name}`)), /queue_my_intro_impl|intro-sources/, `${name} does not redefine the Intro source limit`);
+  const usage=stripSql(read('supabase/migrations/20261004170252_global_usage_gateway.sql'));
+  assert.doesNotMatch(usage,/alter\s+table\s+storage\.buckets|update\s+storage\.buckets|104857600|157286400/i,'Usage reuses bucket limits and extends ownership only; it never changes the source cap');
 });
 
 test("the change is confined to the Intro source limit: presentation, games, playtime and connections code are untouched", () => {
