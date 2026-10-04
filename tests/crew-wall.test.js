@@ -97,7 +97,7 @@ test("route: the Crew Wall lives at /crew/?c=<id> (never under /@); member links
   assert.equal(crewWallHref("<script>"), null);
   assert.equal(crewIdFromSearch(`?crew=${ID.toUpperCase()}`), ID);
   assert.equal(crewIdFromSearch("?crew=javascript:alert(1)"), "");
-  assert.match(read("dist/crew/crew.js"), /cardHref: handle => `\$\{new URL\(`\.\.\/@\$\{handle\}`, location\.href\)\.pathname\}\?crew=\$\{encodeURIComponent\(model\.crewId\)\}`/);
+  assert.match(read("dist/crew/crew.js"), /cardHref: handle => memberHref\(new URL\(`\.\.\/@\$\{handle\}`, location\.href\)\.pathname, model\.crewId, from\),/);
   assert.equal(SCROLL_KEY(ID), `gamid.crewWall.scroll.${ID}`);
   const wrangler = read("wrangler.jsonc");
   assert.match(wrangler, /"run_worker_first": \["\/@\*"\]/, "only /@* is dynamic - /crew/ is a static page, no collision");

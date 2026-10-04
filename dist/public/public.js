@@ -185,9 +185,10 @@ async function render() {
   }
 
   // Came from another GamID (a Duo link carries ?from=<handle>): Back to it, and - while this GamID's Intro plays - Skip Intro (visitor-nav.js), above everything.
-  // ... or from a Crew Wall (?crew=<id>): Back to that Crew (its name comes from the public Crew Wall; until then / if it is not public, "Back to Crew").
+  // ... or from a Crew Wall (?crew=<id>): Back to that Crew (its name comes from the public Crew Wall; until then / if it is not public, "Back to Crew"). A `from`
+  // beside ?crew= is the Personal GamID the visitor entered that Crew from: it rides along on Back to Crew, so the Crew Wall still offers "Back to @<from>".
   const fromCrew = crewIdFromSearch(location.search);
-  visitorNav = createVisitorNav({ crew: fromCrew, from: fromCrew ? "" : backHandle(location.search, identity?.gamid_handle ?? handle), pathname: location.pathname, referrer: document.referrer, origin: location.origin, history,
+  visitorNav = createVisitorNav({ crew: fromCrew, from: fromCrew ? backHandle(location.search, "") : backHandle(location.search, identity?.gamid_handle ?? handle), pathname: location.pathname, referrer: document.referrer, origin: location.origin, history,
     onSkip: () => frame.contentWindow?.postMessage({ type: "gamid-intro-preview-skip" }, location.origin) });
   if (visitorNav) document.body.append(visitorNav.element);
   if (visitorNav && fromCrew) getPublicCrewWall(fromCrew).then(view => visitorNav.setBackName(view?.crew_name), () => {});

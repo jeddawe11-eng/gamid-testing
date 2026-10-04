@@ -6,11 +6,13 @@
 //                                            is none (the Intro frame performs the skip - the same code path as its own Skip button - and hides its own Skip,
 //                                            config.hostSkip, so there is never two). Pressing nothing lets the Intro finish normally. Replay Intro stays the page's
 //                                            existing control after the Intro.
+// The Crew Wall page uses the same group with `from` only (/crew/?c=<id>&from=<handle>, opened from a Personal GamID's My Crew block): "Back to @<handle>".
 // Without a valid `from` / `crew` nothing is rendered and the page behaves exactly as before.
 import { gamidHref, goBack, crewWallHref } from "./identity-link.js";
 
 export function createVisitorNav({ from, crew = "", pathname = "/", doc = globalThis.document, referrer = "", origin = "", history = null, onSkip = () => {} }) {
-  const href = crew ? crewWallHref(crew, { pathname }) : from ? gamidHref(from, { pathname }) : null;
+  // returning to a Crew Wall keeps where the visitor entered the Crew from (`from`), so that Crew Wall can still lead back to the originating GamID
+  const href = crew ? crewWallHref(crew, { pathname, from }) : from ? gamidHref(from, { pathname }) : null;
   if (!href) return null;
   const node = (tag, className, text) => { const el = doc.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
   const nav = node("nav", "identity-nav");

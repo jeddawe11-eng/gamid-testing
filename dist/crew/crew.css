@@ -41,3 +41,9 @@ a.crew-card:hover,a.crew-card:focus-visible{border-color:var(--crew-cyan);outlin
 .crew-card-handle{color:var(--crew-cyan);font-size:.72em;font-weight:700;overflow-wrap:break-word}
 .crew-card-role,.crew-card-game{color:var(--crew-muted);font-size:.66em;overflow-wrap:break-word}
 .crew-card-note{color:#ffe2a6;font-size:.62em}
+/* Back to @<GamID> (the shared visitor navigation, visitor-nav.js) when the Crew Wall was opened from a Personal GamID's My Crew block - in the page flow, above the Wall */
+.crew-shell .identity-nav{display:flex;justify-content:flex-start;margin:0 0 .75rem}
+.identity-back{display:inline-flex;align-items:center;gap:.4rem;max-width:100%;box-sizing:border-box;padding:.6rem .95rem .6rem .75rem;border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(10,8,16,.82);color:#fff;font-size:.8rem;font-weight:700;letter-spacing:.04em;text-decoration:none;overflow-wrap:anywhere}
+.identity-back:hover,.identity-back:focus-visible{border-color:#62e7ff;outline:none}
+.identity-back-arrow{font-size:1.2rem;line-height:1}
+.identity-skip,.identity-skip[hidden]{display:none}

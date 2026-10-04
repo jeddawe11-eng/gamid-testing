@@ -2,8 +2,12 @@
 // preview of an unpublished Wall (get_crew_wall_preview, owner-only on the server). Every member card is filled from that member's own public GamID through the
 // accepted public identity function (get_public_identity), so their visibility switches apply and values are current. Tapping a card opens their real GamID with
 // ?crew=<id>; that page offers "Back to <Crew>" + "Skip Intro". The scroll position is remembered for this Crew so Back returns to the same place.
+// Opened from a Personal GamID's My Crew block (/crew/?c=<id>&from=<handle>), the page offers "Back to @<handle>" (the shared visitor navigation) and keeps `from`
+// on every member card, so Member -> Back to Crew -> Back to @<handle> returns to the originating GamID.
 import { getPublicCrewWall, getCrewWallPreview, getPublicIdentity, loadPublicAvatar, restoreSession } from "../account/supabase-client.js";
 import { crewWallModel, paintCrewWall, CREW_UUID } from "./crew-wall.js";
+import { backHandle } from "../public/identity-link.js";
+import { createVisitorNav } from "../public/visitor-nav.js";
 
 export const SCROLL_KEY = crewId => `gamid.crewWall.scroll.${crewId}`;
 const LEAGUE = "league_of_legends";
@@ -12,6 +16,8 @@ const title = value => `${String(value).charAt(0)}${String(value).slice(1).toLow
 const text = (value, max = 80) => (typeof value === "string" && value.trim() ? value.trim().slice(0, max) : "");
 
 export const crewIdFromSearch = search => { const id = (new URLSearchParams(search).get("c") || "").trim().toLowerCase(); return CREW_UUID.test(id) ? id : ""; };
+// a member card's address: the member's GamID with ?crew=<id> (Back to Crew) and, when the visitor came from a Personal GamID, that `from`
+export const memberHref = (gamidPath, crewId, from = "") => `${gamidPath}?crew=${encodeURIComponent(crewId)}${from ? `&from=${encodeURIComponent(from)}` : ""}`;
 
 // one member's PUBLIC data, from the public identity response only (null when their GamID is not public)
 export function publicPerson(identity, gameKey, avatarUrl = null) {
@@ -45,6 +51,9 @@ async function main() {
   const loading = document.getElementById("crewLoading"), missing = document.getElementById("crewMissing"), host = document.getElementById("crewWall"), banner = document.getElementById("crewPreviewBanner");
   const show = state => { loading.hidden = state !== "loading"; missing.hidden = state !== "missing"; host.hidden = state !== "wall"; };
   if (!crewId) { show("missing"); return; }
+  const from = backHandle(location.search, "");
+  const nav = createVisitorNav({ from, pathname: location.pathname, referrer: document.referrer, origin: location.origin, history });
+  if (nav) document.getElementById("crewShell").prepend(nav.element);
 
   let model = null, people = new Map(), preview = false, paintedWidth = 0;
   async function read() {
@@ -67,7 +76,7 @@ async function main() {
     paintedWidth = width();
     paintCrewWall(host, model, people, {
       width: paintedWidth, preview,
-      cardHref: handle => `${new URL(`../@${handle}`, location.href).pathname}?crew=${encodeURIComponent(model.crewId)}`,
+      cardHref: handle => memberHref(new URL(`../@${handle}`, location.href).pathname, model.crewId, from),
     });
     for (const link of host.querySelectorAll("a.crew-card")) link.addEventListener("click", () => { try { sessionStorage.setItem(SCROLL_KEY(crewId), String(scrollY)); } catch { /* storage off: Back still works */ } });
   }

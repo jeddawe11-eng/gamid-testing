@@ -44,9 +44,9 @@ export async function preparePublicWall(published, handle, api = defaultApi) {
       else { const url = await api.loadPublicWallPicture(path); if (url) pictures.set(id, url); }
     } catch { /* this one asset shows its placeholder */ }
   }));
-  // My Duo opens the Duo's GamID in place, carrying `from` so that page offers "Back to @<this handle>"
+  // My Duo opens the Duo's GamID and My Crew opens the Crew Wall - both in place (same tab), both carrying `from` so the destination offers "Back to @<this handle>"
   const pathname = globalThis.location?.pathname ?? "/";
-  const view = await loadPublicView(api, handle, { duoLink: { newTab: false, href: duo => gamidHref(duo, { from: handle, pathname }) }, crewLink: { newTab: false, href: crewId => crewWallHref(crewId, { pathname }) } }).catch(() => null);
+  const view = await loadPublicView(api, handle, { duoLink: { newTab: false, href: duo => gamidHref(duo, { from: handle, pathname }) }, crewLink: { newTab: false, href: crewId => crewWallHref(crewId, { pathname, from: handle }) } }).catch(() => null);
   return {
     doc: normalizeEmbedLayering(doc).doc,   // the same layering rule Preview applies (nothing is drawn over a player)
     assets: { urlFor: id => pictures.get(id) ?? null, videoUrlFor: id => videos.get(id) ?? null },

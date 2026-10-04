@@ -169,7 +169,7 @@ test("published Wall: a visitor sees the My Crew block where the owner placed it
   const cards = byClass(block, "wall-crew-card");
   assert.equal(cards.length, 2, "several Crews (one per game) in the same block");
   assert.deepEqual(cards.map(card => card.tag), ["a", "a"]);
-  assert.deepEqual(cards.map(card => card.attrs.href), [`/crew/?c=${LOL}`, `/crew/?c=${VAL}`]);
+  assert.deepEqual(cards.map(card => card.attrs.href), [`/crew/?c=${LOL}&from=black`, `/crew/?c=${VAL}&from=black`], "carrying the originating GamID (Back to @black on the Crew Wall)");
   assert.equal(cards[0].textContent, "LEAGUE OF LEGENDSEspadaOWNER · 2 MEMBERS›");
   assert.equal(cards[1].textContent, "VALORANTZeroMEMBER · 1 MEMBER›");
   assert.ok(cards.every(card => card.attrs[INTERACTIVE_ATTR] === "true" && card.attrs.target === undefined), "a tap target; a visitor's Wall navigates in place");
@@ -180,7 +180,7 @@ test("published Wall: a visitor sees the My Crew block where the owner placed it
 test("the Crew link: /crew/?c=<id> on the permanent route, the crew/ folder on the temporary route, a new tab in the editor's Preview; never anything but a same-origin path", async () => {
   assert.equal(crewWallHref(LOL, { pathname: "/@black" }), `/crew/?c=${LOL}`);
   assert.equal(crewWallHref(LOL, { pathname: "/gamid-testing/public/index.html" }), `/gamid-testing/crew/?c=${LOL}`);
-  assert.match(read("dist/public/public-wall.js"), /crewLink: \{ newTab: false, href: crewId => crewWallHref\(crewId, \{ pathname \}\) \}/);
+  assert.match(read("dist/public/public-wall.js"), /crewLink: \{ newTab: false, href: crewId => crewWallHref\(crewId, \{ pathname, from: handle \}\) \}/);
   assert.match(read("dist/wall-editor/editor.js"), /crewLink: \{ newTab: true, href: crewId => `\$\{new URL\("\.\.\/crew\/", location\.href\)\.pathname\}\?c=\$\{crewId\}` \}/);
   const preview = paintGamidBlock(content, { public: { available: true, crews: publicCrewList(SECTION, { newTab: true, href: id => `/crew/?c=${id}` }) } }, make, { interactive: true });
   const card = byClass(preview, "wall-crew-card")[0];

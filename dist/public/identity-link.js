@@ -39,13 +39,16 @@ export function gamidHref(handle, { from = "", pathname = "/" } = {}) {
 }
 
 // My Crew: a member card on a Crew Wall links to the member's GamID with ?crew=<crew id>; that page returns to the Crew Wall, /crew/?c=<id> (the permanent route; on
-// the temporary GitHub Pages route, the crew/ folder beside public/). Only a well-formed id is ever used.
+// the temporary GitHub Pages route, the crew/ folder beside public/). Only a well-formed id is ever used. `from` (a valid handle) is the Personal GamID the visitor
+// opened the Crew from (its Wall's My Crew block): the Crew Wall then offers "Back to @<from>" and keeps `from` on its member cards, so returning through the Crew
+// still leads back to that GamID - the same `from` the My Duo link carries.
 const CREW_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 export const crewIdFromSearch = search => { const id = String(new URLSearchParams(search).get("crew") ?? "").trim().toLowerCase(); return CREW_ID.test(id) ? id : ""; };
-export function crewWallHref(crewId, { pathname = "/" } = {}) {
+export function crewWallHref(crewId, { pathname = "/", from = "" } = {}) {
   if (!CREW_ID.test(String(crewId))) return null;
   const base = /\/public\/(index\.html)?$/.test(pathname) ? pathname.replace(/public\/(index\.html)?$/, "") : "/";
-  return `${base}crew/?c=${crewId}`;
+  const origin = normalizeHandle(from);
+  return `${base}crew/?c=${crewId}${isHandle(origin) ? `&from=${origin}` : ""}`;
 }
 
 // The public 'crews' section the server sends (get_public_identity -> public_sections.crews, 20261003234309_personal_gamid_crews): present ONLY for a PUBLIC GamID's
