@@ -38,7 +38,7 @@ export function validateDraft({ flow = "NEED_PLAYERS", groupKind = "ME", current
   if (!FLOW_VALUES.includes(flow)) return "Choose a Play Together direction.";
   if (!GROUP_VALUES.includes(groupKind)) return "Choose Me or Us.";
   if (!queue?.enabled) return "Choose an available queue.";
-  if (!regionKey) return "Choose your Riot region/server.";
+  if (!regionKey) return "Choose your region/server.";
   if (!Number.isInteger(currentGroupSize) || currentGroupSize < 1) return "Your confirmed group size is invalid.";
   const maxSeats = maxSeatsForQueue(queue, currentGroupSize);
   if (flow === "NEED_PLAYERS" && (!Number.isInteger(seatsWanted) || seatsWanted < 1 || seatsWanted > maxSeats)) return `Choose 1–${maxSeats} seats.`;
@@ -78,4 +78,14 @@ export function compatibilityScore(candidate) {
 
 export function humanMic(value) {
   return ({ REQUIRED:"Required", PREFERRED:"Preferred", NO_PREFERENCE:"No preference" })[value] || value;
+}
+
+export function experiencesForGame(catalog, gameKey) {
+  return (catalog?.experiences || []).filter(item => item.game_key === gameKey);
+}
+export function regionsForGame(catalog, gameKey) {
+  return (catalog?.regions || []).filter(item => item.game_key === gameKey);
+}
+export function positionsForGame(catalog, gameKey, experienceKey) {
+  return (catalog?.positions || []).filter(item => item.game_key === gameKey && (!item.experience_key || item.experience_key === experienceKey));
 }
