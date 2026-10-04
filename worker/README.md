@@ -1,9 +1,14 @@
 # GamID Intro processing worker
 
-This directory is the provider-neutral Slice 3C processing boundary. It is not
-deployed yet. The browser uploads an authenticated source and queues a job; an
+This directory is the provider-neutral Slice 3C processing boundary. The existing
+TESTING worker is deployed as `gamid-intro-worker-testing`. The browser uploads an authenticated source and queues a job; an
 independent, trusted container claims that job and produces the approved D3
 derivative. No FFmpeg or privileged credential runs in the browser.
+
+The Usage gateway image uses the repository root as its Docker build context.
+See [Global Usage rollout](../docs/global-usage-center.md) and the explicit source
+allowlist in `cloud-run/usage-testing.gcloudignore`. Update the existing TESTING
+Job image; preserve its existing secrets, service account and dispatcher.
 
 ## Contract
 

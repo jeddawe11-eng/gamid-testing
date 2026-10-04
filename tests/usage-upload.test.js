@@ -2,9 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {handleUsageUpload,safeUpstream,boundedBody,uploadMetadata} from '../supabase/functions/_shared/usage-upload.js';
 import {uploadResumable} from '../dist/account/resumable-upload.js';
+import {uploadGatewayFile} from '../worker/usage-upload.mjs';
+import {mkdtemp,writeFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 
 const BASE='https://upvtrczefcvigxdyuylw.supabase.co',TUS='https://upvtrczefcvigxdyuylw.storage.supabase.co/storage/v1/upload/resumable';
 const OWNER='11111111-1111-4111-8111-111111111111',OTHER='22222222-2222-4222-8222-222222222222',ID='33333333-3333-4333-8333-333333333333';
+test('worker derivative gateway preserves legacy Bearer and secret-key authentication',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'gamid-worker-auth-'));try{
+ const filePath=join(dir,'fixture.webm');await writeFile(filePath,'data');
+ for(const headers of [{apikey:'legacy-fixture',Authorization:'Bearer legacy-fixture'},{apikey:'sb_secret_fixture'}]){
+  const fetchImpl=async(_url,o)=>{assert.equal(o.headers.authorization,headers.Authorization);assert.equal(o.headers.apikey,headers.apikey);return new Response(null,{status:o.method==='POST'?201:204,headers:o.method==='POST'?{Location:BASE+'/functions/v1/usage-upload/tus/'+ID}:{'Upload-Offset':'4'}});};
+  await uploadGatewayFile({backend:{url:BASE,headers:()=>headers},bucket:'intro-media',path:OWNER+'/fixture.webm',filePath,mime:'video/webm',fetchImpl});
+ }
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
 const env={supabaseUrl:BASE,serviceKey:'private-service-fixture',anonKey:'publishable-fixture'};
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
 const metadata=(bucket='wall-video',owner=OWNER,mime='video/mp4')=>[['bucketName',bucket],['objectName',`${owner}/file.mp4`],['contentType',mime]].map(([k,v])=>`${k} ${btoa(v)}`).join(',');
