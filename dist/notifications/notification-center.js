@@ -228,7 +228,7 @@ export function createNotificationCenter({ api, doc = globalThis.document, timer
 
   return {
     root, toast,
-    mount(host, toastHost = doc.body) { host.append(root); toastHost?.append?.(toast); render(); return load().then(() => { if (subscribe) unsubscribe = subscribe(() => refresh()); }); },
+    mount(host, toastHost = doc.body) { host.append(root); toastHost?.append?.(toast); render(); return load().then(() => { if (!stopped && subscribe) unsubscribe = subscribe(() => refresh()); }); },
     load, refresh, markRead, markAllRead, setOpen,
     get unread() { return unread; },
     get items() { return [...items.values()].sort((a, b) => Number(b.notification_id) - Number(a.notification_id)); },

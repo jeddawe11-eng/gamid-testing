@@ -66,6 +66,16 @@ async function page(server, { visible = true, onNavigate = () => {} } = {}) {
   return { center, timers, state, bell, badge, panel, rows, toast: center.toast, signal: async () => { await signal(); await tick(); } };
 }
 
+test("destroying a global center during its initial read cannot later open an orphan Realtime subscription", async () => {
+  const server = fakeServer(); let release, subscribed = 0;
+  const api = { ...server.api, getMyNotifications: () => new Promise(resolve => { release = resolve; }) };
+  const doc = { createElement: tag => new El(tag), addEventListener() {}, removeEventListener() {}, body: new El("body") };
+  const center = createNotificationCenter({ api, doc, subscribe: () => { subscribed++; return () => {}; } });
+  const mounted = center.mount(new El("span"), doc.body); await Promise.resolve();
+  center.destroy(); release([]); await mounted;
+  assert.equal(subscribed, 0); assert.equal(doc.body.children.length, 0);
+});
+
 test("Account and Play Together centers share owner unread/read state across live tabs and navigation", async () => {
   const server = fakeServer([note(1, "duo.request_received"), note(2, "crew.invite_received")]);
   const account = await page(server), playTogether = await page(server);
@@ -336,6 +346,7 @@ test("13. mobile and desktop: the panel never exceeds the viewport, becomes a fu
   assert.match(css, /@media \(max-width:540px\)\{\s*\.gn-panel\{position:fixed;top:4\.4rem;left:1rem;right:1rem;width:auto\}/, "phones: 16 px side gutters, no horizontal overflow");
   assert.match(css, /\.gn-toast\{[^}]*width:min\(26rem,calc\(100vw - 2rem\)\)/);
   const html = read("dist/account/index.html");
-  assert.match(html, /<link rel="stylesheet" href="\.\.\/notifications\/notifications\.css" \/>/);
-  assert.match(html, /<div class="site-head-end"><span id="notificationsHost" class="notifications-host"><\/span><span class="test-badge">TESTING<\/span><\/div>/);
+  assert.match(read("dist/app/authenticated-shell.js"), /notifications\/notifications.css/);
+  assert.match(html, /<div class="site-head-end"><span class="test-badge">TESTING<\/span><\/div>/);
+  assert.match(read("dist/app/authenticated-shell.js"), /host.id = "notificationsHost"/);
 });

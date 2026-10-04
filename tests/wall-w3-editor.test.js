@@ -158,7 +158,7 @@ test("security: the page carries a strict CSP - same-origin scripts/styles/fonts
   assert.doesNotMatch(csp, /unsafe-inline|unsafe-eval|\*/);
   assert.equal((csp.match(/data:/g) ?? []).length, 1, "data: is allowed for images only");
   assert.match(csp, /img-src 'self' data: blob:/);
-  assert.match(csp, /connect-src 'self' https:\/\/upvtrczefcvigxdyuylw\.supabase\.co https:\/\/upvtrczefcvigxdyuylw\.storage\.supabase\.co(;|$)/);   // + the project's own resumable-upload host (background videos)
+  assert.match(csp, /connect-src 'self' wss:\/\/upvtrczefcvigxdyuylw\.supabase\.co https:\/\/upvtrczefcvigxdyuylw\.supabase\.co https:\/\/upvtrczefcvigxdyuylw\.storage\.supabase\.co(;|$)/); // Exact TESTING Realtime + API + upload hosts only.
   assert.match(csp, /media-src 'self' blob: https:\/\/upvtrczefcvigxdyuylw\.supabase\.co(;|$)/, "background videos stream only from the project's own storage");
   assert.match(csp, /object-src 'none'/);
   const frameSrc = csp.match(/frame-src ([^;]+)/)[1].split(" ").sort();

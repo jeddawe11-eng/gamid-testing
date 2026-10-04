@@ -13,8 +13,6 @@ import { createDuoPanel } from "./my-duo.js";
 import { createCrewPanel } from "./my-crew.js";
 import { subscribeCrewRealtime } from "./crew-realtime.js";
 import { subscribeDuoRealtime } from "./duo-realtime.js";
-import { createNotificationCenter } from "../notifications/notification-center.js";
-import { notificationSubscriber } from "../notifications/notification-realtime.js";
 
 const views = [...document.querySelectorAll(".view")];
 const message = document.getElementById("formMessage");
@@ -396,7 +394,6 @@ async function showIdentity(data) {
   // My Duo fills in on its own (the panel shows its loading line until then); #my-duo (a notification destination) focuses it
   loadDuo().then(() => { if (location.hash === "#my-duo") openNotificationDestination("account.my_duo"); });
   loadCrew().then(() => { if (location.hash === "#my-crew") openNotificationDestination("account.my_crew"); });
-  mountNotifications();
 }
 
 function permanentGamidUrl() {
@@ -734,14 +731,6 @@ async function loadCrew() {
     window.addEventListener("pagehide", () => { stopCrewRealtime?.(); stopCrewRealtime = null; }, { once: true });
   }
 }
-// GamID Notifications (dist/notifications/): the bell + Notification Log in the header and the live toast. The server writes notifications; this page only reads its
-// owner's log. A notification's typed destination is opened here - never a URL.
-function mountNotifications() {
-  const host = document.getElementById("notificationsHost");
-  if (!host || notificationCenter) return;
-  notificationCenter = createNotificationCenter({ api, onNavigate: openNotificationDestination, subscribe: notificationSubscriber() });
-  notificationCenter.mount(host, document.body);
-}
 function openNotificationDestination(destination) {
   const sectionId = { "account.my_duo": "duoSection", "account.my_crew": "crewSection" }[destination];
   if (!sectionId) return;
@@ -754,10 +743,13 @@ function openNotificationDestination(destination) {
   setTimeout(() => section.classList.remove("is-focused"), 1600);
 }
 
+window.addEventListener("gamid:notification-navigate", event => {
+ if (["account.my_duo", "account.my_crew"].includes(event.detail?.destination)) { event.preventDefault(); openNotificationDestination(event.detail.destination); }
+});
+
 // My Duo (my-duo.js): a mutual GamID-to-GamID relationship; the panel only renders server state and asks for the confirmations the server requires.
 let duoPanel = null;
 let stopDuoRealtime = null;
-let notificationCenter = null;
 async function loadDuo() {
   const root = document.getElementById("duoPanel");
   if (!root) return;
@@ -1868,7 +1860,7 @@ document.getElementById("languageForm").addEventListener("submit", async event =
 document.getElementById("signOutButton").addEventListener("click", async () => {
   if (isProfileDirty() && !window.confirm("Discard your unsaved profile changes and sign out?")) return;
   try { await api.signOut(); }
-  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; stopCrewRealtime?.(); stopCrewRealtime = null; crewPanel = null; notificationCenter?.destroy(); notificationCenter = null; introStatusPoller.stop(); releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
+  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; stopCrewRealtime?.(); stopCrewRealtime = null; crewPanel = null; introStatusPoller.stop(); releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
 });
 window.addEventListener("beforeunload", event => {
   if (!isProfileDirty()) return;

@@ -1,0 +1,10 @@
+/* The existing notification component fits each existing product header. */
+.gamid-global-notifications{display:inline-flex;align-items:center;flex:0 0 auto;margin-left:.5rem}
+.site-head-end .gamid-global-notifications{order:-1;margin-left:0}
+.crew-head .gamid-global-notifications{margin-left:auto}
+.ed-top .gamid-global-notifications{margin-left:0}
+@media(max-width:599px){
+  html:has(.ed-top .gamid-global-notifications){--top:6rem}
+  .ed-top:has(.gamid-global-notifications){flex-wrap:wrap;align-content:center;row-gap:.2rem}
+  .ed-top:has(.gamid-global-notifications) .ed-top-actions{order:3;width:100%;justify-content:flex-end;margin-left:0}
+}

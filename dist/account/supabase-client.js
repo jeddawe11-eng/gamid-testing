@@ -6,6 +6,7 @@ export const SUPABASE_PROJECT_ID = "upvtrczefcvigxdyuylw";
 export const SUPABASE_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co`;
 const STORAGE_UPLOAD_URL = `https://${SUPABASE_PROJECT_ID}.storage.supabase.co/storage/v1/upload/resumable`;
 export const PUBLISHABLE_KEY = "sb_publishable_ovl-uegBzJlWPJcTF_dviw_6uf1aVYg";
+export const AUTH_SESSION_EVENT = "gamid:auth-session-changed";
 const SESSION_KEY = "gamid.testing.auth.session.v1";
 // Public, anonymous Edge Function: real media thumbnails / Steam avatars for Wall facades (supabase/functions/_shared/media-poster.js).
 export const MEDIA_POSTER_URL = `${SUPABASE_URL}/functions/v1/media-poster`;
@@ -65,6 +66,7 @@ function persist(next) {
     // Authentication has already succeeded. Keep the in-memory session usable
     // when a browser temporarily denies or cannot write persistent storage.
   }
+  if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") window.dispatchEvent(new Event(AUTH_SESSION_EVENT));
   return next;
 }
 
@@ -698,4 +700,10 @@ export function userIdFromToken() {
     const payload = JSON.parse(atob(value.padEnd(Math.ceil(value.length / 4) * 4, "=")));
     return payload.sub;
   } catch { return null; }
+}
+
+// Every top-level surface using the authenticated client inherits the global shell.
+// Public visitor pages explicitly opt out; embedded renderers never mount owner controls.
+if (typeof document !== "undefined" && typeof window !== "undefined" && window.parent === window && document.documentElement?.dataset?.gamidSurface !== "public") {
+  import("../app/authenticated-shell.js").then(({ bootAuthenticatedShell }) => bootAuthenticatedShell()).catch(error => console.error("GamID authenticated shell", error));
 }
