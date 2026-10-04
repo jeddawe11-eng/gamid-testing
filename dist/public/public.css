@@ -142,3 +142,23 @@ html.is-public-wall .public-shell .replay-button{grid-area:2/1;justify-self:star
 .identity-skip[hidden]{display:none}
 .identity-back:hover,.identity-back:focus-visible,.identity-skip:hover,.identity-skip:focus-visible{border-color:var(--cyan);outline:none}
 .identity-back-arrow,.identity-skip-arrow{font-size:1.2rem;line-height:1}
+/* MY CREW (public-crews.js): every qualifying Crew of this GamID, linking to its published Crew Wall. After the profile body / the published Wall, before Replay Intro. */
+.public-shell[data-mode="flow"] .public-crews{grid-area:4/1}
+.public-shell[data-mode="flow"] .replay-button{grid-area:5/1}
+html.is-public-wall .public-shell .public-crews{grid-area:2/1}
+html.is-public-wall .public-shell .replay-button{grid-area:3/1;justify-self:start}
+.public-crews{position:relative;z-index:1;display:grid;gap:.6rem;min-width:0;width:min(38rem,calc(100% - 2rem));margin:1rem auto 0;padding:.85rem 1rem;border:1px solid rgba(255,255,255,.2);border-radius:1rem;background:rgba(10,8,16,.78)}
+.public-crews[hidden]{display:none}
+.public-crews .public-section-label{margin:0}
+.public-crews-list{display:grid;gap:.55rem}
+.public-crew-card{display:flex;align-items:center;gap:.75rem;min-width:0;padding:.7rem .8rem;border:1px solid rgba(139,93,255,.45);border-radius:.85rem;background:linear-gradient(120deg,rgba(139,93,255,.12),rgba(98,231,255,.05));color:var(--text);text-decoration:none;transition:border-color .15s ease}
+.public-crew-card:hover,.public-crew-card:focus-visible{border-color:var(--cyan);outline:none}
+.public-crew-copy{display:grid;gap:.15rem;min-width:0;flex:1 1 auto}
+.public-crew-eyebrow{color:#c8bafc;font-size:.56rem;font-weight:900;letter-spacing:.16em}
+.public-crew-game{color:var(--cyan);font-size:.62rem;font-weight:800;letter-spacing:.14em;overflow-wrap:break-word}
+.public-crew-name{font-size:1rem;overflow-wrap:break-word}
+.public-crew-meta{display:flex;flex-wrap:wrap;align-items:center;gap:.45rem;margin-top:.15rem}
+.public-crew-role{padding:.15rem .5rem;border:1px solid rgba(139,93,255,.6);border-radius:999px;color:#c8bafc;font-size:.56rem;font-weight:900;letter-spacing:.12em}
+.public-crew-role.is-owner{border-color:rgba(98,231,255,.7);color:var(--cyan)}
+.public-crew-count{color:var(--muted);font-size:.72rem}
+.public-crew-chevron{margin-left:auto;color:var(--muted);font-size:1.4rem;line-height:1}
