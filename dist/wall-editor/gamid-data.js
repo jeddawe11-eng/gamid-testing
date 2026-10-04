@@ -13,7 +13,7 @@
 import { normalizeLibrary } from "../public/public-games.js";
 import { LEAGUE_LABELS } from "../account/game-profile-league-compat.js";
 import { gameRef } from "../wall-kit/gamid-data.js";
-import { normalizeDuo, gamidHref, isHandle, normalizeHandle } from "../public/identity-link.js";
+import { normalizeDuo, normalizeCrews, gamidHref, crewWallHref, isHandle, normalizeHandle } from "../public/identity-link.js";
 
 const PROVIDER_LABELS = { steam: "Steam", discord: "Discord", riot: "Riot", league: "League of Legends", xbox: "Xbox", playstation: "PlayStation" };
 export const providerLabel = key => PROVIDER_LABELS[key] ?? String(key).replace(/[_-]+/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
@@ -95,12 +95,23 @@ async function publicDuo(api, section, link) {
   return { handle: duo.handle, displayName: duo.displayName, avatarUrl, href: typeof href === "string" ? href : null, newTab: link?.newTab === true };
 }
 
+// My Crew as a visitor sees it: only the server's public 'crews' section (a PUBLIC GamID's ACTIVE memberships in existing Crews with a PUBLISHED Crew Wall), each
+// with the address of its Crew Wall. `link` decides that address and whether it opens in a new tab: a visitor's Wall navigates in place; the editor's Preview opens a
+// new tab. Only same-origin paths are kept.
+export function publicCrewList(section, link) {
+  const href = link?.href ?? (id => crewWallHref(id));
+  return normalizeCrews(section).map(crew => {
+    const address = href(crew.id);
+    return { ...crew, href: typeof address === "string" && /^\/(?!\/)/.test(address) ? address : null, newTab: link?.newTab === true };
+  });
+}
+
 // The visitor's view of this GamID. `games` is null when the owner's My Games is off (or there are none); its list grows page by page (50 at a time, the public
 // function's own paging) only when a visitor asks for more, so a library of thousands never loads at once.
-export async function loadPublicView(api, handle, { duoLink = null } = {}) {
-  if (!handle || typeof api.getPublicIdentity !== "function") return { available: false, handle: handle || "", games: null, connections: [] };
+export async function loadPublicView(api, handle, { duoLink = null, crewLink = null } = {}) {
+  if (!handle || typeof api.getPublicIdentity !== "function") return { available: false, handle: handle || "", games: null, connections: [], crews: [] };
   const identity = await safely(() => api.getPublicIdentity(handle), null);
-  if (!identity) return { available: false, handle, games: null, connections: [] };
+  if (!identity) return { available: false, handle, games: null, connections: [], crews: [] };
   const sections = identity.public_sections ?? {};
   const preview = normalizeLibrary(sections.my_games, PUBLIC_SOURCE_LABELS);
   let games = null;
@@ -146,7 +157,7 @@ export async function loadPublicView(api, handle, { duoLink = null } = {}) {
     return lookup;
   }
   const duo = await publicDuo(api, sections.duo, duoLink);
-  return { available: true, handle, games, connections: publicConnections(sections), profile, roles, findGame, duo };
+  return { available: true, handle, games, connections: publicConnections(sections), profile, roles, findGame, duo, crews: publicCrewList(sections.crews, crewLink) };
 }
 
 // The owner's own Duo for designing (EDIT mode): only an ACCEPTED Duo (get_my_duo relation DUO), its public avatar when its GamID is published, and whether visitors
@@ -159,8 +170,17 @@ export function ownerDuo(rows, avatarUrl = null) {
   return { handle, displayName, avatarUrl, isPublished: row.is_published === true, showPublic: row.show_public === true, shownToVisitors: row.is_published === true && row.show_public === true };
 }
 
-export async function loadGamidSnapshot(api, { duoLink = null } = {}) {
-  const [account, profile, connections, publicSettings, display, discovered, manual, duoRows] = await Promise.all([
+// The owner's own Crews for designing (EDIT mode): every ACTIVE membership (get_my_crews), each marked `shownToVisitors` when the server's public section lists it
+// (its Crew Wall is published and the GamID is public) - the block draws the others as "not on your GamID yet" instead of hiding them.
+export function ownerCrews(rows, publicList = []) {
+  const shown = new Set((Array.isArray(publicList) ? publicList : []).map(crew => crew.id));
+  return normalizeCrews((Array.isArray(rows) ? rows : []).filter(row => row?.my_status === "ACTIVE").map(row => ({ ...row, role: row.my_role })))
+    .map(crew => ({ ...crew, shownToVisitors: shown.has(crew.id) }))
+    .sort((a, b) => a.gameName.localeCompare(b.gameName));
+}
+
+export async function loadGamidSnapshot(api, { duoLink = null, crewLink = null } = {}) {
+  const [account, profile, connections, publicSettings, display, discovered, manual, duoRows, crewRows] = await Promise.all([
     safely(() => api.getIdentity(), null),
     safely(() => api.getIdentityProfile(), null),
     safely(() => api.getMyConnections(), []),
@@ -169,6 +189,7 @@ export async function loadGamidSnapshot(api, { duoLink = null } = {}) {
     safely(() => api.getMyDiscoveredGames("steam", 1000), []),
     safely(() => api.getMyManualGames(), []),
     safely(() => (typeof api.getMyDuo === "function" ? api.getMyDuo() : []), []),
+    safely(() => (typeof api.getMyCrews === "function" ? api.getMyCrews() : []), []),
   ]);
   const identity = { ...(account ?? {}), ...(profile ?? {}) };
   let avatarUrl = null;
@@ -194,15 +215,18 @@ export async function loadGamidSnapshot(api, { duoLink = null } = {}) {
     items.push({ name, minutes: null, ref: gameRef(name), refName: name });
   }
   items.sort((a, b) => a.name.localeCompare(b.name));
-  const publicView = await safely(() => loadPublicView(api, identity.gamid_handle, { duoLink: duoLink ?? { newTab: true } }), { available: false, handle: identity.gamid_handle ?? "", games: null, connections: [], duo: null });
+  const publicView = await safely(() => loadPublicView(api, identity.gamid_handle, { duoLink: duoLink ?? { newTab: true }, crewLink: crewLink ?? { newTab: true } }), { available: false, handle: identity.gamid_handle ?? "", games: null, connections: [], duo: null, crews: [] });
   let duo = ownerDuo(duoRows);
   if (duo) {
     const avatarPath = duoRows.find(row => row?.relation === "DUO")?.avatar_media_reference;
     if (avatarPath && typeof api.loadPublicAvatar === "function") duo = { ...duo, avatarUrl: await safely(() => api.loadPublicAvatar(avatarPath), null) };
   }
 
+  const crews = ownerCrews(crewRows, publicView.crews);
+
   return {
     duo,
+    crews,
     public: publicView,
     profile: { displayName: identity.display_name ?? "", handle: identity.gamid_handle ?? "", initial: (identity.display_name ?? "G").trim()[0]?.toUpperCase() ?? "G", avatarUrl, bio: typeof identity.bio === "string" ? identity.bio.trim() : "" },
     roles: roleKeys.map(key => ({ key, label: roleCatalog.get(key) || roleLabel(key), primary: key === identity.primary_role_key })),
@@ -213,6 +237,6 @@ export async function loadGamidSnapshot(api, { duoLink = null } = {}) {
     }),
     games: { total: items.length, items, playtimeAllowed: display?.show_game_playtime === true },
     connectionLabels: Object.fromEntries(Object.keys(PROVIDER_LABELS).map(key => [key, PROVIDER_LABELS[key]])),   // for "<provider> connection is no longer available."
-    visibility: { profile: true, roles: true, connections: publicConnections.length > 0, games: publicSettings?.show_my_games === true, duo: duo?.shownToVisitors === true },
+    visibility: { profile: true, roles: true, connections: publicConnections.length > 0, games: publicSettings?.show_my_games === true, duo: duo?.shownToVisitors === true, crews: crews.some(crew => crew.shownToVisitors) },
   };
 }

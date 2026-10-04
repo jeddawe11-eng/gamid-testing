@@ -5,7 +5,6 @@ import { preparePublicWall, createPublicWallView } from "./public-wall.js";
 import { backHandle, crewIdFromSearch } from "./identity-link.js";
 import { createVisitorNav } from "./visitor-nav.js";
 import { duoSection } from "./public-duo.js";
-import { crewsSection } from "./public-crews.js";
 
 const catalogLabel = (catalog, key) => catalog?.find(item => item.key === key)?.label || key || "";
 
@@ -113,7 +112,6 @@ async function render() {
   const shell = document.getElementById("publicShell");
   let hasSections = false;
   let hasGames = false;
-  let crewsBlock = null;   // MY CREW: shown after the Intro, with the Public Profile or below the published Wall (public-crews.js)
   let gamesLibrary = null;
   // The owner's PUBLISHED Wall (the published-Wall module), when there is one: once the Intro is over it replaces the profile body (the profile card, sections and My Games);
   // Replay Intro still plays the Intro. Without one, `wall` stays null and every line below behaves exactly as before.
@@ -149,7 +147,6 @@ async function render() {
       replayButton.hidden = !hasIntro || event.data.state !== "profile";
       sectionsPanel.hidden = !hasSections || event.data.state !== "profile";
       gamesBlock.hidden = !hasGames || event.data.state !== "profile";
-      if (crewsBlock) crewsBlock.hidden = event.data.state !== "profile";
       if (event.data.state !== "profile") gamesLibrary?.close();
       layout.setProfileShowing(event.data.state === "profile");
       if (wall) showWall(event.data.state);
@@ -220,9 +217,6 @@ async function render() {
     replayButton.before(host);
     wall = createPublicWallView({ host, prepared: preparePublicWall(published, identity.gamid_handle).catch(() => null), handle: identity.gamid_handle });
   }
-  // MY CREW appears automatically for every qualifying Crew (the server decides: PUBLIC GamID, ACTIVE membership, published Crew Wall) - after the Wall / profile body
-  crewsBlock = crewsSection(identity.public_sections?.crews, { pathname: location.pathname });
-  if (crewsBlock) replayButton.before(crewsBlock);
   // with a published Wall the Intro frame shows no profile card and stays transparent (hostReveal): its transition reveals the Wall behind it
   config = wall ? { ...built, hostReveal: true } : built;
   if (visitorNav) config = { ...config, hostSkip: true };   // the frame hides its own Skip: the visitor's Skip Intro sits beside Back

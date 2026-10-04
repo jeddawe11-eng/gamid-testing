@@ -9,7 +9,7 @@ export const HANDLE_PATTERN = /^[a-z0-9][a-z0-9_]{1,22}[a-z0-9]$/;
 export const isHandle = value => typeof value === "string" && HANDLE_PATTERN.test(value) && !value.includes("__");
 export const normalizeHandle = value => (typeof value === "string" ? value.trim().replace(/^@/, "").toLowerCase() : "");
 
-export const RELATIONSHIP_LABELS = Object.freeze({ duo: "MY DUO" });
+export const RELATIONSHIP_LABELS = Object.freeze({ duo: "MY DUO", crews: "MY CREW" });
 export const RELATIONSHIP_BADGE_TEXT = Object.freeze({ duo: "Mutual Duo" });
 
 const clean = (value, max) => (typeof value === "string" && value.trim() ? value.trim().slice(0, max) : "");
@@ -46,6 +46,19 @@ export function crewWallHref(crewId, { pathname = "/" } = {}) {
   if (!CREW_ID.test(String(crewId))) return null;
   const base = /\/public\/(index\.html)?$/.test(pathname) ? pathname.replace(/public\/(index\.html)?$/, "") : "/";
   return `${base}crew/?c=${crewId}`;
+}
+
+// The public 'crews' section the server sends (get_public_identity -> public_sections.crews, 20261003234309_personal_gamid_crews): present ONLY for a PUBLIC GamID's
+// ACTIVE memberships in existing Crews whose Crew Wall is PUBLISHED - automatically, there is no switch. -> [{ id, name, gameName, role, members }], text only;
+// anything malformed is simply not shown. Drawn by the Wall's My Crew GamID block, which the owner places on their Wall.
+const plainText = (value, max) => (typeof value === "string" && value.trim() && !/[<>\u0000-\u001f]/.test(value) ? value.trim().slice(0, max) : "");
+export function normalizeCrews(section) {
+  return (Array.isArray(section) ? section : [])
+    .map(row => ({
+      id: typeof row?.crew_id === "string" ? row.crew_id.toLowerCase() : "", name: plainText(row?.crew_name, 40), gameName: plainText(row?.game_name, 120) || plainText(row?.game_key, 64),
+      role: row?.role === "OWNER" ? "OWNER" : row?.role === "MEMBER" ? "MEMBER" : "", members: Number.isInteger(row?.member_count) && row.member_count > 0 ? row.member_count : null,
+    }))
+    .filter(crew => CREW_ID.test(crew.id) && crew.name && crew.gameName && crew.role);
 }
 
 // The GamID a visitor came from (the `from` the link above added), or "" - ignored when it is malformed or names the page itself.

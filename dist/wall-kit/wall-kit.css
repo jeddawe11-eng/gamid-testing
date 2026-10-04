@@ -35,6 +35,17 @@ a.wall-duo-card { cursor: pointer; transition: border-color .15s ease, backgroun
 a.wall-duo-card:hover, a.wall-duo-card:focus-visible { border-color: #ff7ad9; outline: none; }
 .wall-duo-avatar { box-shadow: 0 0 0 .12em rgba(8, 6, 16, .9), 0 0 0 .24em rgba(255, 122, 217, .75); }
 .wall-duo-chevron { margin-left: auto; color: var(--g-muted, #c8bafc); font-size: 1.4em; line-height: 1; }
+/* My Crew: one row per Crew (one per game); several Crews scroll inside the block */
+ul.wall-crew-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4em; min-height: 0; overflow: auto; }
+.wall-crew-card { display: flex; align-items: center; gap: .6em; padding: .5em .7em; border: 1px solid var(--g-row-border, rgba(98, 231, 255, .35)); border-radius: .9em; background: var(--g-row-bg, linear-gradient(120deg, rgba(98, 231, 255, .07), rgba(139, 93, 255, .07))); color: inherit; text-decoration: none; }
+a.wall-crew-card { cursor: pointer; transition: border-color .15s ease; }
+a.wall-crew-card:hover, a.wall-crew-card:focus-visible { border-color: var(--g-heading, #62e7ff); outline: none; }
+.wall-crew-copy { display: grid; gap: .15em; min-width: 0; }
+.wall-crew-game { color: var(--g-heading, #62e7ff); font-size: .55em; font-weight: 800; letter-spacing: .14em; overflow-wrap: anywhere; }
+.wall-crew-name { font-size: 1em; overflow-wrap: anywhere; }
+.wall-crew-meta { color: var(--g-muted, #c8bafc); font-size: .6em; font-weight: 800; letter-spacing: .1em; }
+.wall-crew-note { color: #ffc857; font-size: .55em; font-weight: 700; }
+.wall-crew-chevron { margin-left: auto; color: var(--g-muted, #c8bafc); font-size: 1.4em; line-height: 1; }
 ul.wall-gamid-chips, ul.wall-gamid-connections { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4em; }
 .wall-gamid-chips li { padding: .25em .8em; border: 1px solid var(--g-chip-border, rgba(139, 93, 255, .55)); border-radius: 999px; font-size: .75em; font-weight: 700; background: var(--g-chip-bg, rgba(139, 93, 255, .12)); }
 .wall-gamid-chips li.is-primary { border-color: var(--g-heading, #62e7ff); color: var(--g-heading, #62e7ff); }

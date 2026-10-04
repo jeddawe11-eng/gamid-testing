@@ -11,7 +11,7 @@ import { sourceBadges } from "../public/public-games.js";
 import { markInteractive } from "./interaction.js";
 import { relationshipBadge, RELATIONSHIP_LABELS } from "../public/identity-link.js";
 
-export const BLOCK_TITLES = Object.freeze({ profile: "GAMID", roles: "GAMING ROLES", games: "GAMES", connections: "CONNECTIONS", duo: RELATIONSHIP_LABELS.duo });
+export const BLOCK_TITLES = Object.freeze({ profile: "GAMID", roles: "GAMING ROLES", games: "GAMES", connections: "CONNECTIONS", duo: RELATIONSHIP_LABELS.duo, crews: RELATIONSHIP_LABELS.crews });
 
 export const hoursLabel = minutes => (Number.isFinite(minutes) && minutes > 0 ? (minutes >= 600 ? `${Math.round(minutes / 60)} h` : `${(Math.round(minutes / 6) / 10).toString()} h`) : "");
 export const roleLabel = key => String(key).replace(/[_-]+/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
@@ -44,6 +44,23 @@ export function paintGamidBlock(content, snapshot, createNode, { scale = 1, onCh
     if (snapshot.visibility && snapshot.visibility.duo === false) head.append(el("span", "wall-gamid-private", "PRIVATE"));
     if (!snapshot.duo) root.append(el("p", "wall-gamid-empty", "No Duo yet. Send a Duo request from your GamID page."));
     else root.append(duoCard(snapshot.duo, el, createNode, false));
+    return root;
+  }
+  // My Crew: VIEW mode draws ONLY the visitor's view (snapshot.public.crews: the server's section - a PUBLIC GamID's ACTIVE memberships in Crews whose Crew Wall is
+  // published) and each Crew opens its Crew Wall; several Crews (one per game) are listed in the same block. EDIT mode draws the owner's ACTIVE Crews, marking the
+  // ones visitors would not see yet.
+  if (content.block === "crews") {
+    if (interactive && snapshot.public) {
+      if (!snapshot.public.available) { root.append(el("p", "wall-gamid-empty", "Visitors don't see this yet: your GamID is not public.")); return root; }
+      const shown = Array.isArray(snapshot.public.crews) ? snapshot.public.crews : [];
+      if (!shown.length) { root.append(el("p", "wall-gamid-empty", "No Crew is shown on this GamID yet.")); return root; }
+      root.append(crewList(shown, el, true));
+      return root;
+    }
+    const own = Array.isArray(snapshot.crews) ? snapshot.crews : [];
+    if (snapshot.visibility && snapshot.visibility.crews === false) head.append(el("span", "wall-gamid-private", "PRIVATE"));
+    if (!own.length) root.append(el("p", "wall-gamid-empty", "No Crew yet. Create or join a Crew in your account."));
+    else root.append(crewList(own, el, false));
     return root;
   }
   if (interactive && snapshot.public && (content.block === "games" || content.block === "connections")) {
@@ -206,6 +223,33 @@ function duoCard(duo, el, createNode, interactive) {
   card.append(avatar, names);
   if (href) card.append(el("span", "wall-duo-chevron", "›"));
   return card;
+}
+
+// My Crew rows: game (upper case), Crew name, OWNER / MEMBER · member count. In VIEW mode each row is a link to its Crew Wall - only a same-origin path (built by
+// identity-link.js crewWallHref) is followed; in the editor's Preview it opens in a new tab. In EDIT mode a Crew whose Crew Wall is not published yet says so.
+function crewList(crews, el, interactive) {
+  const list = el("ul", "wall-crew-list");
+  for (const crew of crews) {
+    const href = interactive && typeof crew.href === "string" && /^\/(?!\/)/.test(crew.href) ? crew.href : null;
+    const item = el("li", "wall-crew-item");
+    const row = el(href ? "a" : "div", "wall-crew-card");
+    const count = crew.members ? `${crew.members} MEMBER${crew.members === 1 ? "" : "S"}` : "";
+    if (href) {
+      row.setAttribute("href", href);
+      row.setAttribute("aria-label", `My Crew for ${crew.gameName}: ${crew.name}, ${crew.role === "OWNER" ? "owner" : "member"}${crew.members ? `, ${crew.members} member${crew.members === 1 ? "" : "s"}` : ""}. Open the Crew Wall`);
+      if (crew.newTab) { row.setAttribute("target", "_blank"); row.setAttribute("rel", "noopener"); }
+      markInteractive(row);
+    }
+    const copy = el("span", "wall-crew-copy");
+    copy.append(el("span", "wall-crew-game", crew.gameName.toUpperCase()), el("strong", "wall-crew-name", crew.name), el("span", "wall-crew-meta", count ? `${crew.role} · ${count}` : crew.role));
+    if (!interactive && crew.shownToVisitors === false) copy.append(el("span", "wall-crew-note", "Not on your GamID until its Crew Wall is published"));
+    row.append(copy);
+    if (href) row.append(el("span", "wall-crew-chevron", "›"));
+    item.append(row);
+    list.append(item);
+  }
+  if (interactive) markInteractive(list);   // the list scrolls inside the block when several Crews do not fit
+  return list;
 }
 
 // A connection's own public avatar (e.g. the Steam persona picture), through GamID's image proxy only; shown once decoded, removed on any failure.
