@@ -1,5 +1,7 @@
 # Global Usage Center — TESTING
 
+Current authoritative limits and status: `gamid-truth.json` (capability `global-usage`).
+
 Starting checkpoint: `afef865a8868d5677f51b521d2c8f2e0e6a9048d`.
 Branch: `feature/global-usage-center`. No main merge or Production access.
 
@@ -25,7 +27,8 @@ requires its server-side allowlist and ownership/type policy, not a new UI engin
 
 ## Authoritative feature limits
 
-- Personal Wall: 60 registered assets shared by images and videos; 10 videos.
+- Personal Wall: 60 registered assets shared by images and videos; 15 videos
+  (raised from 10 by migration `20261005025319_wall_video_limit_15`).
   Accepted numeric constants are centralized in private functions used by the
   existing validators and Usage. Images have no separate numeric allowance.
 - Personal Wall layers/stages have no numeric product cap. Usage shows the saved
@@ -84,7 +87,8 @@ files are never manually mutated; no custom Storage trigger is installed.
 ## Rollout gates
 
 The migration starts with `gateway_required=false`. This is an explicit rollout
-gate, not a claim that aggregate enforcement is active. Apply the migration,
+gate, not a claim that aggregate enforcement is active. (Current state: the gate
+is enabled on TESTING - enforcement is ON; see `gamid-truth.json`.) Apply the migration,
 deploy usage-upload and wall-asset-register, rebuild the existing TESTING worker,
 then deploy the matching frontend. Verify fixture uploads, deletion and quota
 rejection before enabling the gate. Never enable it while a browser/worker path
@@ -149,7 +153,7 @@ headers/styles with fixture data and `connect-src 'none'`; no real user is touch
    Templates, Play Together / Team Room and Crew management. Account sections
    Identity, Games, Connections, My Crew and My Duo use this same shell.
 2. Open Usage at desktop/mobile widths. Compare stored totals and category sums.
-   Verify layers have no invented limit and assets/videos show 60/10.
+   Verify layers have no invented limit and assets/videos show 60/15.
 3. On a disposable account upload an avatar, Wall image and MP4/WebM; observe
    usage updates. Remove the Wall assets and verify actual retained bytes fall.
 4. Process an Intro and a converted Wall video on the fixture account. Check
