@@ -40,12 +40,11 @@ Conversation memory is helpful context, but it is **not** an authoritative proje
 
 Snapshot from 2026-10-05; verify with `git status -sb` and `git log -1`.
 
-- **Branch:** `feature/gamid-truth`, tracking `origin/feature/gamid-truth`. It is **not merged** into `main`.
-- **HEAD:** documentation-only commits (GamID Truth and this file) on top of the latest product commit, `e2d258aec6696ec4902e66e142899d6ce8900a61`. That commit is also the head of `origin/feature/global-usage-center`.
-  - Check with `git log --oneline e2d258a..HEAD`: it lists docs-only commits.
-  - The working tree was clean when this was written.
-  - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of HEAD.
-- **Which commit TESTING serves is not exactly verified.** The last full Monitor run (`MR-20261005T050632Z-c734`) reported its checkpoint as `unresolved`. Per-capability checkpoints are in Truth.
+- **Working tip:** `feature/wall-video-asset-preview`, tracking its origin branch. It is **not merged** into `main`.
+  - It descends from `feature/gamid-truth`, which carries GamID Truth and this file, and adds one product fix.
+- **Latest product commit:** `c9327818b1e5ac1c42e057c268bdcde56d4f49c2`, the video asset preview fix. Any later commits on the tip are documentation only; check with `git log --oneline c932781..HEAD`.
+  - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
+- **TESTING serves `c932781`'s `dist/`.** It was deployed by workflow run `37321028462`, and the served Wall editor files were verified byte-identical afterwards. Per-capability checkpoints are in Truth.
 
 ## 5. Monitor: current architecture
 
@@ -56,7 +55,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
   - **What was frozen:** the validated code `37a6360`, with record `acceptance/v2/FREEZE.md`.
   - **Its role:** PRODUCT FAILURE and GM-#### findings come only from V2 and stay deterministic.
 - **V3 AI Observer: `observer-p1.2`.**
-  - **Location:** branch `feature/v3-observer-gemini`, HEAD `52a220d8a1507a4708d18e769a42624d2a731221`, not merged. The prompt is `prompts/observer-p1.2.md` (sha256 `9350dae9…`); the Observer version is `0.3.0-p1.2`.
+  - **Location:** branch `feature/v3-observer-gemini`, not merged; verify its HEAD with `git log -1`. The prompt is `prompts/observer-p1.2.md` (sha256 `9350dae9…`); the Observer version is `0.3.0-p1.2`.
   - **Its role:** a non-deterministic second opinion over stored evidence (AI_OBSERVATION, AO-####). Every AO needs human review.
   - **Limits:** it never alters V2 health, issues or lifecycle. Every paid call needs Mazen's authorization.
 - **Action coverage pilot** (same branch, `src/v3/actions.js` / `src/v3/pilot.js`):
@@ -74,19 +73,21 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Next product task: a candidate GamID issue awaiting a separately approved fix task.** Don't fix it without that approval.
+**Next: Mazen's manual acceptance of the video asset preview fix** (`c932781`, deployed to TESTING). Don't merge it or start dependent work before that acceptance.
 
-- **How it was found:** a blind Assets pilot (`PILOT-20261005T132858Z-open-assets`, GM-TEST-01) produced **AO-0008**.
-  - Category MEDIA_ANOMALY, confidence LOW (it cited one quote).
-  - Gemini noticed that the Assets preview of the uploaded video appeared empty or dark.
-- **Local diagnosis:**
-  - **Source file:** `pink_red_crown_loop.webm` is a valid VP9 file with alpha, 260×276, 4 s. Its **first frame is fully transparent**, and later frames have visible content.
-  - **Product side:** the Assets preview (`dist/wall-editor/tools.js`) shows the video paused at frame 0 (`preload="metadata"`, no seek or poster). So the preview box's own background shows instead of a representative preview.
-- **Records:** AO-0008 and its evidence are in `../gamid-monitor/monitor-data/` (local). Neither belongs in GamID Truth.
+- **What changed:** video assets in Wall Editor → Assets, and in the background video list, now show one representative still frame instead of a paused first frame. The logic is in `dist/wall-editor/video-preview.js`.
+  - Frames are sampled at deterministic points and scored locally.
+  - A clear "▶ Video" fallback replaces an empty box.
+  - Nothing autoplays, and nothing is stored.
+- **What to check:** as GM-TEST-01, open Wall Editor → Assets. The WebM asset should show its artwork, including after a refresh, and Add should still place a playing video layer.
+  - The automated TESTING acceptance passed on desktop and mobile.
+  - The background video list was covered by tests only, not checked live.
+- **Origin:** the fix answers Monitor observation AO-0008. Its evidence is in `../gamid-monitor/monitor-data/` (local) and does not belong in GamID Truth.
 
 ## 8. Current test data
 
-- **GM-TEST-01** has one Wall asset, uploaded for the Assets pilot: `pink_red_crown_loop.webm`. It is in Assets only; it is not placed on the Wall, which is not published.
+- **GM-TEST-01** has one Wall asset, uploaded for the Assets pilot: `pink_red_crown_loop.webm`. It is in Assets only; it is not placed on the saved Wall, which is not published.
+  - The acceptance run added it to the stage and undid that before any save, so the saved draft is unchanged.
 - **@black and @zshot** were not used for this pilot and remain protected.
 - **No credentials or secrets** are stored here or anywhere in either repository. Persona secrets live outside the repositories; see `../gamid-monitor/docs/PERSONAS.md`.
 
