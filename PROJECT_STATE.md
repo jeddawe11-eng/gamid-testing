@@ -42,7 +42,7 @@ Snapshot from 2026-10-05; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/wall-video-asset-preview`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/gamid-truth`, which carries GamID Truth and this file, and adds one product fix.
-- **Latest product commit:** `c9327818b1e5ac1c42e057c268bdcde56d4f49c2`, the video asset preview fix. Any later commits on the tip are documentation only; check with `git log --oneline c932781..HEAD`.
+- **Latest product commit:** `c9327818b1e5ac1c42e057c268bdcde56d4f49c2`, the video asset preview fix, **ACCEPTED by Mazen** (record: `PROJECT_HANDOFF.md` §10). Any later commits on the tip are documentation only; check with `git log --oneline c932781..HEAD`.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
 - **TESTING serves `c932781`'s `dist/`.** It was deployed by workflow run `37321028462`, and the served Wall editor files were verified byte-identical afterwards. Per-capability checkpoints are in Truth.
 
@@ -73,16 +73,18 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Next: Mazen's manual acceptance of the video asset preview fix** (`c932781`, deployed to TESTING). Don't merge it or start dependent work before that acceptance.
+**Next: Mazen decides how accepted work lands on `main`.** No product task is pending.
 
-- **What changed:** video assets in Wall Editor → Assets, and in the background video list, now show one representative still frame instead of a paused first frame. The logic is in `dist/wall-editor/video-preview.js`.
-  - Frames are sampled at deterministic points and scored locally.
-  - A clear "▶ Video" fallback replaces an empty box.
-  - Nothing autoplays, and nothing is stored.
-- **What to check:** as GM-TEST-01, open Wall Editor → Assets. The WebM asset should show its artwork, including after a refresh, and Add should still place a playing video layer.
-  - The automated TESTING acceptance passed on desktop and mobile.
-  - The background video list was covered by tests only, not checked live.
-- **Origin:** the fix answers Monitor observation AO-0008. Its evidence is in `../gamid-monitor/monitor-data/` (local) and does not belong in GamID Truth.
+- **Why landing needs a decision:** `main` (`da2e020`) is behind the working tip. A fast-forward would be clean in Git, but would also land work that Truth still marks PENDING_ACCEPTANCE:
+  - `authenticated-shell`;
+  - `play-together-marvel-rivals`;
+  - `global-usage`.
+
+  It would also land the unmerged GamID Truth docs and My Crew, which is accepted but not yet on `main`.
+- **Options for Mazen:**
+  - accept or defer those capabilities, then fast-forward `main` to the tip;
+  - keep integrating on `feature/*` branches, with TESTING deployed from the tip.
+- **Until then:** don't rewrite history and don't cherry-pick accepted fixes onto `main`.
 
 ## 8. Current test data
 
