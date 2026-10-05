@@ -11,7 +11,11 @@ These rules apply to every AI agent working on GamID: Claude, ChatGPT / Work, an
 
 `PROJECT_HANDOFF.md` and `docs/` hold detailed and historical records.
 
+`PROJECT_STATE.md` is the **entry point** for every new session. It is an index and continuation pointer, not an authoritative source: it points to the sources that own each fact.
+
 ## Workflow
+
+**Entry order, before substantial GamID work:** `PROJECT_STATE.md` → `gamid-truth.json` → the task-specific authoritative sources it lists. Then verify the current Git and checkpoint state yourself rather than trusting recorded SHAs. Conversation memory is not an authoritative project source.
 
 **Before substantial GamID work:**
 1. Read `gamid-truth.json`.
@@ -37,6 +41,7 @@ These rules apply to every AI agent working on GamID: Claude, ChatGPT / Work, an
 6. Every substantial task's completion report states exactly one of:
    - `GamID Truth: UPDATED`, followed by exactly what changed;
    - `GamID Truth: NO CHANGE REQUIRED`.
+7. Update `PROJECT_STATE.md` only when the continuation state materially changes, such as the next task, the current checkpoint pointer, test data or a standing decision. Never put bugs, findings, evidence, changelog entries or secrets there.
 
 ## Never put these in GamID Truth
 
