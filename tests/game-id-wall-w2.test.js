@@ -120,7 +120,7 @@ test("migration: definer functions pin an empty search_path; public wrappers are
   assert.ok(functions.length >= 19);
   for (const body of functions) {
     const name = body.slice(0, body.indexOf("("));
-    assert.ok(/set search_path = ''/.test(body), `${name} pins search_path`);
+    assert.ok(/set\s+search_path\s*=\s*''/.test(body), `${name} pins search_path`);
     if (name.startsWith("public.")) assert.ok(/security invoker/.test(body) && !/security definer/.test(body), `${name} is a security invoker wrapper`);
   }
   assert.ok(/security definer/.test(migrationCode));
