@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {createUsageCenter,mb} from '../dist/usage/usage-center.js';
+import {createUsageCenter,mb,wallCapacity} from '../dist/usage/usage-center.js';
 import {notificationSubscriber} from '../dist/notifications/notification-realtime.js';
 import {createAuthenticatedShell} from '../dist/app/authenticated-shell.js';
 class El {
@@ -12,6 +12,33 @@ class El {
 }
 const doc=()=>({createElement:()=>new El(),addEventListener(){},removeEventListener(){}});
 const snapshot=()=>({storage:{used_bytes:84_000_000,quota_bytes:200_000_000,remaining_bytes:116_000_000,percentage:42,state:'NORMAL',reserved_bytes:0,enforcement_active:true},media:{intro:32_000_000,wall:50_000_000,avatar:2_000_000},quotas:[{name:'Wall Layers',used:7,limit:null},{name:'Wall Videos',used:10,limit:15}]});
+const wallQuotas=(assets,videos,assetLimit=60,videoLimit=15,imageLimit=null)=>[
+ {key:'wall.assets',name:'Wall Assets (images + videos)',used:assets,limit:assetLimit},
+ {key:'wall.videos',name:'Wall Videos',used:videos,limit:videoLimit},
+ {key:'wall.images',name:'Wall Images',used:assets-videos,limit:imageLimit}
+];
+for(const [name,assets,videos,assetLimit,videoLimit,remaining,wording,imageLimit] of [
+ ['both capacities available',15,10,60,15,5,'You can add 5 more videos or up to 45 more images.'],
+ ['video cap reached',20,15,60,15,0,'40 asset slots remaining — images only.'],
+ ['total cap reached despite video room',60,10,60,15,0,'Wall Asset LIMIT REACHED — no more images or videos.'],
+ ['total slots tighter than video slots',58,10,60,15,2,'You can add 2 more videos or up to 2 more images.'],
+ ['empty state',0,0,60,15,15,'You can add 15 more videos or up to 60 more images.'],
+ ['different authoritative limits',25,6,30,8,2,'You can add 2 more videos or up to 5 more images.'],
+ ['over-limit counts clamp at zero',62,16,60,15,0,'Wall Asset LIMIT REACHED — no more images or videos.'],
+ ['singular capacities',59,14,60,15,1,'You can add 1 more video or up to 1 more image.'],
+ ['authoritative image cap if present',20,10,60,15,5,'You can add 5 more videos — image LIMIT REACHED.',10]
+])test(`Wall capacity wording: ${name}`,async()=>{
+ const quotas=wallQuotas(assets,videos,assetLimit,videoLimit,imageLimit);
+ assert.deepEqual(wallCapacity(quotas),{videoRemaining:remaining,explanation:wording});
+ const center=createUsageCenter({doc:doc(),api:{getMyUsage:async()=>({...snapshot(),quotas})}});
+ await center.mount(new El());assert.ok(center.root.textContent.includes(wording));
+ assert.ok(center.root.textContent.includes(`Wall Videos · ${videos} / ${videoLimit}${remaining?` · ${remaining} remaining`:' — LIMIT REACHED'}`));center.destroy();
+});
+test('capacity wording never guesses missing or invalid server quotas',()=>{
+ assert.equal(wallCapacity(snapshot().quotas),null);
+ const quotas=wallQuotas(0,0);quotas[0].limit=null;assert.equal(wallCapacity(quotas),null);
+ quotas[0].limit=60;quotas[1].used=-1;assert.equal(wallCapacity(quotas),null);
+});
 test('Usage renders only authoritative values, decimal MB and existing limits; failure leaves visibly stale data and teardown discards owner state',async()=>{
  const d=doc(),host=new El();let fail=false;const center=createUsageCenter({doc:d,api:{getMyUsage:async()=>{if(fail)throw Error();return snapshot();}}});await center.mount(host);
  assert.match(center.root.textContent,/84 MB \/ 200 MB/);assert.match(center.root.textContent,/116 MB remaining · 42%/);assert.match(center.root.textContent,/Wall Layers · 7Wall Videos · 10 \/ 15/);assert.equal(mb(1_500_000),'1.5 MB');assert.equal(center.panel.hidden,true);
