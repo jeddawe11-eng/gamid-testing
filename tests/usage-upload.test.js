@@ -21,7 +21,7 @@ test('worker derivative gateway preserves legacy Bearer and secret-key authentic
 const env={supabaseUrl:BASE,serviceKey:'private-service-fixture',anonKey:'publishable-fixture'};
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
 const metadata=(bucket='wall-video',owner=OWNER,mime='video/mp4')=>[['bucketName',bucket],['objectName',`${owner}/file.mp4`],['contentType',mime]].map(([k,v])=>`${k} ${btoa(v)}`).join(',');
-function fixture({quota=false,user=OWNER,worker=false,stored=null,remoteStatus=204,createStatus=201,uncertain=false}={}) {
+function fixture({quota=false,user=OWNER,worker=false,stored=null,remoteStatus=204,createStatus=201,uncertain=false,voidStatus=200}={}) {
  const calls=[];let offset=0;const x={upload_id:ID,owner_id:OWNER,bucket:'wall-video',path:`${OWNER}/file.mp4`,expected_bytes:4,state:'ACTIVE',created_at:new Date().toISOString(),upstream_url:null};
  const fetchImpl=async(url,options={})=>{
   calls.push({url,...options});
@@ -35,6 +35,7 @@ function fixture({quota=false,user=OWNER,worker=false,stored=null,remoteStatus=2
    }
    if(name==='usage_upload_owner')return json(x.owner_id);
    if(name==='usage_cleanup_candidates')return json([x]);
+   if(name==='signal_usage_changed')return voidStatus===204?new Response(null,{status:204}):json(null);
    if(name==='usage_upload_action'){
     if(b.candidate_owner!==x.owner_id)return json({message:'UPLOAD_NOT_OWNED'},403);
     if(b.candidate_action==='bind')x.upstream_url=b.candidate_value;
@@ -86,6 +87,17 @@ test('TUS length/path are server bound; proxy strips client metadata/authorizati
  const r=await f.run(`tus/${ID}`,'PATCH',{'Upload-Offset':'0','Upload-Length':'999999999','Upload-Metadata':metadata('wall-video',OTHER)},new Uint8Array(4));assert.equal(r.status,204);assert.equal(f.x.state,'COMPLETE');
  const patch=f.calls.find(c=>c.method==='PATCH');assert.equal(patch.headers.Authorization,`Bearer ${env.serviceKey}`);assert.equal(patch.headers['Upload-Length'],undefined);assert.equal(patch.headers['Upload-Metadata'],undefined);
  assert.equal((await f.run(`tus/${ID}`,'HEAD')).headers.get('Upload-Offset'),'4');assert.equal((await f.run(`tus/${ID}`,'DELETE')).status,409);
+});
+
+test('TUS creation accepts the empty stream supplied by an Edge proxy, while refusing actual inline bytes',async()=>{
+ const f=fixture();assert.equal((await f.run('tus','POST',{'Upload-Length':'4','Upload-Metadata':metadata()},new Uint8Array(0))).status,201);
+ assert.equal((await fixture().run('tus','POST',{'Upload-Length':'4','Upload-Metadata':metadata()},new Uint8Array(1))).status,400);
+});
+
+test('successful uploads tolerate real PostgREST 204 responses from void usage signals',async()=>{
+ const f=fixture({voidStatus:204});assert.equal((await f.run('tus','POST',{'Upload-Length':'4','Upload-Metadata':metadata()})).status,201);
+ assert.equal((await f.run(`tus/${ID}`,'PATCH',{'Upload-Offset':'0'},new Uint8Array(4))).status,204);
+ assert.equal((await fixture({voidStatus:204}).run(`object/avatars/${OWNER}/avatar.webp`,'POST',{'Content-Type':'image/webp'},new Uint8Array(4))).status,200);
 });
 
 test('uncertain upload failure keeps capacity charged; confirmed remote termination permits release; late requests cannot use expired reservations',async()=>{

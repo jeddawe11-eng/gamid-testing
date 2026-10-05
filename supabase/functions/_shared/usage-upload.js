@@ -28,7 +28,7 @@ export function safeUpstream(value) {
  if(url.origin!==base.origin || !url.pathname.startsWith(base.pathname+'/') || url.username || url.password || url.search || url.hash) throw Error('INVALID_UPLOAD_LOCATION');
  return url.href;
 }
-export async function handleUsageUpload({request,env,fetchImpl=fetch}) {
+export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{}}) {
  const rawFetch=fetchImpl;
  fetchImpl=(url,options={})=>rawFetch(url,{...options,signal:AbortSignal.timeout(90000)});
  const origin=request.headers.get('origin');
@@ -43,7 +43,8 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch}) {
  const service={apikey:env.serviceKey,Authorization:`Bearer ${env.serviceKey}`};
  const rpc=async(name,body)=>{
   const r=await fetchImpl(`${BASE}/rest/v1/rpc/${name}`,{method:'POST',headers:{...service,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data=await r.json(); if(!r.ok) throw Error(data?.message||'GATEWAY_DATABASE_ERROR'); return data;
+  // PostgREST returns 204 for void RPCs (for example signal_usage_changed).
+  const data=r.status===204?null:await r.json(); if(!r.ok) throw Error(data?.message||'GATEWAY_DATABASE_ERROR'); return data;
  };
  const encodePath=p=>p.split('/').map(encodeURIComponent).join('/');
  const remove=async(b,p)=>{
@@ -109,7 +110,9 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch}) {
   if(route==='tus' && request.method==='POST') {
    const md=uploadMetadata(request.headers.get('upload-metadata')); const owner=validate(md.bucketName,md.objectName||'');
    const length=Number(request.headers.get('upload-length')); if(!Number.isSafeInteger(length)||length<1) throw Error('INVALID_UPLOAD_LENGTH');
-   if(request.body || request.headers.has('upload-defer-length')) throw Error('INVALID_UPLOAD_CREATION');
+   // Edge proxies may represent Content-Length: 0 as an empty body stream.
+   // Reject actual inline data, not the presence of that stream.
+   if(request.headers.has('upload-defer-length') || (await boundedBody(request,USAGE_CHUNK_BYTES)).length) throw Error('INVALID_UPLOAD_CREATION');
    const x=await rpc('reserve_usage_upload',{candidate_owner:owner,candidate_bucket:md.bucketName,candidate_path:md.objectName,candidate_bytes:length,candidate_mime:md.contentType});
    if(x.state!=='COMPLETE' && Date.now()-Date.parse(x.created_at)>24*60*60*1000)throw Error('UPLOAD_EXPIRED');
    let upstream=x.upstream_url;
@@ -150,6 +153,8 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch}) {
   return respond({error:'NOT_FOUND'},404);
  } catch(error) {
   const code=String(error.message);
+  // Diagnostic codes only: never URLs, private paths, credentials or bodies.
+  log(['INVALID_UPLOAD_LOCATION','UPLOAD_SIZE_MISMATCH','UPLOAD_NOT_OWNED','UPLOAD_CONFLICT','INVALID_UPLOAD_CREATION','ACCOUNT_STORAGE_QUOTA_EXCEEDED'].includes(code)?code:'UPLOAD_GATEWAY_FAILED');
   const allowed=['ACCOUNT_STORAGE_QUOTA_EXCEEDED','INVALID_UPLOAD','INVALID_UPLOAD_PATH','INVALID_UPLOAD_BUCKET','INVALID_UPLOAD_LENGTH','INVALID_UPLOAD_METADATA','INVALID_UPLOAD_CREATION','UPLOAD_NOT_OWNED','UPLOAD_CONFLICT','UPLOAD_LENGTH_EXCEEDED','CHUNK_TOO_LARGE','OBJECT_ALREADY_EXISTS','UPLOAD_EXPIRED','INTRO_PROCESSING_IN_PROGRESS'];
   return respond({error:allowed.includes(code)?code:'UPLOAD_GATEWAY_FAILED'},code==='ACCOUNT_STORAGE_QUOTA_EXCEEDED'||code==='CHUNK_TOO_LARGE'?413:code==='UPLOAD_NOT_OWNED'?403:allowed.includes(code)?400:502);
  }

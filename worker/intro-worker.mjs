@@ -96,8 +96,8 @@ if (command === "encode") {
 } else if (command === "transcode-wall") {
   if (!input || !output) throw new Error("Usage: node worker/intro-worker.mjs transcode-wall INPUT OUTPUT");
   console.log(JSON.stringify(await transcodeWallBackground(input,output),null,2));
-} else if(command==='usage-smoke') {
+} else if(command==='usage-smoke'||command==='usage-smoke-enforced') {
  const {smokeUsageGateway}=await import('./usage-smoke.mjs');const {url,key}=environment();
- console.log(JSON.stringify(await smokeUsageGateway({url,headers:()=>backendAuthHeaders(key)})));
+ console.log(JSON.stringify(await smokeUsageGateway({url,headers:()=>backendAuthHeaders(key)},fetch,{requireEnforcement:command==='usage-smoke-enforced'})));
 } else if (command === "once") console.log(JSON.stringify(await processOneRemoteJob()));
 else if (import.meta.url === `file://${process.argv[1]}`) throw new Error("Use encode or once");

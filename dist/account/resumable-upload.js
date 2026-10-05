@@ -49,7 +49,7 @@ export async function uploadResumable({ endpoint, bucketName, objectName, conten
   if (!creation.ok) {
     let payload;try{payload=await creation.json();}catch{/* Storage responses may be plain text. */}
     if(payload?.error==='ACCOUNT_STORAGE_QUOTA_EXCEEDED')throw new ResumableUploadError('This upload would exceed your 200 MB storage allowance. Remove stored media and try again.',creation.status,payload.error);
-    throw new ResumableUploadError(`Intro upload could not start (${creation.status}).`, creation.status);
+    throw new ResumableUploadError(`Intro upload could not start (${creation.status}).`, creation.status,typeof payload?.error==='string'?payload.error:'INTRO_UPLOAD_FAILED');
   }
   const location = creation.headers.get("location");
   if (!location) throw new ResumableUploadError("Intro upload did not return a resumable location.", 0);

@@ -93,6 +93,16 @@ test('actual migration: owner-only RPC, no forged owner arguments, private recei
  }finally{await f.db.close();}
 });
 
+test('actual migration: below, near, exactly at and above retained quota preserve accurate readable state',async()=>{
+ const f=await fixture();try{
+ for(const [bytes,state] of [[100_000_000,'NORMAL'],[150_000_000,'APPROACHING_LIMIT'],[180_000_000,'NEAR_LIMIT'],[200_000_000,'FULL'],[200_000_001,'FULL']]){
+  await f.admin();await f.db.exec('delete from storage.objects');await f.object('wall-video-derived','boundary.mp4',bytes);await f.own();
+  const u=await f.usage();assert.equal(u.storage.used_bytes,bytes);assert.equal(u.storage.remaining_bytes,Math.max(0,200_000_000-bytes));assert.equal(u.storage.state,state);
+  if(bytes>=200_000_000){await f.admin();await assert.rejects(f.reserve('avatars','extra.webp',1,'image/webp'),/ACCOUNT_STORAGE_QUOTA_EXCEEDED/);}
+ }
+ }finally{await f.db.close();}
+});
+
 test('actual migration: completed receipt restores service-object owner access; unknown size fails closed; cleanup does not authorize null-owner objects',async()=>{
  const f=await fixture();try{
  const x=await f.reserve('avatars','gateway.webp',3,'image/webp');await f.db.query('insert into storage.objects values($1,$2,null,$3)',['avatars',`${OWNER}/gateway.webp`,{size:3}]);
