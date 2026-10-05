@@ -11,10 +11,10 @@ class El {
  setAttribute(k,v){this.attrs[k]=v;}addEventListener(k,v){this.listeners[k]=v;}remove(){if(this.parent)this.parent.children=this.parent.children.filter(c=>c!==this);}contains(n){return n===this||this.children.some(c=>c.contains(n));}
 }
 const doc=()=>({createElement:()=>new El(),addEventListener(){},removeEventListener(){}});
-const snapshot=()=>({storage:{used_bytes:84_000_000,quota_bytes:200_000_000,remaining_bytes:116_000_000,percentage:42,state:'NORMAL',reserved_bytes:0,enforcement_active:true},media:{intro:32_000_000,wall:50_000_000,avatar:2_000_000},quotas:[{name:'Wall Layers',used:7,limit:null},{name:'Wall Videos',used:4,limit:10}]});
+const snapshot=()=>({storage:{used_bytes:84_000_000,quota_bytes:200_000_000,remaining_bytes:116_000_000,percentage:42,state:'NORMAL',reserved_bytes:0,enforcement_active:true},media:{intro:32_000_000,wall:50_000_000,avatar:2_000_000},quotas:[{name:'Wall Layers',used:7,limit:null},{name:'Wall Videos',used:10,limit:15}]});
 test('Usage renders only authoritative values, decimal MB and existing limits; failure leaves visibly stale data and teardown discards owner state',async()=>{
  const d=doc(),host=new El();let fail=false;const center=createUsageCenter({doc:d,api:{getMyUsage:async()=>{if(fail)throw Error();return snapshot();}}});await center.mount(host);
- assert.match(center.root.textContent,/84 MB \/ 200 MB/);assert.match(center.root.textContent,/116 MB remaining · 42%/);assert.match(center.root.textContent,/Wall Layers · 7Wall Videos · 4 \/ 10/);assert.equal(mb(1_500_000),'1.5 MB');assert.equal(center.panel.hidden,true);
+ assert.match(center.root.textContent,/84 MB \/ 200 MB/);assert.match(center.root.textContent,/116 MB remaining · 42%/);assert.match(center.root.textContent,/Wall Layers · 7Wall Videos · 10 \/ 15/);assert.equal(mb(1_500_000),'1.5 MB');assert.equal(center.panel.hidden,true);
  center.setOpen(true);assert.equal(center.panel.hidden,false);assert.equal(center.button.attrs['aria-expanded'],'true');await center.refresh();fail=true;await center.refresh();assert.match(center.root.textContent,/could not be refreshed/);
  center.destroy();assert.equal(center.state,null);assert.equal(host.children.length,0);
 });

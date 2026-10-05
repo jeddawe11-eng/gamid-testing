@@ -374,14 +374,14 @@ begin
   res := res || jsonb_build_object('step', 'a WebM never carries a frame count', 'pass', out like 'ERR:22023:INVALID_WALL_ASSET_TYPE%', 'got', out);
   delete from public.wall_assets where entity_id = ent_a;
   insert into public.wall_assets (entity_id, storage_path, mime_type, byte_size, width, height)
-    select ent_a, ua::text || '/' || gen_random_uuid() || '.mp4', 'video/mp4', 1000, 64, 64 from generate_series(1, 10);
+    select ent_a, ua::text || '/' || gen_random_uuid() || '.mp4', 'video/mp4', 1000, 64, 64 from generate_series(1, 15);
   out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''video/mp4'', 4000000, 1920, 1080, null) a', ua, ua::text || '/66666666-6666-4666-8666-666666666666.mp4'));
-  res := res || jsonb_build_object('step', 'at most 10 videos per owner', 'pass', out like 'ERR:54000:WALL_VIDEO_LIMIT%', 'got', out);
+  res := res || jsonb_build_object('step', 'at most 15 videos per owner', 'pass', out like 'ERR:54000:WALL_VIDEO_LIMIT%', 'got', out);
   delete from public.wall_assets where entity_id = ent_a;
   insert into public.wall_assets (entity_id, storage_path, mime_type, byte_size, width, height)
-    select ent_a, ua::text || '/' || gen_random_uuid() || (case when g % 2 = 0 then '.mp4' else '.webm' end), case when g % 2 = 0 then 'video/mp4' else 'video/webm' end, 1000, 64, 64 from generate_series(1, 10) g;
+    select ent_a, ua::text || '/' || gen_random_uuid() || (case when g % 2 = 0 then '.mp4' else '.webm' end), case when g % 2 = 0 then 'video/mp4' else 'video/webm' end, 1000, 64, 64 from generate_series(1, 15) g;
   out := pg_temp.w2_run(null, 'service_role', format('select to_jsonb(a)::text from public.register_verified_wall_asset(%L::uuid, %L, ''video/webm'', 2500000, 1280, 720, null) a', ua, ua::text || '/99999999-9999-4999-8999-999999999999.webm'));
-  res := res || jsonb_build_object('step', 'the 10-video limit counts MP4 and WebM together', 'pass', out like 'ERR:54000:WALL_VIDEO_LIMIT%', 'got', out);
+  res := res || jsonb_build_object('step', 'the 15-video limit counts MP4 and WebM together', 'pass', out like 'ERR:54000:WALL_VIDEO_LIMIT%', 'got', out);
   delete from public.wall_assets where entity_id = ent_a;
 
   -- ===== HEVC -> H.264 conversion queue (the worker boundary; every call below is what the Edge Function / worker make with the service role) =====

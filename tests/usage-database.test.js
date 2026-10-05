@@ -6,7 +6,8 @@ import {PGlite} from '@electric-sql/pglite';
 // Isolated Postgres fixture only. These are local tables, not Supabase Storage.
 const OWNER='11111111-1111-4111-8111-111111111111', OTHER='22222222-2222-4222-8222-222222222222';
 const migration=readFileSync(new URL('../supabase/migrations/20261004170252_global_usage_gateway.sql',import.meta.url),'utf8');
-async function fixture() {
+const videoLimitMigration=readFileSync(new URL('../supabase/migrations/20261005025319_wall_video_limit_15.sql',import.meta.url),'utf8');
+async function fixture({upgrade=true}={}) {
  const db=new PGlite();
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;
  create schema private;create schema storage;create schema auth;create schema realtime;
@@ -37,6 +38,7 @@ async function fixture() {
  // Only pre-existing dependencies are fixtures. Execute the actual migration unchanged.
  for(const name of ['register_verified_wall_asset_impl','create_wall_video_job_impl','worker_complete_wall_video_job_impl','update_my_identity_profile_impl','queue_my_intro_impl'])await db.exec(`create function private.${name}() returns void language plpgsql as $$declare candidate_owner uuid;caller uuid;begin perform 1 from storage.objects o where o.owner_id = caller::text; if (select 0) >= 60 then raise exception 'WALL_ASSET_LIMIT';end if;if (select 0) >= 10 then raise exception 'WALL_VIDEO_LIMIT';end if;end$$;`);
  await db.exec(migration);
+ if(upgrade)await db.exec(videoLimitMigration);
  const reserve=async(bucket,path,n,mime)=> (await db.query('select public.reserve_usage_upload($1,$2,$3,$4,$5) x',[OWNER,bucket,`${OWNER}/${path}`,n,mime])).rows[0].x;
  const object=async(bucket,path,n,owner=OWNER)=>db.query('insert into storage.objects values($1,$2,$3,$4)',[bucket,`${owner}/${path}`,owner,{size:n}]);
  const own=async(uid=OWNER)=>db.exec(`set role authenticated;set request.jwt.claim.sub='${uid}';`);
@@ -44,6 +46,21 @@ async function fixture() {
  const usage=async()=> (await db.query('select public.get_my_usage() x')).rows[0].x;
  return {db,reserve,object,own,admin,usage};
 }
+
+test('video limit upgrade preserves function identity/grants, enforcement consumers, assets and storage policy',async()=>{
+ const f=await fixture({upgrade:false});try{
+ const definition=()=>f.db.query("select oid::text,proacl::text from pg_proc where oid='private.wall_video_limit()'::regprocedure");
+ const consumers=()=>f.db.query("select proname,prosrc from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private' and proname in ('register_verified_wall_asset_impl','create_wall_video_job_impl','worker_complete_wall_video_job_impl','get_my_usage_impl') order by proname");
+ const before=await definition(),enforcement=await consumers(),policy=await f.db.query('select * from private.usage_policy');
+ assert.equal((await f.db.query('select private.wall_video_limit() n')).rows[0].n,10);
+ await f.db.exec(videoLimitMigration);
+ assert.deepEqual((await definition()).rows,before.rows);assert.deepEqual((await consumers()).rows,enforcement.rows);
+ assert.deepEqual((await f.db.query('select * from private.usage_policy')).rows,policy.rows);
+ assert.equal((await f.db.query('select private.wall_video_limit() n,private.wall_asset_limit() a')).rows[0].n,15);
+ assert.equal((await f.db.query('select private.wall_asset_limit() a')).rows[0].a,60);
+ await f.own();const u=await f.usage();assert.equal(u.storage.quota_bytes,200_000_000);assert.equal(u.quotas.find(x=>x.key==='wall.videos').limit,15);
+ }finally{await f.db.close();}
+});
 
 test('actual migration: aggregate retained objects, categories, shared limits and source/derivative lifecycle',async()=>{
  const f=await fixture();try{
@@ -54,7 +71,7 @@ test('actual migration: aggregate retained objects, categories, shared limits an
  await f.db.exec(`insert into public.entities values('${OWNER}','SOLO');insert into public.entity_memberships values('${OWNER}','${OWNER}','OWNER');insert into public.wall_drafts values('${OWNER}','{"stages":[{"elements":[{},{}]},{"elements":[{}]}]}');insert into public.wall_assets values('${OWNER}','image/png'),('${OWNER}','image/png'),('${OWNER}','video/mp4');insert into public.crews values('${OWNER}','Crew fixture','${OWNER}');insert into public.crew_members values('${OWNER}','${OWNER}','ACTIVE');`);
  await f.own();let u=await f.usage();assert.equal(u.storage.quota_bytes,200_000_000);assert.equal(u.storage.used_bytes,85_000_000);assert.equal(u.storage.remaining_bytes,115_000_000);assert.equal(u.storage.percentage,42.5);
  assert.deepEqual(u.media,{avatar:5_000_000,intro:40_000_000,wall:39_000_000,other:1_000_000});
- assert.deepEqual(u.quotas.slice(0,4).map(x=>[x.used,x.limit]),[[3,null],[3,60],[1,10],[2,null]]);assert.deepEqual(u.quotas.slice(4).map(x=>[x.used,x.limit]),[[1,15],[1,2]]);
+ assert.deepEqual(u.quotas.slice(0,4).map(x=>[x.used,x.limit]),[[3,null],[3,60],[1,15],[2,null]]);assert.deepEqual(u.quotas.slice(4).map(x=>[x.used,x.limit]),[[1,15],[1,2]]);
  await f.admin();await f.db.query('delete from storage.objects where name=$1',[`${OWNER}/source.mp4`]);await f.db.query('delete from storage.objects where name=$1',[`${OWNER}/old.webp`]);
  await f.own();u=await f.usage();assert.equal(u.storage.used_bytes,53_000_000);assert.equal(u.media.intro,10_000_000);assert.equal(u.media.avatar,3_000_000);
  }finally{await f.db.close();}
