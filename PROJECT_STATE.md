@@ -41,8 +41,9 @@ Conversation memory is helpful context, but it is **not** an authoritative proje
 Snapshot from 2026-10-05; verify with `git status -sb` and `git log -1`.
 
 - **Branch:** `feature/gamid-truth`, tracking `origin/feature/gamid-truth`. It is **not merged** into `main`.
-- **HEAD:** `7bfbcc793177fa075d40a8bc09d213a211947830`, working tree clean.
-  - It is the documentation-only commits that add Truth, on top of product commit `e2d258aec6696ec4902e66e142899d6ce8900a61`. That commit is also the head of `origin/feature/global-usage-center`.
+- **HEAD:** documentation-only commits (GamID Truth and this file) on top of the latest product commit, `e2d258aec6696ec4902e66e142899d6ce8900a61`. That commit is also the head of `origin/feature/global-usage-center`.
+  - Check with `git log --oneline e2d258a..HEAD`: it lists docs-only commits.
+  - The working tree was clean when this was written.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of HEAD.
 - **Which commit TESTING serves is not exactly verified.** The last full Monitor run (`MR-20261005T050632Z-c734`) reported its checkpoint as `unresolved`. Per-capability checkpoints are in Truth.
 
