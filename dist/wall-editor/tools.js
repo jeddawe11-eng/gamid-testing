@@ -15,6 +15,7 @@ import { startingImageSize, describeVideoJobFailure, isVideoAsset, isVideoFileTy
 import { PROVIDERS, detectEmbed, buildEmbedPayload, defaultEmbedSize, humanReason, PRESENTATION_LABELS } from "../wall-kit/embed/engine.js";
 import { mediaCapabilities } from "../wall-kit/embed/index.js";
 import { fitFrame } from "../wall-kit/embed/player.js";
+import { createVideoPreviews } from "./video-preview.js";
 
 const h = (tag, attributes = {}, ...children) => {
   const node = document.createElement(tag);
@@ -42,6 +43,7 @@ export const OTHER_LINK_STYLE = Object.freeze({ fontFamily: "system-sans", fontS
 export const OTHER_LINK_SIZE = Object.freeze({ width: 800, height: 120 });
 
 export function createTools({ session, run, notify, assets, getGamid, refreshGamid, setTool, pickImage }) {
+  const videoPreviews = createVideoPreviews();   // one still frame per video asset, shared by Assets and the background video list
   const doc = () => session.doc;
   const stageId = () => session.state.stageId;
   const selectedTextIds = () => { const stage = session.stage; const chosen = new Set(session.state.selection); return stage ? stage.elements.filter(element => chosen.has(element.id) && element.type === "text").map(element => element.id) : []; };
@@ -301,8 +303,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
       const list = h("div", { class: "ed-assets ed-videos" });
       assets.videos.forEach((asset, index) => {
         const thumb = h("div", { class: "thumb" });
-        const url = assets.videoUrlFor(asset.asset_id);
-        if (url) thumb.append(h("video", { src: url, muted: true, preload: "metadata", playsinline: true, "aria-hidden": "true" })); else thumb.textContent = "…";
+        videoPreviews.mount(thumb, { id: asset.asset_id, url: assets.videoUrlFor(asset.asset_id) });   // a still frame, never a <video> (video-preview.js)
         const selected = asset.asset_id === selectedId;
         list.append(h("div", { class: "ed-asset" }, thumb,
           h("div", { class: "meta", text: `Video ${index + 1} · ${asset.width}×${asset.height} · ${Math.max(1, Math.round(asset.byte_size / (1024 * 1024)))} MB` }),
@@ -416,13 +417,14 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
     const key = JSON.stringify([assets.assets.map(asset => [asset.asset_id, isVideoAsset(asset) ? !!assets.videoUrlFor(asset.asset_id) : !!assets.urlFor(asset.asset_id)]), [...used].sort()]);
     if (!force && key === assetsKey) return;
     assetsKey = key;
+    videoPreviews.retain(new Set(assets.videos.map(asset => asset.asset_id)));   // a deleted video's cached frame is dropped
     grid.replaceChildren();
     if (!assets.assets.length) { grid.append(h("p", { class: "ed-empty", text: "No images or videos yet. Upload one to use it on your Wall or as a background." })); return; }
     for (const asset of assets.assets) {
       const video = isVideoAsset(asset);
       const thumb = h("div", { class: "thumb" });
-      const url = video ? assets.videoUrlFor(asset.asset_id) : assets.urlFor(asset.asset_id);
-      if (url) thumb.append(video ? h("video", { src: url, muted: true, preload: "metadata", playsinline: true, "aria-hidden": "true" }) : h("img", { src: url, alt: "" })); else thumb.textContent = "…";
+      if (video) videoPreviews.mount(thumb, { id: asset.asset_id, url: assets.videoUrlFor(asset.asset_id) });   // a representative still frame (video-preview.js)
+      else { const url = assets.urlFor(asset.asset_id); if (url) thumb.append(h("img", { src: url, alt: "" })); else thumb.textContent = "…"; }
       const inUse = used.has(asset.asset_id);
       const noun = video ? "Video" : "Image";
       grid.append(h("div", { class: "ed-asset" }, thumb,

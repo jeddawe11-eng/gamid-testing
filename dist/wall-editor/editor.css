@@ -164,7 +164,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-assets { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.2rem, 1fr)); gap: .5rem; }
 .ed-asset { display: grid; gap: .3rem; padding: .4rem; border: 1px solid #3a334b; border-radius: .7rem; background: #17132a; }
 .ed-asset .thumb { aspect-ratio: 1; border-radius: .5rem; background: #0d0b14; display: grid; place-items: center; overflow: hidden; color: #6f6979; font-size: .7rem; }
-.ed-asset .thumb img, .ed-asset .thumb video { width: 100%; height: 100%; object-fit: cover; display: block; min-width: 0; }
+.ed-asset .thumb img, .ed-asset .thumb video, .ed-asset .thumb canvas { width: 100%; height: 100%; object-fit: cover; display: block; min-width: 0; }
+.ed-asset .thumb-fallback { color: #a39cb3; font-size: .72rem; font-weight: 700; letter-spacing: .04em; }
 .ed-asset .meta { color: var(--muted); font-size: .62rem; }
 .ed-asset .used { color: var(--warn); font-size: .58rem; letter-spacing: .1em; font-weight: 800; }
 .ed-asset .row { display: flex; gap: .25rem; }
