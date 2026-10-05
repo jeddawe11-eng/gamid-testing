@@ -102,14 +102,30 @@ dispatcher invokes the existing Job.
 jobs. It reserves 200 MB for a random disposable fixture owner, proves the next
 byte is refused, cancels those non-uploaded reservations, uploads four disposable
 bytes through the derivative gateway, verifies actual read size and deletes only
-that fixture object. This tests the broker/accounting boundary, not encoding.
+that fixture object. It also races two 150 MB reservations (exactly one may
+succeed), creates two disposable Auth identities, verifies owner/cross-owner
+uploads, retry accounting and deletion reclamation, and removes those identities.
+The fixture generates a one-second HEVC source, runs the accepted Intro VP9 and
+Wall H.264 encoders, and verifies stored source/derivative totals. Owner image,
+MP4 and WebM gateway paths are exercised too. No real queued processing job is
+claimed. `usage-smoke-enforced` additionally requires activation and rejects direct
+authenticated Storage and TUS attempts.
 
 Existing ordinary TUS PATCH requests recheck upload permission. Previously issued
 signed-upload capabilities or a request already in flight at cutover need an
 expiry/drain window before claiming complete exclusion of every legacy path.
 Do not rotate credentials or mutate real-user uploads to shorten that window.
-The old GitHub Pages TESTING handoff must also serve compatible client files;
-environment protection preventing its deployment is a rollout blocker.
+The old GitHub Pages TESTING handoff must also serve compatible client files.
+On October 5, the approved exact `feature/global-usage-center` environment rule
+was added, retaining existing rules, and both TESTING origins served matching
+gateway clients. Read-only Storage logs contained no signed-upload requests in
+the preceding 24 hours; there were no active gateway receipts for registered
+users before activation verification. Recheck these conditions at a new cutover.
+
+Real Edge transport regressions are covered: empty creation body streams,
+PostgREST void RPC HTTP 204 responses, and Edge internal request URLs omitting
+the public `/functions/v1` prefix. Upload Location uses the fixed public TESTING
+gateway route, never a caller-controlled or internal origin.
 
 ## Verification
 

@@ -78,6 +78,12 @@ async function verifyOwnerGateway(backend,fetchImpl,requireEnforcement,encodeInt
      const path=`${a.id}/${randomUUID()}.${mime==='video/webm'?'webm':'mp4'}`;
      await uploadGatewayFile({backend,bucket,path,filePath,mime,fetchImpl});stored.push([bucket,path]);expected+=(await stat(filePath)).size;
     }
+    for(const [filePath,mime] of [[wall,'video/mp4'],[intro,'video/webm']]){
+     const path=`${a.id}/${randomUUID()}.${mime==='video/webm'?'webm':'mp4'}`;
+     await uploadGatewayFile({backend:{url:base,headers:()=>a.headers},bucket:'wall-video',path,filePath,mime,fetchImpl});stored.push(['wall-video',path]);expected+=(await stat(filePath)).size;
+    }
+    const imagePath=`${a.id}/${randomUUID()}.png`,png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aGZkAAAAASUVORK5CYII=','base64');
+    const image=await call(`/functions/v1/usage-upload/object/wall-media/${imagePath}`,{...a.headers,'Content-Type':'image/png'},png);check(image.ok,'SMOKE_WALL_IMAGE_UPLOAD');stored.push(['wall-media',imagePath]);expected+=png.length;
     check((await usage()).storage.used_bytes===expected,'SMOKE_SOURCE_DERIVATIVE_ACCOUNTING');mediaConversion=true;
    }finally{await rm(dir,{recursive:true,force:true});}
   }
@@ -91,7 +97,7 @@ async function verifyOwnerGateway(backend,fetchImpl,requireEnforcement,encodeInt
   }
   for(const [bucket,path] of stored)await deleteGatewayObject({url:base,headers:()=>a.headers},bucket,path,fetchImpl);stored.length=0;
   check((await usage()).storage.used_bytes===0,'SMOKE_OWNER_DELETE_RECLAIM');
-  return {ownerUpload:true,ownerTus:true,crossOwnerBlocked:true,ownerRetry:true,ownerDeleteReclaims:true,mediaConversion,directStorageBlocked:enforced,directTusBlocked:enforced};
+  return {ownerUpload:true,ownerTus:true,crossOwnerBlocked:true,ownerRetry:true,ownerDeleteReclaims:true,mediaConversion,wallImage:mediaConversion,wallMp4:mediaConversion,wallWebm:mediaConversion,directStorageBlocked:enforced,directTusBlocked:enforced};
  }finally{
   for(const [bucket,path] of stored)await deleteGatewayObject(backend,bucket,path,fetchImpl);
   for(const u of users){const r=await call(`/auth/v1/admin/users/${u.id}`,service,undefined,'DELETE');check(r.ok,'SMOKE_FIXTURE_AUTH_CLEANUP');}
