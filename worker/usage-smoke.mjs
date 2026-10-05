@@ -1,10 +1,12 @@
 // Explicit disposable TESTING media only. Never claims an Intro/Wall processing job.
 import {randomUUID,randomBytes} from 'node:crypto';
-import {mkdtemp,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,writeFile,rm,stat} from 'node:fs/promises';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {uploadGatewayFile,deleteGatewayObject} from './usage-upload.mjs';
-export async function smokeUsageGateway(backend,fetchImpl=fetch,{requireEnforcement=false}={}) {
+export async function smokeUsageGateway(backend,fetchImpl=fetch,{requireEnforcement=false,encodeIntro,encodeWall}={}) {
  if(backend.url!=='https://upvtrczefcvigxdyuylw.supabase.co')throw Error('TESTING_GATEWAY_ONLY');
  const owner=randomUUID(),path=`${owner}/${randomUUID()}.webm`,reservations=[];
  const rpc=async(name,body)=>{const r=await fetchImpl(`${backend.url}/rest/v1/rpc/${name}`,{method:'POST',headers:{...backend.headers(null),'Content-Type':'application/json'},body:JSON.stringify(body)});const payload=await r.json();if(!r.ok)throw Error(payload.message||'SMOKE_RPC_FAILED');return payload;};
@@ -18,13 +20,17 @@ export async function smokeUsageGateway(backend,fetchImpl=fetch,{requireEnforcem
   if((await rpc('reserve_usage_upload',candidates[0])).upload_id!==reservations[0].upload_id)throw Error('SMOKE_RETRY_DOUBLE_RESERVATION');
   let blocked=false;try{await rpc('reserve_usage_upload',{candidate_owner:owner,candidate_bucket:'intro-media',candidate_path:path,candidate_bytes:1,candidate_mime:'video/webm'});}catch(e){if(e.message!=='ACCOUNT_STORAGE_QUOTA_EXCEEDED')throw e;blocked=true;}if(!blocked)throw Error('SMOKE_QUOTA_NOT_ENFORCED');
   for(const x of reservations)await rpc('usage_upload_action',{candidate_upload:x.upload_id,candidate_owner:owner,candidate_action:'cancel'});
+  const race=await Promise.allSettled(candidates.map(b=>rpc('reserve_usage_upload',{...b,candidate_path:`${owner}/${randomUUID()}.mp4`,candidate_bytes:150_000_000})));
+  for(const result of race)if(result.status==='fulfilled')reservations.push(result.value);
+  if(race.filter(x=>x.status==='fulfilled').length!==1 || race.filter(x=>x.status==='rejected'&&x.reason.message==='ACCOUNT_STORAGE_QUOTA_EXCEEDED').length!==1)throw Error('SMOKE_CONCURRENT_OVERCOMMIT');
+  for(const x of reservations)await rpc('usage_upload_action',{candidate_upload:x.upload_id,candidate_owner:owner,candidate_action:'cancel'});
   const filePath=join(dir,'fixture.webm');await writeFile(filePath,new Uint8Array([0x1a,0x45,0xdf,0xa3]));
   // Four disposable bytes test upload/accounting, not video encoding/registration.
   await uploadGatewayFile({backend,bucket:'intro-media',path,filePath,mime:'video/webm',fetchImpl});stored=true;
   const response=await fetchImpl(`${backend.url}/storage/v1/object/authenticated/intro-media/${path}`,{headers:backend.headers(null)});if(!response.ok||(await response.arrayBuffer()).byteLength!==4)throw Error('SMOKE_STORED_BYTES_MISMATCH');
   await deleteGatewayObject(backend,'intro-media',path,fetchImpl);stored=false;
   const gone=await fetchImpl(`${backend.url}/storage/v1/object/authenticated/intro-media/${path}`,{headers:backend.headers(null)});if(gone.ok)throw Error('SMOKE_DELETE_FAILED');
-  const ownerChecks=await verifyOwnerGateway(backend,fetchImpl,requireEnforcement);
+  const ownerChecks=await verifyOwnerGateway(backend,fetchImpl,requireEnforcement,encodeIntro,encodeWall);
   return {testing:true,fixtureOwner:owner,quotaEnforced:true,concurrentReservations:true,retryIdempotence:true,derivativeUpload:true,retainedBytesVerified:true,cleanupVerified:true,...ownerChecks};
  }finally{
   if(stored)await deleteGatewayObject(backend,'intro-media',path,fetchImpl);
@@ -34,7 +40,7 @@ export async function smokeUsageGateway(backend,fetchImpl=fetch,{requireEnforcem
 }
 
 // Ephemeral Auth identities, never existing GamID users. Tokens stay in memory.
-async function verifyOwnerGateway(backend,fetchImpl,requireEnforcement) {
+async function verifyOwnerGateway(backend,fetchImpl,requireEnforcement,encodeIntro,encodeWall) {
  const users=[],stored=[];const service=backend.headers(null);const base=backend.url;
  // Public TESTING key, identical to the static client's key. Owner requests must
  // never carry the service API key or they would not exercise authenticated RLS.
@@ -57,6 +63,24 @@ async function verifyOwnerGateway(backend,fetchImpl,requireEnforcement) {
   const sourcePath=`${a.id}/${randomUUID()}.mp4`,dir=await mkdtemp(join(tmpdir(),'gamid-owner-smoke-'));
   try{const filePath=join(dir,'fixture.mp4');await writeFile(filePath,'data');await uploadGatewayFile({backend:{url:base,headers:()=>a.headers},bucket:'intro-sources',path:sourcePath,filePath,mime:'video/mp4',fetchImpl});stored.push(['intro-sources',sourcePath]);}finally{await rm(dir,{recursive:true,force:true});}
   check((await usage()).storage.used_bytes===8,'SMOKE_OWNER_TUS_ACCOUNTING');
+  let mediaConversion=false;
+  if(encodeIntro&&encodeWall){
+   const dir=await mkdtemp(join(tmpdir(),'gamid-usage-encoding-'));
+   try{
+    const source=join(dir,'source.mp4'),downloaded=join(dir,'download.mp4'),intro=join(dir,'intro.webm'),wall=join(dir,'wall.mp4');
+    await promisify(execFile)('ffmpeg',['-hide_banner','-loglevel','error','-nostdin','-n','-f','lavfi','-i','color=c=blue:s=128x128:r=30','-t','1','-c:v','libx265','-pix_fmt','yuv420p','-x265-params','pools=1:frame-threads=1:log-level=error','-an',source]);
+    const validSource=`${a.id}/${randomUUID()}.mp4`;
+    await uploadGatewayFile({backend:{url:base,headers:()=>a.headers},bucket:'intro-sources',path:validSource,filePath:source,mime:'video/mp4',fetchImpl});stored.push(['intro-sources',validSource]);
+    const r=await fetchImpl(`${base}/storage/v1/object/authenticated/intro-sources/${validSource}`,{headers:service});check(r.ok,'SMOKE_VALID_SOURCE_READ');await writeFile(downloaded,new Uint8Array(await r.arrayBuffer()));
+    await encodeIntro(downloaded,intro);await encodeWall(downloaded,wall);
+    let expected=8+(await stat(source)).size;
+    for(const [bucket,filePath,mime] of [['intro-media',intro,'video/webm'],['wall-video-derived',wall,'video/mp4']]){
+     const path=`${a.id}/${randomUUID()}.${mime==='video/webm'?'webm':'mp4'}`;
+     await uploadGatewayFile({backend,bucket,path,filePath,mime,fetchImpl});stored.push([bucket,path]);expected+=(await stat(filePath)).size;
+    }
+    check((await usage()).storage.used_bytes===expected,'SMOKE_SOURCE_DERIVATIVE_ACCOUNTING');mediaConversion=true;
+   }finally{await rm(dir,{recursive:true,force:true});}
+  }
   const privateRpc=await call('/rest/v1/rpc/reserve_usage_upload',a.headers,{candidate_owner:b.id,candidate_bucket:'avatars',candidate_path:`${b.id}/${randomUUID()}.webp`,candidate_bytes:1,candidate_mime:'image/webp'});check(!privateRpc.ok,'SMOKE_FORGED_RESERVATION');
   const enforced=(await usage()).storage.enforcement_active;check(!requireEnforcement||enforced,'SMOKE_ENFORCEMENT_OFF');
   if(enforced){
@@ -67,7 +91,7 @@ async function verifyOwnerGateway(backend,fetchImpl,requireEnforcement) {
   }
   for(const [bucket,path] of stored)await deleteGatewayObject({url:base,headers:()=>a.headers},bucket,path,fetchImpl);stored.length=0;
   check((await usage()).storage.used_bytes===0,'SMOKE_OWNER_DELETE_RECLAIM');
-  return {ownerUpload:true,ownerTus:true,crossOwnerBlocked:true,ownerRetry:true,ownerDeleteReclaims:true,directStorageBlocked:enforced,directTusBlocked:enforced};
+  return {ownerUpload:true,ownerTus:true,crossOwnerBlocked:true,ownerRetry:true,ownerDeleteReclaims:true,mediaConversion,directStorageBlocked:enforced,directTusBlocked:enforced};
  }finally{
   for(const [bucket,path] of stored)await deleteGatewayObject(backend,bucket,path,fetchImpl);
   for(const u of users){const r=await call(`/auth/v1/admin/users/${u.id}`,service,undefined,'DELETE');check(r.ok,'SMOKE_FIXTURE_AUTH_CLEANUP');}

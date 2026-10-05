@@ -122,7 +122,9 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{}}
     if(!created.ok) return respond({error:'RESUMABLE_CREATE_FAILED'},502);
     upstream=safeUpstream(created.headers.get('location')); await action(x.upload_id,owner,'bind',upstream);
    }
-   const location=new URL(`./${x.upload_id}`,url.href.endsWith('/')?url.href:url.href+'/').href;
+   // Edge's internal request URL can omit /functions/v1. Return the fixed
+   // public TESTING route, never an internal or caller-controlled origin.
+   const location=`${BASE}/functions/v1/usage-upload/tus/${x.upload_id}`;
    await signal(owner); return respond(null,201,{Location:location,'Tus-Resumable':'1.0.0','Upload-Offset':x.state==='COMPLETE'?String(length):'0','Upload-Length':String(length)});
   }
   if(id && ['HEAD','PATCH','DELETE'].includes(request.method)) {

@@ -55,7 +55,7 @@ function fixture({quota=false,user=OWNER,worker=false,stored=null,remoteStatus=2
   throw Error(`Unexpected fake request ${url}`);
  };
  const run=(route,method='POST',headers={},body)=>handleUsageUpload({request:new Request(`${BASE}/functions/v1/usage-upload/${route}`,{method,headers:{apikey:worker?'private-backend-fixture':env.anonKey,Authorization:'Bearer owner-fixture',...headers},...(body===undefined?{}:{body})}),env,fetchImpl});
- return {run,calls,x};
+ return {run,calls,x,fetchImpl};
 }
 
 test('gateway measures ordinary upload bytes, keeps credentials private and recovers committed retries',async()=>{
@@ -92,6 +92,17 @@ test('TUS length/path are server bound; proxy strips client metadata/authorizati
 test('TUS creation accepts the empty stream supplied by an Edge proxy, while refusing actual inline bytes',async()=>{
  const f=fixture();assert.equal((await f.run('tus','POST',{'Upload-Length':'4','Upload-Metadata':metadata()},new Uint8Array(0))).status,201);
  assert.equal((await fixture().run('tus','POST',{'Upload-Length':'4','Upload-Metadata':metadata()},new Uint8Array(1))).status,400);
+});
+
+test('Edge internal request URLs return the public gateway route for subsequent TUS chunks',async()=>{
+ const f=fixture();
+ const made=await handleUsageUpload({request:new Request('http://edge-runtime/usage-upload/tus',{method:'POST',headers:{apikey:env.anonKey,Authorization:'Bearer owner-fixture','Upload-Length':'4','Upload-Metadata':metadata()}}),env,fetchImpl:async(...args)=>{
+  // Reuse the same fake backend receipt and Storage state.
+  return f.fetchImpl(...args);
+ }});
+ assert.equal(made.status,201);
+ assert.equal(made.headers.get('Location'),`${BASE}/functions/v1/usage-upload/tus/${ID}`);
+ assert.equal((await f.run(`tus/${ID}`,'PATCH',{'Upload-Offset':'0'},new Uint8Array(4))).status,204);
 });
 
 test('successful uploads tolerate real PostgREST 204 responses from void usage signals',async()=>{
