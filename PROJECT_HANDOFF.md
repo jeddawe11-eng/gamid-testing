@@ -1,5 +1,7 @@
 # GamID — Authoritative Technical Continuation Handoff
 
+> **Current product state and approved product contracts: [`gamid-truth.json`](gamid-truth.json).** It is authoritative over older status lines in this document. Agent rules: [`AGENTS.md`](AGENTS.md).
+
 Last updated: 2026-09-18
 
 Repository: `jeddawe11-eng/gamid-testing`

@@ -1,0 +1,225 @@
+{
+  "schemaVersion": 1,
+  "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
+  "updated": "2026-10-05",
+  "environment": "TESTING",
+  "production": "NOT_RELEASED",
+  "statuses": {
+    "ACCEPTED": "Implemented on TESTING and formally accepted by Mazen. Preserve unless he authorizes a change.",
+    "PENDING_ACCEPTANCE": "Implemented on TESTING; formal acceptance not (yet) given.",
+    "DEPRECATED": "Removed or superseded; kept for reference."
+  },
+  "capabilities": [
+    {
+      "id": "intro-transition-engine",
+      "name": "Intro / Transition Engine",
+      "status": "ACCEPTED",
+      "checkpoint": "f413262c1029b083ca0455d1ca425ae5510498d0",
+      "record": "PROJECT_HANDOFF.md §3 (Slice 1)"
+    },
+    {
+      "id": "account-solo-identity",
+      "name": "Account + SOLO identity",
+      "status": "ACCEPTED",
+      "surfaces": ["/account/"],
+      "checkpoint": "69f31760509c3632a7a581b8474e72b09dcc7b95",
+      "record": "PROJECT_HANDOFF.md §3 (Slice 2, accepted 2026-09-15)"
+    },
+    {
+      "id": "your-gamid-editor",
+      "name": "YOUR GAMID identity editor",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/account/"],
+      "record": "PROJECT_HANDOFF.md §3 (Slice 3A)"
+    },
+    {
+      "id": "gaming-roles-education-work",
+      "name": "Gaming Roles + Education & Work",
+      "status": "ACCEPTED",
+      "surfaces": ["/account/"],
+      "record": "PROJECT_HANDOFF.md §3 (Slice 3B)"
+    },
+    {
+      "id": "intro-identity",
+      "name": "Intro identity (owner Intro video upload, processing, Full Preview)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/account/"],
+      "limits": { "introSourceMaxBytes": 157286400, "introMaxSeconds": 30 },
+      "checkpoint": "3e11fa79e301dcb75aef88ca66ff0d6b6ebf8a81",
+      "record": "PROJECT_HANDOFF.md §3 + §7 (Slice 3C; formal acceptance deliberately deferred by Mazen; Split Reveal fix accepted at d7466f99)"
+    },
+    {
+      "id": "public-gamid-profile",
+      "name": "Public GamID profile (public-safe data, Intro -> Transition -> profile, QR sharing)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/@<handle>", "/public/"],
+      "record": "PROJECT_HANDOFF.md §7b, §7d, §7f (not formally accepted); accepted parts: responsive height §7v, Opera Intro reliability 706fc58e"
+    },
+    {
+      "id": "public-handle-url",
+      "name": "Permanent /@handle URL with social identity preview (Cloudflare TESTING Worker)",
+      "status": "ACCEPTED",
+      "surfaces": ["https://gamid-testing-static.gamid.workers.dev/@<handle>"],
+      "checkpoint": "8047bc22ef8ddc3bad70e208ae96462e4e8cb990",
+      "record": "main commit 8047bc2 (Phase 1 accepted on Discord and WhatsApp)"
+    },
+    {
+      "id": "public-section-visibility",
+      "name": "Per-section public visibility (\"Show on my GamID\", OFF by default)",
+      "status": "ACCEPTED",
+      "checkpoint": "2e0c433eb37458e943dbdd1d3f0d259105ba46a7",
+      "record": "PROJECT_HANDOFF.md §7l"
+    },
+    {
+      "id": "connection-discord",
+      "name": "Discord gaming connection (OAuth identify)",
+      "status": "ACCEPTED",
+      "checkpoint": "08b7d039bd118513a8e3129a7e8a70d527cd2bfd",
+      "record": "PROJECT_HANDOFF.md §7h"
+    },
+    {
+      "id": "connection-steam",
+      "name": "Steam gaming connection (OpenID 2.0)",
+      "status": "ACCEPTED",
+      "checkpoint": "48efec8857a2773d3b3f678cfc7a2ec9f7cbc04a",
+      "record": "PROJECT_HANDOFF.md §7m"
+    },
+    {
+      "id": "steam-my-games",
+      "name": "Steam My Games discovery (official Steam Web API, owner-triggered, private)",
+      "status": "PENDING_ACCEPTANCE",
+      "checkpoint": "aa4aa5e03ecaff15f50d86b03ebb8313a6641b95",
+      "record": "PROJECT_HANDOFF.md §3, §7n"
+    },
+    {
+      "id": "league-prototype",
+      "name": "League of Legends card (manual Riot ID, temporary unofficial adapter, private)",
+      "status": "PENDING_ACCEPTANCE",
+      "checkpoint": "44c7a4455f40088572d165a6de453b73491d6500",
+      "record": "PROJECT_HANDOFF.md §7j"
+    },
+    {
+      "id": "game-catalog-manual-games",
+      "name": "Canonical Game Catalog + manual game add / edit / remove",
+      "status": "PENDING_ACCEPTANCE",
+      "limits": { "manualGamesPerIdentity": 300 },
+      "checkpoint": "b4a93b5d9f0b948c3d706e5fc2cbef665c74e63e",
+      "record": "PROJECT_HANDOFF.md §7t, §7u"
+    },
+    {
+      "id": "public-my-games",
+      "name": "Public My Games (compact list, View all, Game Details, playtime and ranks & stats privacy)",
+      "status": "ACCEPTED",
+      "surfaces": ["/@<handle>"],
+      "checkpoint": "006b97375a30d0be248d22e021b3588d673e1ee7",
+      "record": "PROJECT_HANDOFF.md §7w"
+    },
+    {
+      "id": "game-id-wall",
+      "name": "Game ID Wall: editor, assets, backgrounds, embeds, GamID blocks, Templates",
+      "status": "ACCEPTED",
+      "surfaces": ["/wall-editor/"],
+      "checkpoint": "0934af4276f4955db5b3e79cf5db53e318ba9277",
+      "record": "accepted main baseline 0934af4 (W1 accepted 1bbec1b; later rounds landed on main after acceptance)",
+      "notes": "Asset and video limits are recorded under global-usage."
+    },
+    {
+      "id": "public-wall-publishing",
+      "name": "Published Wall on the public GamID",
+      "status": "ACCEPTED",
+      "surfaces": ["/@<handle>"],
+      "checkpoint": "f609e76a0d6aa91be8d83271d23f876f4254a4d0",
+      "record": "accepted and landed on main (f609e76)"
+    },
+    {
+      "id": "notifications",
+      "name": "GamID Notifications (bell, unread count, log, Mark read / Mark all read, live toast)",
+      "status": "ACCEPTED",
+      "checkpoint": "237903a15e0e3ba13f203f929c8256b2cf484719",
+      "record": "PROJECT_HANDOFF.md §3 (My Duo + Notifications acceptance, 2026-10-02)"
+    },
+    {
+      "id": "authenticated-shell",
+      "name": "Global authenticated shell (Notifications on every authenticated surface)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/account/", "/wall-editor/", "/play-together/", "/crew/"],
+      "checkpoint": "afef865a8868d5677f51b521d2c8f2e0e6a9048d",
+      "record": "docs/GLOBAL_AUTHENTICATED_SHELL.md"
+    },
+    {
+      "id": "my-duo",
+      "name": "My Duo",
+      "status": "ACCEPTED",
+      "surfaces": ["/account/", "/@<handle>"],
+      "limits": { "duosPerIdentity": 1 },
+      "checkpoint": "237903a15e0e3ba13f203f929c8256b2cf484719",
+      "record": "PROJECT_HANDOFF.md §3 (My Duo + Notifications acceptance, 2026-10-02)"
+    },
+    {
+      "id": "my-crew",
+      "name": "My Crew (Crews, invitations, Crew Mini Wall, MY CREW block)",
+      "status": "ACCEPTED",
+      "surfaces": ["/account/", "/crew/", "/@<handle>"],
+      "limits": { "activeMembersPerOwnedCrew": 15, "crewWallStages": 2 },
+      "checkpoint": "d2a946691b7a7e2214107ebca38f6a095ae54b38",
+      "record": "Mazen's acceptance 2026-10-04 at d2a9466 (feature/my-crew-v1, not merged to main); limits from docs/global-usage-center.md"
+    },
+    {
+      "id": "play-together",
+      "name": "Play Together (create, find, host approval, Ready Check, Team Room, history)",
+      "status": "ACCEPTED",
+      "surfaces": ["/play-together/"],
+      "limits": { "scheduledStartMaxHours": 3 },
+      "contracts": [
+        { "id": "pt.join-request-notifies-host", "rule": "A JOIN REQUEST gives the host a GamID notification." },
+        { "id": "pt.approve-notifies-requester", "rule": "An APPROVE gives the requester a GamID notification reflecting the decision." },
+        { "id": "pt.reject-notifies-requester", "rule": "A REJECT gives the requester a GamID notification reflecting the decision." }
+      ],
+      "noContract": ["CREATE", "READY", "READY_CHECK_START", "START", "COMPLETE"],
+      "checkpoint": "4fd0afa770a3c620a5b05f46821206b245571df3",
+      "record": "accepted Play Together + Team Voice baseline 4fd0afa, landed on main; contracts approved by Mazen 2026-10-05",
+      "notes": "Contracts are verified by consequence (unread count rises or a notification entry appears), not by transport. noContract: no notification requirement exists for these actions."
+    },
+    {
+      "id": "play-together-marvel-rivals",
+      "name": "Play Together: Marvel Rivals Quick Match on official servers",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/play-together/"],
+      "limits": { "quickMatchPlayers": 6 },
+      "checkpoint": "02a2877b3cf5207a6d5a052bfafe7b5bfa53df82",
+      "record": "docs/PLAY_TOGETHER_MARVEL_RIVALS.md",
+      "notes": "Competitive is shown but disabled by Mazen's decision."
+    },
+    {
+      "id": "discord-team-voice",
+      "name": "Discord Team Voice for the Play Together Team Room",
+      "status": "ACCEPTED",
+      "surfaces": ["/play-together/"],
+      "checkpoint": "4fd0afa770a3c620a5b05f46821206b245571df3",
+      "record": "accepted Play Together + Team Voice baseline 4fd0afa, landed on main; docs/PLAY_TOGETHER_TEAM_ROOM_VOICE.md"
+    },
+    {
+      "id": "global-usage",
+      "name": "Global Usage (storage usage beside Notifications, quota-enforced upload gateway)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/account/", "/wall-editor/", "/play-together/", "/crew/"],
+      "limits": {
+        "storageQuotaBytes": 200000000,
+        "storageEnforcement": true,
+        "wallAssets": 60,
+        "wallVideos": 15
+      },
+      "checkpoint": "e2d258aec6696ec4902e66e142899d6ce8900a61",
+      "record": "docs/global-usage-center.md; limits confirmed on TESTING 2026-10-05",
+      "notes": "200 MB = 200,000,000 bytes. Images share the 60 Wall assets (no separate image limit). Wall layers have no numeric cap (unchanged). Usage shows dynamic image/video capacity wording."
+    },
+    {
+      "id": "landing-page",
+      "name": "Root landing page",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/"],
+      "checkpoint": "3cb0cde7f474cbe7efd194623c6c02853c3de365",
+      "record": "PROJECT_HANDOFF.md §7k"
+    }
+  ]
+}
