@@ -42,7 +42,7 @@ Snapshot from 2026-10-06; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** `3b9d8b1c27fb0c9b3fa6fd0c2ee682dab7618906`, F3 viewport-gated published Wall videos, **implemented and deployed; awaiting Mazen manual acceptance** (`docs/WALL-VIDEO-VIEWPORT-F3.md`, `PROJECT_HANDOFF.md` §10). Later commits are documentation only; check with `git log --oneline 3b9d8b1..HEAD`.
+- **Latest product commit:** `3b9d8b1c27fb0c9b3fa6fd0c2ee682dab7618906`, F3 viewport-gated published Wall videos, **manually ACCEPTED by Mazen** (`docs/WALL-VIDEO-VIEWPORT-F3.md`, `PROJECT_HANDOFF.md` §10). Later commits are documentation only; check with `git log --oneline 3b9d8b1..HEAD`.
   - F4 `2ccb0f8aeec701bd4c0e6006c36d4c628a9ec091` is **accepted as the implementation baseline by Mazen** in the F3 authorization; its URL reuse remains preserved (`docs/WALL-VIDEO-URL-REUSE-F4.md`).
   - The preceding timing fix `7cbabf08cb43ead23f178c78bfce6b4ebaa5461d` remains **ACCEPTED by Mazen**.
   - The preceding My Crew navigation fix `f2ba4a709ed28dfc2cbaca4984ce05937659a6c7` remains **ACCEPTED by Mazen**.
@@ -83,7 +83,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Current stop point:** F3 is implemented and deployed to TESTING; stop for Mazen manual acceptance. The implementation, bounded before/after measurements, exact manual checks and remaining optimization candidates are in `docs/WALL-VIDEO-VIEWPORT-F3.md`. F4 remains accepted as the baseline. Do not start F2/F5/F6/F7/F8 or another product task without separate authorization.
+**Current stop point:** F3 is manually ACCEPTED by Mazen on TESTING (2026-10-06); stop awaiting the next explicit task. The implementation, bounded before/after measurements, manual acceptance record and remaining optimization candidates are in `docs/WALL-VIDEO-VIEWPORT-F3.md`. F4 remains accepted as the baseline. Do not start F2/F5/F6/F7/F8 or another product task without separate authorization.
 
 **Previously outstanding continuation (not performed in F3/F4):**
 1. **Remaining manual acceptance checks for global-usage.** Core accounting PASS; remaining checks are listed in `PROJECT_HANDOFF.md` §10. This capability remains PENDING_ACCEPTANCE in Truth.
