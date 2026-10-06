@@ -9,7 +9,7 @@ body{margin:0;min-width:320px;min-height:100svh;background:var(--crew-bg);color:
 .crew-badge{font-size:.62rem;letter-spacing:.13em;border:1px solid #4a3e78;border-radius:999px;padding:.32rem .55rem;color:#c7b8ff}
 .crew-shell{display:grid;justify-items:center;gap:1rem;padding:1rem;min-width:0}
 .crew-state{display:grid;justify-items:center;gap:.6rem;padding:3rem 1rem;text-align:center;color:var(--crew-muted)}
-.crew-state[hidden],.crew-wall[hidden],.crew-preview[hidden]{display:none}
+.crew-state[hidden],.crew-wall[hidden],.crew-preview[hidden],.crew-profile-back[hidden]{display:none}
 .crew-state h1{margin:0;color:var(--crew-text);font-size:1.3rem}
 .crew-loader{width:2.3rem;aspect-ratio:1;border:3px solid #292438;border-top-color:var(--crew-cyan);border-radius:50%;animation:crew-spin .8s linear infinite}
 @keyframes crew-spin{to{transform:rotate(1turn)}}

@@ -4,7 +4,7 @@
 // ?crew=<id>; that page offers "Back to <Crew>" + "Skip Intro". The scroll position is remembered for this Crew so Back returns to the same place.
 // Opened from a Personal GamID's My Crew block (/crew/?c=<id>&from=<handle>), the page offers "Back to @<handle>" (the shared visitor navigation) and keeps `from`
 // on every member card, so Member -> Back to Crew -> Back to @<handle> returns to the originating GamID.
-import { getPublicCrewWall, getCrewWallPreview, getPublicIdentity, loadPublicAvatar, restoreSession } from "../account/supabase-client.js";
+import { getPublicCrewWall, getCrewWallPreview, getPublicIdentity, loadPublicAvatar, restoreSession, currentSession, AUTH_SESSION_EVENT } from "../account/supabase-client.js";
 import { crewWallModel, paintCrewWall, CREW_UUID } from "./crew-wall.js";
 import { backHandle } from "../public/identity-link.js";
 import { createVisitorNav } from "../public/visitor-nav.js";
@@ -46,7 +46,15 @@ async function resolvePeople(model) {
   return people;
 }
 
+// Owner navigation stays separate from the public visitor return path.
+export function syncProfileBack(link, session) {
+  link.hidden = !session?.access_token;
+}
+
 async function main() {
+  const profileBack = document.getElementById("crewProfileBack");
+  addEventListener(AUTH_SESSION_EVENT, () => syncProfileBack(profileBack, currentSession()));
+  try { syncProfileBack(profileBack, await restoreSession()); } catch { syncProfileBack(profileBack, null); }
   const crewId = crewIdFromSearch(location.search);
   const loading = document.getElementById("crewLoading"), missing = document.getElementById("crewMissing"), host = document.getElementById("crewWall"), banner = document.getElementById("crewPreviewBanner");
   const show = state => { loading.hidden = state !== "loading"; missing.hidden = state !== "missing"; host.hidden = state !== "wall"; };

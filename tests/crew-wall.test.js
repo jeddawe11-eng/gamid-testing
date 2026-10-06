@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { crewWallModel, buildCrewWallDocument, CARD, CREW_CANVAS_MIN_HEIGHT } from "../dist/crew/crew-wall.js";
-import { publicPerson, crewIdFromSearch as pageCrewId, SCROLL_KEY } from "../dist/crew/crew.js";
+import { publicPerson, crewIdFromSearch as pageCrewId, SCROLL_KEY, syncProfileBack } from "../dist/crew/crew.js";
 import { validateDocument } from "../dist/wall/validate.js";
 import { elementRegistry } from "../dist/wall/elements.js";
 import { crewIdFromSearch, crewWallHref, goBack } from "../dist/public/identity-link.js";
@@ -177,6 +177,9 @@ test("My Crew panel: the owner's Crew card carries the Crew Wall box and saves w
   const ownerRoot = element("div");
   const owner = createCrewPanel({ api: api("OWNER"), root: ownerRoot, message: element("p"), element, timers: { setTimeout: () => 1, clearTimeout() {} } });
   await owner.load();
+  const ownerLink = all(ownerRoot, node => node.tag === "a" && node.className.includes("crew-wall-open"))[0];
+  assert.equal(ownerLink.href, `../crew/?c=${ID}`);
+  assert.equal(ownerLink.target || "_self", "_self", "owner preview opens in the current tab");
   assert.match(ownerRoot.textContent, /CREW WALL/);
   assert.match(ownerRoot.textContent, /Stages 1 \/ 2 used/);
   await buttons(ownerRoot, "Edit Crew Wall")[0].fire("click");
@@ -189,7 +192,9 @@ test("My Crew panel: the owner's Crew card carries the Crew Wall box and saves w
   const member = createCrewPanel({ api: memberCalls, root: memberRoot, message: element("p"), element, timers: { setTimeout: () => 1, clearTimeout() {} } });
   await member.load();
   assert.doesNotMatch(memberRoot.textContent, /Edit Crew Wall|Publish/);
-  assert.equal(all(memberRoot, node => node.tag === "a" && node.textContent === "Open Crew Wall")[0].href, `../crew/?c=${ID}`);
+  const memberLink = all(memberRoot, node => node.tag === "a" && node.textContent === "Open Crew Wall")[0];
+  assert.equal(memberLink.href, `../crew/?c=${ID}`);
+  assert.equal(memberLink.target || "_self", "_self", "member opens the Crew in the current tab");
 });
 
 // ---------- migration shape ----------
@@ -207,4 +212,29 @@ test("migration: placements reference the membership row (cleanup is automatic),
   assert.match(sql, /select private\.crew_wall_view\(w\.crew_id, false\) from public\.crew_walls w where w\.crew_id = candidate_crew and w\.published;/);
   assert.match(sql, /where k\.crew_id = c\.crew_id and \(candidate_preview or e\.visibility = 'PUBLIC'\)/, "a member whose GamID is not public never appears to visitors");
   assert.match(sql, /logo_path text check \(logo_path is null or logo_path ~ '\^\[a-z0-9\]\[a-z0-9\/_\.-\]\{0,199\}\$'\)/, "approved media are GamID storage paths, never URLs");
+});
+
+
+test("Account Crew links use the same tab for both published and preview Walls", () => {
+  for (const published of [true, false]) {
+    const box = renderCrewWallBox({ crew: { id: ID }, wall: wallState({ ...wallView, published }), members: [], element, button: (text, cls) => element("button", cls, text), editing: false });
+    const link = all(box, node => node.tag === "a")[0];
+    assert.equal(link.textContent, published ? "Open Crew Wall" : "Preview Crew Wall");
+    assert.equal(link.target || "_self", "_self");
+    assert.equal(new URL(link.href, "https://testing.example/account/").pathname, "/crew/");
+  }
+});
+
+test("Back to Profile is signed-in only and returns to Account, independent of public return context", () => {
+  const link = element("a");
+  for (const session of [null, {}, { access_token: "" }]) { syncProfileBack(link, session); assert.equal(link.hidden, true); }
+  syncProfileBack(link, { access_token: "fixture-token" });
+  assert.equal(link.hidden, false);
+  syncProfileBack(link, null);
+  assert.equal(link.hidden, true, "sign-out removes the owner action");
+  const html = read("dist/crew/index.html");
+  assert.ok(html.includes('id="crewProfileBack" class="identity-back crew-profile-back" href="../account/" hidden>← Back to Profile</a>'));
+  assert.equal(new URL("../account/", "https://testing.example/crew/?c=" + ID + "&from=origin").pathname, "/account/");
+  assert.ok(read("dist/crew/crew.css").includes(".crew-profile-back[hidden]{display:none}"));
+  assert.ok(read("dist/crew/crew.js").includes("addEventListener(AUTH_SESSION_EVENT"));
 });

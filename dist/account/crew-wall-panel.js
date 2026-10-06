@@ -45,7 +45,7 @@ export function renderCrewWallBox({ crew, wall, members, element, button, editin
   box.append(element("p", "duo-note crew-wall-usage", `Stages ${wall.stageCount} / ${wall.allowed} used · ${wall.cards.length} member card${wall.cards.length === 1 ? "" : "s"}`));
   const links = element("div", "duo-actions");
   const open = element("a", "secondary duo-button crew-wall-open", wall.published ? "Open Crew Wall" : "Preview Crew Wall");
-  open.href = crewWallHrefFor(crew.id); open.target = "_blank"; open.rel = "noopener";
+  open.href = crewWallHrefFor(crew.id);
   links.append(open, button(editing ? "Done" : "Edit Crew Wall", "secondary duo-button", onToggleEdit),
     button(wall.published ? "Unpublish" : "Publish", wall.published ? "text-button duo-button" : "primary duo-button", () => publish(!wall.published)));
   box.append(links);

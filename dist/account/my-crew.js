@@ -200,7 +200,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     } else {
       const actions = element("div", "duo-actions");
       const open = element("a", "secondary duo-button crew-wall-open", "Open Crew Wall");
-      open.href = crewWallHrefFor(crew.id); open.target = "_blank"; open.rel = "noopener";
+      open.href = crewWallHrefFor(crew.id);
       actions.append(open, button("Leave Crew", "text-button danger duo-button", () => { confirm = { kind: "leave", crewId: crew.id }; render(); }));
       card.append(actions);
     }
