@@ -7,6 +7,7 @@
 //   - the storage policy "published wall media is readable": exactly those objects, and only while they are published (everything else stays owner-only);
 //   - live GamID data: the anonymous public view (loadPublicView), the same calls the Public Profile makes - nothing the owner hid.
 import * as defaultApi from "../account/supabase-client.js";
+import { createPublishedVideoUrlCache } from "./published-video-url-cache.js";
 import { paintDocument } from "../wall-kit/paint.js";
 import { normalizeEmbedLayering } from "../wall-kit/ops.js";
 import { validateDocument } from "../wall/validate.js";
@@ -17,6 +18,7 @@ import { createWallDetails } from "../wall-kit/gamid-details.js";
 import { loadPublicView, providerLabel, PUBLIC_SOURCE_LABELS } from "../wall-editor/gamid-data.js";
 import { gamidHref, crewWallHref } from "./identity-link.js";
 
+const publishedVideoUrls = createPublishedVideoUrlCache({ baseUrl: defaultApi.SUPABASE_URL });
 export const WALL_MAX_WIDTH = 900;
 export const WALL_MIN_WIDTH = 280;
 const CONNECTION_KEYS = ["steam", "discord", "riot", "league", "xbox", "playstation"];
@@ -31,7 +33,7 @@ export function visitorSnapshot(view) {
 
 // Loads what one published Wall needs: its pictures (blob: URLs, like the public avatar), its videos (short-lived signed stream addresses) and the visitor view of
 // live GamID data. A media file that cannot be loaded just shows its placeholder; it never breaks the page. -> { doc, assets, gamid } | null (not a valid Wall)
-export async function preparePublicWall(published, handle, api = defaultApi) {
+export async function preparePublicWall(published, handle, api = defaultApi, videoCache = api === defaultApi ? publishedVideoUrls : null) {
   const doc = published?.document;
   if (!doc || !validateDocument(doc).valid) return null;
   const pictures = new Map(), videos = new Map();
@@ -40,7 +42,12 @@ export async function preparePublicWall(published, handle, api = defaultApi) {
     const id = asset?.asset_id, path = asset?.storage_path;
     if (typeof id !== "string" || typeof path !== "string") return;
     try {
-      if (isVideoMime(asset.mime_type)) { const url = await api.signPublicWallVideo(path, asset.mime_type); if (url) videos.set(id, url); }
+      if (isVideoMime(asset.mime_type)) {
+        // Only the current server-returned published asset list can consult the anonymous cache.
+        const sign = () => api.signPublicWallVideo(path, asset.mime_type);
+        const url = videoCache ? await videoCache.get({ bucket: defaultApi.publicWallBucketFor(path, asset.mime_type), path, sign }) : await sign();
+        if (url) videos.set(id, url);
+      }
       else { const url = await api.loadPublicWallPicture(path); if (url) pictures.set(id, url); }
     } catch { /* this one asset shows its placeholder */ }
   }));
