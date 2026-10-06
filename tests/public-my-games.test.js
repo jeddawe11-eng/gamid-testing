@@ -513,6 +513,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261003234309_personal_gamid_crews.sql",   // My Crew on the Personal GamID: public identity + 'crews' section (recovered from TESTING; other sections verbatim)
       "20261004114230_play_together_marvel_rivals.sql", // Multi-game Play Together catalog
       "20261004170252_global_usage_gateway.sql", // Owner Usage; public game contracts untouched
+      "20261006090000_play_together_notifications.sql", // Play Together's three contracted notifications; public game contracts untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

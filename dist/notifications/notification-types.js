@@ -6,6 +6,7 @@ const who = row => (typeof row?.actor_handle === "string" && HANDLE.test(row.act
 const plain = (value, max) => (typeof value === "string" && value.trim() && !/[<>\u0000-\u001f]/.test(value) ? value.trim().slice(0, max) : "");
 const crew = row => plain(row?.context?.crew_name, 40) || "your Crew";
 const game = row => (plain(row?.context?.game_name, 120) ? ` (${plain(row.context.game_name, 120)})` : "");
+const queue = row => (plain(row?.context?.queue_name, 120) ? ` (${plain(row.context.queue_name, 120)})` : "");
 
 export const NOTIFICATION_TEXT = Object.freeze({
   // My Duo - the first producer
@@ -23,6 +24,10 @@ export const NOTIFICATION_TEXT = Object.freeze({
   "crew.member_removed": row => `${who(row)} removed you from ${crew(row)}.`,
   "crew.member_left": row => `${who(row)} left ${crew(row)}.`,
   "crew.deleted": row => `${who(row)} deleted ${crew(row)}.`,
+  // Play Together - the three approved contracts (pt.join-request-notifies-host, pt.approve- / pt.reject-notifies-requester); the queue name is server-written context
+  "play_together.request_received": row => `${who(row)} requested to join your Play Together squad${queue(row)}.`,
+  "play_together.request_approved": row => `${who(row)} approved your request to join their Play Together squad${queue(row)}.`,
+  "play_together.request_rejected": row => `${who(row)} declined your request to join their Play Together squad${queue(row)}.`,
 });
 
 export const notificationText = row => (Object.hasOwn(NOTIFICATION_TEXT, row?.type_key) ? NOTIFICATION_TEXT[row.type_key](row) : "You have a new GamID notification.");
@@ -31,5 +36,7 @@ export const notificationText = row => (Object.hasOwn(NOTIFICATION_TEXT, row?.ty
 export const DESTINATIONS = Object.freeze({
   "account.my_duo": { page: "account", anchor: "my-duo", label: "My Duo" },
   "account.my_crew": { page: "account", anchor: "my-crew", label: "My Crew" },
+  "play_together.requests": { page: "play-together", anchor: "requestSection", label: "Play Together" },
+  "play_together.session": { page: "play-together", anchor: "activePanel", label: "Play Together" },
 });
 export const destinationOf = row => (typeof row?.destination === "string" && Object.hasOwn(DESTINATIONS, row.destination) ? row.destination : null);

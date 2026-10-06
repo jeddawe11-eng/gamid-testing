@@ -255,7 +255,7 @@ test("12. clicking a My Duo notification opens/focuses My Duo through the page's
   assert.deepEqual(opened, [["account.my_duo", 3]], "a URL is never a destination");
   assert.equal(destinationOf({ destination: "account.my_duo" }), "account.my_duo");
   assert.equal(destinationOf({ destination: "javascript:alert(1)" }), null);
-  assert.deepEqual(Object.keys(DESTINATIONS), ["account.my_duo", "account.my_crew"]);   // + My Crew (20261003100000_my_crew)
+  assert.deepEqual(Object.keys(DESTINATIONS), ["account.my_duo", "account.my_crew", "play_together.requests", "play_together.session"]);   // + My Crew (20261003100000_my_crew), + Play Together (20261006090000)
   const account = read("dist/account/account.js");
   assert.match(account, /function openNotificationDestination\(destination\) \{\n  const sectionId = \{ "account\.my_duo": "duoSection", "account\.my_crew": "crewSection" \}\[destination\];\n  if \(!sectionId\) return;/);
   assert.match(account, /if \(location\.hash === "#my-duo"\) openNotificationDestination\("account\.my_duo"\);/);
