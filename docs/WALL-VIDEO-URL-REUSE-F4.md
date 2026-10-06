@@ -31,4 +31,3 @@ GamID Truth: NO CHANGE REQUIRED. This changes request reuse, not visibility, lim
 ## Deployment record
 
 Product commit: 2ccb0f8aeec701bd4c0e6006c36d4c628a9ec091. TESTING workflow 37457286798 succeeded; Worker version 7071cc10-80e7-4aa6-96cf-c565166f741a. Workflow validation: 1,615 tests, 1,614 passed, one skipped, zero failed; lint and typechecks passed. Both served modules matched their source files exactly (line endings normalized); public HTML carried stamp 2ccb0f8. Browser fixture repeat and real reload restored the same media URL; reload performed one fresh publication lookup, zero new signing requests and zero video downloads. Real-device playback remains for Mazen review; automated rendering/playback-path regressions passed. Stop after F4.
-
