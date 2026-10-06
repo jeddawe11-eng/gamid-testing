@@ -42,14 +42,15 @@ Snapshot from 2026-10-06; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** `f2ba4a709ed28dfc2cbaca4984ce05937659a6c7`, the My Crew Account navigation fix, **ACCEPTED by Mazen** (`PROJECT_HANDOFF.md` §10). Later commits are documentation only; check with `git log --oneline f2ba4a7..HEAD`.
+- **Latest product commit:** `7cbabf08cb43ead23f178c78bfce6b4ebaa5461d`, the Play Now / Scheduled field visibility fix, **awaiting Mazen's manual acceptance** (`PROJECT_HANDOFF.md` §10). Later commits are documentation only; check with `git log --oneline 7cbabf0..HEAD`.
+  - The preceding My Crew navigation fix `f2ba4a709ed28dfc2cbaca4984ce05937659a6c7` remains **ACCEPTED by Mazen**.
   - **play-together-marvel-rivals is ACCEPTED by Mazen** (2026-10-06); current status in Truth, manual acceptance record in `PROJECT_HANDOFF.md` §10.
   - **authenticated-shell is ACCEPTED by Mazen** (2026-10-06); current status in Truth, manual acceptance record in `PROJECT_HANDOFF.md` §10.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `f2ba4a7`.**
-  - Static site: deployed by workflow run `37407094550`.
+- **TESTING serves `7cbabf0`.**
+  - Static site: deployed by workflow run `37409272787`.
   - Database: migration `20261006090000_play_together_notifications` applied and recorded.
   - Per-capability checkpoints are in Truth.
 
@@ -81,8 +82,8 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 ## 7. Current continuation point
 
 **Next:**
-1. **Remaining manual acceptance checks for global-usage.** Core accounting PASS; remaining checks are listed in `PROJECT_HANDOFF.md` §10. This capability remains PENDING_ACCEPTANCE in Truth.
-2. **Next product issue, which needs a separately approved fix task:** in Play Together, with Play Now selected, the Scheduled-only "Start within 3 hours" field stays visible and usable (§10).
+1. **Play Now / Scheduled timing fix manual acceptance:** verify hiding, both switching directions, cleared stale dates and existing scheduling / submission rules (`PROJECT_HANDOFF.md` §10). No acceptance recorded yet.
+2. **Remaining manual acceptance checks for global-usage.** Core accounting PASS; remaining checks are listed in `PROJECT_HANDOFF.md` §10. This capability remains PENDING_ACCEPTANCE in Truth.
 3. **Then the landing decision** for `main` (below).
 
 - **Why landing needs a decision:** `main` (`da2e020`) is behind the working tip. A fast-forward would be clean in Git, but would also land work that Truth still marks PENDING_ACCEPTANCE:
