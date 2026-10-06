@@ -85,7 +85,7 @@ export function createPublicWallView({ host, prepared, handle, api = defaultApi,
     const target = width();
     players?.destroyAll();
     players = createPlayerManager();
-    videos ??= createVideoPool();
+    videos ??= createVideoPool({ viewport: { win, doc } });
     posters ??= createPosterLoader({ endpoint: api.MEDIA_POSTER_URL });
     details ??= createWallDetails({ element: make, handle, api, mount: node => doc.body.append(node), sourceLabels: PUBLIC_SOURCE_LABELS, posters });
     const painted = paintDocument(ready.doc, target, undefined, { mode: "view", assets: ready.assets, gamid: ready.gamid, players, posters, details, videos });
@@ -94,6 +94,7 @@ export function createPublicWallView({ host, prepared, handle, api = defaultApi,
     column.style.setProperty("width", `${target}px`);
     column.append(...painted.stages);
     host.replaceChildren(column);
+    videos.resume();
     paintedWidth = target;
   }
   const onResize = () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (showing && Math.abs(width() - paintedWidth) > 1) paint(); }, 150); };
@@ -103,7 +104,7 @@ export function createPublicWallView({ host, prepared, handle, api = defaultApi,
 
   return {
     show() { if (showing) return; showing = true; host.hidden = false; paint(); },
-    hide() { if (!showing) return; showing = false; host.hidden = true; players?.destroyAll(); details?.closeAll?.(); },
+    hide() { if (!showing) return; showing = false; host.hidden = true; videos?.suspend(); players?.destroyAll(); details?.closeAll?.(); },
     get showing() { return showing; },
   };
 }
