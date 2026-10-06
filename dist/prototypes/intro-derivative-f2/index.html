@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>GamID TESTING — F2 fixture</title>
+<style>body{margin:0;background:#080712;color:#eee;font:16px system-ui}header{padding:12px}button{margin:4px;padding:8px}iframe{border:0;width:100%;height:85vh}small{display:block}</style></head>
+<body><header><strong>TESTING ONLY — synthetic F2 Intro acceptance fixture</strong>
+<small>No account, Supabase media or saved identity is used. Existing Intro playback and transition engine; existing audio/tap-to-play behavior. Each replay uses a local Blob as the current product does.</small>
+<button data-source="landscape">Landscape · 1920×1080 · 30 fps · audio encoded</button>
+<button data-source="portrait">Portrait · 1080×1920 · 24 fps</button>
+<button data-source="small">Small · 576×1024 · 30 fps · no upscale</button>
+<p id="status">Choose a fixture. All clips are three seconds. Intro output is opaque; Wall alpha support is unchanged.</p></header>
+<iframe id="preview" title="Existing GamID Intro preview" src="/account/intro-preview.html?v=__ASSET_VERSION__"></iframe>
+<script type="module" src="./fixture.js?v=__ASSET_VERSION__"></script></body></html>

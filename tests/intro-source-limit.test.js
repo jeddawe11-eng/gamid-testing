@@ -80,13 +80,13 @@ test("the re-declared RPC differs from the original only in the size constant", 
   assert.equal(body(after), body(before).replace("104857600", "157286400"));
 });
 
-test("WORKER: its own SOURCE_TOO_LARGE guard uses 150 MiB; the derivative ceiling, duration and all D3 encode settings are unchanged", () => {
+test("WORKER: 150 MiB source guard, derivative ceiling, duration and D3 codec settings remain intact with F2 geometry", () => {
   assert.match(worker, /const MAX_SOURCE_BYTES = 150 \* 1024 \* 1024;/);
   assert.match(worker, /if \(sourceStat\.size > MAX_SOURCE_BYTES\) throw new Error\("SOURCE_TOO_LARGE"\)/);
   assert.match(worker, /const MAX_OUTPUT_BYTES = 15 \* 1024 \* 1024;/);
   assert.match(worker, /"-c:v","libvpx-vp9","-crf","40","-b:v","0","-deadline","good","-cpu-used","2","-row-mt","1","-pix_fmt","yuv420p"/);
   assert.match(worker, /"-c:a","libopus","-b:a","32k","-vbr","on","-application","audio"/);
-  assert.match(worker, /result\.video\.width !== source\.video\.width \|\| result\.video\.height !== source\.video\.height/);
+  assert.match(worker, /result\.video\.width !== geometry\.width \|\| result\.video\.height !== geometry\.height/);
   assert.match(worker, /if \(result\.size > MAX_OUTPUT_BYTES\) throw new Error\("DERIVATIVE_TOO_LARGE"\)/);
 });
 

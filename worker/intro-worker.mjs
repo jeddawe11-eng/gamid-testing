@@ -7,30 +7,50 @@ import { processOneWallVideoJob, transcodeWallBackground } from "./wall-video.mj
 import { uploadGatewayFile, deleteGatewayObject } from './usage-upload.mjs';
 
 const run = promisify(execFile);
-const MAX_SOURCE_BYTES = 150 * 1024 * 1024;   // 150 MiB = 157,286,400 bytes; duration (30 s), D3 settings and the derivative ceiling are unchanged
+const MAX_SOURCE_BYTES = 150 * 1024 * 1024;   // 150 MiB = 157,286,400 bytes
 const MAX_OUTPUT_BYTES = 15 * 1024 * 1024;
 const MAX_DURATION_SECONDS = 30;
 
 function rate(value = "0/1") { const [n,d] = String(value).split("/").map(Number); return d ? n / d : 0; }
 
 export async function probe(path) {
-  const { stdout } = await run("ffprobe", ["-v","error","-show_entries","format=format_name,duration,bit_rate,size:stream=index,codec_type,codec_name,profile,width,height,pix_fmt,avg_frame_rate,bit_rate,channels,sample_rate,start_time,duration","-of","json",path], { maxBuffer:2 * 1024 * 1024 });
+  const { stdout } = await run("ffprobe", ["-v","error","-show_entries","format=format_name,duration,bit_rate,size:stream=index,codec_type,codec_name,profile,width,height,pix_fmt,sample_aspect_ratio,avg_frame_rate,bit_rate,channels,sample_rate,start_time,duration:stream_side_data=rotation:stream_tags=alpha_mode","-of","json",path], { maxBuffer:2 * 1024 * 1024 });
   const data = JSON.parse(stdout); const video = data.streams.find(stream => stream.codec_type === "video"); const audio = data.streams.find(stream => stream.codec_type === "audio");
   return { data, video, audio, duration:Number(data.format.duration || video?.duration || 0), size:Number(data.format.size || 0), totalBitrate:Number(data.format.bit_rate || 0), fps:rate(video?.avg_frame_rate) };
 }
 
+// F2 bounds playback pixels, never the master. FFmpeg retains sample aspect ratio
+// when scaling and applies its existing autorotation before this filter.
+export function introDerivativeGeometry(video) {
+  const rotation = Number(video?.side_data_list?.find(item => Number.isFinite(Number(item.rotation)))?.rotation || 0);
+  const turned = Math.abs(rotation % 180) === 90;
+  const width = Number(turned ? video?.height : video?.width);
+  const height = Number(turned ? video?.width : video?.height);
+  if (![width,height].every(value => Number.isInteger(value) && value >= 2)) throw new Error("INVALID_SOURCE_GEOMETRY");
+  const scale = Math.min(1,1920 / Math.max(width,height),1080 / Math.min(width,height));
+  // Chroma subsampling needs even dimensions; never round a smaller source up.
+  return { width:Math.max(2,Math.floor(width * scale / 2) * 2),height:Math.max(2,Math.floor(height * scale / 2) * 2),sourceWidth:width,sourceHeight:height,turned };
+}
 export async function encodeD3(input, output) {
   const sourceStat = await stat(input); if (sourceStat.size > MAX_SOURCE_BYTES) throw new Error("SOURCE_TOO_LARGE");
   const source = await probe(input); if (!source.video || source.duration < .5 || source.duration > MAX_DURATION_SECONDS) throw new Error("INVALID_SOURCE_DURATION");
+  const geometry = introDerivativeGeometry(source.video);
+  const scaleArgs = geometry.width === geometry.sourceWidth && geometry.height === geometry.sourceHeight ? [] : ["-vf",`scale=${geometry.width}:${geometry.height}:flags=lanczos`];
   const audioArgs = source.audio ? ["-map","0:a:0","-c:a","libopus","-b:a","32k","-vbr","on","-application","audio"] : ["-an"];
   const started = performance.now();
-  await run("ffmpeg", ["-hide_banner","-loglevel","error","-nostdin","-n","-i",input,"-map","0:v:0","-c:v","libvpx-vp9","-crf","40","-b:v","0","-deadline","good","-cpu-used","2","-row-mt","1","-pix_fmt","yuv420p",...audioArgs,"-f","webm",output], { maxBuffer:4 * 1024 * 1024 });
+  await run("ffmpeg", ["-hide_banner","-loglevel","error","-nostdin","-n","-i",input,"-map","0:v:0",...scaleArgs,"-c:v","libvpx-vp9","-crf","40","-b:v","0","-deadline","good","-cpu-used","2","-row-mt","1","-pix_fmt","yuv420p",...audioArgs,"-f","webm",output], { maxBuffer:4 * 1024 * 1024 });
   const encodingMs = Math.round(performance.now() - started); const result = await probe(output);
   if (result.size > MAX_OUTPUT_BYTES) throw new Error("DERIVATIVE_TOO_LARGE");
   if (result.video?.codec_name !== "vp9" || result.video?.pix_fmt !== "yuv420p" || !String(result.data.format.format_name).includes("webm")) throw new Error("INVALID_D3_VIDEO");
   if (source.audio && result.audio?.codec_name !== "opus") throw new Error("INVALID_D3_AUDIO");
   if (!source.audio && result.audio) throw new Error("UNEXPECTED_D3_AUDIO");
-  if (result.video.width !== source.video.width || result.video.height !== source.video.height || Math.abs(result.fps - source.fps) > .02 || Math.abs(result.duration - source.duration) > .25) throw new Error("D3_TIMING_OR_GEOMETRY_MISMATCH");
+  if (result.video.width !== geometry.width || result.video.height !== geometry.height || Math.abs(result.fps - source.fps) > .02 || Math.abs(result.duration - source.duration) > .25) throw new Error("D3_TIMING_OR_GEOMETRY_MISMATCH");
+  const sourceSar = rate(String(source.video.sample_aspect_ratio || "1/1").replace(":","/")) || 1;
+  const resultSar = rate(String(result.video.sample_aspect_ratio || "1/1").replace(":","/")) || 1;
+  const turned = geometry.turned;
+  const sourceAspect = turned ? source.video.height / (source.video.width * sourceSar) : source.video.width * sourceSar / source.video.height;
+  const resultAspect = result.video.width * resultSar / result.video.height;
+  if (Math.abs(resultAspect / sourceAspect - 1) > .005) throw new Error("D3_TIMING_OR_GEOMETRY_MISMATCH");
   return { source, result, encodingMs };
 }
 
@@ -96,6 +116,9 @@ if (command === "encode") {
 } else if (command === "transcode-wall") {
   if (!input || !output) throw new Error("Usage: node worker/intro-worker.mjs transcode-wall INPUT OUTPUT");
   console.log(JSON.stringify(await transcodeWallBackground(input,output),null,2));
+} else if (command === "f2-smoke") {
+  const { smokeIntroDerivative } = await import("./intro-f2-smoke.mjs");
+  console.log(JSON.stringify(await smokeIntroDerivative(encodeD3)));
 } else if(command==='usage-smoke'||command==='usage-smoke-enforced') {
  const {smokeUsageGateway}=await import('./usage-smoke.mjs');const {url,key}=environment();
  console.log(JSON.stringify(await smokeUsageGateway({url,headers:()=>backendAuthHeaders(key)},fetch,{requireEnforcement:command==='usage-smoke-enforced',encodeIntro:encodeD3,encodeWall:transcodeWallBackground})));

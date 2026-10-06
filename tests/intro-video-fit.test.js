@@ -101,7 +101,7 @@ test("no Intro stylesheet ever stretches the video: no object-fit:fill, no non-u
 test("root cause boundary: the processing pipeline does not resize or reshape the video, so the stretch was a presentation matter", () => {
   const worker = read("worker/intro-worker.mjs");
   const ffmpeg = worker.slice(worker.indexOf('run("ffmpeg"'), worker.indexOf('run("ffmpeg"') + 400);
-  assert.doesNotMatch(ffmpeg, /"-vf"|scale=|pad=|crop=|setsar|setdar|-aspect|force_original_aspect_ratio/, "the derivative keeps the source dimensions and aspect ratio");
+  assert.doesNotMatch(ffmpeg, /pad=|crop=|setsar|setdar|-aspect/, "F2 bounds dimensions without cropping or overriding display aspect ratio");
   assert.match(ffmpeg, /libvpx-vp9/);
 });
 
@@ -229,9 +229,9 @@ test("CSS: wide sources only - a contained foreground box, the ambient behind it
   assert.match(css, /@media \(min-aspect-ratio:1\/1\)\{\.preview-only \.media-stage video\{object-fit:contain/);
 });
 
-test("no media policy change: the D3 encode command, its ceilings and the derivative geometry check are untouched", () => {
+test("F2 preserves D3 codecs, ceilings and validates bounded geometry", () => {
   const worker = read("worker/intro-worker.mjs");
   assert.match(worker, /"-c:v","libvpx-vp9","-crf","40","-b:v","0","-deadline","good","-cpu-used","2","-row-mt","1","-pix_fmt","yuv420p"/);
-  assert.match(worker, /result\.video\.width !== source\.video\.width \|\| result\.video\.height !== source\.video\.height/);
+  assert.match(worker, /result\.video\.width !== geometry\.width \|\| result\.video\.height !== geometry\.height/);
   assert.match(worker, /MAX_OUTPUT_BYTES = 15 \* 1024 \* 1024/);
 });

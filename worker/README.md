@@ -6,6 +6,7 @@ independent, trusted container claims that job and produces the approved D3
 derivative. No FFmpeg or privileged credential runs in the browser.
 
 The Usage gateway image uses the repository root as its Docker build context.
+F2 encoding policy and acceptance evidence: [F2 record](../docs/INTRO-DERIVATIVE-F2.md).
 See [Global Usage rollout](../docs/global-usage-center.md) and the explicit source
 allowlist in `cloud-run/usage-testing.gcloudignore`. Update the existing TESTING
 Job image; preserve its existing secrets, service account and dispatcher.
@@ -18,7 +19,11 @@ The worker runs one job at a time:
    `processing` and returns server-authorized source and destination paths.
 2. The worker downloads that private source from `intro-sources`.
 3. FFmpeg produces VP9/WebM CRF 40 with Opus at 32 kbps directly from the
-   source, preserving source resolution, frame rate, and timing.
+   source, preserving frame rate, timing and display aspect ratio. F2 bounds the
+   coded long edge to 1920 px and short edge to 1080 px with Lanczos scaling,
+   no crop/pad or upscale. Smaller sources keep their dimensions (odd sizes
+   round down to even chroma dimensions). FFmpeg autorotation is respected.
+   Intro output remains opaque yuv420p; accepted Wall alpha media is separate.
 4. ffprobe validates container, codecs, pixel format, geometry, frame rate,
    duration, audio presence, and the 15 MiB derivative limit.
 5. The worker uploads the derivative to `intro-media` and calls
@@ -117,3 +122,7 @@ GamID TESTING Google Cloud project:
    derivative and the deleted source.
 4. Only then set the Edge Function secret `WALL_VIDEO_TRANSCODE_ENABLED=true`
    (`supabase secrets set ...`) - from that moment HEVC uploads are queued.
+
+Run the native deployment fixture check without claiming jobs, Storage access or credentials:
+
+    node worker/intro-worker.mjs f2-smoke
