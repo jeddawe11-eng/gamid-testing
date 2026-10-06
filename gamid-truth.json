@@ -183,11 +183,11 @@
     {
       "id": "play-together-marvel-rivals",
       "name": "Play Together: Marvel Rivals Quick Match on official servers",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": ["/play-together/"],
       "limits": { "quickMatchPlayers": 6 },
       "checkpoint": "02a2877b3cf5207a6d5a052bfafe7b5bfa53df82",
-      "record": "docs/PLAY_TOGETHER_MARVEL_RIVALS.md",
+      "record": "docs/PLAY_TOGETHER_MARVEL_RIVALS.md; manual acceptance by Mazen 2026-10-06 (PROJECT_HANDOFF.md §10)",
       "notes": "Competitive is shown but disabled by Mazen's decision."
     },
     {

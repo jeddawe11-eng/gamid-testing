@@ -43,6 +43,7 @@ Snapshot from 2026-10-06; verify with `git status -sb` and `git log -1`.
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
 - **Latest product commit:** `f2ba4a709ed28dfc2cbaca4984ce05937659a6c7`, the My Crew Account navigation fix, **ACCEPTED by Mazen** (`PROJECT_HANDOFF.md` §10). Later commits are documentation only; check with `git log --oneline f2ba4a7..HEAD`.
+  - **play-together-marvel-rivals is ACCEPTED by Mazen** (2026-10-06); current status in Truth, manual acceptance record in `PROJECT_HANDOFF.md` §10.
   - **authenticated-shell is ACCEPTED by Mazen** (2026-10-06); current status in Truth, manual acceptance record in `PROJECT_HANDOFF.md` §10.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
@@ -80,19 +81,16 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 ## 7. Current continuation point
 
 **Next:**
-1. **Remaining manual acceptance checks.** The checks still open for each are listed in `PROJECT_HANDOFF.md` §10. Both capabilities remain PENDING_ACCEPTANCE in Truth:
-   - global-usage: core accounting PASS;
-   - play-together-marvel-rivals: Quick Match, seats and create / cancel PASS.
+1. **Remaining manual acceptance checks for global-usage.** Core accounting PASS; remaining checks are listed in `PROJECT_HANDOFF.md` §10. This capability remains PENDING_ACCEPTANCE in Truth.
 2. **Next product issue, which needs a separately approved fix task:** in Play Together, with Play Now selected, the Scheduled-only "Start within 3 hours" field stays visible and usable (§10).
 3. **Then the landing decision** for `main` (below).
 
 - **Why landing needs a decision:** `main` (`da2e020`) is behind the working tip. A fast-forward would be clean in Git, but would also land work that Truth still marks PENDING_ACCEPTANCE:
-  - `play-together-marvel-rivals`;
   - `global-usage`.
 
   It would also land the unmerged GamID Truth docs and My Crew, which is accepted but not yet on `main`.
 - **Options for Mazen:**
-  - accept or defer those capabilities, then fast-forward `main` to the tip;
+  - accept or defer global-usage, then decide whether to fast-forward `main` to the tip;
   - keep integrating on `feature/*` branches, with TESTING deployed from the tip.
 - **Until then:** don't rewrite history and don't cherry-pick accepted fixes onto `main`.
 
