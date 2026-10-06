@@ -42,7 +42,8 @@ Snapshot from 2026-10-06; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** `e97594c52d5d341da40fd578c63404ec3b305475`, the Play Together notifications fix. It is **awaiting Mazen's manual acceptance**. Any later commits on the tip are documentation only.
+- **Latest product commit:** `e97594c52d5d341da40fd578c63404ec3b305475`, the Play Together notifications fix, **ACCEPTED by Mazen** (record: `PROJECT_HANDOFF.md` §10). Any later commits on the tip are documentation only; check with `git log --oneline e97594c..HEAD`.
+  - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
 - **TESTING serves `e97594c`.**
   - Static site: deployed by workflow run `37399175820`.
@@ -76,12 +77,14 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Next: Mazen's manual acceptance of the Play Together notifications fix (`e97594c`, TESTING),** then the remaining pending acceptances, then the landing decision.
+**Next:**
+1. **Remaining manual acceptance checks.** The checks still open for each are listed in `PROJECT_HANDOFF.md` §10. All three capabilities remain PENDING_ACCEPTANCE in Truth:
+   - authenticated-shell: its earlier failure (missing Play Together notifications) is resolved;
+   - global-usage: core accounting PASS;
+   - play-together-marvel-rivals: Quick Match, seats and create / cancel PASS.
+2. **Next product issue, which needs a separately approved fix task:** in Play Together, with Play Now selected, the Scheduled-only "Start within 3 hours" field stays visible and usable (§10).
+3. **Then the landing decision** for `main` (below).
 
-- **The fix:** Play Together produced no GamID notifications at all, because no producer existed. It now produces exactly the three approved contracts (join request → host; approve and reject → requester).
-  - The automated two-persona TESTING acceptance passed.
-  - **What to check:** with two accounts you control, request to join a squad (the host's bell rises); reject, request again, then approve (the requester's bell rises each time). The counts match on Account and Wall Editor.
-- **Authenticated shell:** still PENDING_ACCEPTANCE. Its earlier manual test failed only because of these missing notifications; re-test it after this fix.
 - **Why landing needs a decision:** `main` (`da2e020`) is behind the working tip. A fast-forward would be clean in Git, but would also land work that Truth still marks PENDING_ACCEPTANCE:
   - `authenticated-shell`;
   - `play-together-marvel-rivals`;

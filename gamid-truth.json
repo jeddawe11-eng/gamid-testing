@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-05",
+  "updated": "2026-10-06",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -176,8 +176,8 @@
         { "id": "pt.reject-notifies-requester", "rule": "A REJECT gives the requester a GamID notification reflecting the decision." }
       ],
       "noContract": ["CREATE", "READY", "READY_CHECK_START", "START", "COMPLETE"],
-      "checkpoint": "4fd0afa770a3c620a5b05f46821206b245571df3",
-      "record": "accepted Play Together + Team Voice baseline 4fd0afa, landed on main; contracts approved by Mazen 2026-10-05",
+      "checkpoint": "e97594c52d5d341da40fd578c63404ec3b305475",
+      "record": "accepted Play Together + Team Voice baseline 4fd0afa, landed on main; contracts approved by Mazen 2026-10-05; the producer for the three contracts (e97594c, feature/play-together-notifications, not on main) accepted by Mazen 2026-10-06",
       "notes": "Contracts are verified by consequence (unread count rises or a notification entry appears), not by transport. noContract: no notification requirement exists for these actions."
     },
     {
