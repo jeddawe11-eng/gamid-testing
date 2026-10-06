@@ -7,8 +7,10 @@ project_id=gamid-testing
 region=asia-southeast1
 job_name=gamid-intro-worker-testing
 work_dir=$(mktemp -d /tmp/gamid-f2-deploy-XXXXXX)
-git clone --quiet --depth 1 --single-branch --branch feature/play-together-notifications https://github.com/jeddawe11-eng/gamid-testing.git "$work_dir/source"
+git clone --quiet --no-checkout --depth 1 --single-branch --branch feature/play-together-notifications https://github.com/jeddawe11-eng/gamid-testing.git "$work_dir/source"
 cd "$work_dir/source"
+git fetch --quiet --depth 1 origin "$checkpoint"
+git checkout --quiet --detach FETCH_HEAD
 test "$(git rev-parse HEAD)" = "$checkpoint"
 gcloud run jobs describe "$job_name" --project="$project_id" --region="$region" --format=json > "$work_dir/before.json"
 python3 - "$work_dir/before.json" "$work_dir/args.txt" <<'PY'

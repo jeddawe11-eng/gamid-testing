@@ -10,7 +10,7 @@ import { join, resolve } from "node:path";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const source = join(root, "dist");
 const target = join(root, ".cloudflare-stage");
-const STAMPED = ["public/index.html", "account/index.html", "account/intro-preview.html", "play-together/index.html"];
+const STAMPED = ["public/index.html", "account/index.html", "account/intro-preview.html", "play-together/index.html", "prototypes/intro-derivative-f2/index.html"];
 const EXCLUDED = new Set([resolve(source, "assets", "gamid-intro.mp4")]);
 
 const sha = (process.env.GITHUB_SHA || execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim()).slice(0, 7);

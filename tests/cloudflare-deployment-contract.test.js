@@ -115,3 +115,11 @@ test("legacy GitHub Pages is preserved but cannot deploy automatically from a ma
   assert.match(pagesWorkflow, /name: github-pages/);
   assert.match(pagesWorkflow, /uses: actions\/deploy-pages@v4/);
 });
+
+test("F2 acceptance fixture is version-stamped by both TESTING hosting paths", async () => {
+  const path = "prototypes/intro-derivative-f2/index.html";
+  const html = await read("dist/" + path);
+  assert.ok(html.includes("__ASSET_VERSION__"));
+  assert.ok(staging.includes(JSON.stringify(path)));
+  assert.ok(pagesWorkflow.includes(path));
+});
