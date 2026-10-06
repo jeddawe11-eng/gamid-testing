@@ -4,7 +4,7 @@
 
 This file is an index and a continuation pointer. It is **not** an authoritative source. Every fact here points to the source that owns it, and **that source wins** whenever the two disagree.
 
-Last reviewed: 2026-10-05.
+Last reviewed: 2026-10-06.
 
 ## 1. Mandatory entry order
 
@@ -42,11 +42,12 @@ Snapshot from 2026-10-06; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** `e97594c52d5d341da40fd578c63404ec3b305475`, the Play Together notifications fix, **ACCEPTED by Mazen** (record: `PROJECT_HANDOFF.md` §10). Any later commits on the tip are documentation only; check with `git log --oneline e97594c..HEAD`.
+- **Latest product commit:** `f2ba4a709ed28dfc2cbaca4984ce05937659a6c7`, the My Crew Account navigation fix, **awaiting Mazen's manual acceptance** (`PROJECT_HANDOFF.md` §10). Later commits are documentation only; check with `git log --oneline f2ba4a7..HEAD`.
+  - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `e97594c`.**
-  - Static site: deployed by workflow run `37399175820`.
+- **TESTING serves `f2ba4a7`.**
+  - Static site: deployed by workflow run `37407094550`.
   - Database: migration `20261006090000_play_together_notifications` applied and recorded.
   - Per-capability checkpoints are in Truth.
 
@@ -78,12 +79,13 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 ## 7. Current continuation point
 
 **Next:**
-1. **Remaining manual acceptance checks.** The checks still open for each are listed in `PROJECT_HANDOFF.md` §10. All three capabilities remain PENDING_ACCEPTANCE in Truth:
+1. **My Crew navigation manual acceptance:** from Account, Open / Preview Crew Wall stays in the same tab; “← Back to Profile” returns to Account. Check the bell remains available. This small navigation change is not yet accepted.
+2. **Remaining manual acceptance checks.** The checks still open for each are listed in `PROJECT_HANDOFF.md` §10. All three capabilities remain PENDING_ACCEPTANCE in Truth:
    - authenticated-shell: its earlier failure (missing Play Together notifications) is resolved;
    - global-usage: core accounting PASS;
    - play-together-marvel-rivals: Quick Match, seats and create / cancel PASS.
-2. **Next product issue, which needs a separately approved fix task:** in Play Together, with Play Now selected, the Scheduled-only "Start within 3 hours" field stays visible and usable (§10).
-3. **Then the landing decision** for `main` (below).
+3. **Next product issue, which needs a separately approved fix task:** in Play Together, with Play Now selected, the Scheduled-only "Start within 3 hours" field stays visible and usable (§10).
+4. **Then the landing decision** for `main` (below).
 
 - **Why landing needs a decision:** `main` (`da2e020`) is behind the working tip. A fast-forward would be clean in Git, but would also land work that Truth still marks PENDING_ACCEPTANCE:
   - `authenticated-shell`;
