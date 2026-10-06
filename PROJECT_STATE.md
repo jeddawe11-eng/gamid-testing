@@ -38,13 +38,16 @@ Conversation memory is helpful context, but it is **not** an authoritative proje
 
 ## 4. Current product checkpoint
 
-Snapshot from 2026-10-05; verify with `git status -sb` and `git log -1`.
+Snapshot from 2026-10-06; verify with `git status -sb` and `git log -1`.
 
-- **Working tip:** `feature/wall-video-asset-preview`, tracking its origin branch. It is **not merged** into `main`.
-  - It descends from `feature/gamid-truth`, which carries GamID Truth and this file, and adds one product fix.
-- **Latest product commit:** `c9327818b1e5ac1c42e057c268bdcde56d4f49c2`, the video asset preview fix, **ACCEPTED by Mazen** (record: `PROJECT_HANDOFF.md` §10). Any later commits on the tip are documentation only; check with `git log --oneline c932781..HEAD`.
+- **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
+  - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
+- **Latest product commit:** `e97594c52d5d341da40fd578c63404ec3b305475`, the Play Together notifications fix. It is **awaiting Mazen's manual acceptance**. Any later commits on the tip are documentation only.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `c932781`'s `dist/`.** It was deployed by workflow run `37321028462`, and the served Wall editor files were verified byte-identical afterwards. Per-capability checkpoints are in Truth.
+- **TESTING serves `e97594c`.**
+  - Static site: deployed by workflow run `37399175820`.
+  - Database: migration `20261006090000_play_together_notifications` applied and recorded.
+  - Per-capability checkpoints are in Truth.
 
 ## 5. Monitor: current architecture
 
@@ -73,8 +76,12 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Next: Mazen decides how accepted work lands on `main`.** No product task is pending.
+**Next: Mazen's manual acceptance of the Play Together notifications fix (`e97594c`, TESTING),** then the remaining pending acceptances, then the landing decision.
 
+- **The fix:** Play Together produced no GamID notifications at all, because no producer existed. It now produces exactly the three approved contracts (join request → host; approve and reject → requester).
+  - The automated two-persona TESTING acceptance passed.
+  - **What to check:** with two accounts you control, request to join a squad (the host's bell rises); reject, request again, then approve (the requester's bell rises each time). The counts match on Account and Wall Editor.
+- **Authenticated shell:** still PENDING_ACCEPTANCE. Its earlier manual test failed only because of these missing notifications; re-test it after this fix.
 - **Why landing needs a decision:** `main` (`da2e020`) is behind the working tip. A fast-forward would be clean in Git, but would also land work that Truth still marks PENDING_ACCEPTANCE:
   - `authenticated-shell`;
   - `play-together-marvel-rivals`;
