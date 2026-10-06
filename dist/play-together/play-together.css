@@ -1,5 +1,7 @@
 :root{--pt-card:#12101a;--pt-line:#302a3d;--pt-muted:#aaa3b8;--pt-cyan:#62e7ff;--pt-violet:#8b5dff}
 *{box-sizing:border-box}
+/* Author styles must never reveal controls marked hidden in this page. */
+.pt-shell [hidden]{display:none!important}
 body{min-height:100vh;background:radial-gradient(circle at 80% 5%,rgba(139,93,255,.16),transparent 35%),#08070d;color:#fff}
 .pt-shell{width:min(100% - 2rem,62rem);margin:0 auto;padding:1rem 0 4rem}
 .pt-nav{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.7rem 0;color:var(--pt-muted);font-size:.72rem;font-weight:800;letter-spacing:.12em}
