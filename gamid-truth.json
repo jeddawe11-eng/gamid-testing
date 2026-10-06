@@ -141,10 +141,10 @@
     {
       "id": "authenticated-shell",
       "name": "Global authenticated shell (Notifications on every authenticated surface)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": ["/account/", "/wall-editor/", "/play-together/", "/crew/"],
       "checkpoint": "afef865a8868d5677f51b521d2c8f2e0e6a9048d",
-      "record": "docs/GLOBAL_AUTHENTICATED_SHELL.md"
+      "record": "docs/GLOBAL_AUTHENTICATED_SHELL.md; manual acceptance by Mazen 2026-10-06 (PROJECT_HANDOFF.md §10)"
     },
     {
       "id": "my-duo",
