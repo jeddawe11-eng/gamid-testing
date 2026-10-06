@@ -471,5 +471,6 @@ test("W0 is not linked from the real product and the deploy workflow is unchange
   const account = await readFile(new URL("../dist/account/account.js", import.meta.url), "utf8");
   for (const source of [landing, profile, account]) assert.ok(!/game-id-wall-w0/.test(source));
   const workflow = await readFile(new URL("../.github/workflows/deploy-pages.yml", import.meta.url), "utf8");
-  assert.ok(!/prototypes/.test(workflow));
+  // The synthetic F2 fixture lives inside dist; root-level W0 labs remain excluded.
+  assert.ok(!/prototypes/.test(workflow.replaceAll("prototypes/intro-derivative-f2/index.html", "")));
 });

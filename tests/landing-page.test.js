@@ -181,7 +181,8 @@ test("the shared Intro engine used by the real product (account preview, public 
 
 test("the deploy workflow still publishes only dist/, so the preserved lab has no public route", () => {
   assert.match(workflow, /rsync -a --exclude '\/assets\/gamid-intro\.mp4' dist\/ /);
-  assert.doesNotMatch(workflow, /prototypes/);
+  // Permit only the dist-owned synthetic F2 fixture, not the preserved root lab.
+  assert.doesNotMatch(workflow.replaceAll("prototypes/intro-derivative-f2/index.html", ""), /prototypes/);
 });
 
 test("nothing in the deployed tree links to the lab or its old files", async () => {
