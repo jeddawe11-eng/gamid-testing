@@ -56,11 +56,19 @@ Focused suite: 49/49 PASS, including native FFmpeg 7.1.1 fixtures. Eleven F2 tes
 
 Full local build: lint/typechecks PASS; 1,635 tests, 1,634 PASS, one opt-in native test skipped, zero failures. Native test passed separately. A deployment-only f2-smoke command encodes three local synthetic fixtures and reports worker/module SHA256 and ffmpeg version. It NEVER claims a queued job or calls Supabase.
 
-Deployment status: NOT YET DEPLOYED. Cloud Shell currently requests human authorization. The existing TESTING Job image alone must be rebuilt/updated from the exact product commit, preserving secrets/service account/command/resources/dispatcher. Use repository-root context and the existing usage-testing.gcloudignore allowlist (new smoke module included); existing Cloud Build config can use _CHECKPOINT=f2-<SHA>. Run f2-smoke with a per-execution args override only, not the normal once command, so no real pending job is claimed. Record resolved image digest and smoke hashes against the product commit.
+Deployment status: **DEPLOYED AND TECHNICALLY VERIFIED ON TESTING**, final verification 2026-10-07. Product checkpoint: 04877c20d213f0105fbdc2871146248194eaf773, branch feature/play-together-notifications. Encoding implementation was introduced at 04a67c223e04301fea670f63e40d2e4dce7140d5; later product commits add deployment reproducibility, fixture stamping and directly affected lab guards. No F2 implementation or media test was rerun during final continuation.
 
-Frontend fixture requires the established Cloudflare TESTING deployment workflow at the exact product commit; it does not change owner/public pages. Verify fixture bytes and stamped HTML/JS against that commit.
+- Final worker build: 4f192727-f667-41fc-9693-5d52fc7c9549. Existing Job gamid-intro-worker-testing, project gamid-testing, asia-southeast1. Final image: asia-southeast1-docker.pkg.dev/gamid-testing/gamid-workers/intro-processing@sha256:916d37969a2708673ea88ba672733dedff3241843825a589993b69e1de017498. The rollout reported F2_IMAGE_ONLY_UPDATE_VERIFIED after comparing execution specs with image removed. Current dashboard YAML reconfirms this digest, no persistent command/args override; Docker CMD remains node intro-worker.mjs once. Secrets/service account/resources/dispatcher were not changed.
+- Final existing synthetic execution: gamid-intro-worker-testing-ll6kc, created 2026-10-06 22:41:50 Asia/Kuala_Lumpur; task exit 0, no retries, completed 22:42:33. Per-execution arguments: node intro-worker.mjs f2-smoke. It never claims a queued user job or calls Supabase. Stored stdout ok=true, FFmpeg 5.1.9-0+deb12u1. Worker SHA256 ef897fc0cefb915e26b5b1aa1fd3785876f161e15a84880342bf74807bdfb807; smoke SHA256 fe0506e2c0c253794401079d059ab7dd1d12650942a7c221d2441acde57acf38. Both match the product Git blobs.
+- Native results: landscape 1920×1080 / 30 fps / 0.611 s / 225,812 B / Opus; portrait 1080×1920 / 24 fps / 0.625 s / 190,942 B / silent; small 320×240 / 60 fps / 0.6 s / 31,678 B / silent. All geometry, codec, audio, timing and frame-rate assertions passed in the deployed image. These short cloud smoke inputs are separate from the three-second comparison/acceptance fixtures above.
+- An earlier queued Cloud Shell command also produced build 16d19346-e170-4f9a-ba60-ded611ecb754 and synthetic execution gamid-intro-worker-testing-tl5m9 (succeeded). This duplicate rollout used the same encoder bytes. It did not process real media. Neither deployment nor smoke execution was repeated on final continuation; existing dashboard logs were read instead.
+- Frontend: existing Cloudflare TESTING workflow run [37479877416](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37479877416), SUCCESS at 04877c20d213f0105fbdc2871146248194eaf773; Worker version ccfd1e32-9fe3-42a6-b6c0-72eb8d141195. Final deployment build: 1,636 tests, 1,634 PASS, two skips (opt-in F2 native and unavailable CI FFmpeg conversion), zero failures; lint/typechecks PASS. Native F2 already passed separately locally and in the deployed worker.
+- Deployment staging initially rejected the new fixture's unstamped HTML; its path was added to the existing Cloudflare/Pages stamping lists. Two historical root-lab exclusions now permit only this dist-owned fixture path. All 68 directly affected tests pass. No hosting redesign or unapproved root lab is published.
+- Live fixture HTML/JS, all three synthetic WebMs and existing Intro preview HTML/JS were checked byte-for-byte against 04877c20d213f0105fbdc2871146248194eaf773; HTML stamp 04877c2 was reconfirmed during final continuation. Live landscape/portrait/small reached natural end and synthetic profile reveal; observed dimensions 1920×1080, 1080×1920 and 576×1024; no media or browser errors. Narrow browser-panel screenshot was 540×625, not a real-phone or large-desktop quality acceptance claim.
 
-Product checkpoint and final deployed evidence will be filled from verified Git/deployment results. F2 manual acceptance: PENDING; do not mark accepted from automated results.
+F2 manual acceptance: **PENDING**. Synthetic output and existing playback mechanics are technically verified; actual phone/desktop quality judgment remains Mazen's. Existing real Intros were not reprocessed. No database, Edge Function, storage policy, quota, Production, main or Monitor change.
+
+GamID Truth: UPDATED — intro-identity checkpoint and D3 derivative processing contract now record bounded dimensions; status remains PENDING_ACCEPTANCE. Source/duration limits and other capability statuses remain unchanged. PROJECT_STATE points to this document; PROJECT_HANDOFF §11 describes the current F2 policy instead of the superseded source-resolution preservation rule. Final documentation/state HEAD is the commit that records this section (resolve with Git; never guess a self-referential SHA).
 
 ## Exact manual acceptance (after both deployments)
 
@@ -69,3 +77,17 @@ Open https://gamid-testing-static.gamid.workers.dev/prototypes/intro-derivative-
 Existing real profiles still play their existing derivatives: merely viewing @black does not test F2. No protected reprocessing is authorized. A future fresh source on an explicitly approved dedicated TESTING identity can verify normal upload-to-READY if Mazen requests it; this task's worker smoke verifies actual encoding without real-data writes.
 
 Stop after F2. Remaining F5 (whole-Blob/native streaming), F6 private-media caching, F7 picture derivatives, F8 lightweight previews are NOT implemented. Recommended next discussion is F5 because the current complete-Blob download still gates Intro startup; review F2 quality first. No Monitor or Global Usage acceptance work.
+
+## Exact changed-file inventory
+
+Compared with continuation base 1010df47fbff2292d65af103016287b62389dec0:
+
+- worker/intro-worker.mjs, worker/intro-f2-smoke.mjs, worker/Dockerfile, worker/README.md
+- worker/cloud-run/usage-testing.gcloudignore, worker/cloud-run/deploy-intro-f2-testing.sh
+- dist/prototypes/intro-derivative-f2/index.html, fixture.js, landscape.webm, portrait.webm, small.webm
+- package.json, scripts/stage-cloudflare.mjs, .github/workflows/deploy-pages.yml
+- tests/intro-derivative-f2.test.js, tests/intro-source-limit.test.js, tests/intro-video-fit.test.js
+- tests/cloudflare-deployment-contract.test.js, tests/game-id-wall-w0.test.js, tests/landing-page.test.js
+- docs/INTRO-DERIVATIVE-F2.md, PROJECT_STATE.md, PROJECT_HANDOFF.md, gamid-truth.json
+
+Final continuation changed only the last four documentation/state files. Encoding, deployment and completed tests were not rerun.

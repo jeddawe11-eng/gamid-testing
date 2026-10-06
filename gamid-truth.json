@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-06",
+  "updated": "2026-10-07",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -45,8 +45,9 @@
       "status": "PENDING_ACCEPTANCE",
       "surfaces": ["/account/"],
       "limits": { "introSourceMaxBytes": 157286400, "introMaxSeconds": 30 },
-      "checkpoint": "3e11fa79e301dcb75aef88ca66ff0d6b6ebf8a81",
-      "record": "PROJECT_HANDOFF.md §3 + §7 (Slice 3C; formal acceptance deliberately deferred by Mazen; Split Reveal fix accepted at d7466f99)"
+      "checkpoint": "04877c20d213f0105fbdc2871146248194eaf773",
+      "contracts": [{ "id": "intro-derivative-d3", "rule": "New Intro sources produce opaque VP9/WebM CRF 40 playback derivatives, downscaled only within a 1920-pixel long edge and 1080-pixel short edge, preserving display aspect/orientation, frame rate and timing; existing Opus audio behavior, derivative 15 MiB ceiling and source-retention policy remain. Existing READY derivatives are unchanged." }],
+      "record": "PROJECT_HANDOFF.md §3 + §7 (Slice 3C; formal acceptance deliberately deferred by Mazen; Split Reveal fix accepted at d7466f99); F2: §11 + docs/INTRO-DERIVATIVE-F2.md (manual acceptance pending)"
     },
     {
       "id": "public-gamid-profile",
