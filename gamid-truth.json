@@ -59,6 +59,7 @@
     },
     {
       "id": "intro-streaming-f5",
+      "checkpoint": "4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59",
       "name": "F5 native Intro delivery",
       "status": "PENDING_ACCEPTANCE",
       "surfaces": [
