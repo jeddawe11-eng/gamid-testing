@@ -42,7 +42,7 @@ Snapshot from 2026-10-07; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** `04877c20d213f0105fbdc2871146248194eaf773`, F2 bounded Intro derivatives and synthetic TESTING acceptance fixture, **IMPLEMENTED, NOT FORMALLY ACCEPTED** (`docs/INTRO-DERIVATIVE-F2.md`, `PROJECT_HANDOFF.md` §10–11). Later commits are documentation/state only; verify with Git.
+- **Latest product commit:** `04877c20d213f0105fbdc2871146248194eaf773`, F2 bounded Intro derivatives and synthetic TESTING acceptance fixture, **manually ACCEPTED by Mazen (2026-10-07)** (`docs/INTRO-DERIVATIVE-F2.md`, `PROJECT_HANDOFF.md` §10–11). Later commits are documentation/state only; verify with Git.
   - F3 `3b9d8b1c27fb0c9b3fa6fd0c2ee682dab7618906` remains **manually ACCEPTED by Mazen**; its viewport gating is preserved (`docs/WALL-VIDEO-VIEWPORT-F3.md`).
   - F4 `2ccb0f8aeec701bd4c0e6006c36d4c628a9ec091` is **accepted as the implementation baseline by Mazen** in the F3 authorization; its URL reuse remains preserved (`docs/WALL-VIDEO-URL-REUSE-F4.md`).
   - The preceding timing fix `7cbabf08cb43ead23f178c78bfce6b4ebaa5461d` remains **ACCEPTED by Mazen**.
@@ -85,7 +85,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Current stop point:** F2 is deployed and technically verified on TESTING; **Mazen manual acceptance is PENDING**. Follow `docs/INTRO-DERIVATIVE-F2.md` for the exact phone/desktop fixture checks, product checkpoint and deployed worker evidence. Existing Intros were not reprocessed. F3 remains manually ACCEPTED; F4 remains accepted as the baseline. STOP for manual F2 review. Do not begin F5/F6/F7/F8 or another product task without separate authorization.
+**Current stop point:** F2 is deployed and **manually ACCEPTED by Mazen (2026-10-07)**. The acceptance record, product checkpoint and deployed worker evidence are in `docs/INTRO-DERIVATIVE-F2.md` and `PROJECT_HANDOFF.md` §10–11; Truth records F2 as ACCEPTED separately from broader Intro identity acceptance. Existing Intros were not reprocessed. F3 remains manually ACCEPTED; F4 remains accepted as the baseline. STOP. Do not begin F5/F6/F7/F8 or another product task without separate authorization.
 
 **Previously outstanding continuation (not performed in F2/F3/F4):**
 1. **Remaining manual acceptance checks for global-usage.** Core accounting PASS; remaining checks are listed in `PROJECT_HANDOFF.md` §10. This capability remains PENDING_ACCEPTANCE in Truth.
