@@ -42,7 +42,7 @@ Snapshot from 2026-10-07; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** 6e2cbdae9d61f106de806f2d42b99c8209299867, Intro 30-second boundary tolerance, manual acceptance pending (docs/INTRO-DURATION-TOLERANCE.md; PROJECT_HANDOFF.md §18). Cloudflare migration remains ACCEPTED; Pages retirement remains complete. Later commits are documentation/state only; verify with Git.
+- **Intro product implementation commit:** 6e2cbdae9d61f106de806f2d42b99c8209299867, Intro 30-second boundary tolerance, manual acceptance pending (docs/INTRO-DURATION-TOLERANCE.md; PROJECT_HANDOFF.md §18). Cloudflare migration remains ACCEPTED; Pages retirement remains complete. Deployment checkpoint 1517eb179e0fcc5a8c01644c4922efd2d4591c90 includes portable validation/docs; application and worker bytes are unchanged from the implementation. Subsequent continuation commits are documentation/state only; verify with Git.
   - F5 product 4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59 remains **manually ACCEPTED by Mazen** (2026-10-07); its Intro delivery is unchanged.
   - F2 product 04877c20d213f0105fbdc2871146248194eaf773 remains manually ACCEPTED by Mazen (2026-10-07); its worker/derivative policy is unchanged.
   - F3 `3b9d8b1c27fb0c9b3fa6fd0c2ee682dab7618906` remains **manually ACCEPTED by Mazen**; its viewport gating is preserved (`docs/WALL-VIDEO-VIEWPORT-F3.md`).
@@ -54,10 +54,10 @@ Snapshot from 2026-10-07; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `2eacf68`.**
-  - Static site: deployed by workflow run `37590268654`.
-  - Intro worker: unchanged F2 image at product checkpoint 04877c20d213f0105fbdc2871146248194eaf773; deployment/verification record in `docs/INTRO-DERIVATIVE-F2.md`.
-  - Database: migration `20261006090000_play_together_notifications` applied and recorded.
+- **TESTING serves `1517eb1`.**
+  - Static site: deployed by workflow run `37625207643`; verified served Account files and stamp.
+  - Intro worker: duration checkpoint 1517eb1 deployed with image-only update and synthetic verification; exact build/image/execution in `docs/INTRO-DURATION-TOLERANCE.md`. Accepted F2 derivative policy remains unchanged.
+  - Database: accepted notifications migration remains applied; Intro duration migration also applied once, recorded in `docs/INTRO-DURATION-TOLERANCE.md`.
   - Per-capability checkpoints are in Truth.
 
 ## 5. Monitor: current architecture
@@ -87,7 +87,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Current stop point:** Intro 30-second boundary tolerance at 6e2cbdae9d61f106de806f2d42b99c8209299867 is implemented, manual acceptance pending. TESTING database is applied; worker/frontend rollout is blocked on Cloud Shell input / human CAPTCHA. Current deployment/acceptance record: docs/INTRO-DURATION-TOLERANCE.md and PROJECT_HANDOFF.md §18. STOP after deployment verification; no Android MP4 Wall Asset task or other optimization authorized. Cloudflare remains the sole active TESTING frontend; migration and F2/F3/F4/F5 remain ACCEPTED.
+**Current stop point:** Intro 30-second boundary tolerance at 6e2cbdae9d61f106de806f2d42b99c8209299867 is implemented, manual acceptance pending. TESTING database, worker and frontend rollout are complete and verified. Current deployment/acceptance record: docs/INTRO-DURATION-TOLERANCE.md and PROJECT_HANDOFF.md §18. STOP for Mazen's manual boundary acceptance; no Android MP4 Wall Asset task or other optimization authorized. Cloudflare remains the sole active TESTING frontend; migration and F2/F3/F4/F5 remain ACCEPTED.
 
 **Previously outstanding continuation (not performed in F2/F3/F4):**
 1. **Remaining manual acceptance checks for global-usage.** Core accounting PASS; remaining checks are listed in `PROJECT_HANDOFF.md` §10. This capability remains PENDING_ACCEPTANCE in Truth.

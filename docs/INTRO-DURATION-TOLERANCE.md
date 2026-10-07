@@ -2,7 +2,7 @@
 
 Product checkpoint: 6e2cbdae9d61f106de806f2d42b99c8209299867.
 Branch: feature/play-together-notifications. Base: 5d40853a9f6358098640576f9a6c19583920be79.
-Status: implemented and validated; TESTING database applied. Worker/frontend deployment blocked on Cloud Shell browser input / human CAPTCHA. Manual acceptance remains pending.
+Status: deployed and verified on TESTING. Database, worker and frontend checks PASS. Manual acceptance remains PENDING; do not mark ACCEPTED before Mazen approves.
 
 ## End-to-end investigation and smallest change
 
@@ -28,14 +28,16 @@ On Cloudflare TESTING Account, confirm Intro still says max 30 seconds. On a ded
 
 Do not mark manually accepted until Mazen approves. Restore the previous worker image and frontend together if rollback is authorized; database narrowing requires checking for tolerated jobs first, so never blindly reapply the old CHECK. F2/F5, Wall/Android MP4, Monitor and main are outside this task.
 
-## Exact unfinished deployment state
+## Completed TESTING deployment — 2026-10-07
 
-- Product implementation 6e2cbdae9d61f106de806f2d42b99c8209299867 is pushed. Later validation/docs commits keep application/worker bytes unchanged.
-- Supabase TESTING applied intro_duration_tolerance once, live migration version 20261007124147 (repository source 20261007160000_intro_duration_tolerance.sql). All 24 rollback-only database checks passed. Do not apply it again.
-- Worker hash to deploy: 5919aa4baba094f5b5ecbd58db8425c36bf248c4badd5ea06ca73249f65be562. Existing F2 image is still active; no new Cloud Build appears in history. No worker rollout or native cloud smoke has been confirmed.
-- Live frontend remains accepted 2eacf68. Deliberately do not deploy the relaxed client before the updated worker is confirmed.
-- Embedded Cloud Shell accepts pasted text but cannot send Enter through browser automation. Human authorization/Enter confirmations were received, but independent build history still had no new build. Standalone https://shell.cloud.google.com/?project=gamid-testing is blocked by a Google human CAPTCHA. Do not bypass it or assume a prepared command ran.
-- Resume only worker deployment through worker/cloud-run/deploy-intro-duration-testing.sh with an exact published checkpoint, then confirm image-only configuration change and synthetic execution/hash. Inspect build history first to avoid duplicate rollout if a human starts it meanwhile. Checkout/fetch the selected SHA explicitly; do not depend on branch tip staying at the implementation commit.
-- Then run the existing Cloudflare TESTING deployment workflow on the verified feature checkpoint, check served domain.js/account.js and asset stamp, and run intro-duration-browser.mjs --live from the local evidence directory. Its Supabase backend is intercepted with synthetic data; no real user mutation/uploads.
-- Local Chrome file-selection fixture already passed at 30.8 and 31.0; 31.1 rejects with unchanged 30-second message. Tiny manual source clips are local at C:/Users/user/Documents/Codex/2026-09-30/x20/intro-duration-fixtures/. None uploaded.
-- Native boundary tests passed locally; portable builds skip this one native test only when FFmpeg/ffprobe is unavailable.
+- Product implementation: 6e2cbdae9d61f106de806f2d42b99c8209299867. Exact deployed source: 1517eb179e0fcc5a8c01644c4922efd2d4591c90 (later validation/docs commit; application and worker bytes unchanged).
+- Supabase TESTING applied intro_duration_tolerance once, live version 20261007124147 (repository source 20261007160000_intro_duration_tolerance.sql). All 24 rollback-only database assertions passed. Do not apply it again.
+- Cloud Build 3e9d872e-01e0-4aa4-96f0-ad6fde84f702: SUCCESS. Existing job gamid-intro-worker-testing, region asia-southeast1, now uses asia-southeast1-docker.pkg.dev/gamid-testing/gamid-workers/intro-processing@sha256:252e509524629c13c86750dec8e722d9035585e54a83cca692b5537e902c6833.
+- Before/after execution settings comparison confirmed IMAGE ONLY changed. Secrets, service account, resources, dispatcher, default command and all other execution settings are preserved.
+- Synthetic-only execution gamid-intro-worker-testing-vzfgv: Completed=True, succeededCount=1, completed 2026-10-07T12:59:45.587299Z. Existing F2 landscape/audio, portrait and small cases PASS. Deployed worker hash 5919aa4baba094f5b5ecbd58db8425c36bf248c4badd5ea06ca73249f65be562 and unchanged smoke hash fe0506e2c0c253794401079d059ab7dd1d12650942a7c221d2441acde57acf38 verified. No real user job claimed or media reprocessed.
+- Cloudflare workflow https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37625207643: SUCCESS, resolved source 1517eb179e0fcc5a8c01644c4922efd2d4591c90, staged artifact verified. Served account/domain.js and account/account.js are byte-equivalent after line-ending normalization; Account asset stamp is 1517eb1.
+- Live Cloudflare Chrome file-selection fixture: 30.8 and 31.0 ready to upload; 31.1 rejects with unchanged 30-second duration error. Synthetic backend responses were intercepted; no real identity, upload, saved content or notification mutated. Tiny clips are local at C:/Users/user/Documents/Codex/2026-09-30/x20/intro-duration-fixtures/; none uploaded by the agent.
+- Previous full build and focused/native checks remain valid; they were not repeated during rollout. Final Truth/document validation runs after this record is saved. Native boundary tests passed locally; portable builds skip only the native test when FFmpeg/ffprobe is unavailable.
+- Historical deployment interruption is resolved: the human completed standalone Cloud Shell authentication. The first prepared command stopped at its exact-checkpoint guard when a newer docs commit was cloned; no build ran from that attempt. The successful rollout explicitly pinned 1517eb1. Log ingestion briefly lagged the successful synthetic execution; its existing logs were read again, without rerunning the job.
+
+Current continuation: STOP for Mazen's duration-boundary manual acceptance. No Android MP4 Wall Asset task, F6/F7, Monitor work, Production access or main merge.
