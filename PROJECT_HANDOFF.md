@@ -8,7 +8,7 @@ Repository: `jeddawe11-eng/gamid-testing`
 
 Branch: `feature/play-together-notifications`
 
-Current product checkpoint: `2eacf6896f7a8edfcb137ac91889bde34bfe7f03`, Cloudflare TESTING authentication migration, ACCEPTED by Mazen; legacy Pages retired. Current continuation: section 17 and `PROJECT_STATE.md`. Older hosting and checkpoint descriptions below are historical; current canonical frontend is Cloudflare.
+Current product checkpoint: `6e2cbdae9d61f106de806f2d42b99c8209299867`, Intro boundary tolerance, manual acceptance pending. Cloudflare migration remains ACCEPTED and Pages retired. Current continuation: section 18 and `PROJECT_STATE.md`. Older hosting and checkpoint descriptions below are historical; current canonical frontend is Cloudflare.
 
 Historical September 18 continuation summary: Authoritative implementation checkpoint: see section 16 for the exact current commit. A verified Opera-vs-Chrome public-Intro reliability fix (retry/ack handshake + deterministic asset versioning) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7g. The Permanent Public GamID URL + QR + Sharing slice is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7f. Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7d. A mobile-Publish-button manual-acceptance bug found during Mazen's acceptance testing has since been fixed — see section 7e. It is applied on top of Slice 1/2 (Foundation + Public-Safe Data, section 7b, also not yet formally accepted), the accepted Split Reveal Intro-visibility fix (section 7a), and the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
@@ -1780,3 +1780,11 @@ Source of architecture, exact versions, safe browser/live verification, legacy-r
 Mazen manually verified PASS: signed-out Play Together → sign-in → automatic return; Wall Editor → Account sign-in → return/reload; Discord reconnect OAuth → Cloudflare return; Team Voice provisioning/join; Steam refresh; Public Profile + Intro + Wall. He explicitly authorized retirement.
 
 Pages site unpublished and deploy-pages.yml disabled repository-wide on 2026-10-07. Branch workflow is inert with no deployment permissions/actions. History and previous runs remain. Cloudflare Auth/provider/Team Voice configuration is unchanged. Remaining incoming legacy CORS/Steam assertion compatibility is not a frontend dependency and is preserved to avoid changing accepted backend behavior. See specialist record. STOP; no main merge, Production, Monitor or unrelated work.
+
+## 18. Intro 30-second boundary tolerance — 2026-10-07
+
+Product 6e2cbdae9d61f106de806f2d42b99c8209299867, same continuation branch. User-facing maximum remains 30 seconds; inclusive 31.0-second internal ceiling is aligned across browser, job CHECK, queue, worker source/output and completion. Source/derivative millisecond rounding cannot admit a value over 31. Existing Usage ownership, security, F2 encoding and F5 streaming are preserved. No real media reprocessing.
+
+Implementation, migration, validation, deployment evidence and manual acceptance: docs/INTRO-DURATION-TOLERANCE.md. Manual acceptance PENDING; STOP after TESTING deployment and verification. No Android MP4 Wall bug, main merge, Production, Monitor or unrelated task.
+
+Current deployment pause: TESTING duration migration applied once (live version 20261007124147), all 24 rollback-only DB assertions PASS. Worker/frontend still need rollout; browser keyboard input blocked and standalone Cloud Shell requires a human CAPTCHA. Keep live client at 2eacf68 until updated worker is verified. Exact resume/evidence in the specialist document; do not repeat tests/migration or process existing media.

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFile,mkdtemp,rm} from "node:fs/promises";
-import {execFile} from "node:child_process";
+import {execFile,spawnSync} from "node:child_process";
 import {promisify} from "node:util";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
@@ -9,6 +9,7 @@ import {validateIntroSource,INTRO_MAX_DURATION_MS} from "../dist/account/domain.
 import {validIntroDuration,encodeD3,probe} from "../worker/intro-worker.mjs";
 const read=path=>readFile(new URL("../"+path,import.meta.url),"utf8");
 const file={type:"video/mp4",size:1000};
+const nativeAvailable=["ffmpeg","ffprobe"].every(command=>spawnSync(command,["-version"],{stdio:"ignore"}).status===0);
 for(const seconds of [.5,29.999,30,30.001,30.999,31,31.000001,31.001,32,NaN,Infinity,-1,0,.499])
 test("Intro client/worker agree at "+seconds+" seconds",()=>{
  const expected=Number.isFinite(seconds)&&seconds>=.5&&seconds<=31;
@@ -39,7 +40,7 @@ test("display maximum stays 30 seconds and F5 lease stays 120 seconds",async()=>
  assert.match(await read("dist/account/domain.js"),/between 0\.5 and 30 seconds/);
  assert.match(await read("dist/account/intro-source.js"),/INTRO_LEASE_SECONDS = 120/);
 });
-test("native processing accepts a 31-second synthetic source and rejects 31.1 before encoding",{timeout:60000},async()=>{
+test("native processing accepts a 31-second synthetic source and rejects 31.1 before encoding",{timeout:60000,skip:!nativeAvailable},async()=>{
  const run=promisify(execFile),dir=await mkdtemp(join(tmpdir(),"intro-boundary-"));
  try {
   for(const seconds of [30,31,31.1]){

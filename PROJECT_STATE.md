@@ -42,7 +42,7 @@ Snapshot from 2026-10-07; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** 2eacf6896f7a8edfcb137ac91889bde34bfe7f03, Cloudflare TESTING authentication migration, **ACCEPTED by Mazen** ([docs/CLOUDFLARE-AUTH-MIGRATION.md](docs/CLOUDFLARE-AUTH-MIGRATION.md), PROJECT_HANDOFF.md §17). Later retirement commits affect obsolete CI, tests and documentation/state only; deployed application is unchanged. Verify with Git.
+- **Latest product commit:** 6e2cbdae9d61f106de806f2d42b99c8209299867, Intro 30-second boundary tolerance, manual acceptance pending (docs/INTRO-DURATION-TOLERANCE.md; PROJECT_HANDOFF.md §18). Cloudflare migration remains ACCEPTED; Pages retirement remains complete. Later commits are documentation/state only; verify with Git.
   - F5 product 4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59 remains **manually ACCEPTED by Mazen** (2026-10-07); its Intro delivery is unchanged.
   - F2 product 04877c20d213f0105fbdc2871146248194eaf773 remains manually ACCEPTED by Mazen (2026-10-07); its worker/derivative policy is unchanged.
   - F3 `3b9d8b1c27fb0c9b3fa6fd0c2ee682dab7618906` remains **manually ACCEPTED by Mazen**; its viewport gating is preserved (`docs/WALL-VIDEO-VIEWPORT-F3.md`).
@@ -87,7 +87,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Current stop point:** Cloudflare authentication migration at 2eacf6896f7a8edfcb137ac91889bde34bfe7f03 is manually ACCEPTED by Mazen. Legacy Pages is retired; Cloudflare is the sole active TESTING frontend. Acceptance/retirement record: docs/CLOUDFLARE-AUTH-MIGRATION.md and PROJECT_HANDOFF.md §17. STOP; no next feature or optimization authorized. F2/F3/F4/F5 remain ACCEPTED.
+**Current stop point:** Intro 30-second boundary tolerance at 6e2cbdae9d61f106de806f2d42b99c8209299867 is implemented, manual acceptance pending. TESTING database is applied; worker/frontend rollout is blocked on Cloud Shell input / human CAPTCHA. Current deployment/acceptance record: docs/INTRO-DURATION-TOLERANCE.md and PROJECT_HANDOFF.md §18. STOP after deployment verification; no Android MP4 Wall Asset task or other optimization authorized. Cloudflare remains the sole active TESTING frontend; migration and F2/F3/F4/F5 remain ACCEPTED.
 
 **Previously outstanding continuation (not performed in F2/F3/F4):**
 1. **Remaining manual acceptance checks for global-usage.** Core accounting PASS; remaining checks are listed in `PROJECT_HANDOFF.md` §10. This capability remains PENDING_ACCEPTANCE in Truth.

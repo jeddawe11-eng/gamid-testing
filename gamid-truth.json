@@ -64,10 +64,10 @@
       "name": "Intro identity (owner Intro video upload, processing, Full Preview)",
       "status": "PENDING_ACCEPTANCE",
       "surfaces": ["/account/"],
-      "limits": { "introSourceMaxBytes": 157286400, "introMaxSeconds": 30 },
-      "checkpoint": "04877c20d213f0105fbdc2871146248194eaf773",
-      "contracts": [{ "id": "intro-derivative-d3", "rule": "New Intro sources produce opaque VP9/WebM CRF 40 playback derivatives, downscaled only within a 1920-pixel long edge and 1080-pixel short edge, preserving display aspect/orientation, frame rate and timing; existing Opus audio behavior, derivative 15 MiB ceiling and source-retention policy remain. Existing READY derivatives are unchanged." }],
-      "record": "PROJECT_HANDOFF.md §3 + §7 (Slice 3C; formal acceptance deliberately deferred by Mazen; Split Reveal fix accepted at d7466f99); F2 derivative optimization separately ACCEPTED: §10–11 + docs/INTRO-DERIVATIVE-F2.md (Mazen, 2026-10-07)"
+      "limits": { "introSourceMaxBytes": 157286400, "introMaxSeconds": 30, "introTechnicalMaxSeconds": 31 },
+      "checkpoint": "6e2cbdae9d61f106de806f2d42b99c8209299867",
+      "contracts": [{ "id": "intro-duration-tolerance", "rule": "The user-facing Intro maximum remains 30 seconds. Source metadata and processing/activation permit an inclusive technical tolerance up to 31.0 seconds; values over 31.0 seconds are rejected. The existing 0.5-second minimum remains." }, { "id": "intro-derivative-d3", "rule": "New Intro sources produce opaque VP9/WebM CRF 40 playback derivatives, downscaled only within a 1920-pixel long edge and 1080-pixel short edge, preserving display aspect/orientation, frame rate and timing; existing Opus audio behavior, derivative 15 MiB ceiling and source-retention policy remain. Existing READY derivatives are unchanged." }],
+      "record": "docs/INTRO-DURATION-TOLERANCE.md; PROJECT_HANDOFF.md §18; PROJECT_HANDOFF.md §3 + §7 (Slice 3C; formal acceptance deliberately deferred by Mazen; Split Reveal fix accepted at d7466f99); F2 derivative optimization separately ACCEPTED: §10–11 + docs/INTRO-DERIVATIVE-F2.md (Mazen, 2026-10-07)"
     },
     {
       "id": "intro-derivative-f2",
