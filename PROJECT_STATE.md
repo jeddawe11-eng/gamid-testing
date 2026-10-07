@@ -85,7 +85,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Current stop point:** F2 is deployed and **manually ACCEPTED by Mazen (2026-10-07)**. The acceptance record, product checkpoint and deployed worker evidence are in `docs/INTRO-DERIVATIVE-F2.md` and `PROJECT_HANDOFF.md` §10–11; Truth records F2 as ACCEPTED separately from broader Intro identity acceptance. Existing Intros were not reprocessed. F3 remains manually ACCEPTED; F4 remains accepted as the baseline. STOP. Do not begin F5/F6/F7/F8 or another product task without separate authorization.
+**Current stop point:** F5 native Intro delivery is implemented; final TESTING deployment verification is in progress. Manual acceptance remains PENDING_ACCEPTANCE. Continue from [docs/INTRO-STREAMING-F5.md](docs/INTRO-STREAMING-F5.md), then verify Git/deployment. F2/F3/F4 stay ACCEPTED; no existing media reprocessed. STOP after F5 deployment and manual instructions; no F6/F7/F8 or other product task authorized.
 
 **Previously outstanding continuation (not performed in F2/F3/F4):**
 1. **Remaining manual acceptance checks for global-usage.** Core accounting PASS; remaining checks are listed in `PROJECT_HANDOFF.md` §10. This capability remains PENDING_ACCEPTANCE in Truth.

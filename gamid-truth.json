@@ -58,6 +58,25 @@
       "notes": "Accepted bounded D3 derivative policy recorded under intro-identity. This acceptance does not change the separately deferred broader Intro identity acceptance."
     },
     {
+      "id": "intro-streaming-f5",
+      "name": "F5 native Intro delivery",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/account/",
+        "/@<handle>"
+      ],
+      "limits": {
+        "introSignedLeaseMaxSeconds": 120
+      },
+      "contracts": [
+        {
+          "id": "intro-native-delivery",
+          "rule": "Saved READY Intro derivatives use native media delivery with memory-only signed leases of at most 120 seconds. Public playback and Replay revalidate current PUBLIC identity and active READY path; owner Preview resolves lazily under the current authenticated owner. Local upload Blob previews and accepted Intro Engine/F2 semantics remain. Lifecycle termination detaches all main/Split media sources; downloaded or browser-cached bytes are not remotely revocable."
+        }
+      ],
+      "record": "docs/INTRO-STREAMING-F5.md; PROJECT_HANDOFF.md §10 (manual acceptance outstanding)"
+    },
+    {
       "id": "public-gamid-profile",
       "name": "Public GamID profile (public-safe data, Intro -> Transition -> profile, QR sharing)",
       "status": "PENDING_ACCEPTANCE",

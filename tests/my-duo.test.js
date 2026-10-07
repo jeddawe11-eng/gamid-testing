@@ -734,7 +734,8 @@ test("visitor nav wiring: the page sends the skip to the Intro frame, follows th
   assert.match(page, /config = wall \? \{ \.\.\.built, hostReveal: true \} : built;/, "Intro -> published Wall (or Public Profile) is unchanged");
   const frame = read("dist/account/intro-preview.js");
   const routine = frame.slice(frame.indexOf("function skipIntro(){"), frame.indexOf("els.skipButton.addEventListener"));
-  assert.ok(routine.startsWith("function skipIntro(){token+=1;clearTimeout(transitionTimer);") && routine.includes('setState("SKIP");'), "one skip routine");
+  assert.ok(routine.includes("terminatePlayback();"), "one shared terminating skip routine");
+  assert.match(frame, /function terminatePlayback\(\)\{token\+=1;clearTimeout\(transitionTimer\);[\s\S]*?releasePlayback\(\);state="intro";setState\("SKIP"\)/);
   assert.match(frame, /els\.skipButton\.addEventListener\("click",skipIntro\);/, "the frame's own Skip is unchanged");
   assert.match(frame, /addEventListener\("message",event=>\{if\(event\.origin===location\.origin&&event\.data\?\.type==="gamid-intro-preview-skip"&&state!=="profile"\)skipIntro\(\);\}\);/, "same-origin only, only while playing");
   assert.match(frame, /document\.documentElement\.classList\.toggle\("host-skip",config\.hostSkip===true\);/);

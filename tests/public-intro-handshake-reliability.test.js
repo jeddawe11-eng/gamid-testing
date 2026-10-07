@@ -29,7 +29,10 @@ test("receiving a config message immediately marks it received and clears the re
 
 test("the public route's initial config send is idempotent: repeated ready/load signals cannot trigger a second, duplicate Intro playback, while Replay remains an explicit unlimited action", () => {
   assert.match(publicController, /let initialSendDone = false;/);
-  assert.match(publicController, /const sendReplay = \(\) => \{ if \(config\) frame\.contentWindow\?\.postMessage/);
+  assert.match(publicController, /const sendReplay = async \(\) =>/);
+  assert.match(publicController, /await introSource.resolve\(\)/);
+  assert.match(publicController, /if \(current !== introRequest \|\| !config\) return;/);
+  assert.match(publicController, /postMessage\(\{ type: "gamid-intro-preview", config \}/);
   assert.match(publicController, /const sendInitial = \(\) => \{ if \(initialSendDone \|\| !frameReady \|\| !config\) return; initialSendDone = true; sendReplay\(\); \}/);
   assert.match(publicController, /gamid-intro-preview-ready"\) \{ frameReady = true; sendInitial\(\); \}/);
   assert.match(publicController, /frame\.addEventListener\("load", \(\) => \{ frameReady = true; sendInitial\(\); \}\)/);
@@ -51,7 +54,8 @@ test("the loading state stays visible (an intentional loading state) rather than
 test("the owner's Intro Preview dialog also guards against sending its config more than once per preview session, closing the same duplicate-playback risk the public route has", () => {
   assert.match(accountController, /let previewConfigDelivered = false;/);
   assert.match(accountController, /if \(!pendingPreviewConfig \|\| previewConfigDelivered\) return;\s*\n\s*previewConfigDelivered = true;/);
-  assert.match(accountController, /previewConfigDelivered = false;\s*\n\s*document\.getElementById\("introPreviewDialog"\)\.showModal\(\);/);
+  assert.match(accountController, /previewConfigDelivered = false; sendPreviewConfig\(\);/);
+  assert.match(accountController, /if \(current !== previewRequest \|\| !document\.getElementById\("introPreviewDialog"\)\.open\) return;/);
 });
 
 test("a config message is still accepted and applied at any later time (e.g. a user-triggered Preview click long after the retry window has expired), since only the readiness announcement is bounded, never the ability to receive a config", () => {

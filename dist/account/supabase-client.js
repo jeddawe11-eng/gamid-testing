@@ -683,6 +683,23 @@ export async function signPublicWallVideo(path, mime) {
   return `${SUPABASE_URL}/storage/v1${relative}`;
 }
 
+// F5: existing intro-media SELECT policies authorize both signers; no media download.
+export async function signPublicIntroMedia(path, seconds = 120) {
+  if (!path) return null;
+  const signed = await request("/storage/v1/object/sign/intro-media/" + encodeStoragePath(path), { method: "POST", body: { expiresIn: Math.min(120, seconds) } });
+  const relative = signed?.signedURL ?? signed?.signedUrl;
+  return typeof relative === "string" && relative.startsWith("/object/sign/intro-media/") ? SUPABASE_URL + "/storage/v1" + relative : null;
+}
+export async function signIntroMedia(path, seconds = 120) {
+  const owner = await restoreSession();
+  if (!owner?.access_token || !path || !path.startsWith(userIdFromToken() + "/")) return null;
+  const token = owner.access_token;
+  const signed = await request("/storage/v1/object/sign/intro-media/" + encodeStoragePath(path), { method: "POST", token, body: { expiresIn: Math.min(120, seconds) } });
+  if (currentSession()?.access_token !== token) return null;
+  const relative = signed?.signedURL ?? signed?.signedUrl;
+  return typeof relative === "string" && relative.startsWith("/object/sign/intro-media/") ? SUPABASE_URL + "/storage/v1" + relative : null;
+}
+// Compatibility only: normal Intro consumers now resolve short-lived native sources.
 export async function loadPublicIntroMedia(path) {
   if (!path) return null;
   const response = await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/intro-media/${encodeStoragePath(path)}`, {

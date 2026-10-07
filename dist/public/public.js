@@ -1,4 +1,5 @@
-import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, loadPublicIntroMedia, getPublicWall, getPublicCrewWall } from "../account/supabase-client.js";
+import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall } from "../account/supabase-client.js";
+import { createIntroSourceResolver } from "../account/intro-source.js";
 import { createFlowLayout } from "../flow-layout.js";
 import { normalizeLibrary, renderGamesPreview, createGamesLibrary } from "./public-games.js";
 import { preparePublicWall, createPublicWallView } from "./public-wall.js";
@@ -64,6 +65,7 @@ export function renderPublicSections(panel, sections, duoOptions = null) {
   panel.replaceChildren(...blocks);
   return blocks.length;
 }
+
 async function buildConfig(identity) {
   const primaryLabel = catalogLabel(identity.role_catalog, identity.primary_role_key);
   const secondaryLabels = (identity.role_keys || [])
@@ -71,10 +73,8 @@ async function buildConfig(identity) {
     .map(key => catalogLabel(identity.role_catalog, key));
   const educationLabel = catalogLabel(identity.education_work_catalog, identity.education_work_status);
   const education = [educationLabel, identity.institution, identity.field_of_study].filter(Boolean).join(" · ");
-  const [avatarUrl, videoUrl] = await Promise.all([
-    loadPublicAvatar(identity.avatar_media_reference).catch(() => null),
-    loadPublicIntroMedia(identity.intro_derivative_path).catch(() => null),
-  ]);
+  const avatarUrl = await loadPublicAvatar(identity.avatar_media_reference).catch(() => null);
+  const videoUrl = identity.intro_derivative_path ? "pending" : "";
   return {
     publicMode: true,
     videoUrl: videoUrl || "",
@@ -131,7 +131,42 @@ async function render() {
   let hasIntro = false;
   let initialSendDone = false;
   let revealed = false;
-  const sendReplay = () => { if (config) frame.contentWindow?.postMessage({ type: "gamid-intro-preview", config }, location.origin); };
+  let introSource = null, introRequest = 0, latestIntroIdentity = null, introResolving = false;
+  const stopIntro = () => { introRequest++; frame.contentWindow?.postMessage({ type: "gamid-intro-preview-stop" }, location.origin); };
+  const sendReplay = async () => {
+    if (!config) return;
+    stopIntro();
+    const current = introRequest;
+    introResolving = true;
+    let source = null;
+    try { source = await introSource.resolve(); } catch { /* Signing fails closed; no stale URL fallback. */ }
+    if (current !== introRequest || !config) return;
+    introResolving = false;
+    if (!latestIntroIdentity) {
+      introSource.invalidate(); hasIntro = false; config = null;
+      wall?.hide(); experienceWrap.hidden = true; sectionsPanel.hidden = true; gamesBlock.hidden = true;
+      notFound.hidden = false; loading.hidden = true;
+      return;
+    }
+    config = { ...config, videoUrl: source?.url || "", sourceExpiresAt: source?.expiresAt,
+      transitionKey: latestIntroIdentity.intro_transition_key || "fade" };
+    hasIntro = Boolean(config.videoUrl);
+    frame.contentWindow?.postMessage({ type: "gamid-intro-preview", config }, location.origin);
+  };
+  const checkIntro = async () => {
+    if (document.visibilityState !== "visible" || !introSource || introResolving || !config?.videoUrl || config.videoUrl === "pending") return;
+    const current = introRequest;
+    const valid = await introSource.isCurrent();
+    if (current !== introRequest || !config || introResolving) return;
+    if (!valid) {
+      stopIntro(); introSource.invalidate(); config.videoUrl = ""; hasIntro = false;
+      if (!latestIntroIdentity) { config = null; wall?.hide(); experienceWrap.hidden = true; sectionsPanel.hidden = true; gamesBlock.hidden = true; notFound.hidden = false; }
+    }
+  };
+  addEventListener("focus", checkIntro);
+  document.addEventListener("visibilitychange", checkIntro);
+  addEventListener("pagehide", () => { stopIntro(); introSource?.invalidate(); });
+
   const sendInitial = () => { if (initialSendDone || !frameReady || !config) return; initialSendDone = true; sendReplay(); };
 
   addEventListener("message", event => {
@@ -194,6 +229,15 @@ async function render() {
   if (visitorNav && fromCrew) getPublicCrewWall(fromCrew).then(view => visitorNav.setBackName(view?.crew_name), () => {});
 
   if (!identity) { loading.hidden = true; notFound.hidden = false; return; }
+  introSource = createIntroSourceResolver({
+    baseUrl: SUPABASE_URL,
+    current: async () => {
+      latestIntroIdentity = null;
+      latestIntroIdentity = await getPublicIdentity(identity.gamid_handle);
+      return latestIntroIdentity?.intro_derivative_path ? { key: identity.gamid_handle, path: latestIntroIdentity.intro_derivative_path } : null;
+    },
+    sign: signPublicIntroMedia,
+  });
 
   hasSections = renderPublicSections(sectionsPanel, identity.public_sections, { ownerHandle: identity.gamid_handle, pathname: location.pathname, loadAvatar: loadPublicAvatar }) > 0;
   // My Games: the server sends the section only when the owner switched it ON (and there is at least one game): the first six games + the true count. The full

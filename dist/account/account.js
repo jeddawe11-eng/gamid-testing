@@ -2,6 +2,7 @@ import { INTRO_TRANSITIONS, authErrorMessage, authLanding, authTabFromSearch, de
 import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, createOwnedImageBlob, drawCropPreview, loadOrientedImage } from "./avatar-cropper.js";
 import { PRESETS } from "../transition-engine.js";
 import * as api from "./supabase-client.js";
+import { createIntroSourceResolver } from "./intro-source.js";
 import { transferredSessionUrl } from "./testing-auth-handoff.js";
 import { createOwnedUploadBlob } from "./resumable-upload.js";
 import { IntroStatusPoller, isProcessingIntroState } from "./intro-status-poller.js";
@@ -34,6 +35,28 @@ let educationWorkCatalog = [];
 let savedIntro = null;
 let pendingIntroSource = null;
 let activeIntroUrl = null;
+let activeIntroPath = null, introOwner = null, previewRequest = 0;
+const introSource = createIntroSourceResolver({
+  baseUrl: api.SUPABASE_URL,
+  principal: () => api.currentSession()?.access_token || null,
+  current: async () => {
+    await api.restoreSession();
+    const owner = api.userIdFromToken();
+    if (!identity || !owner || owner !== introOwner) return null;
+    const intro = await api.getMyIntro();
+    return intro?.active_state === "ready" && intro.active_derivative_path ? { key: owner + "|" + intro.active_job_id, path: intro.active_derivative_path } : null;
+  },
+  sign: api.signIntroMedia,
+});
+function stopIntroPreview() {
+  previewRequest++;
+  document.getElementById("introPreviewFrame").contentWindow?.postMessage({ type:"gamid-intro-preview-stop" }, location.origin);
+  pendingPreviewConfig = null; activeIntroUrl = null;
+}
+window.addEventListener(api.AUTH_SESSION_EVENT, () => { stopIntroPreview(); introSource.invalidate(); });
+window.addEventListener("storage", event => { if (event.key === "gamid.testing.auth.session.v1") { stopIntroPreview(); introSource.invalidate(); } });
+window.addEventListener("pagehide", () => { stopIntroPreview(); introSource.invalidate(); });
+
 let introAction = "keep";
 let pendingPreviewConfig = null;
 let previewConfigDelivered = false;
@@ -196,7 +219,7 @@ function renderIntroState() {
     status.textContent = "Optimized D3 Intro is active."; status.classList.add("ready");
     summary.textContent = `Intro ready · ${PRESETS[introDraft().transitionKey]?.label || "Transition"}`;
   } else { status.textContent = "No video selected."; summary.textContent = "No intro yet"; }
-  document.getElementById("previewIntroButton").disabled = introAction === "remove" || !(pendingIntroSource?.url || activeIntroUrl);
+  document.getElementById("previewIntroButton").disabled = introAction === "remove" || !(pendingIntroSource?.url || activeIntroPath);
   document.getElementById("removeIntroButton").disabled = !(pendingIntroSource || savedIntro?.activeJobId || ["pending","processing"].includes(savedIntro?.latestJobState));
 }
 
@@ -238,6 +261,7 @@ function updateProfilePreview() {
 }
 
 function releasePendingIntro() {
+  if (pendingIntroSource?.url) stopIntroPreview();
   if (pendingIntroSource?.url) URL.revokeObjectURL(pendingIntroSource.url);
   pendingIntroSource = null;
   document.getElementById("introVideoInput").value = "";
@@ -245,18 +269,15 @@ function releasePendingIntro() {
 
 async function restoreIntroState(intro) {
   releasePendingIntro(); introAction = "keep";
-  if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl);
-  activeIntroUrl = null;
+  const nextPath = intro?.active_derivative_path || null;
+  if (activeIntroPath !== nextPath || introOwner !== api.userIdFromToken()) { stopIntroPreview(); introSource.invalidate(); }
+  activeIntroPath = nextPath; introOwner = api.userIdFromToken();
   savedIntro = {
     transitionKey:intro?.transition_key || "fade", action:"keep", activeJobId:intro?.active_job_id || null,
     latestJobId:intro?.latest_job_id || null, latestJobState:intro?.latest_job_state || null,
     latestFailureCode:intro?.latest_failure_code || null,
   };
   document.getElementById("introTransition").value = savedIntro.transitionKey;
-  if (intro?.active_derivative_path) {
-    try { activeIntroUrl = await api.loadIntroMedia(intro.active_derivative_path); }
-    catch { /* Keep editor usable if private media is temporarily unavailable. */ }
-  }
   renderIntroState();
 }
 
@@ -1649,6 +1670,7 @@ document.getElementById("introVideoInput").addEventListener("change", async even
     const inspected = await inspectIntroFile(ownedFile);
     releasePendingIntro();
     pendingIntroSource = inspected;
+    stopIntroPreview(); introSource.invalidate();
     introAction = "replace";
     updateProfilePreview();
   } catch (error) {
@@ -1659,7 +1681,7 @@ document.getElementById("introVideoInput").addEventListener("change", async even
 
 introTransition.addEventListener("change", updateProfilePreview);
 document.getElementById("removeIntroButton").addEventListener("click", () => {
-  releasePendingIntro(); introAction = "remove"; updateProfilePreview();
+  stopIntroPreview(); introSource.invalidate(); releasePendingIntro(); introAction = "remove"; updateProfilePreview();
 });
 
 document.getElementById("visibilityToggle").addEventListener("click", async event => {
@@ -1667,6 +1689,7 @@ document.getElementById("visibilityToggle").addEventListener("click", async even
   const goingPublic = identity?.visibility !== "PUBLIC";
   button.disabled = true;
   try {
+    stopIntroPreview(); introSource.invalidate();
     const result = await api.setMyIdentityVisibility(goingPublic);
     identity = { ...identity, visibility: result?.visibility || (goingPublic ? "PUBLIC" : "PRIVATE") };
     setMessage(goingPublic ? "Your GamID is now public." : "Your GamID is private again.", true);
@@ -1697,15 +1720,30 @@ function sendPreviewConfig() {
   document.getElementById("introPreviewFrame").contentWindow?.postMessage({ type:"gamid-intro-preview", config:pendingPreviewConfig }, location.origin);
 }
 
-document.getElementById("previewIntroButton").addEventListener("click", () => {
-  pendingPreviewConfig = currentPreviewConfig();
-  if (!pendingPreviewConfig.videoUrl) return;
-  previewConfigDelivered = false;
+document.getElementById("previewIntroButton").addEventListener("click", async () => {
+  stopIntroPreview();
+  const current = previewRequest;
+  const local = pendingIntroSource?.url;
   document.getElementById("introPreviewDialog").showModal();
-  sendPreviewConfig();
+  try {
+    await api.restoreSession();
+    if (current !== previewRequest) return;
+    const source = local ? null : await introSource.resolve();
+    if (current !== previewRequest || !document.getElementById("introPreviewDialog").open) return;
+    activeIntroUrl = source?.url || null;
+    pendingPreviewConfig = { ...currentPreviewConfig(), sourceExpiresAt: source?.expiresAt };
+    if (!pendingPreviewConfig.videoUrl) { document.getElementById("introPreviewDialog").close(); setMessage("The current Intro could not be previewed."); return; }
+    previewConfigDelivered = false; sendPreviewConfig();
+  } catch {
+    if (current === previewRequest) { stopIntroPreview(); document.getElementById("introPreviewDialog").close(); setMessage("The current Intro could not be previewed."); }
+  }
 });
 document.getElementById("closeIntroPreview").addEventListener("click", () => {
-  document.getElementById("introPreviewDialog").close(); pendingPreviewConfig = null;
+  stopIntroPreview(); document.getElementById("introPreviewDialog").close();
+});
+document.getElementById("introPreviewDialog").addEventListener("close", stopIntroPreview);
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState === "visible" && document.getElementById("introPreviewDialog").open && !pendingIntroSource?.url && !(await introSource.isCurrent())) { stopIntroPreview(); introSource.invalidate(); }
 });
 document.getElementById("introPreviewFrame").addEventListener("load", sendPreviewConfig);
 window.addEventListener("message", event => {
@@ -1859,8 +1897,9 @@ document.getElementById("languageForm").addEventListener("submit", async event =
 
 document.getElementById("signOutButton").addEventListener("click", async () => {
   if (isProfileDirty() && !window.confirm("Discard your unsaved profile changes and sign out?")) return;
+  stopIntroPreview(); introSource.invalidate();
   try { await api.signOut(); }
-  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; stopCrewRealtime?.(); stopCrewRealtime = null; crewPanel = null; introStatusPoller.stop(); releasePendingIntro(); if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
+  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; stopCrewRealtime?.(); stopCrewRealtime = null; crewPanel = null; introStatusPoller.stop(); releasePendingIntro(); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
 });
 window.addEventListener("beforeunload", event => {
   if (!isProfileDirty()) return;
@@ -1878,7 +1917,6 @@ window.addEventListener("pagehide", () => {
   if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
   if (persistedAvatarUrl) URL.revokeObjectURL(persistedAvatarUrl);
   if (pendingIntroSource?.url) URL.revokeObjectURL(pendingIntroSource.url);
-  if (activeIntroUrl) URL.revokeObjectURL(activeIntroUrl);
 }, { once: true });
 
 if (avatarDiagnosticsEnabled) {
