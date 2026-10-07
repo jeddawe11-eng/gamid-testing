@@ -2,13 +2,15 @@
 
 > **Current product state and approved product contracts: [`gamid-truth.json`](gamid-truth.json).** It is authoritative over older status lines in this document. Agent rules: [`AGENTS.md`](AGENTS.md).
 
-Last updated: 2026-09-18
+Last updated: 2026-10-07
 
 Repository: `jeddawe11-eng/gamid-testing`
 
-Branch: `main`
+Branch: `feature/play-together-notifications`
 
-Authoritative implementation checkpoint: see section 16 for the exact current commit. A verified Opera-vs-Chrome public-Intro reliability fix (retry/ack handshake + deterministic asset versioning) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7g. The Permanent Public GamID URL + QR + Sharing slice is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7f. Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7d. A mobile-Publish-button manual-acceptance bug found during Mazen's acceptance testing has since been fixed — see section 7e. It is applied on top of Slice 1/2 (Foundation + Public-Safe Data, section 7b, also not yet formally accepted), the accepted Split Reveal Intro-visibility fix (section 7a), and the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
+Current product checkpoint: `2eacf6896f7a8edfcb137ac91889bde34bfe7f03`, Cloudflare TESTING authentication migration, PENDING_ACCEPTANCE. Current continuation: section 17 and `PROJECT_STATE.md`. Older hosting and checkpoint descriptions below are historical; current canonical frontend is Cloudflare.
+
+Historical September 18 continuation summary: Authoritative implementation checkpoint: see section 16 for the exact current commit. A verified Opera-vs-Chrome public-Intro reliability fix (retry/ack handshake + deterministic asset versioning) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7g. The Permanent Public GamID URL + QR + Sharing slice is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7f. Public GamID Profile Slice 2/2 (Public Experience + Intro/Transitions) is implemented and TESTING-validated but **not yet formally accepted by Mazen** — see section 7d. A mobile-Publish-button manual-acceptance bug found during Mazen's acceptance testing has since been fixed — see section 7e. It is applied on top of Slice 1/2 (Foundation + Public-Safe Data, section 7b, also not yet formally accepted), the accepted Split Reveal Intro-visibility fix (section 7a), and the Slice 3C implementation checkpoint `2fbfe3197f0f409a9c4247760740c61ad4618f43`.
 
 This is the authoritative continuation record for Claude Code or any other coding agent. It records what exists, what Mazen accepted, what remains unverified, and what is only future direction. It does not authorize deferred testing, another slice, redesign, deployment, migration, cloud changes, or Production access.
 
@@ -69,10 +71,10 @@ Mazen intentionally deferred further Slice 3C manual testing and fixes. Do not r
 - Node.js: 20 or newer.
 - Frontend: dependency-free static HTML, CSS, and native ES modules under `dist/`.
 - Validation: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, and `git diff --check`.
-- TESTING root: `https://jeddawe11-eng.github.io/gamid-testing/` — the static **landing page** (section 7k); the old Slice 1 Intro lab lives at `prototypes/slice-1-intro-lab/` and is not deployed.
-- TESTING owner/editor: `https://jeddawe11-eng.github.io/gamid-testing/account/`
-- Pages workflow: `.github/workflows/deploy-pages.yml`; it publishes `dist/` and excludes the large development asset `/assets/gamid-intro.mp4`.
-- Frontend routing and assets account for the GitHub Pages `/gamid-testing/` base path.
+- Canonical TESTING root: `https://gamid-testing-static.gamid.workers.dev/` — the static landing page. Historical Pages deployment records remain below.
+- Canonical TESTING owner/editor: `https://gamid-testing-static.gamid.workers.dev/account/`
+- Current deployment: `.github/workflows/deploy-cloudflare-testing.yml`, exact-ref/SHA guarded. Legacy Pages workflow remains enabled pending separately authorized retirement; do not use it for current deployments.
+- Canonical frontend uses root-relative routes. Generic historical base-path compatibility remains; no Cloudflare flow needs the Pages origin.
 
 `/account/` is authenticated **owner/editor UI** and must never become the public share profile. Public identity needs a separate non-editing route and privacy model.
 
@@ -1708,7 +1710,9 @@ Claude Code or another agent must:
 15. Never use protected identities destructively.
 16. Stop and report material state differences before destructive or paid actions.
 
-## 16. START HERE
+## 16. Historical Play Together milestone continuation
+
+Current continuation is section 17 and PROJECT_STATE.md. The following records describe their original milestones, not the current branch or deployment.
 
 ### Play Together complete milestone (implemented 2026-09-25; awaiting manual TESTING acceptance)
 
@@ -1765,3 +1769,12 @@ Gaming Connections Engine — Discord foundation (section 7h) exists at implemen
 Not started: Templates, Video Background, Cinematic Identity, a public Wall route.
 
 Do not start the next implementation slice. First inspect the repository read-only, then discuss the roadmap and next priority with Mazen. Proceed only after he explicitly chooses and authorizes the next work.
+
+
+## 17. Current Cloudflare TESTING authentication migration — 2026-10-07
+
+**IMPLEMENTED, DEPLOYED, TECHNICALLY VERIFIED; PENDING_ACCEPTANCE.** Product `2eacf6896f7a8edfcb137ac91889bde34bfe7f03`, branch `feature/play-together-notifications`, based on `dc9393f`. Cloudflare TESTING run `37590268654` SUCCESS; six targeted Edge Function bundles verified against committed sources; TESTING Auth default/sole redirect is Cloudflare Account. Full build: 1,651 tests / 1,650 PASS / one existing skip / zero failures; lint and typechecks PASS. No database migration.
+
+Source of architecture, exact versions, safe browser/live verification, legacy-reference classification and rollback: [docs/CLOUDFLARE-AUTH-MIGRATION.md](docs/CLOUDFLARE-AUTH-MIGRATION.md). F2/F3/F4/F5 and accepted Account/Public/Wall/Play Together/Team Voice behavior remain preserved. No real user, Wall or session mutated for verification; provider success exercised in fixtures, not manual real-account authorization.
+
+**READY FOR RETIREMENT at runtime-dependency level; Pages is NOT disabled.** Complete Mazen's manual migration/provider checks and obtain his separate explicit retirement authorization before changing the Pages workflow/public site. Compatibility incoming CORS origins and historical records are classified in the specialist document. STOP; no main merge, Production, Monitor or unrelated optimization.

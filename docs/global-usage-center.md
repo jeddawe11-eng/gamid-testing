@@ -119,7 +119,7 @@ Existing ordinary TUS PATCH requests recheck upload permission. Previously issue
 signed-upload capabilities or a request already in flight at cutover need an
 expiry/drain window before claiming complete exclusion of every legacy path.
 Do not rotate credentials or mutate real-user uploads to shorten that window.
-The old GitHub Pages TESTING handoff must also serve compatible client files.
+Historical October 5 cutover requirement: the then-active Pages handoff also had to serve compatible client files. It is superseded by the Cloudflare authentication migration (docs/CLOUDFLARE-AUTH-MIGRATION.md); current Cloudflare flows do not depend on Pages.
 On October 5, the approved exact `feature/global-usage-center` environment rule
 was added, retaining existing rules, and both TESTING origins served matching
 gateway clients. Read-only Storage logs contained no signed-upload requests in

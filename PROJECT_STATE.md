@@ -42,7 +42,8 @@ Snapshot from 2026-10-07; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** 4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59, F5 native Intro delivery, **manually ACCEPTED by Mazen (2026-10-07)** ([docs/INTRO-STREAMING-F5.md](docs/INTRO-STREAMING-F5.md), PROJECT_HANDOFF.md §10). Later commits are documentation/state only; verify with Git.
+- **Latest product commit:** 2eacf6896f7a8edfcb137ac91889bde34bfe7f03, Cloudflare TESTING authentication migration, **PENDING_ACCEPTANCE** ([docs/CLOUDFLARE-AUTH-MIGRATION.md](docs/CLOUDFLARE-AUTH-MIGRATION.md), PROJECT_HANDOFF.md §17). Later commits are documentation/state only; verify with Git.
+  - F5 product 4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59 remains **manually ACCEPTED by Mazen** (2026-10-07); its Intro delivery is unchanged.
   - F2 product 04877c20d213f0105fbdc2871146248194eaf773 remains manually ACCEPTED by Mazen (2026-10-07); its worker/derivative policy is unchanged.
   - F3 `3b9d8b1c27fb0c9b3fa6fd0c2ee682dab7618906` remains **manually ACCEPTED by Mazen**; its viewport gating is preserved (`docs/WALL-VIDEO-VIEWPORT-F3.md`).
   - F4 `2ccb0f8aeec701bd4c0e6006c36d4c628a9ec091` is **accepted as the implementation baseline by Mazen** in the F3 authorization; its URL reuse remains preserved (`docs/WALL-VIDEO-URL-REUSE-F4.md`).
@@ -53,8 +54,8 @@ Snapshot from 2026-10-07; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `4a978ab`.**
-  - Static site: deployed by workflow run `37563242127`.
+- **TESTING serves `2eacf68`.**
+  - Static site: deployed by workflow run `37590268654`.
   - Intro worker: unchanged F2 image at product checkpoint 04877c20d213f0105fbdc2871146248194eaf773; deployment/verification record in `docs/INTRO-DERIVATIVE-F2.md`.
   - Database: migration `20261006090000_play_together_notifications` applied and recorded.
   - Per-capability checkpoints are in Truth.
@@ -86,7 +87,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Current stop point:** F5 native Intro delivery is deployed and technically verified on TESTING at 4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59. Mazen manually ACCEPTED F5 (2026-10-07); the acceptance record is in [docs/INTRO-STREAMING-F5.md](docs/INTRO-STREAMING-F5.md) and PROJECT_HANDOFF.md §10, with ACCEPTED status in GamID Truth. F2/F3/F4 stay ACCEPTED; no existing media reprocessed. STOP. No F6/F7/F8 or other optimization authorized.
+**Current stop point:** Cloudflare TESTING authentication migration is deployed at 2eacf6896f7a8edfcb137ac91889bde34bfe7f03 and PENDING_ACCEPTANCE in Truth. Canonical frontend/authentication contract and technical retirement-readiness record: [docs/CLOUDFLARE-AUTH-MIGRATION.md](docs/CLOUDFLARE-AUTH-MIGRATION.md), PROJECT_HANDOFF.md §17. GitHub Pages is still enabled. STOP for Mazen's manual acceptance and separate authorization before retiring Pages. F2/F3/F4/F5 remain ACCEPTED; no F6/F7 or other optimization authorized.
 
 **Previously outstanding continuation (not performed in F2/F3/F4):**
 1. **Remaining manual acceptance checks for global-usage.** Core accounting PASS; remaining checks are listed in `PROJECT_HANDOFF.md` §10. This capability remains PENDING_ACCEPTANCE in Truth.

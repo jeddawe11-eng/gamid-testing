@@ -3,7 +3,7 @@
 // 307-redirects a literal "/@black" to "/%40black" - observed in Phase 0a). Every other path is completely unchanged: no Worker code runs, the accepted static
 // behavior (incl. the accepted 404) applies.
 // Run `node scripts/stage-cloudflare.mjs` first: it builds .cloudflare-stage/ from dist/ exactly like the GitHub Pages workflow does.
-// GitHub Pages stays the live TESTING fallback; this is a parallel deployment on a temporary *.workers.dev hostname. No secrets, no KV/R2/Durable Objects.
+// Canonical Cloudflare TESTING frontend. Legacy Pages remains enabled pending separate retirement authorization; see docs/CLOUDFLARE-AUTH-MIGRATION.md.
 {
   "name": "gamid-testing-static",
   "compatibility_date": "2026-01-01",

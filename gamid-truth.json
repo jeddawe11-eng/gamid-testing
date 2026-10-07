@@ -11,6 +11,26 @@
   },
   "capabilities": [
     {
+      "id": "testing-frontend-cloudflare",
+      "name": "Canonical Cloudflare TESTING frontend and same-origin authentication",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "https://gamid-testing-static.gamid.workers.dev/"
+      ],
+      "checkpoint": "2eacf6896f7a8edfcb137ac91889bde34bfe7f03",
+      "contracts": [
+        {
+          "id": "testing-canonical-frontend",
+          "rule": "Cloudflare is the canonical TESTING frontend. Account, Play Together and Wall Editor share the existing same-origin authenticated session; no GitHub Pages session transfer is required. TESTING Auth and Discord/Steam connection returns use Cloudflare Account. Legacy Pages remains enabled solely pending separately authorized retirement."
+        },
+        {
+          "id": "testing-auth-intent-return",
+          "rule": "Sign-in return intent is a single-use tab-local fixed path for Play Together or Wall Editor, valid for at most five minutes; authenticated Account consumes it. Recovery remains in Account; arbitrary origins and destinations are not accepted."
+        }
+      ],
+      "record": "docs/CLOUDFLARE-AUTH-MIGRATION.md; PROJECT_HANDOFF.md §17"
+    },
+    {
       "id": "intro-transition-engine",
       "name": "Intro / Transition Engine",
       "status": "ACCEPTED",

@@ -1,3 +1,5 @@
+> Hosting/checkpoint descriptions below are historical roadmap records. Current product state is in `gamid-truth.json`; canonical TESTING is Cloudflare. Current migration/retirement boundary: `docs/CLOUDFLARE-AUTH-MIGRATION.md`. Pages retirement is not yet authorized.
+
 # GamID Product Roadmap
 
 This is the readable product roadmap. `PROJECT_HANDOFF.md` is the authoritative technical continuation document.
