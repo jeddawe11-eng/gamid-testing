@@ -233,7 +233,7 @@ test("route: nothing else links to or serves the editor - it is not wired into A
     const text = readFileSync(file, "utf8");
     // the ONE product entry point: the authenticated Account identity view links to the editor (plain link - no script, no auth code, no second login)
     if (file === "dist/account/index.html") { assert.match(text, /<a class="primary play-together-link" href="\.\.\/wall-editor\/">EDIT WALL<\/a>/); assert.equal((text.match(/wall-editor/g) ?? []).length, 1); continue; }
-    if (file === "dist/account/post-auth-return.js") { assert.match(text, /ALLOWED_RETURN_PATHS = Object\.freeze\(\["\/wall-editor\/"\]\)/); continue; }
+    if (file === "dist/account/post-auth-return.js") { assert.match(text, /ALLOWED_RETURN_PATHS = Object\.freeze\(\["\/wall-editor\/", "\/play-together\/"\]\)/); continue; }
     // (Public Wall publishing) the visitor page's ONE Wall module draws the PUBLISHED Wall with the shared kit (the Preview pipeline) and reuses exactly one editor
     // data module - the anonymous visitor view of live GamID data. It never links to, loads or serves the editor page, its draft or its owner calls.
     if (file === "dist/public/public-wall.js") {

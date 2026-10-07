@@ -3,7 +3,7 @@ import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormal
 import { PRESETS } from "../transition-engine.js";
 import * as api from "./supabase-client.js";
 import { createIntroSourceResolver } from "./intro-source.js";
-import { transferredSessionUrl } from "./testing-auth-handoff.js";
+import { authenticatedReturnPath } from "./testing-auth-handoff.js";
 import { createOwnedUploadBlob } from "./resumable-upload.js";
 import { IntroStatusPoller, isProcessingIntroState } from "./intro-status-poller.js";
 import { buildGameLibrary } from "./game-list.js";
@@ -1523,8 +1523,8 @@ async function routeAuthenticated() {
   else showView(landing);
 }
 
-function continueTestingAuthHandoff() {
-  const target = transferredSessionUrl(location, api.currentSession());
+function continueAuthenticatedReturn() {
+  const target = authenticatedReturnPath(location, api.currentSession());
   if (!target) return false;
   location.replace(target);
   return true;
@@ -1547,7 +1547,7 @@ registerForm.addEventListener("submit", async event => {
   busy(registerForm, true);
   try {
     const result = await api.signUp(values.email.trim(), values.password);
-    if (result.access_token) { await api.restoreSession(); if (!continueTestingAuthHandoff()) await routeAuthenticated(); }
+    if (result.access_token) { await api.restoreSession(); if (!continueAuthenticatedReturn()) await routeAuthenticated(); }
     else { document.getElementById("verifyEmail").textContent = values.email.trim(); showView("verify"); }
   } catch (error) { setMessage(error.message); }
   finally { busy(registerForm, false); }
@@ -1564,7 +1564,7 @@ signinForm.addEventListener("submit", async event => {
     busy(signinForm, false);
     return;
   }
-  try { if (!continueTestingAuthHandoff()) await routeAuthenticated(); }
+  try { if (!continueAuthenticatedReturn()) await routeAuthenticated(); }
   catch (error) { setMessage(`Signed in, but the account could not be loaded (${String(error?.code || "ACCOUNT_LOAD_ERROR").toUpperCase().replace(/[^A-Z0-9_]/g, "_").slice(0, 64)}). Refresh to try again.`); }
   finally { busy(signinForm, false); }
 });
@@ -1935,18 +1935,18 @@ if (avatarDiagnosticsEnabled) {
   });
 }
 
-let testingAuthHandoffStarted = false;
+let authenticatedReturnStarted = false;
 try {
   const redirected = api.consumeRedirectSession();
   await api.restoreSession();
   if (redirected?.type === "recovery") showView("recovery");
-  else if (continueTestingAuthHandoff()) testingAuthHandoffStarted = true;
+  else if (continueAuthenticatedReturn()) authenticatedReturnStarted = true;
   else await routeAuthenticated();
 } catch { showView("auth"); }
 
 // Landing-page deep link (/account/?auth=signin | ?auth=register): only picks the tab of the existing auth view, and only when
 // that view is what the visitor is looking at (a signed-in owner goes straight to YOUR GAMID as before). It touches no session.
-if (!testingAuthHandoffStarted) {
+if (!authenticatedReturnStarted) {
   const tab = authTabFromSearch(location.search);
   if (tab && document.getElementById("authView").classList.contains("is-active")) document.getElementById(tab === "signin" ? "signinTab" : "registerTab").click();
   if (new URLSearchParams(location.search).has("auth")) history.replaceState(null, "", `${location.pathname}${searchWithoutAuth(location.search)}${location.hash}`);

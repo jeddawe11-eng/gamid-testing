@@ -15,7 +15,7 @@ import { platformKeyForLabel } from "./platform-map.mjs";
 import { PLATFORM_QIDS, IDENTIFIER_PROPERTIES, BARE_TITLE, buildCatalogItem, pickLabel, orderForImport, batchSql } from "./wikidata-catalog.mjs";
 
 const ENDPOINT = "https://query.wikidata.org/sparql";
-const USER_AGENT = "GamID-catalog-import/1.0 (https://jeddawe11-eng.github.io/gamid-testing/; catalog research for a game identity project)";
+const USER_AGENT = "GamID-catalog-import/1.0 (https://gamid-testing-static.gamid.workers.dev/; catalog research for a game identity project)";
 const PAUSE_MS = 2500;
 
 function options(argv) {

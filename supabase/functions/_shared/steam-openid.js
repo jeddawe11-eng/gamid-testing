@@ -29,18 +29,16 @@ export const STEAM_OPENID = Object.freeze({
   verifyTimeoutMs: 8000,
 });
 
-export const SITE_ORIGIN = "https://jeddawe11-eng.github.io";
-export const RETURN_URL = `${SITE_ORIGIN}/gamid-testing/account/`;
-// Both TESTING sites host the account page (GitHub Pages - the original - and Cloudflare TESTING). Manual-acceptance finding: every Steam request from the
-// Cloudflare site was refused (no CORS), so Refresh games "couldn't reach the games service" and Steam could not be reconnected there. A connection started on a
-// site returns to THAT site: its key travels inside openid.return_to (signed by Steam) and only ever selects one of these fixed addresses - never a URL from input.
+export const SITE_ORIGIN = "https://gamid-testing-static.gamid.workers.dev";
+export const RETURN_URL = `${SITE_ORIGIN}/account/`;
+// Keep validation of in-flight legacy signed return_to assertions; every completion now returns to Cloudflare.
 export const STEAM_SITES = Object.freeze({
-  gh: Object.freeze({ origin: SITE_ORIGIN, returnUrl: RETURN_URL }),
-  cf: Object.freeze({ origin: "https://gamid-testing-static.gamid.workers.dev", returnUrl: "https://gamid-testing-static.gamid.workers.dev/account/" }),
+  gh: Object.freeze({ origin: "https://jeddawe11-eng.github.io", returnUrl: RETURN_URL }),
+  cf: Object.freeze({ origin: SITE_ORIGIN, returnUrl: RETURN_URL }),
 });
 export const siteForOrigin = origin => Object.keys(STEAM_SITES).find(key => STEAM_SITES[key].origin === origin) ?? null;
 const siteKey = value => (value === "cf" ? "cf" : "gh");
-const USER_AGENT = "GamID-Testing-OpenID (https://jeddawe11-eng.github.io/gamid-testing/, 1.0)";
+const USER_AGENT = "GamID-Testing-OpenID (https://gamid-testing-static.gamid.workers.dev/, 1.0)";
 const CLAIMED_ID = /^https?:\/\/steamcommunity\.com\/openid\/id\/([0-9]{17})$/;
 
 export function readEnv(get) {

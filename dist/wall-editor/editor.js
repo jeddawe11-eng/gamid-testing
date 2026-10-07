@@ -20,7 +20,7 @@ import { createTools } from "./tools.js";
 import { createAssetStore } from "./assets.js";
 import { loadGamidSnapshot, PUBLIC_SOURCE_LABELS } from "./gamid-data.js";
 import { createWallDetails } from "../wall-kit/gamid-details.js";
-import { legacyAccountHandoffUrl } from "../account/testing-auth-handoff.js";
+import { accountSignInUrl } from "../account/testing-auth-handoff.js";
 import { rememberReturnTo } from "../account/post-auth-return.js";
 
 const $ = id => document.getElementById(id);
@@ -460,18 +460,11 @@ function gate({ title, text, loader = false, link = false, retry = false }) {
   $("gateRetry").hidden = !retry;
   updateChrome();
 }
-const sessionStorageOrNull = () => { try { return window.sessionStorage; } catch { return null; } };
 async function boot() {
   gate({ title: "Opening your Wall…", text: "Checking your GamID session.", loader: true });
   // The established account session (same localStorage session the Account page uses) - the editor keeps no session of its own.
   const check = await resolveEditorSession(restoreSession);
-  const plan = planAuth(check, { attempts: sessionStorageOrNull(), handoffUrl: legacyAccountHandoffUrl({ origin: location.origin, pathname: "/play-together/" }) });
-  if (plan.action === "HANDOFF") {
-    // Owner signed in on the legacy TESTING origin only: use the established handoff, and come back here when the session arrives. Nothing is shown.
-    rememberReturnTo("/wall-editor/");
-    location.replace(plan.url);
-    return;
-  }
+  const plan = planAuth(check);
   if (plan.action !== "OPEN") { document.documentElement.dataset.authReason = plan.reason; gate(gateFor(plan.action)); return; }
   const loaded = await session.load();
   if (!loaded) {
@@ -491,5 +484,12 @@ async function boot() {
   refreshGamid().catch(() => { /* blocks show a plain "not available" note */ });
   refreshPublication();
 }
+$("gateLink").addEventListener("click", event => {
+  const target = accountSignInUrl(location);
+  if (!target) return;
+  event.preventDefault();
+  if (["NO_STORED_SESSION", "SESSION_REFRESH_REJECTED"].includes(document.documentElement.dataset.authReason)) rememberReturnTo("/wall-editor/");
+  location.assign(target);
+});
 $("gateRetry").addEventListener("click", boot);
 boot();

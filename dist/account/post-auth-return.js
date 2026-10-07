@@ -1,9 +1,7 @@
-// A tiny, same-tab "where was this person going" note for the TESTING sign-in transition. When a GamID page has to bring an existing sign-in across from the legacy
-// TESTING origin, it notes the page it wants to come back to; the shared client (supabase-client.js) takes the note when the transferred session arrives and returns
-// the person there. Only fixed, known GamID pages are allowed, and the note lives in sessionStorage (this tab only, expires in minutes). No token is ever stored here.
+// Same-tab single-use sign-in intent: fixed paths, five-minute lifetime, no tokens.
 const RETURN_KEY = "gamid.testing.auth.return.v1";
 const MAX_AGE_MS = 5 * 60 * 1000;
-export const ALLOWED_RETURN_PATHS = Object.freeze(["/wall-editor/"]);
+export const ALLOWED_RETURN_PATHS = Object.freeze(["/wall-editor/", "/play-together/"]);
 
 const defaultStorage = () => { try { return globalThis.sessionStorage ?? null; } catch { return null; } };
 

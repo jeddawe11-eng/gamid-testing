@@ -170,7 +170,7 @@ test("the catalog import source is documented, keyless and polite: one public ho
   const exporter = read("scripts/catalog/wikidata-export.mjs");
   const code = exporter.replace(/^\s*\/\/.*$/gm, "");
   assert.match(code, /const ENDPOINT = "https:\/\/query\.wikidata\.org\/sparql"/);
-  assert.equal([...new Set([...code.matchAll(/https?:\/\/[^\s"'`)]+/g)].map(match => new URL(match[0]).host))].filter(host => !/jeddawe11-eng\.github\.io/.test(host)).sort().join(","), "query.wikidata.org,www.wikidata.org", "the only external hosts are Wikidata's own public query service and Action API");
+  assert.equal([...new Set([...code.matchAll(/https?:\/\/[^\s"'`)]+/g)].map(match => new URL(match[0]).host))].filter(host => host !== "gamid-testing-static.gamid.workers.dev").sort().join(","), "query.wikidata.org,www.wikidata.org", "the only external hosts are Wikidata's own public query service and Action API");
   assert.match(code, /"User-Agent": USER_AGENT/);
   assert.match(code, /GamID-catalog-import\/1\.0/);
   assert.match(code, /retry-after/i);

@@ -5,7 +5,7 @@ Game ID Wall architecture study on real devices. It contains sample content only
 publishing, QR, backend or database. State lives in memory (optionally `localStorage` on the same browser for the hosting-test
 pages). Nothing here is linked from the real GamID product.
 
-Live TESTING URL: `https://jeddawe11-eng.github.io/gamid-testing/prototypes/game-id-wall-w0/`
+Live TESTING URL: `https://gamid-testing-static.gamid.workers.dev/prototypes/game-id-wall-w0/`
 
 | Page | Purpose |
 | --- | --- |

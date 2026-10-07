@@ -179,7 +179,7 @@ test("START forwards the owner's OWN JWT to the database (never the service key)
   assert.deepEqual(Object.keys(payload).sort(), ["authorization_url", "expires_at"]);
   assert.equal(response.headers.get("cache-control"), "no-store");
   assert.equal(response.headers.get("access-control-allow-origin"), SITE_ORIGIN);
-  const state = new URL(payload.authorization_url).searchParams.get("openid.return_to").split("state=")[1];
+  const state = new URL(new URL(payload.authorization_url).searchParams.get("openid.return_to")).searchParams.get("state");
   assert.match(state, /^[0-9a-f]{64}$/);
   assert.equal(JSON.stringify(payload).includes(SERVICE_KEY), false);
 });

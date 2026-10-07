@@ -17,7 +17,7 @@
 import { normalizeRiotIdInput, validateSnapshot } from "./league-domain.js";
 
 // Must equal the Discord slice's site origin (asserted by a test); duplicated so this module does not depend on it.
-export const SITE_ORIGIN = "https://jeddawe11-eng.github.io";
+export const SITE_ORIGIN = "https://gamid-testing-static.gamid.workers.dev";
 
 export function readLeagueEnv(get) {
   return { supabaseUrl: get("SUPABASE_URL"), anonKey: get("SUPABASE_ANON_KEY"), serviceKey: get("SUPABASE_SERVICE_ROLE_KEY") };

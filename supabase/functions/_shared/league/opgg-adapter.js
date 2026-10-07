@@ -17,7 +17,7 @@ export const OPGG_SOURCE_KEY = "OPGG_TEMPORARY";
 
 const HOST = "https://op.gg";
 const PATH_PREFIX = "/lol/summoners/";
-const USER_AGENT = "GamID-Testing-Prototype (+https://jeddawe11-eng.github.io/gamid-testing/)";
+const USER_AGENT = "GamID-Testing-Prototype (+https://gamid-testing-static.gamid.workers.dev/)";
 const TIMEOUT_MS = 12000;
 const MAX_BODY_BYTES = 3 * 1024 * 1024;
 

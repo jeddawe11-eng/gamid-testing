@@ -21,7 +21,7 @@
 
 import { refreshSteamProfile } from "./steam-profile.js";
 
-export const SITE_ORIGIN = "https://jeddawe11-eng.github.io";
+export const SITE_ORIGIN = "https://gamid-testing-static.gamid.workers.dev";
 
 export const STEAM_GAMES = Object.freeze({
   endpoint: "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/",
@@ -38,7 +38,7 @@ export const STEAM_GAMES = Object.freeze({
 // Recognition only: "this account's accessible game data includes it". Never a Marvel account / UID / rank / stats verification.
 export const MARVEL_RIVALS_APP_ID = "2767030";
 
-const USER_AGENT = "GamID-Testing-SteamGames (https://jeddawe11-eng.github.io/gamid-testing/, 1.0)";
+const USER_AGENT = "GamID-Testing-SteamGames (https://gamid-testing-static.gamid.workers.dev/, 1.0)";
 
 // The ONLY place the key's environment name is read (the connect callback uses this too, for the public persona - see steam-profile.js).
 export const readSteamApiKey = get => get("STEAM_WEB_API_KEY");
@@ -166,7 +166,7 @@ function json(body, status, extra = {}) {
 
 // Both TESTING sites host the account page: the original GitHub Pages site and Cloudflare TESTING (post-Round 2 manual-acceptance finding - Refresh games on
 // the Cloudflare site was refused by CORS and reported "the games service couldn't be reached").
-export const ALLOWED_ORIGINS = Object.freeze([SITE_ORIGIN, "https://gamid-testing-static.gamid.workers.dev"]);
+export const ALLOWED_ORIGINS = Object.freeze(["https://jeddawe11-eng.github.io", SITE_ORIGIN]);
 const corsFor = origin => (ALLOWED_ORIGINS.includes(origin) ? { "Access-Control-Allow-Origin": origin, Vary: "Origin" } : { Vary: "Origin" });
 
 async function rpc(fetchImpl, env, name, args, { bearer, apikey }) {

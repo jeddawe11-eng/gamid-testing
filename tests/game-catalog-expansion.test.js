@@ -289,7 +289,7 @@ test("the Wikidata export is resumable and respectful: a cached batch is never a
   assert.match(code, /response\.status === 429 \|\| response\.status >= 500/);
   assert.doesNotMatch(code, /Promise\.all|Promise\.allSettled/, "strictly sequential");
   assert.doesNotMatch(code, /apikey|api[_-]?key|Authorization|secret|token|cookie|puppeteer|cheerio|jsdom/i);
-  assert.equal([...new Set([...code.matchAll(/https?:\/\/[^\s"'`)]+/g)].map(match => new URL(match[0]).host))].filter(host => !/jeddawe11-eng\.github\.io/.test(host)).sort().join(","), "query.wikidata.org,www.wikidata.org");
+  assert.equal([...new Set([...code.matchAll(/https?:\/\/[^\s"'`)]+/g)].map(match => new URL(match[0]).host))].filter(host => host !== "gamid-testing-static.gamid.workers.dev").sort().join(","), "query.wikidata.org,www.wikidata.org");
   assert.doesNotMatch(exporter, /igdb\.com\/v4|api\.twitch|rawg\.io|giantbomb|mobygames|ign\.com|tracker\.gg|store\.steampowered\.com\/api/i, "no other catalog provider is contacted");
   assert.match(code, /const itemId = value => \(\/\^Q\[0-9\]\+\$\/\.test\(value\) \? value : null\);/, "an anonymous 'unknown value' node is never treated as a platform");
 });

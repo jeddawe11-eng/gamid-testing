@@ -1,69 +1,40 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import {
-  isRequestedTestingHandoff,
-  legacyAccountHandoffUrl,
-  transferredSessionUrl,
-} from "../dist/account/testing-auth-handoff.js";
-
-const cloudflareLocation = {
-  origin: "https://gamid-testing-static.gamid.workers.dev",
-  pathname: "/play-together/",
-  search: "",
-};
-const legacyLocation = {
-  origin: "https://jeddawe11-eng.github.io",
-  pathname: "/gamid-testing/account/",
-  search: "?gamid_testing_handoff=play_together_cloudflare",
-};
-
-test("the real TESTING origins have isolated browser storage and use the fixed legacy-to-Cloudflare handoff", () => {
-  const legacyStorage = new Map([["gamid.testing.auth.session.v1", "legacy-session"]]);
-  const cloudflareStorage = new Map();
-  assert.equal(cloudflareStorage.get("gamid.testing.auth.session.v1"), undefined, "a session on GitHub Pages is absent on workers.dev");
-  assert.equal(legacyStorage.get("gamid.testing.auth.session.v1"), "legacy-session");
-  assert.equal(
-    legacyAccountHandoffUrl(cloudflareLocation),
-    "https://jeddawe11-eng.github.io/gamid-testing/account/?gamid_testing_handoff=play_together_cloudflare",
-  );
-  assert.equal(isRequestedTestingHandoff(legacyLocation), true);
+import { accountSignInUrl, authenticatedReturnPath, TESTING_ORIGIN } from "../dist/account/testing-auth-handoff.js";
+import { rememberReturnTo, takeReturnTo } from "../dist/account/post-auth-return.js";
+const store=()=>{const m=new Map();return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)};};
+const account={origin:TESTING_ORIGIN,pathname:"/account/"};
+const session={access_token:"fixture-token",expires_at:100};
+test("sign-in stays on Cloudflare for both fixed destinations without token transfer",()=>{
+ for(const pathname of ["/play-together/","/wall-editor/"]){
+  const url=new URL(accountSignInUrl({origin:TESTING_ORIGIN,pathname}));
+  assert.equal(url.href,`${TESTING_ORIGIN}/account/?auth=signin`);
+  assert.equal(url.hash,"");
+  const s=store(); assert.equal(rememberReturnTo(pathname,s,1000),true);
+  assert.equal(authenticatedReturnPath(account,session,s,2000),pathname);
+  assert.equal(takeReturnTo(s,2000),null);
+ }
 });
-
-test("handoff preserves the established Supabase session fragment shape without putting tokens in a query string", () => {
-  const target = transferredSessionUrl(legacyLocation, {
-    access_token: "access-token",
-    refresh_token: "refresh-token",
-    token_type: "bearer",
-    expires_at: 4600,
-  }, 1000);
-  const url = new URL(target);
-  assert.equal(url.origin, cloudflareLocation.origin);
-  assert.equal(url.pathname, cloudflareLocation.pathname);
-  assert.equal(url.search, "");
-  const fragment = new URLSearchParams(url.hash.slice(1));
-  assert.equal(fragment.get("access_token"), "access-token");
-  assert.equal(fragment.get("refresh_token"), "refresh-token");
-  assert.equal(fragment.get("expires_in"), "3600");
-  assert.equal(fragment.get("type"), "gamid_testing_handoff");
+test("return note denies arbitrary destinations, expiry, future dates, recovery, unauthenticated and foreign controllers",()=>{
+ for(const path of ["https://evil.test/","//evil.test/","/account/","/wall-editor/?next=evil"]){assert.equal(rememberReturnTo(path,store()),false);}
+ for(const location of [{...account,origin:"https://evil.test"},{...account,pathname:"/play-together/"}]){
+  const s=store();rememberReturnTo("/wall-editor/",s,1000);assert.equal(authenticatedReturnPath(location,session,s,2000),null);
+ }
+ for(const candidate of [null,{access_token:"a",expires_at:1},{...session,type:"recovery"}]){
+  const s=store();rememberReturnTo("/wall-editor/",s,1000);assert.equal(authenticatedReturnPath(account,candidate,s,2000),null);
+ }
+ for(const now of [999,301001]){const s=store();rememberReturnTo("/wall-editor/",s,1000);assert.equal(takeReturnTo(s,now),null);}
+ const s=store();s.setItem("gamid.testing.auth.return.v1",JSON.stringify({path:"https://evil.test",at:1000}));assert.equal(takeReturnTo(s,2000),null);
+ assert.equal(accountSignInUrl({origin:"https://jeddawe11-eng.github.io",pathname:"/play-together/"}),null);
 });
-
-test("handoff is closed to arbitrary origins, paths, destinations, and incomplete sessions", () => {
-  assert.equal(legacyAccountHandoffUrl({ ...cloudflareLocation, origin: "https://example.test" }), null);
-  assert.equal(legacyAccountHandoffUrl({ ...cloudflareLocation, pathname: "/account/" }), null);
-  assert.equal(isRequestedTestingHandoff({ ...legacyLocation, origin: "https://example.test" }), false);
-  assert.equal(isRequestedTestingHandoff({ ...legacyLocation, search: "?gamid_testing_handoff=https://evil.test" }), false);
-  assert.equal(transferredSessionUrl(legacyLocation, { access_token: "only-one-token" }), null);
-});
-
-test("both deployed controllers wire the handoff while preserving the ordinary unauthenticated panel fallback", async () => {
-  const [account, playTogether] = await Promise.all([
-    readFile(new URL("../dist/account/account.js", import.meta.url), "utf8"),
-    readFile(new URL("../dist/play-together/play-together.js", import.meta.url), "utf8"),
-  ]);
-  assert.match(account, /transferredSessionUrl\(location, api\.currentSession\(\)\)/);
-  assert.match(account, /location\.replace\(target\)/);
-  assert.match(playTogether, /legacyAccountHandoffUrl\(location\)/);
-  assert.match(playTogether, /if\(handoffUrl\)\{location\.replace\(handoffUrl\);return;\}/);
-  assert.match(playTogether, /hidden\("authPanel",false\)/);
+test("deployed controllers use fixed same-origin sign-in and leave recovery in Account",async()=>{
+ const sources=await Promise.all(["account/account.js","play-together/play-together.js","wall-editor/editor.js","account/supabase-client.js"].map(p=>readFile(new URL(`../dist/${p}`,import.meta.url),"utf8")));
+ const [accountCode,pt,wall,client]=sources;
+ for(const code of sources)assert.doesNotMatch(code,/legacyAccountHandoffUrl|transferredSessionUrl|jeddawe11-eng\.github\.io|gamid_testing_handoff/);
+ assert.match(accountCode,/authenticatedReturnPath\(location, api\.currentSession\(\)\)/);
+ assert.match(accountCode,/if \(redirected\?\.type === "recovery"\) showView\("recovery"\)/);
+ assert.match(pt,/rememberReturnTo\("\/play-together\/"\)/);
+ assert.match(wall,/rememberReturnTo\("\/wall-editor\/"\)/);
+ assert.doesNotMatch(client,/location\.replace/);
 });

@@ -24,7 +24,7 @@ export const STEAM_PROFILE = Object.freeze({
   vanityProfile: /^https:\/\/steamcommunity\.com\/id\/[A-Za-z0-9_-]{2,32}\/?$/,
 });
 
-const USER_AGENT = "GamID-Testing-SteamProfile (https://jeddawe11-eng.github.io/gamid-testing/, 1.0)";
+const USER_AGENT = "GamID-Testing-SteamProfile (https://gamid-testing-static.gamid.workers.dev/, 1.0)";
 const INVISIBLE = new RegExp(`[\\x00-\\x1f\\x7f-\\x9f${["2028", "2029", "200b", "200e", "200f", "202a", "202b", "202c", "202d", "202e", "2066", "2067", "2068", "2069", "feff"]
   .map(hex => String.fromCharCode(parseInt(hex, 16))).join("")}]`, "g");
 
