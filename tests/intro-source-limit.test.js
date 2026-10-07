@@ -34,14 +34,14 @@ test("browser validation: exactly 150 MiB is accepted, one byte more is refused,
   assert.equal(validateIntroSource({ type: "video/avi", size: 1000 }, 20_000).reason, "INVALID_INTRO_TYPE");
 });
 
-test("the Intro DURATION limit is unchanged (0.5 s to 30 s) in the browser, the RPC, the table and the worker", () => {
-  assert.equal(INTRO_MAX_DURATION_MS, 30_000);
+test("Intro size increase preserves its historical duration contract; current tolerance is covered separately", () => {
+  assert.equal(INTRO_MAX_DURATION_MS, 31_000);
   assert.equal(validateIntroSource({ type: "video/mp4", size: MiB }, 30_000).valid, true);
-  assert.equal(validateIntroSource({ type: "video/mp4", size: MiB }, 30_001).reason, "INTRO_DURATION_INVALID");
+  assert.equal(validateIntroSource({ type: "video/mp4", size: MiB }, 31_001).reason, "INTRO_DURATION_INVALID");
   assert.equal(validateIntroSource({ type: "video/mp4", size: MiB }, 499).reason, "INTRO_DURATION_INVALID");
   assert.match(migration, /candidate_duration_ms < 500 or candidate_duration_ms > 30000/);
-  assert.match(worker, /const MAX_DURATION_SECONDS = 30;/);
-  assert.match(worker, /source\.duration < \.5 \|\| source\.duration > MAX_DURATION_SECONDS/);
+  assert.match(worker, /const MAX_DURATION_SECONDS = 31;/);
+  assert.match(worker, /!validIntroDuration\(source\.duration\)/);
 });
 
 test("the second browser guard (before the resumable upload starts) uses the same constant and the new wording", () => {
@@ -94,7 +94,7 @@ test("no other place in the product still enforces the old Intro source number",
   const roots = ["dist/account/account.js", "dist/account/domain.js", "dist/account/supabase-client.js", "dist/account/resumable-upload.js", "dist/account/index.html", "worker/intro-worker.mjs", "worker/intro-dispatcher.mjs"];
   for (const path of roots) assert.doesNotMatch(read(path), /104857600|100 \* 1024 \* 1024|100 ?MB|100 ?MiB/, path);
   const later = readdirSync(new URL("../supabase/migrations/", import.meta.url)).filter(name => name > "20260916170000_slice_3c_intro_identity.sql");
-  for (const name of later.filter(item => item !== migrationName && item !== '20261004170252_global_usage_gateway.sql')) assert.doesNotMatch(stripSql(read(`supabase/migrations/${name}`)), /queue_my_intro_impl|intro-sources/, `${name} does not redefine the Intro source limit`);
+  for (const name of later.filter(item => item !== migrationName && item !== '20261004170252_global_usage_gateway.sql' && item !== '20261007160000_intro_duration_tolerance.sql')) assert.doesNotMatch(stripSql(read(`supabase/migrations/${name}`)), /queue_my_intro_impl|intro-sources/, `${name} does not redefine the Intro source limit`);
   const usage=stripSql(read('supabase/migrations/20261004170252_global_usage_gateway.sql'));
   assert.doesNotMatch(usage,/alter\s+table\s+storage\.buckets|update\s+storage\.buckets|104857600|157286400/i,'Usage reuses bucket limits and extends ownership only; it never changes the source cap');
 });

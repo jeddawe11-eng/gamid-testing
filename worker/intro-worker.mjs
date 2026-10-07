@@ -9,7 +9,10 @@ import { uploadGatewayFile, deleteGatewayObject } from './usage-upload.mjs';
 const run = promisify(execFile);
 const MAX_SOURCE_BYTES = 150 * 1024 * 1024;   // 150 MiB = 157,286,400 bytes
 const MAX_OUTPUT_BYTES = 15 * 1024 * 1024;
-const MAX_DURATION_SECONDS = 30;
+const MAX_DURATION_SECONDS = 31; // Internal tolerance; product wording remains 30 seconds.
+export function validIntroDuration(seconds) {
+  return Number.isFinite(seconds) && seconds >= .5 && seconds <= MAX_DURATION_SECONDS;
+}
 
 function rate(value = "0/1") { const [n,d] = String(value).split("/").map(Number); return d ? n / d : 0; }
 
@@ -33,13 +36,14 @@ export function introDerivativeGeometry(video) {
 }
 export async function encodeD3(input, output) {
   const sourceStat = await stat(input); if (sourceStat.size > MAX_SOURCE_BYTES) throw new Error("SOURCE_TOO_LARGE");
-  const source = await probe(input); if (!source.video || source.duration < .5 || source.duration > MAX_DURATION_SECONDS) throw new Error("INVALID_SOURCE_DURATION");
+  const source = await probe(input); if (!source.video || !validIntroDuration(source.duration)) throw new Error("INVALID_SOURCE_DURATION");
   const geometry = introDerivativeGeometry(source.video);
   const scaleArgs = geometry.width === geometry.sourceWidth && geometry.height === geometry.sourceHeight ? [] : ["-vf",`scale=${geometry.width}:${geometry.height}:flags=lanczos`];
   const audioArgs = source.audio ? ["-map","0:a:0","-c:a","libopus","-b:a","32k","-vbr","on","-application","audio"] : ["-an"];
   const started = performance.now();
   await run("ffmpeg", ["-hide_banner","-loglevel","error","-nostdin","-n","-i",input,"-map","0:v:0",...scaleArgs,"-c:v","libvpx-vp9","-crf","40","-b:v","0","-deadline","good","-cpu-used","2","-row-mt","1","-pix_fmt","yuv420p",...audioArgs,"-f","webm",output], { maxBuffer:4 * 1024 * 1024 });
   const encodingMs = Math.round(performance.now() - started); const result = await probe(output);
+  if (!validIntroDuration(result.duration)) throw new Error("INVALID_DERIVATIVE_DURATION");
   if (result.size > MAX_OUTPUT_BYTES) throw new Error("DERIVATIVE_TOO_LARGE");
   if (result.video?.codec_name !== "vp9" || result.video?.pix_fmt !== "yuv420p" || !String(result.data.format.format_name).includes("webm")) throw new Error("INVALID_D3_VIDEO");
   if (source.audio && result.audio?.codec_name !== "opus") throw new Error("INVALID_D3_AUDIO");
@@ -101,7 +105,7 @@ export async function processOneRemoteJob() {
     const encoded = await encodeD3(input,output);
     const {url,key}=environment();await uploadGatewayFile({backend:{url,headers:()=>backendAuthHeaders(key)},bucket:'intro-media',path:job.derivative_path,filePath:output,mime:'video/webm'});
     const { result }=encoded;
-    await api("/rest/v1/rpc/worker_complete_intro_job", { body:{ candidate_job_id:job.job_id,candidate_derivative_path:job.derivative_path,candidate_size:result.size,candidate_duration_ms:Math.round(result.duration*1000),candidate_width:result.video.width,candidate_height:result.video.height,candidate_fps:result.fps,candidate_video_bitrate:Number(result.video.bit_rate||0),candidate_audio_bitrate:Number(result.audio?.bit_rate||0),candidate_total_bitrate:result.totalBitrate,candidate_has_audio:Boolean(result.audio) } });
+    await api("/rest/v1/rpc/worker_complete_intro_job", { body:{ candidate_job_id:job.job_id,candidate_derivative_path:job.derivative_path,candidate_size:result.size,candidate_duration_ms:Math.ceil(result.duration*1000),candidate_width:result.video.width,candidate_height:result.video.height,candidate_fps:result.fps,candidate_video_bitrate:Number(result.video.bit_rate||0),candidate_audio_bitrate:Number(result.audio?.bit_rate||0),candidate_total_bitrate:result.totalBitrate,candidate_has_audio:Boolean(result.audio) } });
     await cleanupEligible(); return { processed:true,jobId:job.job_id,encodingMs:encoded.encodingMs };
   } catch (error) {
     try { await api("/rest/v1/rpc/worker_fail_intro_job", { body:{ candidate_job_id:job.job_id,candidate_failure_code:String(error.message).toUpperCase().replace(/[^A-Z0-9_]/g,"_").slice(0,64) } }); } catch { /* Keep original failure. */ }

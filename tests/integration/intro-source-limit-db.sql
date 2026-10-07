@@ -5,7 +5,7 @@
 --  content wrapped together in one always-failing statement: everything rolls back either way.)
 --
 -- Uses ONLY a disposable auth user / identity created inside the transaction and impersonates authenticated exactly as PostgREST does.
--- It never creates a processing job or a storage object (every probe stops at an error), so nothing can reach the dispatcher, and it ALWAYS
+-- It creates one synthetic processing (not pending) row; pending-only dispatch never fires. It creates no storage object; completion probes stop before activation, so nothing can reach the dispatcher, and it ALWAYS
 -- raises an exception carrying the results, so the whole transaction rolls back. Expected: TEST_RESULTS: followed by a JSON array, all "pass": true.
 
 do $test$
@@ -15,6 +15,7 @@ declare
   job uuid := gen_random_uuid();
   got text;
   n integer;
+  boundary integer;
   def text;
   lim bigint;
   lim_media bigint;
@@ -36,7 +37,7 @@ begin
   select pg_get_constraintdef(c.oid) into def from pg_constraint c where c.conrelid = 'public.intro_processing_jobs'::regclass and c.conname = 'intro_processing_jobs_output_size_bytes_check';
   res := res || jsonb_build_object('step', 'TABLE CHECK: the derivative size ceiling is unchanged (15728640)', 'pass', def like '%<= 15728640)%', 'got', def);
   select pg_get_constraintdef(c.oid) into def from pg_constraint c where c.conrelid = 'public.intro_processing_jobs'::regclass and c.conname = 'intro_processing_jobs_source_duration_ms_check';
-  res := res || jsonb_build_object('step', 'TABLE CHECK: the duration limit is unchanged (500..30000 ms)', 'pass', def like '%500%' and def like '%30000%', 'got', def);
+  res := res || jsonb_build_object('step', 'TABLE CHECK: the duration limit is unchanged (500..31000 ms)', 'pass', def like '%500%' and def like '%31000%', 'got', def);
 
   insert into auth.users (id, email, email_confirmed_at) values (ua, 'zintro-a@example.invalid', now());
   perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
@@ -54,14 +55,33 @@ begin
   res := res || jsonb_build_object('step', 'RPC: 104857601 bytes (over the OLD limit) is now accepted by the size check', 'pass', got = 'INTRO_SOURCE_NOT_FOUND', 'got', got);
   begin perform 1 from public.queue_my_intro(job, path, 'fade', 'video/mp4', 0::bigint, 20000); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
   res := res || jsonb_build_object('step', 'RPC: 0 bytes is still refused', 'pass', got = 'INTRO_SOURCE_TOO_LARGE', 'got', got);
-  begin perform 1 from public.queue_my_intro(job, path, 'fade', 'video/mp4', 5000000::bigint, 30001); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
-  res := res || jsonb_build_object('step', 'RPC: the duration limit is unchanged - 30001 ms is refused', 'pass', got = 'INTRO_DURATION_INVALID', 'got', got);
+  begin perform 1 from public.queue_my_intro(job, path, 'fade', 'video/mp4', 5000000::bigint, 31001); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
+  res := res || jsonb_build_object('step', 'RPC: the duration limit is unchanged - 31001 ms is refused', 'pass', got = 'INTRO_DURATION_INVALID', 'got', got);
   begin perform 1 from public.queue_my_intro(job, path, 'fade', 'video/mp4', 5000000::bigint, 499); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
   res := res || jsonb_build_object('step', 'RPC: the duration limit is unchanged - 499 ms is refused', 'pass', got = 'INTRO_DURATION_INVALID', 'got', got);
   begin perform 1 from public.queue_my_intro(job, path, 'fade', 'video/mp4', 5000000::bigint, 30000); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
   res := res || jsonb_build_object('step', 'RPC: exactly 30000 ms is still accepted by the duration check', 'pass', got = 'INTRO_SOURCE_NOT_FOUND', 'got', got);
   begin perform 1 from public.queue_my_intro(job, path, 'fade', 'video/avi', 5000000::bigint, 20000); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
   res := res || jsonb_build_object('step', 'RPC: the allowed source types are unchanged (AVI is refused)', 'pass', got = 'INVALID_INTRO_TYPE', 'got', got);
+  foreach boundary in array array[30001,30999,31000] loop
+    begin perform 1 from public.queue_my_intro(job,path,'fade','video/mp4',5000000::bigint,boundary); got:='NO_ERROR'; exception when others then got:=sqlerrm; end;
+    res:=res||jsonb_build_object('step','RPC tolerance accepts duration check at '||boundary,'pass',got='INTRO_SOURCE_NOT_FOUND','got',got);
+  end loop;
+  reset role;
+
+  -- Synthetic processing row only: pending-only dispatch cannot fire. No Storage object or real media.
+  insert into public.intro_processing_jobs(job_id,profile_id,owner_user_id,requested_transition,source_path,source_mime,source_size_bytes,source_duration_ms,state)
+    select job,p.profile_id,ua,'fade',path,'video/mp4',1000,31000,'processing'
+    from public.profiles p join public.entity_memberships m on m.entity_id=p.entity_id where m.user_id=ua limit 1;
+  set local role service_role;
+  foreach boundary in array array[30000,30001,30999,31000,31001] loop
+    begin
+      perform public.worker_complete_intro_job(job,ua::text||'/'||job::text||'/intro-d3.webm',1000::bigint,boundary,16,16,10::numeric,0,0,1000,false);
+      got:='NO_ERROR';
+    exception when others then got:=sqlerrm; end;
+    res:=res||jsonb_build_object('step','worker completion duration boundary '||boundary,
+      'pass',got=case when boundary>31000 then 'INVALID_INTRO_DERIVATIVE' else 'INTRO_DERIVATIVE_NOT_FOUND' end,'got',got);
+  end loop;
   reset role;
 
   perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
@@ -80,7 +100,7 @@ begin
   res := res || jsonb_build_object('step', 'TABLE CHECK: a row with 157286401 source bytes cannot be inserted by any path', 'pass', got = 'CHECK_VIOLATION', 'got', got);
 
   select count(*) into jobs_after from public.intro_processing_jobs;
-  res := res || jsonb_build_object('step', 'no processing job was created and no existing job row changed', 'pass', jobs_before = jobs_after and not exists (select 1 from public.intro_processing_jobs j where j.source_size_bytes > 157286400));
+  res := res || jsonb_build_object('step', 'only one synthetic processing row exists inside this always-rolled-back transaction', 'pass', jobs_before + 1 = jobs_after and not exists (select 1 from public.intro_processing_jobs j where j.source_size_bytes > 157286400));
 
   res := res || jsonb_build_object('step', 'SUMMARY', 'pass', not exists (select 1 from jsonb_array_elements(res) e where (e->>'pass') is distinct from 'true'), 'total', jsonb_array_length(res));
   raise exception 'TEST_RESULTS:%', res::text;

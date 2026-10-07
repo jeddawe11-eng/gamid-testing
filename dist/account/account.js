@@ -1648,7 +1648,7 @@ function inspectIntroFile(file) {
     const video = document.createElement("video");
     video.preload = "metadata";
     video.onloadedmetadata = () => {
-      const durationMs = Math.round(video.duration * 1000);
+      const durationMs = Math.ceil(video.duration * 1000);
       video.removeAttribute("src"); video.load();
       const validation = validateIntroSource(file, durationMs);
       if (!validation.valid) { URL.revokeObjectURL(url); reject(Object.assign(new Error(validation.reason), { code:validation.reason })); }

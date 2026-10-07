@@ -4,7 +4,8 @@ export const BIO_MAX = 160;
 export const PROFILE_CONTEXT_MAX = 120;
 // Unit convention (unchanged): the limit is counted in 1024*1024-byte units (MiB) and shown to people as "MB", like the 5 MB avatar limit. 150 MiB = 157,286,400 bytes.
 export const INTRO_SOURCE_MAX_BYTES = 150 * 1024 * 1024;
-export const INTRO_MAX_DURATION_MS = 30_000;
+// Displayed maximum remains 30 seconds; metadata/container tolerance is inclusive to 31 seconds.
+export const INTRO_MAX_DURATION_MS = 31_000;
 export const INTRO_TRANSITIONS = Object.freeze(["fade", "blur", "shrink", "slide", "split"]);
 export const INTRO_SOURCE_TYPES = Object.freeze(["video/mp4", "video/quicktime", "video/webm"]);
 
