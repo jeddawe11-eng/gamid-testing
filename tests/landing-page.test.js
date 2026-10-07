@@ -18,7 +18,7 @@ const landingCss = await read("../dist/landing.css");
 const accountHtml = await read("../dist/account/index.html");
 const accountJs = (await read("../dist/account/account.js")).replace(/\r\n/g, "\n");
 const notFound = await read("../dist/404.html");
-const workflow = await read("../.github/workflows/deploy-pages.yml");
+const workflow = await read("../scripts/stage-cloudflare.mjs");
 const lab = await read("../prototypes/slice-1-intro-lab/index.html");
 const labApp = await read("../prototypes/slice-1-intro-lab/app.js");
 
@@ -180,7 +180,7 @@ test("the shared Intro engine used by the real product (account preview, public 
 });
 
 test("the deploy workflow still publishes only dist/, so the preserved lab has no public route", () => {
-  assert.match(workflow, /rsync -a --exclude '\/assets\/gamid-intro\.mp4' dist\/ /);
+  assert.match(workflow, /const source = join\(root, "dist"\)/);
   // Permit only the dist-owned synthetic F2 fixture, not the preserved root lab.
   assert.doesNotMatch(workflow.replaceAll("prototypes/intro-derivative-f2/index.html", ""), /prototypes/);
 });

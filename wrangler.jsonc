@@ -2,8 +2,8 @@
 // routes (cf-worker/worker.mjs) - /@<handle> and /@<handle>/intro.webm - run first so they see the request before Cloudflare's own asset routing (which
 // 307-redirects a literal "/@black" to "/%40black" - observed in Phase 0a). Every other path is completely unchanged: no Worker code runs, the accepted static
 // behavior (incl. the accepted 404) applies.
-// Run `node scripts/stage-cloudflare.mjs` first: it builds .cloudflare-stage/ from dist/ exactly like the GitHub Pages workflow does.
-// Canonical Cloudflare TESTING frontend. Legacy Pages remains enabled pending separate retirement authorization; see docs/CLOUDFLARE-AUTH-MIGRATION.md.
+// Run `node scripts/stage-cloudflare.mjs` first: it builds .cloudflare-stage/ from dist/ for Cloudflare deployment.
+// Canonical Cloudflare TESTING frontend. Legacy Pages is retired following manual acceptance and explicit authorization; see docs/CLOUDFLARE-AUTH-MIGRATION.md.
 {
   "name": "gamid-testing-static",
   "compatibility_date": "2026-01-01",

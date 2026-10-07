@@ -1,47 +1,12 @@
-name: Deploy TESTING site to GitHub Pages
-
+# Retired 2026-10-07. History remains in Git; restoration requires Mazen authorization.
+name: Retired GitHub Pages TESTING frontend
 on:
   workflow_dispatch:
-
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  retired:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      - name: Stage non-video static site
-        run: |
-          mkdir -p "${RUNNER_TEMP}/gamid-pages"
-          rsync -a --exclude '/assets/gamid-intro.mp4' dist/ "${RUNNER_TEMP}/gamid-pages/"
-
-      - name: Stamp deterministic asset version
-        run: |
-          VERSION="${GITHUB_SHA:0:7}"
-          for f in public/index.html account/index.html account/intro-preview.html play-together/index.html prototypes/intro-derivative-f2/index.html; do
-            sed -i "s/__ASSET_VERSION__/${VERSION}/g" "${RUNNER_TEMP}/gamid-pages/${f}"
-          done
-
-      - name: Upload static site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ${{ runner.temp }}/gamid-pages
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - run: echo "Cloudflare is the sole active TESTING frontend."

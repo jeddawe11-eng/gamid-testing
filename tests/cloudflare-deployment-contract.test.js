@@ -109,17 +109,17 @@ test("workflow has no Production target, credential, environment, or automatic t
   assert.doesNotMatch(workflow, /^\s+(push|pull_request|schedule):/m);
 });
 
-test("legacy GitHub Pages is preserved but cannot deploy automatically from a main push", () => {
+test("retired GitHub Pages cannot deploy even if re-enabled", () => {
   assert.match(pagesWorkflow, /^on:\s*\n\s+workflow_dispatch:/m);
   assert.doesNotMatch(pagesWorkflow, /^\s+(push|pull_request|schedule):/m);
-  assert.match(pagesWorkflow, /name: github-pages/);
-  assert.match(pagesWorkflow, /uses: actions\/deploy-pages@v4/);
+  assert.match(pagesWorkflow, /if: \$\{\{ false \}\}/);
+  assert.doesNotMatch(pagesWorkflow, /pages: write|id-token: write|actions\/(?:deploy-pages|upload-pages-artifact|configure-pages)|environment:/);
 });
 
-test("F2 acceptance fixture is version-stamped by both TESTING hosting paths", async () => {
+test("F2 acceptance fixture is version-stamped by the sole active Cloudflare TESTING host", async () => {
   const path = "prototypes/intro-derivative-f2/index.html";
   const html = await read("dist/" + path);
   assert.ok(html.includes("__ASSET_VERSION__"));
   assert.ok(staging.includes(JSON.stringify(path)));
-  assert.ok(pagesWorkflow.includes(path));
+  assert.doesNotMatch(pagesWorkflow, /__ASSET_VERSION__/);
 });

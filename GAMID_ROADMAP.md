@@ -1,4 +1,4 @@
-> Hosting/checkpoint descriptions below are historical roadmap records. Current product state is in `gamid-truth.json`; canonical TESTING is Cloudflare. Current migration/retirement boundary: `docs/CLOUDFLARE-AUTH-MIGRATION.md`. Pages retirement is not yet authorized.
+> Hosting/checkpoint descriptions below are historical roadmap records. Current product state is in `gamid-truth.json`; canonical TESTING is Cloudflare. Current migration/retirement boundary: `docs/CLOUDFLARE-AUTH-MIGRATION.md`. Pages was retired on 2026-10-07 after Mazen accepted the migration and authorized retirement.
 
 # GamID Product Roadmap
 

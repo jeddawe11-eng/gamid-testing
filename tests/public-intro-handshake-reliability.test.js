@@ -8,7 +8,7 @@ const accountController = await readFile(new URL("../dist/account/account.js", i
 const publicHtml = await readFile(new URL("../dist/public/index.html", import.meta.url), "utf8");
 const accountHtml = await readFile(new URL("../dist/account/index.html", import.meta.url), "utf8");
 const previewHtml = await readFile(new URL("../dist/account/intro-preview.html", import.meta.url), "utf8");
-const workflow = await readFile(new URL("../.github/workflows/deploy-pages.yml", import.meta.url), "utf8");
+const workflow = await readFile(new URL("../scripts/stage-cloudflare.mjs", import.meta.url), "utf8");
 
 test("the Intro iframe re-announces readiness on a bounded interval instead of a single one-shot broadcast, so a parent listener that attaches late (iframe-ready-before-parent) still eventually receives it", () => {
   assert.match(previewController, /const READY_RETRY_LIMIT=25,READY_RETRY_MS=200/);
@@ -70,17 +70,11 @@ test("deterministic, deploy-derived asset versioning exists on every cross-docum
   assert.match(previewHtml, /src="intro-preview\.js\?v=__ASSET_VERSION__"/);
 });
 
-test("the deploy workflow stamps the placeholder with the actual commit SHA automatically at deploy time, requiring no manual per-deployment maintenance", () => {
-  assert.match(workflow, /VERSION="\$\{GITHUB_SHA:0:7\}"/);
-  assert.match(workflow, /sed -i "s\/__ASSET_VERSION__\/\$\{VERSION\}\/g"/);
-  assert.match(workflow, /for f in public\/index\.html account\/index\.html account\/intro-preview\.html/);
-  assert.doesNotMatch(workflow, /RANDOM|Math\.random|uuidgen/i, "versioning must be deterministic, not random");
-});
-
-test("the versioning step runs after staging and before upload, so the committed dist/ source keeps the human-readable placeholder and only the deployed artifact is stamped", () => {
-  const stageIndex = workflow.indexOf("Stage non-video static site");
-  const stampIndex = workflow.indexOf("Stamp deterministic asset version");
-  const uploadIndex = workflow.indexOf("Upload static site");
-  assert.ok(stageIndex > -1 && stampIndex > -1 && uploadIndex > -1);
-  assert.ok(stageIndex < stampIndex && stampIndex < uploadIndex);
+test("Cloudflare staging stamps Intro references using the selected commit SHA", () => {
+  assert.match(workflow, /process.env.GITHUB_SHA/);
+  assert.match(workflow, /slice\(0, 7\)/);
+  assert.match(workflow, /replaceAll\("__ASSET_VERSION__", sha\)/);
+  for (const file of ["public/index.html", "account/index.html", "account/intro-preview.html"]) assert.ok(workflow.includes(JSON.stringify(file)));
+  assert.ok(workflow.indexOf("await cp(source, target") < workflow.indexOf("for (const file of STAMPED)"));
+  assert.doesNotMatch(workflow, /RANDOM|Math\.random|uuidgen/i);
 });

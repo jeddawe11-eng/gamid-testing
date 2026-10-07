@@ -13,7 +13,7 @@
     {
       "id": "testing-frontend-cloudflare",
       "name": "Canonical Cloudflare TESTING frontend and same-origin authentication",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "https://gamid-testing-static.gamid.workers.dev/"
       ],
@@ -21,7 +21,7 @@
       "contracts": [
         {
           "id": "testing-canonical-frontend",
-          "rule": "Cloudflare is the canonical TESTING frontend. Account, Play Together and Wall Editor share the existing same-origin authenticated session; no GitHub Pages session transfer is required. TESTING Auth and Discord/Steam connection returns use Cloudflare Account. Legacy Pages remains enabled solely pending separately authorized retirement."
+          "rule": "Cloudflare is the canonical TESTING frontend. Account, Play Together and Wall Editor share the existing same-origin authenticated session; no GitHub Pages session transfer is required. TESTING Auth and Discord/Steam connection returns use Cloudflare Account. Cloudflare is the sole active TESTING frontend; legacy GitHub Pages is retired."
         },
         {
           "id": "testing-auth-intent-return",

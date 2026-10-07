@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const validator = await readFile(new URL("../scripts/validate.mjs", import.meta.url), "utf8");
-const pagesWorkflow = await readFile(new URL("../.github/workflows/deploy-pages.yml", import.meta.url), "utf8");
+const pagesWorkflow = await readFile(new URL("../scripts/stage-cloudflare.mjs", import.meta.url), "utf8");
 
 test("static validation checks the deferred video reference without accessing its file", () => {
   // The Slice 1 lab (and its video reference) moved to prototypes/slice-1-intro-lab/, so its path is now relative to dist/.
@@ -14,8 +14,8 @@ test("static validation checks the deferred video reference without accessing it
   );
 });
 
-test("GitHub Pages stages the site without the deferred video", () => {
-  assert.match(pagesWorkflow, /rsync -a --exclude '\/assets\/gamid-intro\.mp4'/);
-  assert.match(pagesWorkflow, /path: \$\{\{ runner\.temp \}\}\/gamid-pages/);
-  assert.doesNotMatch(pagesWorkflow, /path:\s*dist\s*$/m);
+test("Cloudflare stages the site without the deferred video", () => {
+  assert.match(pagesWorkflow, /const source = join\(root, "dist"\)/);
+  assert.match(pagesWorkflow, /assets", "gamid-intro\.mp4"/);
+  assert.match(pagesWorkflow, /filter: path => !EXCLUDED.has/);
 });

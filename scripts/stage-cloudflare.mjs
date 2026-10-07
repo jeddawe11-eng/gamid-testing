@@ -1,4 +1,4 @@
-// Stages dist/ for Cloudflare Workers Static Assets EXACTLY the way .github/workflows/deploy-pages.yml stages it for GitHub Pages:
+// Stages dist/ for the sole active Cloudflare TESTING frontend:
 //   1. copy dist/ without /assets/gamid-intro.mp4 (the deferred video is never published)
 //   2. replace __ASSET_VERSION__ with the first 7 characters of the commit SHA in every page that carries it
 // The result (.cloudflare-stage/, git-ignored) is what wrangler.jsonc points at. This is a hosting step only: no application file is edited in the repo.
@@ -21,7 +21,7 @@ await rm(target, { recursive: true, force: true });
 await cp(source, target, { recursive: true, filter: path => !EXCLUDED.has(resolve(path.replace(/^\\\\\?\\/, ""))) });
 
 // Line endings: git stores these files with LF (and GitHub's Linux build publishes LF), but a Windows checkout with core.autocrlf may hold CRLF. Text files are normalized to
-// LF so the staged site is byte-for-byte what the GitHub Pages workflow publishes. Binary files (png, webp, woff2, ...) are never touched.
+// LF so the staged site is byte-for-byte what the Cloudflare Linux deployment publishes. Binary files (png, webp, woff2, ...) are never touched.
 const TEXT = /\.(html|js|mjs|css|md|txt|json|svg)$/i;
 async function walk(dir) {
   const { readdir } = await import("node:fs/promises");

@@ -3,15 +3,15 @@
 2026-10-07. Product checkpoint: `2eacf6896f7a8edfcb137ac91889bde34bfe7f03`.
 Continuation branch: `feature/play-together-notifications`; base `dc9393f0463345fa16eaed3d0c7d3227c051030a`. No main merge.
 
-**IMPLEMENTED, DEPLOYED, TECHNICALLY VERIFIED; PENDING_ACCEPTANCE.** Cloudflare is the canonical TESTING frontend: https://gamid-testing-static.gamid.workers.dev/.
-**READY FOR RETIREMENT at the runtime-dependency level.** GitHub Pages remains enabled (HTTP 200) and its workflow/settings were not disabled. Actual retirement requires separate Mazen authorization. This is not manual acceptance of provider authorization or Team Voice.
+**MANUALLY ACCEPTED by Mazen; legacy Pages RETIRED (2026-10-07).** Cloudflare is the canonical TESTING frontend: https://gamid-testing-static.gamid.workers.dev/.
+Mazen authorized retirement after all six manual migration/provider checks passed. Pages is unpublished; its workflow is disabled globally and inert on the branch. Cloudflare is the sole active TESTING frontend.
 
 ## Implemented contract
 
 - Signed-out Play Together navigates to Cloudflare Account sign-in. Wall Editor presents its normal private gate; its Account link uses Cloudflare and remembers the editor intent.
 - Account, Play Together and Wall Editor use the existing same-origin session client/localStorage lifecycle. No legacy Account hop or cross-origin access/refresh-token transfer remains. A single-use sessionStorage note contains only an allowlisted path (/play-together/ or /wall-editor/), expires after five minutes and is consumed only by authenticated Cloudflare Account. Recovery stays in Account. No new session engine or arbitrary destination.
 - Discord connection start permits the exact Cloudflare origin; callback returns to Cloudflare Account. OAuth redirect URI remains the same TESTING Supabase function URL. State binding, expiry, consumption, code exchange, identity linking, revocation, scopes and JWT policies are unchanged.
-- League lookup now permits Cloudflare rather than the old Pages origin. Steam callback success/error always returns to Cloudflare; legacy in-flight signed return_to assertions still undergo their exact original validation. Steam games retains its existing two exact CORS origins while Pages is still enabled. Informational provider/catalog User-Agent links now identify Cloudflare.
+- League lookup now permits Cloudflare rather than the old Pages origin. Steam callback success/error always returns to Cloudflare; legacy in-flight signed return_to assertions still undergo their exact original validation. Steam games retains its existing two exact CORS origins as incoming-only compatibility. Informational provider/catalog User-Agent links now identify Cloudflare.
 - TESTING Supabase Auth Site URL and sole allowed redirect URL are https://gamid-testing-static.gamid.workers.dev/account/. No wildcard was added. The old Pages redirect was removed. Default confirmation/recovery templates use {{ .ConfirmationURL }}; no hard-coded Pages link. No provider secrets or registered Discord callback changed.
 - No database migration, bucket/RLS/media/quota/worker/notification/Wall engine/Team Voice business-logic change. F2/F3/F4/F5 remain accepted and unchanged.
 
@@ -24,9 +24,9 @@ Remaining references are intentional and do not require Pages for a Cloudflare f
 
 | Location | Meaning |
 | --- | --- |
-| .github/workflows/deploy-pages.yml and github-pages repository settings | Legacy deployment still enabled by explicit retirement boundary; do not run it or disable it without Mazen's next authorization. |
+| .github/workflows/deploy-pages.yml and github-pages repository settings | Retired: site unpublished, workflow disabled globally and inert on the branch. Do not reactivate without authorization. |
 | steam-openid.js | Exact legacy incoming origin and signed assertion site key compatibility. Both callback return addresses are Cloudflare. |
-| steam-games.js, wall-assets.js, media-poster.js, usage-upload.js, play-together-voice.js | Existing exact incoming CORS allowlists also accept legacy Pages. Cloudflare is independently allowed. These never route a Cloudflare client to Pages. They can be narrowed separately during authorized retirement, preserving non-browser authorization rules. |
+| steam-games.js, wall-assets.js, media-poster.js, usage-upload.js, play-together-voice.js | Existing exact incoming CORS allowlists also accept legacy Pages. Cloudflare is independently allowed. These never route a Cloudflare client to Pages. Incoming-only compatibility remains deliberately unchanged; no active frontend depends on these entries. |
 | tests | Negative-origin, compatibility and historical regression fixtures; not client destinations. |
 | PROJECT_HANDOFF.md / GAMID_ROADMAP.md / older specialist records | Historical deployment evidence; current canonical-host notices supersede old hosting descriptions. |
 | Public identity route/base-path helpers and 404 | Generic relative/base-path compatibility, with no legacy host dependency. Preserve unrelated routing. |
@@ -88,7 +88,7 @@ Before deployment all affected live function files matched the base repository; 
 - 17 live frontend files match LF-normalized/stamped product sources byte-for-byte, including accepted F5/F4/F3 modules. Root, Account, Play Together, Wall Editor and public /@black HTML routes return 200; no user media downloaded.
 - Actual Discord/Steam provider success and real Team Voice joins were NOT replayed against protected accounts; success paths were exercised by automated backend fixtures. Mazen should manually confirm these before final retirement acceptance. No Production/main/Monitor access or changes.
 
-## Manual acceptance before authorizing retirement
+## Historical pre-retirement manual checklist (now completed)
 
 1. In Cloudflare TESTING, sign out normally; open /play-together/. Sign in at Cloudflare Account and verify automatic return to Play Together, then reload.
 2. Signed out, open /wall-editor/; choose Go to your account, sign in, verify return to the editor. Reload; verify the normal owner Wall and notification bell. Do not alter the saved Wall just for this test.
@@ -97,6 +97,24 @@ Before deployment all affected live function files matched the base repository; 
 5. In an intended manual TESTING Team Room, verify existing Discord consent/Team Voice join/completion/cleanup behavior. The agent did not create or change real sessions for testing.
 6. When satisfied, explicitly authorize retiring GitHub Pages. A later task can disable the legacy workflow/site and remove obsolete compatibility origin entries. Do not merge main automatically.
 
-## Rollback
+## Historical pre-retirement rollback (requires new authorization now)
 
 Keep Pages enabled until authorized retirement. Re-deploy the previous frontend product 4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59 and previous affected function sources from dc9393f if rollback is required; restore the previous exact Auth URL settings together with the old cross-origin client. Do not mix an old client with a partially rolled-back origin/callback configuration. No database rollback or secret rotation is needed.
+
+## Manual acceptance and completed retirement — 2026-10-07
+
+Mazen reported PASS: signed-out Play Together/sign-in/automatic return; Wall Editor/sign-in/return/reload; Discord reconnect OAuth/Cloudflare return; Team Voice provisioning/join; Steam refresh; Public Profile/Intro/Wall. Migration is ACCEPTED.
+
+Authorized retirement: unpublished Pages and disabled deploy-pages.yml repository-wide, including the older default-branch workflow without modifying main. The continuation branch workflow is a skipped read-only tombstone. Git history, old runs and historical records remain. Application code, user data, provider callbacks, secrets, RLS and Supabase configuration are unchanged. No frontend redeployment is required; live application remains accepted 2eacf68.
+
+Legacy backend incoming CORS origins and exact Steam assertion compatibility remain; none are outbound frontend dependencies. Do not reactivate Pages through historical rollback instructions without fresh explicit authorization.
+
+### Retirement verification
+
+- GitHub UI confirmed “GitHub Pages unpublished” and “This workflow was disabled manually.” Previous workflow runs remain visible.
+- Independent live HTTP checks: Pages root, /account/, /play-together/, /wall-editor/ and /public/ each 404, no GamID application. Cloudflare equivalent routes each 200.
+- Eight live Cloudflare application files matched accepted 2eacf68 sources byte-for-byte after normal deployment stamping. Frontend/backend runtime audit found no outgoing Pages links; six retained backend host references are incoming CORS/Steam compatibility only.
+- Isolated live-frontend Chrome fixtures: Play Together and Wall Editor sign-in return, reload, Account session restoration and sign-out PASS; zero legacy requests or page errors. Backend is intercepted with fixtures; no real account/session mutated.
+- TESTING Supabase Site URL and sole Redirect URL remain Cloudflare /account/. Discord/Steam/Voice Edge Function versions and JWT policies are unchanged and ACTIVE; missing-state callbacks return 302 to Cloudflare. No valid OAuth attempt or real Team Room was touched.
+- Focused auth/hosting/Truth/provider tests: 119/119 PASS. Full build: 1,650 tests, 1,649 PASS, one existing F2 native-FFmpeg skip, zero failures; lint/typecheck/typecheck:voice PASS.
+- Retirement changes only workflow, directly affected regression tests, staging/configuration comments and authoritative records. No Production, main merge or Monitor changes. STOP.
