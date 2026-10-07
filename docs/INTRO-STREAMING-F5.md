@@ -1,5 +1,5 @@
 # F5 — native Intro delivery (TESTING)
-Status: PENDING_ACCEPTANCE. Mazen authorized implementation and the maximum 120-second signed capability window on 2026-10-07. F2/F3/F4 remain accepted. Broader Intro identity acceptance remains separately deferred.
+Status: ACCEPTED by Mazen (manual TESTING acceptance, 2026-10-07). Mazen confirmed that the TESTING Intro streaming behavior passed manual acceptance and explicitly ACCEPTED F5. The accepted product checkpoint remains 4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59. This acceptance record changes documentation/state only; no product or deployment change. Mazen authorized implementation and the maximum 120-second signed capability window on 2026-10-07. F2/F3/F4 remain accepted. Broader Intro identity acceptance remains separately deferred.
 
 ## Architecture and authorization
 Account no longer downloads its saved Intro on load. Preview freshly reads current authenticated owner + get_my_intro, requires the active READY derivative, and signs that exact owner path. Public playback freshly resolves get_public_identity (PUBLIC identity + active READY derivative), signs anonymously under the existing Storage SELECT policy, then rechecks the publication/path after signing. Replay always revalidates before reusing a lease.
@@ -34,7 +34,7 @@ Run the browser transport/engine smoke with an installed Playwright module:
 F5_PLAYWRIGHT_MODULE=<absolute Playwright module path> node scripts/intro-f5-browser.cjs
 It uses Chrome headless, ephemeral localhost, readonly fixture files and no user session. It does not test real Android/iOS codecs or real autoplay policy; those require manual acceptance.
 
-## Manual acceptance
+## Manual acceptance checklist (reference)
 URL: https://gamid-testing-static.gamid.workers.dev/prototypes/intro-derivative-f2/?delivery=f5
 Use desktop Chrome, real Android Chrome and iPhone/iOS Safari if available:
 1. Play Landscape, Portrait and Small. Confirm shape, quality, expected audio/silence, ambient treatment and natural profile reveal.
@@ -43,12 +43,12 @@ Use desktop Chrome, real Android Chrome and iPhone/iOS Safari if available:
 4. Navigate away/back and reload in the same tab. No continuing audio or unexpected restart.
 5. Read-only product acceptance: visit a published GamID, test natural Wall/Profile reveal, Skip and Replay. Account load must not fetch its Intro; opening Preview must work, closing must stop it; local pending upload Preview remains normal. Do not save/change someone else's media for this check.
 
-Fixture is public synthetic media, not an authentication simulation. Authorization/lifecycle cases are automated; no real-user replacement/unpublication/logout media test is performed by automation. Manual mobile acceptance is outstanding. Do not mark F5 ACCEPTED without Mazen.
+Fixture is public synthetic media, not an authentication simulation. Authorization/lifecycle cases are automated; no real-user replacement/unpublication/logout media test is performed by automation. Mazen has explicitly ACCEPTED the F5 TESTING streaming behavior (2026-10-07). His acceptance did not separately enumerate a device/browser matrix; this record does not infer additional device-specific evidence.
 
 ## Rollback / continuation
-Revert only F5 product changes on the feature continuation branch and redeploy exact reverted checkpoint to TESTING. No migration/worker/storage rollback is necessary. Do not roll back F2/F3/F4. STOP at PENDING_ACCEPTANCE; no F6/F7 or other optimization authorized.
+Revert only F5 product changes on the feature continuation branch and redeploy exact reverted checkpoint to TESTING. No migration/worker/storage rollback is necessary. Do not roll back F2/F3/F4. F5 manual acceptance is complete. STOP; no F6/F7 or other optimization authorized.
 
 ## Deployment record
-Local final build: 1,650 tests, 1,649 PASS, one codec-dependent skip, zero failures; lint/typechecks PASS. Fourteen focused F5 regressions PASS. Real-engine browser smoke PASS as detailed above. Product checkpoint: 4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59. Pushed only feature/play-together-notifications. TESTING deployment run [37563242127](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37563242127) succeeded (39 seconds); exact requested/resolved SHA and staged artifact verified. Eight changed served modules match the exact commit after the established staging LF normalization. Account/public/Intro iframe/fixture HTML stamps are 4a978ab, with no placeholders. Live desktop Chrome at 390×844: Landscape/Split, Portrait/Fade and Small/Shrink natural endings and source release PASS; Replay/Skip-release PASS; no page errors. This viewport check is not real-mobile acceptance. No worker/backend deployment required. F5 remains PENDING_ACCEPTANCE.
+Local final build: 1,650 tests, 1,649 PASS, one codec-dependent skip, zero failures; lint/typechecks PASS. Fourteen focused F5 regressions PASS. Real-engine browser smoke PASS as detailed above. Product checkpoint: 4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59. Pushed only feature/play-together-notifications. TESTING deployment run [37563242127](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37563242127) succeeded (39 seconds); exact requested/resolved SHA and staged artifact verified. Eight changed served modules match the exact commit after the established staging LF normalization. Account/public/Intro iframe/fixture HTML stamps are 4a978ab, with no placeholders. Live desktop Chrome at 390×844: Landscape/Split, Portrait/Fade and Small/Shrink natural endings and source release PASS; Replay/Skip-release PASS; no page errors. This viewport check is not real-mobile acceptance. No worker/backend deployment required. F5 is now manually ACCEPTED by Mazen (2026-10-07); the deployment checkpoint remains unchanged.
 
 Files changed: dist/account/{account.js,supabase-client.js,intro-preview.js,intro-source.js,intro-release.js}; dist/public/public.js; dist/prototypes/intro-derivative-f2/{fixture.js,f5-fixture.js}; tests/{intro-streaming-f5.test.js,public-intro-handshake-reliability.test.js,my-duo.test.js}; scripts/intro-f5-browser.cjs; package.json; gamid-truth.json; PROJECT_STATE.md; PROJECT_HANDOFF.md; this record. Existing source-shape handshake/Skip assertions were updated for the asynchronous resolver/shared termination without changing the protected behavior.

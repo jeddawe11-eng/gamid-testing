@@ -61,7 +61,7 @@
       "id": "intro-streaming-f5",
       "checkpoint": "4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59",
       "name": "F5 native Intro delivery",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/account/",
         "/@<handle>"
@@ -75,7 +75,7 @@
           "rule": "Saved READY Intro derivatives use native media delivery with memory-only signed leases of at most 120 seconds. Public playback and Replay revalidate current PUBLIC identity and active READY path; owner Preview resolves lazily under the current authenticated owner. Local upload Blob previews and accepted Intro Engine/F2 semantics remain. Lifecycle termination detaches all main/Split media sources; downloaded or browser-cached bytes are not remotely revocable."
         }
       ],
-      "record": "docs/INTRO-STREAMING-F5.md; PROJECT_HANDOFF.md §10 (manual acceptance outstanding)"
+      "record": "docs/INTRO-STREAMING-F5.md; PROJECT_HANDOFF.md §10 (manually ACCEPTED by Mazen, 2026-10-07)"
     },
     {
       "id": "public-gamid-profile",
