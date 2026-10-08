@@ -17,9 +17,24 @@ export function validIntroDuration(seconds) {
 function rate(value = "0/1") { const [n,d] = String(value).split("/").map(Number); return d ? n / d : 0; }
 
 export async function probe(path) {
-  const { stdout } = await run("ffprobe", ["-v","error","-show_entries","format=format_name,duration,bit_rate,size:stream=index,codec_type,codec_name,profile,width,height,pix_fmt,sample_aspect_ratio,avg_frame_rate,bit_rate,channels,sample_rate,start_time,duration:stream_side_data=rotation:stream_tags=alpha_mode","-of","json",path], { maxBuffer:2 * 1024 * 1024 });
+  const { stdout } = await run("ffprobe", ["-v","error","-show_entries","format=format_name,duration,bit_rate,size:stream=index,codec_type,codec_name,profile,width,height,pix_fmt,sample_aspect_ratio,avg_frame_rate,r_frame_rate,bit_rate,channels,sample_rate,start_time,duration:stream_side_data=rotation:stream_tags=alpha_mode","-of","json",path], { maxBuffer:2 * 1024 * 1024 });
   const data = JSON.parse(stdout); const video = data.streams.find(stream => stream.codec_type === "video"); const audio = data.streams.find(stream => stream.codec_type === "audio");
   return { data, video, audio, duration:Number(data.format.duration || video?.duration || 0), size:Number(data.format.size || 0), totalBitrate:Number(data.format.bit_rate || 0), fps:rate(video?.avg_frame_rate) };
+}
+
+// MP4 average FPS can include a fractional last-frame duration while WebM
+// reports its nominal rate. Only accept that metadata discrepancy when the
+// actual video frames and their presentation times remain equivalent.
+export function introFrameTimingMatches(sourceTimes, resultTimes, nominalFps) {
+  if (!(Number.isFinite(nominalFps) && nominalFps > 0) || !sourceTimes.length || sourceTimes.length !== resultTimes.length) return false;
+  const tolerance = .5 / nominalFps + .001; // Encoder time-base rounding + WebM millisecond precision.
+  return sourceTimes.every((time,index) => Number.isFinite(time) && Number.isFinite(resultTimes[index]) &&
+    (index === 0 || time > sourceTimes[index - 1] && resultTimes[index] > resultTimes[index - 1]) &&
+    Math.abs((time - sourceTimes[0]) - (resultTimes[index] - resultTimes[0])) <= tolerance);
+}
+async function videoPresentationTimes(path) {
+  const { stdout } = await run("ffprobe", ["-v","error","-select_streams","v:0","-show_entries","packet=pts_time","-of","json",path], { maxBuffer:8 * 1024 * 1024 });
+  return JSON.parse(stdout).packets.map(packet => Number(packet.pts_time)).sort((a,b) => a - b);
 }
 
 // F2 bounds playback pixels, never the master. FFmpeg retains sample aspect ratio
@@ -48,7 +63,16 @@ export async function encodeD3(input, output) {
   if (result.video?.codec_name !== "vp9" || result.video?.pix_fmt !== "yuv420p" || !String(result.data.format.format_name).includes("webm")) throw new Error("INVALID_D3_VIDEO");
   if (source.audio && result.audio?.codec_name !== "opus") throw new Error("INVALID_D3_AUDIO");
   if (!source.audio && result.audio) throw new Error("UNEXPECTED_D3_AUDIO");
-  if (result.video.width !== geometry.width || result.video.height !== geometry.height || Math.abs(result.fps - source.fps) > .02 || Math.abs(result.duration - source.duration) > .25) throw new Error("D3_TIMING_OR_GEOMETRY_MISMATCH");
+  if (result.video.width !== geometry.width || result.video.height !== geometry.height || Math.abs(result.duration - source.duration) > .25) throw new Error("D3_TIMING_OR_GEOMETRY_MISMATCH");
+  if (Math.abs(result.fps - source.fps) > .02) {
+    const [sourceTimes,resultTimes] = await Promise.all([videoPresentationTimes(input),videoPresentationTimes(output)]);
+    const nominalFps = rate(source.video.r_frame_rate);
+    const equivalent = introFrameTimingMatches(sourceTimes,resultTimes,nominalFps);
+    console.log(JSON.stringify({event:"intro_d3_frame_timing",equivalent,sourceDuration:source.duration,outputDuration:result.duration,
+      sourceWidth:source.video.width,sourceHeight:source.video.height,outputWidth:result.video.width,outputHeight:result.video.height,
+      sourceFps:source.fps,outputFps:result.fps,nominalFps,sourceFrames:sourceTimes.length,outputFrames:resultTimes.length}));
+    if (!equivalent) throw new Error("D3_TIMING_OR_GEOMETRY_MISMATCH");
+  }
   const sourceSar = rate(String(source.video.sample_aspect_ratio || "1/1").replace(":","/")) || 1;
   const resultSar = rate(String(result.video.sample_aspect_ratio || "1/1").replace(":","/")) || 1;
   const turned = geometry.turned;
@@ -123,6 +147,10 @@ if (command === "encode") {
 } else if (command === "f2-smoke") {
   const { smokeIntroDerivative } = await import("./intro-f2-smoke.mjs");
   console.log(JSON.stringify(await smokeIntroDerivative(encodeD3)));
+} else if (command === "intro-timing-smoke") {
+  const { smokeIntroFrameTiming } = await import("./intro-timing-smoke.mjs");
+  const {url,key}=environment();
+  console.log(JSON.stringify(await smokeIntroFrameTiming({url,headers:()=>backendAuthHeaders(key)})));
 } else if(command==='usage-smoke'||command==='usage-smoke-enforced') {
  const {smokeUsageGateway}=await import('./usage-smoke.mjs');const {url,key}=environment();
  console.log(JSON.stringify(await smokeUsageGateway({url,headers:()=>backendAuthHeaders(key)},fetch,{requireEnforcement:command==='usage-smoke-enforced',encodeIntro:encodeD3,encodeWall:transcodeWallBackground})));

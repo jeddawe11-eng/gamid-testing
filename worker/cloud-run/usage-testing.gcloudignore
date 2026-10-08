@@ -4,6 +4,7 @@
 !worker/Dockerfile
 !worker/intro-worker.mjs
 !worker/intro-f2-smoke.mjs
+!worker/intro-timing-smoke.mjs
 !worker/intro-dispatcher.mjs
 !worker/wall-video.mjs
 !worker/usage-upload.mjs
