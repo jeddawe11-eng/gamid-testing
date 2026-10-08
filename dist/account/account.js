@@ -1904,8 +1904,9 @@ async function saveEditorSection(key){
    if(key==='avatar'){resetAvatarCropLifecycle('save-success');await setPersistedAvatar(updated.avatar_media_reference,updated.display_name?.[0]?.toUpperCase()||'G');}
   }
   for(const [id,entry] of [...stagedVisibility])if(entry.section===key){if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');await entry.commit(entry.value);if(stagedVisibility.get(id)===entry)stagedVisibility.delete(id);}
- });reportSection(key,'Saved ✓',true);
+ });if(owner===api.userIdFromToken()&&entity===identity?.entity_id)reportSection(key,'Saved ✓',true);
  }catch(error){
+ if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)return;
  const text=errorMessage(reasonFrom(error)||error.message);reportSection(key,text);
  const selector={INVALID_DISPLAY_NAME:'#profileDisplayName',BIO_TOO_LONG:'#profileBio',INSTITUTION_TOO_LONG:'#profileInstitution',FIELD_OF_STUDY_TOO_LONG:'#profileFieldOfStudy',INVALID_EDUCATION_WORK_STATUS:'#educationWorkStatus'}[reasonFrom(error)];
  const field=selector?section.panel.querySelector(selector):section.panel.querySelector('input:not([type=file]),textarea,select');
@@ -1922,13 +1923,14 @@ const languageFeedback=document.createElement("p");languageFeedback.className="c
 document.getElementById("languageForm").addEventListener("submit", async event => {
   event.preventDefault();if(languageSaving||!identity)return;languageSaving=true;const owner=api.userIdFromToken(); const form = event.currentTarget; const language = new FormData(form).get("language"); busy(form, true);
   try { await api.updateLanguage(language);if(owner!==api.userIdFromToken())throw Error("AUTH_REQUIRED"); savedLanguage=language; feedbackFor(languageFeedback).show("Language preference saved.",{tone:"success"}); }
-  catch (error) { feedbackFor(languageFeedback).show(error.message,{tone:"error",persistent:true}); }
+  catch (error) { if(owner===api.userIdFromToken())feedbackFor(languageFeedback).show(error.message,{tone:"error",persistent:true}); }
   finally { languageSaving=false;busy(form, false); }
 });
 
 document.getElementById("signOutButton").addEventListener("click", async () => {
   if (isProfileDirty() && !window.confirm("Discard your unsaved profile changes and sign out?")) return;
   stopIntroPreview(); introSource.invalidate();
+  for(const feedback of sectionFeedback.values())feedback.hide();
   try { await api.signOut(); }
   finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; stopCrewRealtime?.(); stopCrewRealtime = null; crewPanel = null; introStatusPoller.stop(); releasePendingIntro(); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; stagedVisibility.clear(); actionDrafts.clear(); savedLanguage=null; showView("auth"); document.getElementById("signinTab").click(); }
 });

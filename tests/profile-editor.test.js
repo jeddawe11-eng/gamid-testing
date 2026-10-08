@@ -57,3 +57,18 @@ test('a reused Profile status node has one timer owner after re-sign-in; an old 
  const clock={setTimeout(fn){const id=++serial;timers.set(id,fn);return id;},clearTimeout(id){timers.delete(id);}};
  try{const old=createTransientMessage(el,{durationMs:5000,timers:clock});old.show('Old saved',{tone:'success'});const current=createTransientMessage(el,{durationMs:5000,timers:clock});current.show('New owner saved',{tone:'success'});for(const observe of observers)observe();assert.equal(timers.size,1);assert.equal(old.pending,false);assert.equal(el.textContent,'New owner saved');current.hide();for(const observe of observers)observe();assert.equal(timers.size,0);}finally{Object.assign(globalThis,originals);}
 });
+
+
+test('retired feedback releases observers and ignores stale timeout/show/hide callbacks',()=>{
+ const originals={IntersectionObserver:globalThis.IntersectionObserver,MutationObserver:globalThis.MutationObserver};let released=0,removed=0,oldTimeout;
+ globalThis.IntersectionObserver=globalThis.MutationObserver=class{observe(){}disconnect(){released++;}};
+ const el={hidden:true,ownerDocument:{visibilityState:'visible',getElementById:()=>({}),addEventListener(){},removeEventListener(){removed++;}},classList:{toggle(){}},getClientRects:()=>[1],getBoundingClientRect:()=>({top:1,bottom:20})};
+ try{const old=createTransientMessage(el,{durationMs:5000,timers:{setTimeout(fn){oldTimeout=fn;return 1;},clearTimeout(){}}});old.show('Old',{tone:'success'});const current=createTransientMessage(el,{durationMs:5000,timers:{setTimeout(){return 2;},clearTimeout(){}}});current.show('Current',{tone:'success'});oldTimeout();old.show('Old outcome',{tone:'error'});old.hide();assert.equal(el.textContent,'Current');assert.equal(el.hidden,false);assert.equal(released,2);assert.equal(removed,1);current.dispose();assert.equal(released,4);}finally{Object.assign(globalThis,originals);}
+});
+test('section and language save outcomes cannot report into a different authenticated owner',()=>{
+ const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.ok(source.includes("if(owner===api.userIdFromToken()&&entity===identity?.entity_id)reportSection(key,'Saved"));assert.ok(source.includes("if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)return;"));assert.ok(source.includes('if(owner===api.userIdFromToken())feedbackFor(languageFeedback)'));assert.ok(source.includes('for(const feedback of sectionFeedback.values())feedback.hide();'));
+});
+
+test('explicitly transient errors, warnings and information each receive five visible seconds',()=>{
+ let delay;const el={hidden:true,classList:{toggle(){}}};const feedback=createTransientMessage(el,{durationMs:5000,timers:{setTimeout(fn,ms){delay=ms;return 1;},clearTimeout(){}}});for(const tone of ['success','warning','info','error']){feedback.show('Transient',{tone,persistent:false});assert.equal(delay,5000);assert.equal(feedback.pending,true);}feedback.show('Validation',{tone:'error',persistent:true});assert.equal(feedback.pending,false);assert.equal(el.hidden,false);
+});
