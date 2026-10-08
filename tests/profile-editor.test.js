@@ -49,3 +49,11 @@ test('navigation protects workflow drafts and OAuth redirects; mobile cards cann
 test('notification/hash and OAuth return destinations reveal their collapsed sections without closing other drafts',()=>{
  const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.ok(source.includes('revealEditorSection(section)'));assert.ok(source.includes('revealEditorSection(document.getElementById("connectionsSection"))'));assert.ok(source.includes("section.panel.hidden=false;section.toggle.setAttribute('aria-expanded','true')"));
 });
+
+test('a reused Profile status node has one timer owner after re-sign-in; an old observer cannot hide a new message',()=>{
+ const originals={IntersectionObserver:globalThis.IntersectionObserver,MutationObserver:globalThis.MutationObserver};const observers=[];let serial=0;const timers=new Map();
+ globalThis.IntersectionObserver=class{constructor(fn){observers.push(fn);}observe(){}};globalThis.MutationObserver=class{constructor(fn){observers.push(fn);}observe(){}};
+ const el={hidden:true,ownerDocument:{visibilityState:'visible',getElementById:()=>({}),addEventListener(){}},classList:{toggle(){}},getClientRects:()=>[1],getBoundingClientRect:()=>({top:1,bottom:20})};
+ const clock={setTimeout(fn){const id=++serial;timers.set(id,fn);return id;},clearTimeout(id){timers.delete(id);}};
+ try{const old=createTransientMessage(el,{durationMs:5000,timers:clock});old.show('Old saved',{tone:'success'});const current=createTransientMessage(el,{durationMs:5000,timers:clock});current.show('New owner saved',{tone:'success'});for(const observe of observers)observe();assert.equal(timers.size,1);assert.equal(old.pending,false);assert.equal(el.textContent,'New owner saved');current.hide();for(const observe of observers)observe();assert.equal(timers.size,0);}finally{Object.assign(globalThis,originals);}
+});

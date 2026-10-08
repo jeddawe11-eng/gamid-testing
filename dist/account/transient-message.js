@@ -15,18 +15,21 @@
 export const TRANSIENT_MESSAGE_MS = 3000;
 export const MESSAGE_TONES = Object.freeze(["info", "success", "warning", "error"]);
 
+// Profile section nodes survive sign-out/sign-in: one feedback clock may own each reused node.
+const profileMessages = new WeakMap();
 export function createTransientMessage(element, { timers = globalThis, now = Date.now, durationMs = element.closest?.("[data-profile-editor]") ? 5000 : TRANSIENT_MESSAGE_MS } = {}) {
+  if(durationMs===5000)profileMessages.get(element)?.hide();
   let timer = null, remaining = durationMs, started = 0, transient = false;
   const visible = () => element.ownerDocument?.visibilityState !== "hidden" && !element.hidden && (typeof element.getClientRects !== "function" || (element.getClientRects().length > 0 && element.getBoundingClientRect().bottom > 0 && element.getBoundingClientRect().top < (globalThis.innerHeight || Infinity)));
   const stop = () => { if (timer !== null) timers.clearTimeout(timer); timer = null; };
-  const hide = () => { stop(); element.hidden = true; };
+  const hide = () => { transient=false;stop(); element.hidden = true; };
   if(durationMs===5000 && typeof globalThis.IntersectionObserver==='function'){
     const observe=()=>{if(!transient||element.hidden)return;if(visible()){if(timer===null){started=now();timer=timers.setTimeout(hide,remaining);}}else if(timer!==null){remaining=Math.max(0,remaining-(now()-started));stop();}};
     new IntersectionObserver(observe).observe(element);
     new MutationObserver(observe).observe(element.ownerDocument.getElementById('identityView'),{attributes:true,subtree:true,attributeFilter:['hidden','class']});
     element.ownerDocument.addEventListener('visibilitychange',observe);
   }
-  return {
+  const feedback = {
     // tone: info | success | warning | error. `progress: true` = an in-flight line that stays until the next show() / hide() (never use it for an outcome).
     show(text, { tone = "info", progress = false, persistent = false } = {}) {
       stop();
@@ -43,4 +46,6 @@ export function createTransientMessage(element, { timers = globalThis, now = Dat
     hide,
     get pending() { return timer !== null; },
   };
+  if(durationMs===5000)profileMessages.set(element,feedback);
+  return feedback;
 }

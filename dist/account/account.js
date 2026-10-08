@@ -404,6 +404,10 @@ async function openAvatarCrop(file) {
 async function showIdentity(data) {
   const [editor, intro] = await Promise.all([api.getIdentityProfile(), api.getMyIntro()]);
   resetAvatarCropLifecycle("profile-restored");
+  for(const feedback of sectionFeedback.values())feedback.hide();
+  document.querySelectorAll('[data-profile-editor] .field-error').forEach(node=>node.remove());
+  document.querySelectorAll('[data-profile-editor] [aria-invalid]').forEach(node=>{node.removeAttribute('aria-invalid');node.removeAttribute('aria-describedby');});
+  document.querySelectorAll('[data-profile-editor] [data-invalid-draft]').forEach(node=>delete node.dataset.invalidDraft);
   identity = { ...data, ...editor };
   roleCatalog = editor.role_catalog || [];
   educationWorkCatalog = editor.education_work_catalog || [];
