@@ -21,7 +21,7 @@ test("Slice 3C source limits and canonical Intro dirty state are enforced", () =
   assert.equal(hasIntroChanges({ transitionKey:"fade" },{ transitionKey:"fade" },true),true);
 });
 
-test("YOUR INTRO reuses the accordion and the one SAVE GAMID flow", () => {
+test("YOUR INTRO retains its controls within an independently saved section", () => {
   assert.match(html,/id="introSectionToggle"[\s\S]*aria-controls="introSectionPanel"/);
   assert.match(html,/Add|Intro video/);
   assert.match(html,/id="introTransition"/);

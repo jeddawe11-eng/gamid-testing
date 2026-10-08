@@ -8,6 +8,7 @@
 //   api.getPlatformState(gameKey)          -> {game_key, display_name, supported[], established[], manual[]}
 //   api.saveGame(gameKey, platformKeys)    -> saves the caller's MANUAL platforms for that game
 //   api.removeGame(gameKey)                -> removes the caller's MANUAL declarations for that game (never a provider-discovered game)
+import { createTransientMessage } from "./transient-message.js";
 import { createGameSearch, GAME_SEARCH_MIN_CHARS, GAME_SEARCH_MAX_RESULTS } from "./game-search.js";
 import { normalizePlatformState, selectablePlatforms, initialSelection, toggleSelection, selectionKeys, saveDisabledReason, platformSummary } from "./game-platforms.js";
 
@@ -90,7 +91,12 @@ export function createAddGamePanel({ element, api, isInLibrary = () => false, on
     limit: GAME_SEARCH_MAX_RESULTS,
   });
 
+  let editorFeedback;
   function setMessage(text, tone = "error") {
+    if(root.closest?.('[data-profile-editor]')){
+      editorFeedback??=createTransientMessage(message,{durationMs:5000});
+      editorFeedback.show(text,{tone:tone==='ok'?'success':'error',progress:busy});return;
+    }
     message.textContent = text || "";
     message.className = `game-add-message${tone === "ok" ? " is-ok" : ""}`;
     message.hidden = !text;
@@ -130,10 +136,13 @@ export function createAddGamePanel({ element, api, isInLibrary = () => false, on
     setMessage("");
   }
 
+  function hasDraft(){return open&&(Boolean(input.value.trim())||Boolean(state&&JSON.stringify([...selection].sort())!==JSON.stringify([...initialSelection(state)].sort())));}
   function close(notify) {
+    if(root.closest?.('[data-profile-editor]')&&!busy&&hasDraft()&&!globalThis.confirm('Discard these unsaved game changes?'))return false;
     reset();
     root.hidden = true;
     notify?.();
+    return true;
   }
 
   function openSearch() {
@@ -269,6 +278,7 @@ export function createAddGamePanel({ element, api, isInLibrary = () => false, on
       actions.append(yes, keep);
     } else {
       saveButton = element("button", "primary game-add-save", state.manual.length ? "Save platforms" : "Add to My Games");
+      if(root.closest?.('[data-profile-editor]'))saveButton.textContent='Save Changes';
       saveButton.type = "button";
       saveButton.addEventListener("click", save);
       const back = element("button", "secondary game-add-back", fromSearch ? "Back to search" : "Cancel");
@@ -297,6 +307,7 @@ export function createAddGamePanel({ element, api, isInLibrary = () => false, on
     openEditor: (gameKey, name) => choose(gameKey, name, false),
     close: () => close(),
     isOpen: () => open,
+    hasDraft,
   };
 }
 

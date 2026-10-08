@@ -224,6 +224,29 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .game-library .game-manual-line{color:var(--text)}
 .game-library .game-edit-button{flex:0 0 auto;width:auto;min-height:2.75rem;min-width:2.75rem;margin-left:auto;padding:0 .7rem;border:1px solid var(--line);border-radius:.65rem;background:rgba(255,255,255,.03);color:var(--cyan);font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;touch-action:manipulation}
 .game-library .game-edit-button:hover{border-color:#51456e}
+/* Independently expandable owner Profile Editor; public profile untouched. */
+.account-shell:has([data-profile-editor])>.account-card{min-width:0}
+@media(max-width:759px){.account-shell:has([data-profile-editor]){grid-template-columns:minmax(0,1fr)}}
+[data-profile-editor] .editor-section{min-width:0;margin:.65rem 0;border:1px solid var(--line);border-radius:1rem;background:#12101b;overflow:hidden}
+[data-profile-editor] .section-toggle{width:100%;min-height:56px;text-align:left;padding:.85rem;display:flex;gap:.7rem;align-items:center}
+[data-profile-editor] .section-toggle>span:nth-child(2){flex:1;min-width:0}
+[data-profile-editor] .section-toggle small{display:block;overflow-wrap:anywhere;line-height:1.4;color:#bcb5ca;font-size:.75rem}
+[data-profile-editor] .section-panel{padding:.85rem;min-width:0}
+[data-profile-editor] [hidden]{display:none!important}
+[data-profile-editor] .profile-form{padding:0;border:0;background:none}
+[data-profile-editor] .identity-sections{display:block}
+[data-profile-editor] .section-save{margin-top:1rem;padding-top:.7rem;border-top:1px solid var(--line)}
+[data-profile-editor] .section-save .primary{min-height:44px;width:100%;margin:0}
+[data-profile-editor] .connections-message{overflow-wrap:anywhere;line-height:1.5;color:#e2dbea;padding:.6rem;border:1px solid #50435f;border-radius:.5rem}
+[data-profile-editor] .connections-message.success{color:#95f0bf;border-color:#3a6c53}
+[data-profile-editor] .connections-message.success:before{content:'✓ ';}[data-profile-editor] .connections-message.is-warning:before{content:'⚠ ';}
+[data-profile-editor] input,[data-profile-editor] select,[data-profile-editor] textarea{max-width:100%;min-width:0}
+[data-profile-editor] .section-panel>section{margin:0;border:0;padding:.15rem}
+@media(max-width:759px){[data-profile-editor] .identity-preview{min-height:0;padding:2.5rem .65rem .65rem;margin:0;grid-template-columns:3rem minmax(0,1fr);gap:.6rem}[data-profile-editor] .preview-avatar{width:3rem;height:3rem}[data-profile-editor] .section-panel{padding:.65rem}[data-profile-editor] .section-toggle{padding:.7rem}[data-profile-editor] .share-link-row{flex-wrap:wrap}}
+
+[data-profile-editor] .field-error{color:#ffb8c4;font-size:.8rem;line-height:1.5}[data-profile-editor] [aria-invalid=true]{border-color:#ff839c}
+
+[data-profile-editor] [data-dirty=true]>.section-toggle strong:after{content:' · Unsaved';font-size:.7rem;color:#bceef5}
 /* MY DUO (my-duo.js): a mutual GamID-to-GamID relationship. The badge (two linked rings) means only "mutually accepted", never "verified". */
 .duo-panel{display:grid;gap:.7rem;margin-top:.75rem}
 /* MY CREW (my-crew.js): reuses the My Duo card / row / search building blocks */

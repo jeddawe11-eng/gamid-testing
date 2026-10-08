@@ -92,7 +92,7 @@ test("no automatic polling or background work anywhere in the League feature", a
   }
   assert.doesNotMatch(migration, /cron\.schedule|pg_cron|pg_net|pg_background/i);
   assert.doesNotMatch(config, /cron|schedule/i);
-  assert.equal([...leagueBlock.matchAll(/setTimeout\(/g)].length, 2, "only two UI timers exist: hide the message, and re-render when the Refresh cooldown ends (neither makes a request)");
+  assert.equal([...leagueBlock.matchAll(/setTimeout\(/g)].length, 1, "only the cooldown UI timer stays local; section feedback uses the shared visible-only timer, neither makes a request");
   assert.match(leagueBlock, /leagueRefreshTimer = setTimeout\(renderLeague,/);
 });
 

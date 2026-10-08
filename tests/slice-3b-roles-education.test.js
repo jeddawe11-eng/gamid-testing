@@ -46,11 +46,11 @@ test("Slice 3B writes remain RPC-only and preserve DRAFT/private identity invari
   assert.doesNotMatch(migration, /qr_references|public_token/);
 });
 
-test("YOUR GAMID uses one-open-section accordion controls without navigation or modal editing", () => {
+test("YOUR GAMID uses independently expandable section controls without navigation or modal editing", () => {
   assert.match(html, /id="rolesSectionToggle"[\s\S]*aria-controls="rolesSectionPanel"/);
   assert.match(html, /id="educationSectionToggle"[\s\S]*aria-controls="educationSectionPanel"/);
-  assert.match(controller, /for \(const toggle of document\.querySelectorAll\("\.section-toggle"\)\)/);
-  assert.match(controller, /other === toggle && opening/);
+  assert.match(controller, /mountProfileEditor\(document\)/);
+  assert.doesNotMatch(controller, /other === toggle && opening/);
   assert.match(css, /Slice 3B — reusable identity-board accordion/);
   assert.doesNotMatch(html, /href=[^>]*(roles|education|occupation)/i);
 });
@@ -60,7 +60,7 @@ test("live preview and existing Save Profile flow include Slice 3B state", () =>
   assert.match(html, /id="secondaryRolesSummary"/);
   assert.match(html, /id="educationWorkSummary"/);
   assert.match(controller, /secondaryLabels\.slice\(0, 2\)/);
-  assert.match(controller, /api\.updateIdentityProfile\(\{ \.\.\.draft, avatarPath \}\)/);
+  assert.match(controller, /api\.updateIdentityProfile\(\{\.\.\.draft,avatarPath\}\)/);
   assert.match(client, /candidate_role_keys: roleKeys/);
   assert.match(client, /candidate_primary_role_key: primaryRoleKey/);
   assert.match(client, /candidate_education_work_status: educationWorkStatus/);

@@ -141,7 +141,7 @@ export function createDuoPanel({ api, root, message, element, visibilitySwitch, 
       const head = element("div", "duo-card-head");
       head.append(element("p", "eyebrow", "MY DUO"), relationshipBadge("duo", tag => element(tag), globalThis.document));
       card.append(head, personRow(duo));
-      card.append(visibilitySwitch({ on: duo.showPublic, busy, label: "Show My Duo on my GamID", onChange: next => setVisible(next) }));
+      card.append(visibilitySwitch({ on: duo.showPublic, busy, identityKey:duo.handle, label: "Show My Duo on my GamID", onChange: next => setVisible(next) }));
       card.append(element("p", "section-visibility-hint", `${publicHint(duo, isOwnerPublished())} @${duo.handle} decides separately whether you appear on their GamID.`));
       if (confirm?.kind === "remove") card.append(warning(`End your Duo with @${duo.handle}? It ends for both of you.`, "End Duo", () => remove()));
       else { const actions = element("div", "duo-actions"); actions.append(button("End Duo", "text-button danger duo-button", () => { confirm = { kind: "remove" }; render(); })); card.append(actions); }

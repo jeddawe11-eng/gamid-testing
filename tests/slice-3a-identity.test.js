@@ -44,7 +44,7 @@ test("Your GamID UI exposes live editable fields but no handle mutation", () => 
   assert.doesNotMatch(html, /name="(?:gamid_)?handle"[^>]*id="handleField"/);
   assert.match(controller, /beforeunload/);
   assert.match(controller, /updateProfilePreview/);
-  assert.match(controller, /Saved ✓|saveConfirmation/);
+  assert.match(controller, /Saved ✓|reportSection/);
 });
 
 test("Slice 3A remains DRAFT/private and does not expose QR or enable future areas", () => {

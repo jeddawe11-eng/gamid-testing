@@ -15,13 +15,20 @@
 export const TRANSIENT_MESSAGE_MS = 3000;
 export const MESSAGE_TONES = Object.freeze(["info", "success", "warning", "error"]);
 
-export function createTransientMessage(element, { timers = globalThis } = {}) {
-  let timer = null;
+export function createTransientMessage(element, { timers = globalThis, now = Date.now, durationMs = element.closest?.("[data-profile-editor]") ? 5000 : TRANSIENT_MESSAGE_MS } = {}) {
+  let timer = null, remaining = durationMs, started = 0, transient = false;
+  const visible = () => element.ownerDocument?.visibilityState !== "hidden" && !element.hidden && (typeof element.getClientRects !== "function" || (element.getClientRects().length > 0 && element.getBoundingClientRect().bottom > 0 && element.getBoundingClientRect().top < (globalThis.innerHeight || Infinity)));
   const stop = () => { if (timer !== null) timers.clearTimeout(timer); timer = null; };
   const hide = () => { stop(); element.hidden = true; };
+  if(durationMs===5000 && typeof globalThis.IntersectionObserver==='function'){
+    const observe=()=>{if(!transient||element.hidden)return;if(visible()){if(timer===null){started=now();timer=timers.setTimeout(hide,remaining);}}else if(timer!==null){remaining=Math.max(0,remaining-(now()-started));stop();}};
+    new IntersectionObserver(observe).observe(element);
+    new MutationObserver(observe).observe(element.ownerDocument.getElementById('identityView'),{attributes:true,subtree:true,attributeFilter:['hidden','class']});
+    element.ownerDocument.addEventListener('visibilitychange',observe);
+  }
   return {
     // tone: info | success | warning | error. `progress: true` = an in-flight line that stays until the next show() / hide() (never use it for an outcome).
-    show(text, { tone = "info", progress = false } = {}) {
+    show(text, { tone = "info", progress = false, persistent = false } = {}) {
       stop();
       if (!text) { hide(); return; }
       element.textContent = text;
@@ -30,7 +37,8 @@ export function createTransientMessage(element, { timers = globalThis } = {}) {
       element.classList.toggle("is-info", kind === "info");
       element.classList.toggle("is-warning", kind === "warning");
       element.hidden = false;
-      if (!progress) timer = timers.setTimeout(hide, TRANSIENT_MESSAGE_MS);
+      transient = !progress && !persistent && !(durationMs===5000 && kind==="error");remaining=durationMs;
+      if(transient && visible()){started=now();timer=timers.setTimeout(hide,remaining);}
     },
     hide,
     get pending() { return timer !== null; },

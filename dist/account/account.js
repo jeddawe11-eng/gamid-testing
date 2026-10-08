@@ -1,3 +1,5 @@
+import { mountProfileEditor, sectionDraft, sectionChanged, createSectionSaveQueue } from "./profile-editor.js";
+import { createTransientMessage } from "./transient-message.js";
 import { INTRO_TRANSITIONS, authErrorMessage, authLanding, authTabFromSearch, debounceAsync, errorMessage, hasIntroChanges, hasProfileChanges, normalizeHandle, searchWithoutAuth, validateHandle, validateIntroSource, validateProfileDraft } from "./domain.js";
 import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, createOwnedImageBlob, drawCropPreview, loadOrientedImage } from "./avatar-cropper.js";
 import { PRESETS } from "../transition-engine.js";
@@ -29,7 +31,23 @@ let avatarPreviewUrl;
 let persistedAvatarUrl;
 let savedProfile = null;
 let pendingAvatar = null;
-let saveConfirmationTimer;
+const editor = mountProfileEditor(document);
+const sectionSaveQueue = createSectionSaveQueue();
+const sectionFeedback = new Map();
+const stagedVisibility = new Map();
+let savedLanguage = null, languageSaving = false;
+let editorActionSection = null;
+// Workflow/search forms keep their established action APIs; protect their input on navigation too.
+const actionDrafts=new Map();
+const controlValue=control=>control.type==='checkbox'||control.type==='radio'?control.checked:control.value;
+function actionDraftsDirty(){
+ for(const [control,baseline] of actionDrafts){if(!control.isConnected)actionDrafts.delete(control);else if(controlValue(control)!==baseline)return true;}
+ return Boolean(myGamesView?.panel.hasDraft?.()) || Boolean(leagueDraft.gameName||leagueDraft.tagLine||leagueDraft.platformId);
+}
+document.addEventListener('focusin',event=>{const control=event.target;if(control.matches?.('input,select,textarea')&&control.closest('[data-profile-editor]')&&!control.closest('#profileForm,#languageForm')&&!actionDrafts.has(control))actionDrafts.set(control,controlValue(control));});
+document.addEventListener("focusin",event=>{const key=event.target.closest?.("[data-editor-section]")?.dataset.editorSection;if(key)editorActionSection=key;});
+function feedbackFor(el) { if(!sectionFeedback.has(el))sectionFeedback.set(el,createTransientMessage(el,{durationMs:5000}));return sectionFeedback.get(el); }
+function reportSection(key,text,success=false,progress=false) { const el=editor.saves.get(key)?.feedback; if(el)feedbackFor(el).show(text,{tone:success?"success":"error",progress,persistent:!success&&!progress}); }
 let roleCatalog = [];
 let educationWorkCatalog = [];
 let savedIntro = null;
@@ -71,14 +89,14 @@ let avatarDiagnosticLog = [];
 const introStatusPoller = new IntroStatusPoller({
   load:() => api.getMyIntro(),
   onState:async intro => {
-    if (!identity || pendingIntroSource || introAction !== "keep") return;
+    if (!identity || pendingIntroSource || introAction !== "keep" || hasIntroChanges(savedIntro,introDraft(),false)) return;
     await restoreIntroState(intro);
     updateProfilePreview();
   },
 });
 
 async function refreshIntroOnForeground() {
-  if (document.visibilityState !== "visible" || !identity || pendingIntroSource || introAction !== "keep") return;
+  if (document.visibilityState !== "visible" || !identity || pendingIntroSource || introAction !== "keep" || hasIntroChanges(savedIntro,introDraft(),false)) return;
   try {
     const intro=await introStatusPoller.refreshNow();
     if (isProcessingIntroState(intro)) introStatusPoller.start();
@@ -129,6 +147,13 @@ function showView(name) {
 }
 
 function setMessage(text, success = false) {
+  if(identity) {
+    const active=document.activeElement?.closest("[data-editor-section]")?.dataset.editorSection;
+    const key=editorActionSection || active;
+    const el=editor.saves.get(key)?.feedback || message;
+    feedbackFor(el).show(text,{tone:success?"success":"error",persistent:!success});
+    return;
+  }
   message.textContent = text;
   message.classList.toggle("success", success);
   message.hidden = !text;
@@ -196,8 +221,9 @@ function syncEducationContext() {
 }
 
 function isProfileDirty() {
-  return Boolean(savedProfile && (hasProfileChanges(savedProfile, profileDraft(), Boolean(pendingAvatar))
-    || hasIntroChanges(savedIntro, introDraft(), Boolean(pendingIntroSource))));
+  if(!identity)return false;
+  return sectionSaveQueue.busy || actionDraftsDirty() || Boolean(savedProfile && (hasProfileChanges(savedProfile, profileDraft(), Boolean(pendingAvatar))
+    || hasIntroChanges(savedIntro, introDraft(), Boolean(pendingIntroSource)) || stagedVisibility.size>0 || (savedLanguage!==null && document.querySelector("#languageForm select").value!==savedLanguage)));
 }
 
 function renderIntroState() {
@@ -205,7 +231,7 @@ function renderIntroState() {
   const summary = document.getElementById("introSectionSummary");
   status.className = "intro-file-status";
   if (pendingIntroSource) {
-    status.textContent = `${pendingIntroSource.file.name} · ready to upload on SAVE GAMID`;
+    status.textContent = `${pendingIntroSource.file.name} · ready to upload on Save Changes`;
     status.classList.add("ready"); summary.textContent = `New video · ${PRESETS[introDraft().transitionKey]?.label || "Transition"}`;
   } else if (introAction === "remove") {
     status.textContent = "Intro will be removed when you save."; summary.textContent = "Remove on save";
@@ -254,8 +280,7 @@ function updateProfilePreview() {
   educationSummary.hidden = !educationContext;
   document.getElementById("rolesSectionSummary").textContent = primaryLabel ? `${primaryLabel}${secondaryLabels.length ? ` +${secondaryLabels.length}` : ""}` : "Add your gaming roles";
   document.getElementById("educationSectionSummary").textContent = educationLabel || "Optional";
-  document.getElementById("saveProfileButton").disabled = !isProfileDirty() || !validateProfileDraft(draft, profileCatalogs()).valid;
-  document.getElementById("saveConfirmation").hidden = true;
+  refreshEditorSaves();
   renderIntroState();
   renderVisibility();
 }
@@ -407,6 +432,9 @@ async function showIdentity(data) {
   if (isProcessingIntroState(intro)) introStatusPoller.start();
   updateProfilePreview();
   await loadSectionVisibility();
+  stagedVisibility.clear();
+  actionDrafts.clear();
+  savedLanguage=document.querySelector("#languageForm select").value;
   renderShare();
   await loadConnections();
   await loadLeague();
@@ -442,11 +470,7 @@ function renderShare() {
 }
 
 function flashShareMessage(text) {
-  const el = document.getElementById("shareMessage");
-  el.textContent = text;
-  el.hidden = false;
-  clearTimeout(flashShareMessage.timer);
-  flashShareMessage.timer = setTimeout(() => { el.hidden = true; }, 2400);
+  feedbackFor(document.getElementById("shareMessage")).show(text,{tone:text.startsWith("Could not")?"error":"success"});
 }
 
 async function copyToClipboard(text) {
@@ -529,17 +553,14 @@ let connectionRows = null;
 let discoveryRows = [];
 let connectingProvider = null;
 let confirmingDisconnect = null;
-let connectionsMessageTimer;
+
 
 const isSafeProviderAvatar = url => typeof url === "string" && url.startsWith("https://cdn.discordapp.com/");
 
 function showConnectionsMessage(text, success = false, sticky = false) {
-  const el = document.getElementById("connectionsMessage");
-  clearTimeout(connectionsMessageTimer);
-  el.textContent = text;
-  el.classList.toggle("success", success);
-  el.hidden = !text;
-  if (text && !sticky) connectionsMessageTimer = setTimeout(() => { el.hidden = true; }, 8000);
+  if(sectionSaveQueue.has("connections"))return;
+  const el=document.getElementById("connectionsMessage");if(!el)return;
+  feedbackFor(el).show(text,{tone:success?"success":"info",progress:sticky&&!success,persistent:!success&&Boolean(text)&&!/(…|Updating|Opening|Disconnecting|Removing|Refreshing)/.test(text)});
 }
 
 function element(tag, className, text) {
@@ -571,7 +592,8 @@ const visibilityHint = on => (on
   ? (isGamidPublished() ? "Shown on your public GamID." : "Will appear on your public GamID once you publish it.")
   : "Private — not shown on your public GamID.");
 
-function visibilitySwitch({ on, busy = false, onChange, label = "Show on my GamID" }) {
+function visibilitySwitch({ on, busy = false, onChange, label = "Show on my GamID", settingKey, section = "connections" }) {
+  const baseline=on;const staged=stagedVisibility.get(settingKey);if(staged)on=staged.value;
   const row = element("div", "section-visibility");
   row.append(element("span", "section-visibility-label", label));
   const button = element("button", `visibility-switch${on ? " is-on" : ""}`);
@@ -581,7 +603,11 @@ function visibilitySwitch({ on, busy = false, onChange, label = "Show on my GamI
   button.setAttribute("aria-label", label);
   button.disabled = busy || Boolean(sectionBusy);
   button.append(element("span", "visibility-switch-knob"), element("span", "visibility-switch-text", on ? "ON" : "OFF"));
-  button.addEventListener("click", () => onChange(!on));
+  button.addEventListener("click", () => {
+    const next=button.getAttribute('aria-checked')!=='true';
+    if(next===baseline)stagedVisibility.delete(settingKey);else stagedVisibility.set(settingKey,{section,value:next,commit:onChange});
+    button.setAttribute('aria-checked',String(next));button.classList.toggle('is-on',next);button.querySelector('.visibility-switch-text').textContent=next?'ON':'OFF';refreshEditorSaves();
+  });
   row.append(button);
   return row;
 }
@@ -595,6 +621,7 @@ async function changeSectionVisibility(section, visible, report, reload) {
     report(visible ? "Now shown on your GamID." : "Hidden from your public GamID.", true);
   } catch (error) {
     report(SECTION_ERRORS[error.message] || SECTION_ERRORS[error.code] || "Couldn't update this setting. Please try again.");
+    sectionBusy=null;throw error;
   }
   sectionBusy = null;
   await reload();
@@ -606,11 +633,10 @@ async function loadSectionVisibility() {
   renderEducationVisibility();
 }
 
-function showEducationVisibilityMessage(text, success = false) {
-  const el = document.getElementById("educationVisibilityMessage");
-  el.textContent = text;
-  el.classList.toggle("success", success);
-  el.hidden = !text;
+function showEducationVisibilityMessage(text, success = false, sticky = false) {
+  if(sectionSaveQueue.has("education"))return;
+  const el=document.getElementById("educationVisibilityMessage");if(!el)return;
+  feedbackFor(el).show(text,{tone:success?"success":"info",progress:sticky&&!success,persistent:!success&&Boolean(text)&&!/(…|Updating|Opening|Disconnecting|Removing|Refreshing)/.test(text)});
 }
 
 function renderEducationVisibility() {
@@ -620,7 +646,7 @@ function renderEducationVisibility() {
   if (!state) { slot.replaceChildren(); return; }
   const on = Boolean(state.is_public);
   slot.replaceChildren(
-    visibilitySwitch({ on, onChange: next => changeSectionVisibility("education_work", next, showEducationVisibilityMessage, loadSectionVisibility) }),
+    visibilitySwitch({ on, settingKey:"education_work",section:"education", onChange: next => changeSectionVisibility("education_work", next, showEducationVisibilityMessage, loadSectionVisibility) }),
     element("p", "section-visibility-hint", `${visibilityHint(on)} Turning this off keeps what you entered.`),
   );
 }
@@ -702,7 +728,7 @@ function connectionCard(row) {
     const steamNote = row.provider_key === "steam" ? ` Only your Steam persona name, avatar and profile link ${row.is_public ? "are" : "would be"} shown (never your SteamID64).` : "";
     card.append(element("p", "connection-privacy", `${visibilityHint(Boolean(row.is_public))}${steamNote}`));
     if (row.provider_key === "discord" || row.provider_key === "steam") {
-      card.append(visibilitySwitch({ on: Boolean(row.is_public), onChange: next => changeSectionVisibility(row.provider_key, next, showConnectionsMessage, loadConnections) }));
+      card.append(visibilitySwitch({ on: Boolean(row.is_public),settingKey:row.provider_key,section:"connections", onChange: next => changeSectionVisibility(row.provider_key, next, showConnectionsMessage, loadConnections) }));
     }
     if (row.provider_key === "steam") {
       card.append(element("p", "connection-discovery-note", "Signed in through Steam. This confirms the Steam account only; nothing about any game is verified."));
@@ -752,11 +778,17 @@ async function loadCrew() {
     window.addEventListener("pagehide", () => { stopCrewRealtime?.(); stopCrewRealtime = null; }, { once: true });
   }
 }
+function revealEditorSection(node){
+ for(let card=node?.closest('[data-editor-section]');card;card=card.parentElement?.closest('[data-editor-section]')){
+  const section=editor.sections.get(card.dataset.editorSection);if(section){section.panel.hidden=false;section.toggle.setAttribute('aria-expanded','true');}
+ }
+}
 function openNotificationDestination(destination) {
   const sectionId = { "account.my_duo": "duoSection", "account.my_crew": "crewSection" }[destination];
   if (!sectionId) return;
   const section = document.getElementById(sectionId);
   if (!section) return;
+  revealEditorSection(section);
   section.setAttribute("tabindex", "-1");
   section.scrollIntoView?.({ behavior: "smooth", block: "start" });
   section.focus?.({ preventScroll: true });
@@ -775,7 +807,7 @@ async function loadDuo() {
   const root = document.getElementById("duoPanel");
   if (!root) return;
   duoPanel ??= createDuoPanel({
-    api, root, message: document.getElementById("duoMessage"), element, visibilitySwitch, isOwnerPublished: isGamidPublished,
+    api, root, message: document.getElementById("duoMessage"), element, visibilitySwitch: options=>visibilitySwitch({...options,settingKey:"duo",section:"duo",onChange:async value=>{const current=await api.getMyDuo();if(current.find(row=>row.relation==="DUO")?.gamid_handle!==options.identityKey)throw Error("DUO_NOT_SET");await api.setMyDuoVisibility(value);await duoPanel.refresh();}}), isOwnerPublished: isGamidPublished,
     gamidUrl: handle => new URL(`../@${handle}`, location.href).href,
   });
   await duoPanel.load();
@@ -787,6 +819,7 @@ async function loadDuo() {
 }
 
 function renderConnections() {
+  editor.sections.get("connections").status.textContent=connectionRows?`${connectionRows.filter(row=>row.connected).length} connected accounts`:"Connections unavailable";
   const list = document.getElementById("connectionsList");
   renderGameDisplay();
   renderMyGames();
@@ -804,12 +837,10 @@ const GAME_PROVIDERS = new Set(["steam"]);   // connections that can supply game
 let gameDisplay = null;
 let gameDisplayBusy = false;
 
-function showGameDisplayMessage(text, success = false) {
-  const el = document.getElementById("gameDisplayMessage");
-  if (!el) return;
-  el.textContent = text;
-  el.classList.toggle("success", success);
-  el.hidden = !text;
+function showGameDisplayMessage(text, success = false, sticky = false) {
+  if(sectionSaveQueue.has("game-display"))return;
+  const el=document.getElementById("gameDisplayMessage");if(!el)return;
+  feedbackFor(el).show(text,{tone:success?"success":"info",progress:sticky&&!success,persistent:!success&&Boolean(text)&&!/(…|Updating|Opening|Disconnecting|Removing|Refreshing)/.test(text)});
 }
 
 // Public My Games has three independent switches, all library-wide (there is deliberately no per-game switch): Show My Games, Show playtime, Show ranks & stats.
@@ -825,13 +856,14 @@ function renderGameDisplay() {
   const showPlaytime = Boolean(hasPlaytimeProvider && gameDisplay);
   section.hidden = !identity || !(publicGamesSettings || showPlaytime);
   if (section.hidden) { slot.replaceChildren(); return; }
+  editor.sections.get("game-display").status.textContent=`Games ${publicGamesSettings?.show_my_games?"shown":"private"} · Stats ${publicGamesSettings?.show_game_stats?"shown":"private"}`;
   const published = isGamidPublished();
   const notPublished = published ? "" : " Nothing is public until you publish your GamID.";
   const nodes = [];
   if (publicGamesSettings) {
     const on = Boolean(publicGamesSettings.show_my_games);
     nodes.push(
-      visibilitySwitch({ on, busy: publicGamesBusy, label: "Show My Games on my GamID", onChange: visible => changePublicGamesSetting("my_games", visible) }),
+      visibilitySwitch({ on, busy: publicGamesBusy, label: "Show My Games on my GamID",settingKey:"my_games",section:"game-display", onChange: visible => changePublicGamesSetting("my_games", visible) }),
       element("p", "section-visibility-hint", on
         ? `Your games appear on your public GamID: up to six of them, plus a full list visitors can search. Each one shows only the platforms you play it on and where GamID learned about it (discovered through a connected account, or added by you — never "verified" because of that).${notPublished}`
         : "Hidden. No game is shown on your public GamID."),
@@ -840,7 +872,7 @@ function renderGameDisplay() {
   if (showPlaytime) {
     const on = Boolean(gameDisplay.show_game_playtime);
     nodes.push(
-      visibilitySwitch({ on, busy: gameDisplayBusy, label: "Show playtime on my GamID", onChange: changePlaytimeVisibility }),
+      visibilitySwitch({ on, busy: gameDisplayBusy, label: "Show playtime on my GamID",settingKey:"playtime",section:"game-display", onChange: changePlaytimeVisibility }),
       element("p", "section-visibility-hint", on
         ? `Hours played may be shown in a game's details, only for games shown through Show My Games and only where its provider supplied them.${notPublished}`
         : "Hidden. Hours played are never shown on your public GamID. You always see your own playtime in your private lists."),
@@ -849,7 +881,7 @@ function renderGameDisplay() {
   if (publicGamesSettings) {
     const on = Boolean(publicGamesSettings.show_game_stats);
     nodes.push(
-      visibilitySwitch({ on, busy: publicGamesBusy, label: "Show ranks & stats on my GamID", onChange: visible => changePublicGamesSetting("stats", visible) }),
+      visibilitySwitch({ on, busy: publicGamesBusy, label: "Show ranks & stats on my GamID",settingKey:"stats",section:"game-display", onChange: visible => changePublicGamesSetting("stats", visible) }),
       element("p", "section-visibility-hint", on
         ? `Ranks and stats may be shown anywhere on your public GamID — the League card and a game's details — only for stats you already made public (for League of Legends, its own "Show on my GamID" switch too). They keep their PROTOTYPE / UNVERIFIED labels.${notPublished}`
         : "Hidden. No rank or stat value is shown anywhere on your public GamID (the League card keeps your Riot ID and region, but not your rank)."),
@@ -872,6 +904,7 @@ async function changePublicGamesSetting(setting, visible) {
       : (visible ? "Ranks and stats can now be shown in your games' details." : "Ranks and stats are hidden from your public GamID."), true);
   } catch (error) {
     showGameDisplayMessage(SECTION_ERRORS[error.message] || SECTION_ERRORS[error.code] || "Couldn't update this setting. Please try again.");
+    publicGamesBusy=false;throw error;
   }
   publicGamesBusy = false;
   try { publicGamesSettings = await api.getMyPublicGamesSettings(); } catch { /* keep what we know */ }
@@ -895,6 +928,7 @@ async function changePlaytimeVisibility(visible) {
     showGameDisplayMessage(visible ? "Playtime can now be shown publicly." : "Playtime is hidden from your public GamID.", true);
   } catch (error) {
     showGameDisplayMessage(SECTION_ERRORS[error.message] || SECTION_ERRORS[error.code] || "Couldn't update this setting. Please try again.");
+    gameDisplayBusy=false;throw error;
   }
   gameDisplayBusy = false;
   try { gameDisplay = await api.getMyGameDisplaySettings(); } catch { /* keep what we know */ }
@@ -926,6 +960,7 @@ async function loadConnections() {
 
 async function beginConnection(provider) {
   if (connectingProvider) return;
+  if(isProfileDirty()&&!window.confirm("Connect this account and leave your unsaved changes?"))return;
   connectingProvider = provider;
   confirmingDisconnect = null;
   const auth = PROVIDER_AUTH[provider];
@@ -970,6 +1005,7 @@ function handleConnectionReturn() {
     const extra = (result === "connected" || result === "reconnected") && DISCOVERY_RETURN[discovery] ? ` ${DISCOVERY_RETURN[discovery]}` : "";
     showConnectionsMessage(`${CONNECTION_RETURN_OK[result]}${extra}`, result !== "cancelled", Boolean(extra));
   } else return;
+  revealEditorSection(document.getElementById("connectionsSection"));
   document.getElementById("connectionsSection").scrollIntoView({ block: "center" });
 }
 
@@ -1188,7 +1224,7 @@ function ensureMyGames() {
   const host = element("div", "my-games-library");
   addButton.addEventListener("click", () => {
     myGamesNotice = null;
-    if (panel.isOpen()) { panel.close(); addButton.setAttribute("aria-expanded", "false"); renderMyGames(); return; }
+    if (panel.isOpen()) { if(panel.close()===false)return; addButton.setAttribute("aria-expanded", "false"); renderMyGames(); return; }
     panel.openSearch();
     addButton.setAttribute("aria-expanded", "true");
     renderMyGames();
@@ -1208,9 +1244,8 @@ function renderMyGames() {
   view.chip.classList.toggle("is-connected", shown);
   const rows = buildLibraryRows(steamGames, manualGames);
   libraryKeys = new Set(rows.map(rowGameKey).filter(Boolean));
-  view.status.textContent = myGamesNotice?.text || "";
   view.status.className = `my-games-status is-${myGamesNotice?.tone || "info"}`;
-  view.status.hidden = !myGamesNotice;
+  if(view.lastNotice!==myGamesNotice){feedbackFor(view.status).show(myGamesNotice?.text||'',{tone:myGamesNotice?.tone==='ok'?'success':'error'});view.lastNotice=myGamesNotice;}
   if (!rows.length) {
     view.host.replaceChildren(element("p", "connection-discovery-note", "No games yet. Connect Steam to discover your games, or tap + Add Game to add one yourself."));
     return;
@@ -1294,17 +1329,14 @@ let leagueProfile = null;
 let leagueLoaded = false;
 let leagueBusy = null;
 let confirmingLeagueRemove = false;
-let leagueMessageTimer;
+
 let leagueRefreshTimer;
 let leagueDraft = { gameName: "", tagLine: "", platformId: "" };
 
 function showLeagueMessage(text, success = false, sticky = false) {
-  const el = document.getElementById("leagueMessage");
-  clearTimeout(leagueMessageTimer);
-  el.textContent = text;
-  el.classList.toggle("success", success);
-  el.hidden = !text;
-  if (text && !sticky) leagueMessageTimer = setTimeout(() => { el.hidden = true; }, 10000);
+  if(sectionSaveQueue.has("league"))return;
+  const el=document.getElementById("leagueMessage");if(!el)return;
+  feedbackFor(el).show(text,{tone:success?"success":"info",progress:sticky&&!success,persistent:!success&&Boolean(text)&&!/(…|Updating|Opening|Disconnecting|Removing|Refreshing)/.test(text)});
 }
 
 const leagueRegionLabel = platformId => LEAGUE_REGIONS.find(([id]) => id === platformId)?.[1] || platformId;
@@ -1362,7 +1394,7 @@ function leagueForm() {
   for (const [id, label] of LEAGUE_REGIONS) { const option = element("option", "", label); option.value = id; option.selected = id === leagueDraft.platformId; region.append(option); }
   regionLabel.append(region);
 
-  const submit = element("button", "secondary connection-button", leagueBusy === "add" ? "Looking up…" : "Add League Account");
+  const submit = element("button", "secondary connection-button", leagueBusy === "add" ? "Looking up…" : "Save Changes");
   submit.type = "submit";
   submit.disabled = Boolean(leagueBusy);
   form.append(idRow, regionLabel, submit);
@@ -1407,7 +1439,7 @@ function leagueProfileView(profile) {
   frag.append(element("p", "connection-privacy", profile.is_public
     ? `${isGamidPublished() ? "Shown on your public GamID" : "Will appear on your public GamID once you publish it"}, marked PROTOTYPE / UNVERIFIED (data: ${LEAGUE_SOURCE_LABELS[profile.data_source] || "a third-party source"}). Your rank and stats appear there only while “Show ranks & stats on my GamID” (Game display) is ON. ${unverifiedNote}`
     : `Private — not shown on your public GamID. ${unverifiedNote}`));
-  frag.append(visibilitySwitch({ on: Boolean(profile.is_public), onChange: next => changeSectionVisibility("league", next, showLeagueMessage, loadLeague) }));
+  frag.append(visibilitySwitch({ on: Boolean(profile.is_public),settingKey:"league",section:"league", onChange: next => changeSectionVisibility("league", next, showLeagueMessage, loadLeague) }));
 
   try {
     const url = new URL(profile.source_url);
@@ -1752,17 +1784,6 @@ window.addEventListener("message", event => {
   if (event.data?.type === "gamid-intro-preview-error") setMessage("The selected Intro could not be previewed.");
 });
 
-for (const toggle of document.querySelectorAll(".section-toggle")) {
-  toggle.addEventListener("click", () => {
-    const opening = toggle.getAttribute("aria-expanded") !== "true";
-    for (const other of document.querySelectorAll(".section-toggle")) {
-      const panel = document.getElementById(other.getAttribute("aria-controls"));
-      const expanded = other === toggle && opening;
-      other.setAttribute("aria-expanded", String(expanded));
-      panel.hidden = !expanded;
-    }
-  });
-}
 document.getElementById("profileAvatarInput").addEventListener("change", event => {
   const file = event.target.files[0];
   avatarDiag("input-change", `hasFile=${Boolean(file)}`);
@@ -1826,80 +1847,86 @@ document.getElementById("applyAvatarCrop").addEventListener("click", async event
   finally { button.disabled = false; }
 });
 
-document.getElementById("profileForm").addEventListener("submit", async event => {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const draft = validateProfileDraft(profileDraft(), profileCatalogs());
-  if (!draft.valid) return setMessage(errorMessage(draft.reason));
-  if (!isProfileDirty()) return;
-  let saved = false;
-  const introChange = introDraft();
-  const introSource = pendingIntroSource;
-  busy(form, true); setMessage("");
-  try {
-    let avatarPath = null;
-    if (pendingAvatar) avatarPath = await api.uploadAvatar(pendingAvatar, api.userIdFromToken(), { attach: false });
-    const updated = await api.updateIdentityProfile({ ...draft, avatarPath });
-    if (introSource) {
-      let sourcePath;
-      try {
-        sourcePath = await api.uploadIntroSource(introSource.file, api.userIdFromToken(), introSource.jobId);
-        await api.queueIntro({
-          jobId:introSource.jobId, sourcePath, transitionKey:introChange.transitionKey,
-          sourceMime:introSource.file.type, sourceSize:introSource.file.size, durationMs:introSource.durationMs,
-        });
-      } catch (error) {
-        if (sourcePath) { try { await api.deleteIntroSource(sourcePath); } catch { /* Server cleanup remains possible for an orphan. */ } }
-        throw error;
-      }
-    } else if (introChange.action === "remove") await api.removeIntro();
-    else if (savedIntro?.transitionKey !== introChange.transitionKey) await api.setIntroTransition(introChange.transitionKey);
-    identity = { ...identity, ...updated };
-    savedProfile = {
-      displayName:updated.display_name, bio:updated.bio, avatarPath:updated.avatar_media_reference,
-      roleKeys:updated.role_keys || [], primaryRoleKey:updated.primary_role_key,
-      educationWorkStatus:updated.education_work_status, institution:updated.institution || "", fieldOfStudy:updated.field_of_study || "",
-    };
-    resetAvatarCropLifecycle("save-success");
-    await setPersistedAvatar(updated.avatar_media_reference, updated.display_name?.[0]?.toUpperCase() || "G");
-    document.getElementById("profileDisplayName").value = updated.display_name;
-    document.getElementById("profileBio").value = updated.bio;
-    [...document.querySelectorAll('input[name="gamingRole"]')].forEach(input => { input.checked = savedProfile.roleKeys.includes(input.value); });
-    syncPrimaryRole();
-    document.getElementById("primaryRoleSelect").value = savedProfile.primaryRoleKey || "";
-    document.getElementById("educationWorkStatus").value = savedProfile.educationWorkStatus || "";
-    document.getElementById("profileInstitution").value = savedProfile.institution;
-    document.getElementById("profileFieldOfStudy").value = savedProfile.fieldOfStudy;
-    syncEducationContext();
-    const intro=await api.getMyIntro();
-    await restoreIntroState(intro);
-    if (isProcessingIntroState(intro)) introStatusPoller.start();
-    updateProfilePreview();
-    saved = true;
-  } catch (error) { setMessage(errorMessage(reasonFrom(error) || error.message)); }
-  finally {
-    busy(form, false); updateProfilePreview();
-    if (saved) {
-      const confirmation = document.getElementById("saveConfirmation");
-      confirmation.hidden = false;
-      clearTimeout(saveConfirmationTimer);
-      saveConfirmationTimer = setTimeout(() => { confirmation.hidden = true; }, 2400);
-    }
+function refreshEditorSaves() {
+ if(!savedProfile)return;
+ const draft=profileDraft();
+ for(const [key,{panel}] of editor.sections){if(!['name','bio','roles','education'].includes(key))continue;if(panel.dataset.invalidDraft!==JSON.stringify(sectionDraft({},draft,key))&&validateProfileDraft(sectionDraft(savedProfile,draft,key),profileCatalogs()).valid){panel.querySelectorAll('[aria-invalid]').forEach(c=>{c.removeAttribute('aria-invalid');c.removeAttribute('aria-describedby');});panel.querySelector('.field-error')?.remove();delete panel.dataset.invalidDraft;}}
+ for(const [key,{button}] of editor.saves){
+  if(key==='league')button.closest('.section-save').hidden=!leagueProfile;
+  const changed=key==='avatar'?Boolean(pendingAvatar):key==='intro'?hasIntroChanges(savedIntro,introDraft(),Boolean(pendingIntroSource)):sectionChanged(savedProfile,draft,key);
+  const pending=[...stagedVisibility.values()].some(v=>v.section===key);
+  button.disabled=sectionSaveQueue.has(key)||!(changed||pending);
+  button.textContent=sectionSaveQueue.has(key)?'Saving…':'Save Changes';
+  editor.sections.get(key).card.dataset.dirty=String(changed||pending);
+ }
+ editor.sections.get('name').status.textContent=draft.displayName.trim()||'Add a display name';
+ editor.sections.get('bio').status.textContent=draft.bio?`${draft.bio.length}/160 characters`:'Add a short bio';
+ editor.sections.get('avatar').status.textContent=pendingAvatar?'Unsaved avatar':savedProfile.avatarPath?'Avatar saved':'No avatar yet';
+ editor.sections.get('share').status.textContent=`@${identity.gamid_handle} · Link and QR`;
+ editor.sections.get('preview').status.textContent=`Current draft · ${draft.displayName.trim()||'Your GamID'}`;
+ const language=document.querySelector('#languageForm select');editor.sections.get('language').status.textContent=language.selectedOptions[0]?.textContent||'Language and sign out';
+}
+function profileFromRow(updated){return {displayName:updated.display_name,bio:updated.bio,avatarPath:updated.avatar_media_reference,roleKeys:updated.role_keys||[],primaryRoleKey:updated.primary_role_key,educationWorkStatus:updated.education_work_status,institution:updated.institution||'',fieldOfStudy:updated.field_of_study||''};}
+async function saveEditorSection(key){
+ if(!identity||sectionSaveQueue.has(key))return;
+ const owner=api.userIdFromToken(),entity=identity.entity_id;
+ const section=editor.sections.get(key),controls=[...section.panel.querySelectorAll('input,select,textarea,button')];
+ const prior=controls.map(c=>c.disabled);controls.forEach(c=>c.disabled=true);section.card.setAttribute('aria-busy','true');
+ const snapshot=profileDraft(),introChange=introDraft(),source=pendingIntroSource,avatar=pendingAvatar;
+ reportSection(key,'Saving…',false,true);
+ try{await sectionSaveQueue.run(key,async()=>{
+  if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
+  if(key==='intro'){
+   if(source){let sourcePath;try{sourcePath=await api.uploadIntroSource(source.file,owner,source.jobId);if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error("AUTH_REQUIRED");await api.queueIntro({jobId:source.jobId,sourcePath,transitionKey:introChange.transitionKey,sourceMime:source.file.type,sourceSize:source.file.size,durationMs:source.durationMs});}catch(error){if (sourcePath) {try{await api.deleteIntroSource(sourcePath);}catch{/* Existing server cleanup remains available. */}}throw error;}}
+   else if(introChange.action==='remove')await api.removeIntro();
+   else if(savedIntro?.transitionKey!==introChange.transitionKey)await api.setIntroTransition(introChange.transitionKey);
+   if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
+   const intro=await api.getMyIntro();if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');await restoreIntroState(intro);if(isProcessingIntroState(intro))introStatusPoller.start();
+  }else if(['name','bio','avatar','roles','education'].includes(key)){
+   const latest=await api.getIdentityProfile();if(owner!==api.userIdFromToken()||entity!==identity?.entity_id||latest?.entity_id!==entity)throw Error('AUTH_REQUIRED');
+   savedProfile=profileFromRow(latest);
+   const draft=validateProfileDraft(sectionDraft(savedProfile,snapshot,key),profileCatalogs());
+   if(!draft.valid)throw Error(draft.reason);
+   let avatarPath=null;if(key==='avatar'&&avatar)avatarPath=await api.uploadAvatar(avatar,owner,{attach:false});
+   if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error("AUTH_REQUIRED");
+   const updated=await api.updateIdentityProfile({...draft,avatarPath});
+   if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
+   identity={...identity,...updated};savedProfile=profileFromRow(updated);
+   // Never rewrite other section inputs or clear another section's pending media.
+   if(key==='name')document.getElementById('profileDisplayName').value=updated.display_name;
+   if(key==='bio')document.getElementById('profileBio').value=updated.bio;
+   if(key==='education'){document.getElementById('educationWorkStatus').value=updated.education_work_status||'';document.getElementById('profileInstitution').value=updated.institution||'';document.getElementById('profileFieldOfStudy').value=updated.field_of_study||'';syncEducationContext();}
+   if(key==='roles'){document.querySelectorAll('input[name=gamingRole]').forEach(input=>input.checked=(updated.role_keys||[]).includes(input.value));syncPrimaryRole();document.getElementById('primaryRoleSelect').value=updated.primary_role_key||'';}
+   if(key==='avatar'){resetAvatarCropLifecycle('save-success');await setPersistedAvatar(updated.avatar_media_reference,updated.display_name?.[0]?.toUpperCase()||'G');}
   }
-});
-
+  for(const [id,entry] of [...stagedVisibility])if(entry.section===key){if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');await entry.commit(entry.value);if(stagedVisibility.get(id)===entry)stagedVisibility.delete(id);}
+ });reportSection(key,'Saved ✓',true);
+ }catch(error){
+ const text=errorMessage(reasonFrom(error)||error.message);reportSection(key,text);
+ const selector={INVALID_DISPLAY_NAME:'#profileDisplayName',BIO_TOO_LONG:'#profileBio',INSTITUTION_TOO_LONG:'#profileInstitution',FIELD_OF_STUDY_TOO_LONG:'#profileFieldOfStudy',INVALID_EDUCATION_WORK_STATUS:'#educationWorkStatus'}[reasonFrom(error)];
+ const field=selector?section.panel.querySelector(selector):section.panel.querySelector('input:not([type=file]),textarea,select');
+ if(field&&['name','bio','roles','education'].includes(key)&&['INVALID_DISPLAY_NAME','BIO_TOO_LONG','INSTITUTION_TOO_LONG','FIELD_OF_STUDY_TOO_LONG','INVALID_EDUCATION_WORK_STATUS','DUPLICATE_GAMING_ROLE','PRIMARY_ROLE_WITHOUT_ROLES','INVALID_PRIMARY_ROLE','INVALID_GAMING_ROLE'].includes(reasonFrom(error))){section.panel.dataset.invalidDraft=JSON.stringify(sectionDraft({},snapshot,key));field.setAttribute('aria-invalid','true');let hint=section.panel.querySelector('.field-error');if(!hint){hint=document.createElement('p');hint.className='field-error';hint.id='editor-field-error-'+key;hint.setAttribute('role','alert');field.after(hint);}hint.textContent=text;field.setAttribute('aria-describedby',hint.id);}
+ }
+ finally{controls.forEach((c,i)=>{if(c.isConnected)c.disabled=prior[i];});section.card.removeAttribute('aria-busy');updateProfilePreview();}
+}
+for(const [key,{button}] of editor.saves)button.addEventListener('click',()=>saveEditorSection(key));
+document.getElementById('profileForm').addEventListener('submit',event=>{event.preventDefault();const key=document.activeElement?.closest('[data-editor-section]')?.dataset.editorSection;if(key&&editor.saves.has(key))saveEditorSection(key);});
+// Same-tab links and provider redirects must not silently lose other section drafts.
+document.addEventListener('click',event=>{const link=event.target.closest('a[href]');if(identity&&link&&!event.defaultPrevented&&isProfileDirty()&&!window.confirm('Leave this page and discard your unsaved changes?'))event.preventDefault();});
+document.querySelector("#languageForm select").addEventListener("change",refreshEditorSaves);
+const languageFeedback=document.createElement("p");languageFeedback.className="connections-message";languageFeedback.setAttribute("role","status");languageFeedback.hidden=true;document.getElementById("languageForm").append(languageFeedback);
 document.getElementById("languageForm").addEventListener("submit", async event => {
-  event.preventDefault(); const form = event.currentTarget; const language = new FormData(form).get("language"); busy(form, true);
-  try { await api.updateLanguage(language); setMessage("Language preference saved.", true); }
-  catch (error) { setMessage(error.message); }
-  finally { busy(form, false); }
+  event.preventDefault();if(languageSaving||!identity)return;languageSaving=true;const owner=api.userIdFromToken(); const form = event.currentTarget; const language = new FormData(form).get("language"); busy(form, true);
+  try { await api.updateLanguage(language);if(owner!==api.userIdFromToken())throw Error("AUTH_REQUIRED"); savedLanguage=language; feedbackFor(languageFeedback).show("Language preference saved.",{tone:"success"}); }
+  catch (error) { feedbackFor(languageFeedback).show(error.message,{tone:"error",persistent:true}); }
+  finally { languageSaving=false;busy(form, false); }
 });
 
 document.getElementById("signOutButton").addEventListener("click", async () => {
   if (isProfileDirty() && !window.confirm("Discard your unsaved profile changes and sign out?")) return;
   stopIntroPreview(); introSource.invalidate();
   try { await api.signOut(); }
-  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; stopCrewRealtime?.(); stopCrewRealtime = null; crewPanel = null; introStatusPoller.stop(); releasePendingIntro(); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; showView("auth"); document.getElementById("signinTab").click(); }
+  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; stopCrewRealtime?.(); stopCrewRealtime = null; crewPanel = null; introStatusPoller.stop(); releasePendingIntro(); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; stagedVisibility.clear(); actionDrafts.clear(); savedLanguage=null; showView("auth"); document.getElementById("signinTab").click(); }
 });
 window.addEventListener("beforeunload", event => {
   if (!isProfileDirty()) return;
