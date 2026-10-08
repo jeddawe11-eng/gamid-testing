@@ -4,7 +4,7 @@
 
 This file is an index and a continuation pointer. It is **not** an authoritative source. Every fact here points to the source that owns it, and **that source wins** whenever the two disagree.
 
-Last reviewed: 2026-10-07.
+Last reviewed: 2026-10-08.
 
 ## 1. Mandatory entry order
 
@@ -38,11 +38,11 @@ Conversation memory is helpful context, but it is **not** an authoritative proje
 
 ## 4. Current product checkpoint
 
-Snapshot from 2026-10-07; verify with `git status -sb` and `git log -1`.
+Snapshot from 2026-10-08; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Intro product implementation commit:** 6e2cbdae9d61f106de806f2d42b99c8209299867, Intro 30-second boundary tolerance, manual acceptance pending (docs/INTRO-DURATION-TOLERANCE.md; PROJECT_HANDOFF.md §18). Cloudflare migration remains ACCEPTED; Pages retirement remains complete. Deployment checkpoint 1517eb179e0fcc5a8c01644c4922efd2d4591c90 includes portable validation/docs; application and worker bytes are unchanged from the implementation. Subsequent continuation commits are documentation/state only; verify with Git.
+- **Latest product correction:** 3f72eb23ef483ca29b9076715ec76ab311dcbcfe, isolated Intro D3 frame-timing validation fix. Locally validated and pushed; TESTING worker rollout/live READY verification blocked on human Cloud Shell CAPTCHA (docs/INTRO-DURATION-TOLERANCE.md; PROJECT_HANDOFF.md §19). Original duration implementation 6e2cbda / deployed source 1517eb1 remains on TESTING; manual boundary acceptance failed and awaits the correction/retest. Cloudflare migration remains ACCEPTED; Pages retirement remains complete. Subsequent commits are continuation documentation only; verify with Git.
   - F5 product 4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59 remains **manually ACCEPTED by Mazen** (2026-10-07); its Intro delivery is unchanged.
   - F2 product 04877c20d213f0105fbdc2871146248194eaf773 remains manually ACCEPTED by Mazen (2026-10-07); its worker/derivative policy is unchanged.
   - F3 `3b9d8b1c27fb0c9b3fa6fd0c2ee682dab7618906` remains **manually ACCEPTED by Mazen**; its viewport gating is preserved (`docs/WALL-VIDEO-VIEWPORT-F3.md`).
@@ -87,7 +87,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Current stop point:** Intro 30-second boundary tolerance at 6e2cbdae9d61f106de806f2d42b99c8209299867 is implemented, manual acceptance pending. TESTING database, worker and frontend rollout are complete and verified. Current deployment/acceptance record: docs/INTRO-DURATION-TOLERANCE.md and PROJECT_HANDOFF.md §18. STOP for Mazen's manual boundary acceptance; no Android MP4 Wall Asset task or other optimization authorized. Cloudflare remains the sole active TESTING frontend; migration and F2/F3/F4/F5 remain ACCEPTED.
+**Current stop point:** Resume only the isolated Intro D3 correction at 3f72eb23ef483ca29b9076715ec76ab311dcbcfe after the human Cloud Shell CAPTCHA. Worker deployment and dedicated synthetic READY verification remain unfinished; exact resume and validation are in docs/INTRO-DURATION-TOLERANCE.md / PROJECT_HANDOFF.md §19. Do not repeat the duration migration or completed investigation/tests. Manual acceptance is pending retest after deployment; no Android MP4 Wall Asset task or other optimization authorized. F2/F3/F4/F5 and the sole Cloudflare frontend remain ACCEPTED.
 
 **Previously outstanding continuation (not performed in F2/F3/F4):**
 1. **Remaining manual acceptance checks for global-usage.** Core accounting PASS; remaining checks are listed in `PROJECT_HANDOFF.md` §10. This capability remains PENDING_ACCEPTANCE in Truth.

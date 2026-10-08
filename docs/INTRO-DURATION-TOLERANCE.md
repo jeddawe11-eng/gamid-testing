@@ -2,7 +2,7 @@
 
 Product checkpoint: 6e2cbdae9d61f106de806f2d42b99c8209299867.
 Branch: feature/play-together-notifications. Base: 5d40853a9f6358098640576f9a6c19583920be79.
-Status: deployed and verified on TESTING. Database, worker and frontend checks PASS. Manual acceptance remains PENDING; do not mark ACCEPTED before Mazen approves.
+Status: original duration rollout deployed and verified; Android manual acceptance FAILED with D3_TIMING_OR_GEOMETRY_MISMATCH. The isolated frame-timing correction is locally validated and pushed, but its worker rollout/live READY check is blocked by a human Cloud Shell CAPTCHA. Do not mark ACCEPTED.
 
 ## End-to-end investigation and smallest change
 
@@ -41,3 +41,26 @@ Do not mark manually accepted until Mazen approves. Restore the previous worker 
 - Historical deployment interruption is resolved: the human completed standalone Cloud Shell authentication. The first prepared command stopped at its exact-checkpoint guard when a newer docs commit was cloned; no build ran from that attempt. The successful rollout explicitly pinned 1517eb1. Log ingestion briefly lagged the successful synthetic execution; its existing logs were read again, without rerunning the job.
 
 Current continuation: STOP for Mazen's duration-boundary manual acceptance. No Android MP4 Wall Asset task, F6/F7, Monitor work, Production access or main merge.
+
+## Android D3 failure investigation and correction — 2026-10-08
+
+Base documentation HEAD 6c4168382d8117cbf7e084b8d51309a9e35f93ed. Correction product checkpoint 3f72eb23ef483ca29b9076715ec76ab311dcbcfe, feature/play-together-notifications.
+
+Exact failed attempts: 06824201-9c33-4643-a13c-2bb33a38ecd8 (2026-10-07 13:08:16Z) and 9c7ef884-9ab8-4e84-84a5-e0a7451ede10 (13:13:07Z). Each has source_duration_ms=30338 and source_size_bytes=5952891. Read-only Cloud Run logs show failure at intro-worker.mjs:51, the dimensions/average-FPS/duration comparison, not the duration gate or subsequent aspect-ratio check. Pre-fix logs did not contain source/output measurements; failed rows have no output metadata.
+
+The retained latest source was downloaded once through the authenticated TESTING dashboard for isolated local reproduction, without changing stored media or the failed jobs. Local exact-source reproduction rejected with the same error on the deployed code. Measured source: H.264/AAC MP4, 848x360, 30.338 s, 909 video packets/frames, avg_frame_rate=454500/15169 (29.9624233634 fps), r_frame_rate=30/1. D3 output: VP9/Opus WebM, 848x360, 30.343 s, 909 frames, reported average/nominal FPS=30. Source/output normalized video presentation timestamps differ by at most 4 ms. Output is 733037 bytes. The FPS metadata difference 0.0375766 exceeds the old 0.02 comparison even though actual frames/timing are preserved.
+
+Root cause is a pre-existing container average-vs-nominal FPS comparison, exposed when this 30.338-second upload passed the new duration gate. It is not a 31-second derivative ceiling conflict or an Android-only code path. No encoder flags, codec, scaling, audio, F2/F5, UI, duration/size ceiling, database function or Storage policy change is required.
+
+Small fix: normal matching-FPS path stays unchanged. Only when average FPS differs by more than 0.02, ffprobe reads bounded video packet presentation timestamps from source and output. It requires equal nonzero frame counts, finite strictly increasing presentation times and per-frame normalized timing within half a nominal source frame plus one millisecond (existing encoder time-base rounding/WebM precision). Dropped/added frames, drift, unreadable timing and mismatched geometry/duration/aspect still reject. Structured metadata-only diagnostics make this fallback inspectable; no paths, signed URLs or secrets are logged.
+
+Validation: exact-source local D3 now passes; generated tiny fractional-timing fixture reproduces the old rejection and passes new validation. Focused timing/boundary/F2 suites passed; explicit native F2 geometry/audio/rotation/SAR/alpha-input suite 11/11 PASS. Final full build: 1673 tests, 1672 PASS, one existing opt-in skip, zero failures; lint/typecheck/typecheck:voice PASS. Final focused timing fixture safeguards 5/5 PASS. A final Docker/allowlist packaging assertion was added and passed after the full build. No real media was uploaded, activated or reprocessed on the backend.
+
+### Exact unfinished continuation
+
+1. Complete the human CAPTCHA in the existing standalone TESTING Cloud Shell tab. The dashboard Logs Explorer was accessible for the read-only diagnosis, but the Cloud Shell CLI is not yet accessible. Do not bypass CAPTCHA or assume deployment occurred.
+2. Run worker/cloud-run/deploy-intro-duration-testing.sh with exact published checkpoint 3f72eb23ef483ca29b9076715ec76ab311dcbcfe. Its expected worker hash is derived from the pinned checkout; verify image-only change and unchanged F2 smoke hash as usual. Do not repeat the already-applied duration migration. No frontend rollout is required for this worker-only correction; live frontend remains 1517eb1.
+3. Execute the TESTING job once with per-execution arguments node,intro-worker.mjs,intro-timing-smoke (if the current job command is empty; inspect it first). This explicit TESTING-only command creates a dedicated disposable synthetic identity and a tiny source, uses normal authenticated gateway upload/queue, and lets the existing dispatcher process that job. It NEVER claims a pending job itself, does not use a real identity and does not invoke unrelated quota/media smoke checks. It verifies exact fixture job association and latest/active READY. Successful fixtures are cleaned up; an uncertain/timed-out queued fixture is retained for diagnosis instead of deleting underneath a running worker. Inspect the existing execution and fixture if an execution fails; do not blindly rerun or delete another job.
+4. Record actual build/image/execution and live READY evidence, update continuation docs, commit/push docs and verify clean remote state. Manual acceptance remains PENDING until Mazen retries the same Android source and confirms READY plus normal Preview/replay/audio/reveal. Do not claim live READY until verified.
+
+Prepared fixture support: worker/intro-timing-smoke.mjs, explicit worker test command, Docker/Cloud Build allowlist inclusion, syntax check and focused safeguards. This fixture has NOT run on TESTING yet. Product changes are only worker validation and test/deployment support. GamID Truth: NO CHANGE REQUIRED (ordinary correction preserves approved frame timing, 30/31-second, F2 and F5 contracts).
