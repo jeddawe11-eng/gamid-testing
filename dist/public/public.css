@@ -142,3 +142,20 @@ html.is-public-wall .public-shell .replay-button{grid-area:2/1;justify-self:star
 .identity-skip[hidden]{display:none}
 .identity-back:hover,.identity-back:focus-visible,.identity-skip:hover,.identity-skip:focus-visible{border-color:var(--cyan);outline:none}
 .identity-back-arrow,.identity-skip-arrow{font-size:1.2rem;line-height:1}
+/* My Socials on the public profile (account/socials.js renderPublicSocials): the owner's own accounts as one row of round, labelled icon links (44px targets) */
+.public-socials{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.25rem}
+.public-socials[hidden]{display:none}
+.public-social{display:inline-grid;place-items:center;min-width:44px;aspect-ratio:1;border-radius:50%;text-decoration:none}
+.public-social:focus-visible{outline:2px solid #62e7ff;outline-offset:2px}
+.public-social .social-icon{display:inline-grid;place-items:center;width:2.75rem;aspect-ratio:1;border-radius:50%;background:#2b2738;color:#fff;font:900 .82rem/1 system-ui,sans-serif;letter-spacing:-.02em}
+.public-social .social-icon[data-platform=instagram]{background:linear-gradient(45deg,#f58529,#dd2a7b,#8134af)}
+.public-social .social-icon[data-platform=tiktok]{background:#000;box-shadow:inset 0 0 0 2px #25f4ee}
+.public-social .social-icon[data-platform=youtube]{background:#ff0000}
+.public-social .social-icon[data-platform=twitch]{background:#9146ff}
+.public-social .social-icon[data-platform=kick]{background:#53fc18;color:#000}
+.public-social .social-icon[data-platform=x],.public-social .social-icon[data-platform=threads]{background:#000;box-shadow:inset 0 0 0 1px #5a5470}
+.public-social .social-icon[data-platform=snapchat]{background:#fffc00;color:#000}
+.public-social .social-icon[data-platform=discord]{background:#5865f2}
+.public-social .social-icon[data-platform=facebook]{background:#1877f2;font-size:1.1rem}
+.public-social .social-icon[data-platform=reddit]{background:#ff4500}
+.public-social .social-icon[data-platform=linkedin]{background:#0a66c2}

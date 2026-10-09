@@ -20,7 +20,7 @@ test('five-second feedback resets on new messages; actionable errors persist',()
  let current,delay,cleared=0;const el={hidden:true,classList:{toggle(){}},textContent:''};const timers={setTimeout(fn,ms){current=fn;delay=ms;return 1;},clearTimeout(){cleared++;}};const feedback=createTransientMessage(el,{timers,durationMs:5000});feedback.show('saved',{tone:'success'});assert.equal(delay,5000);feedback.show('new',{tone:'info'});assert.ok(cleared);assert.equal(el.textContent,'new');current();assert.equal(el.hidden,true);feedback.show('retry',{tone:'error'});assert.equal(feedback.pending,false);assert.equal(el.hidden,false);
 });
 test('all existing editor sections and independent panels are covered; no exclusive accordion',()=>{
- const view=readFileSync(new URL('../dist/account/profile-editor.js',import.meta.url),'utf8');for(const key of ['avatar','name','bio','intro','roles','education','connections','games','game-display','league','duo','crew','language','preview','share','play','wall'])assert.ok(view.includes(`'${key}'`),key);assert.ok(view.includes("panel.hidden=!open"));assert.doesNotMatch(view,/other === toggle/);
+ const view=readFileSync(new URL('../dist/account/profile-editor.js',import.meta.url),'utf8');for(const key of ['avatar','name','bio','intro','roles','education','connections','games','game-display','league','duo','crew','socials','preview','share','play','wall'])assert.ok(view.includes(`'${key}'`),key);assert.doesNotMatch(view,/'Account Settings'/,'Account Settings is the ⋯ menu, not a section');assert.ok(view.includes("panel.hidden=!open"));assert.doesNotMatch(view,/other === toggle/);
  const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.ok(source.includes('sectionSaveQueue.run'));assert.ok(source.includes('sectionDraft(savedProfile,snapshot,key)'));assert.ok(source.includes('beforeunload'));assert.ok(source.includes('Leave this page'));assert.ok(source.includes("owner!==api.userIdFromToken()"));assert.doesNotMatch(source,/saveConfirmationTimer/);
 });
 
@@ -66,7 +66,7 @@ test('retired feedback releases observers and ignores stale timeout/show/hide ca
  try{const old=createTransientMessage(el,{durationMs:5000,timers:{setTimeout(fn){oldTimeout=fn;return 1;},clearTimeout(){}}});old.show('Old',{tone:'success'});const current=createTransientMessage(el,{durationMs:5000,timers:{setTimeout(){return 2;},clearTimeout(){}}});current.show('Current',{tone:'success'});oldTimeout();old.show('Old outcome',{tone:'error'});old.hide();assert.equal(el.textContent,'Current');assert.equal(el.hidden,false);assert.equal(released,2);assert.equal(removed,1);current.dispose();assert.equal(released,4);}finally{Object.assign(globalThis,originals);}
 });
 test('section and language save outcomes cannot report into a different authenticated owner',()=>{
- const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.ok(source.includes("if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken()&&entity===identity?.entity_id)reportSection(key,'Saved"));assert.ok(source.includes("if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)return;"));assert.ok(source.includes('if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken())feedbackFor(languageFeedback)'));assert.ok(source.includes('for(const feedback of sectionFeedback.values())feedback.hide();'));
+ const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.ok(source.includes("if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken()&&entity===identity?.entity_id){reportSection(key,'Saved"));assert.ok(source.includes("if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)return false;"));assert.ok(source.includes('if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken())feedbackFor(languageFeedback)'));assert.ok(source.includes('for(const feedback of sectionFeedback.values())feedback.hide();'));
 });
 
 test('explicitly transient errors, warnings and information each receive five visible seconds',()=>{
@@ -74,7 +74,7 @@ test('explicitly transient errors, warnings and information each receive five vi
 });
 
 test('same-account re-sign-in invalidates save feedback from the previous editor lifecycle',()=>{
- const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.match(source,/async function showIdentity\(data\) \{\s*profileFeedbackEpoch\+\+/);assert.ok(source.includes('if(epoch!==profileFeedbackEpoch)return;'));assert.ok(source.includes('epoch=profileFeedbackEpoch'));assert.ok(source.includes('if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken()&&entity===identity?.entity_id)reportSection'));
+ const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.match(source,/async function showIdentity\(data\) \{\s*profileFeedbackEpoch\+\+/);assert.ok(source.includes('if(epoch!==profileFeedbackEpoch)return false;'));assert.ok(source.includes('epoch=profileFeedbackEpoch'));assert.ok(source.includes('if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken()&&entity===identity?.entity_id){reportSection'));
 });
 
 
@@ -93,7 +93,7 @@ test('a field-validation save error expires after five seconds below Save Change
  // the wiring: only a recognised field-validation failure (the case that also writes the inline .field-error) is reported non-persistent
  const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');
  assert.ok(source.includes('function reportSection(key,text,success=false,progress=false,persistent=!success&&!progress)'));
- assert.ok(source.includes("reportSection(key,text,false,false,!fieldValidation);\n if(['avatar','intro'].includes(key))showUploadError(key,uploadErrorFrom(error,text));\n if(fieldValidation){section.panel.dataset.validationMessage=text;"),'the same condition drives the transient notice and the inline error');
+ assert.ok(source.includes("reportSection(key,text,false,false,!fieldValidation);\n if(['avatar','intro'].includes(key))showUploadError(key,uploadErrorFrom(error,text));\n if(socialCode&&!error?.socialValidation)socialsEditor.showError(-1,socialCode);\n if(fieldValidation){section.panel.dataset.validationMessage=text;"),'the same condition drives the transient notice and the inline error');
  assert.ok(source.includes("const fieldValidation=Boolean(field&&['name','bio','roles','education'].includes(key)&&['INVALID_DISPLAY_NAME'"));
  assert.doesNotMatch(source,/const text=errorMessage\(reasonFrom\(error\)\|\|error\.message\);reportSection\(key,text\);/,'no unconditional persistent error report remains');
  assert.ok(source.includes("hint.className='field-error'"),'the inline field error is still created and only removed once the field is valid');
@@ -103,5 +103,5 @@ test('saved message has one CSS success icon and no duplicate textual checkmark'
 });
 test('Account menu moves the existing sign-out button and keeps one secure handler',()=>{
  const html=readFileSync(new URL('../dist/account/index.html',import.meta.url),'utf8');assert.match(html,/id="accountMenu"[^>]*hidden/);assert.ok(html.includes('aria-label="Account menu"'));assert.equal((html.match(/id="signOutButton"/g)||[]).length,1);
- const layout=readFileSync(new URL('../dist/account/profile-editor.js',import.meta.url),'utf8');assert.ok(layout.includes("getElementById('accountMenuActions').append(signOut)"));const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.equal((source.match(/await api.signOut\(\)/g)||[]).length,1);assert.ok(source.includes('event.key==="Escape"'));assert.ok(source.includes('window.addEventListener(api.AUTH_SESSION_EVENT,syncAccountMenu)'));assert.ok(source.includes('accountMenu.hidden=!api.userIdFromToken()'));
+ const layout=readFileSync(new URL('../dist/account/profile-editor.js',import.meta.url),'utf8');assert.ok(layout.includes("menu=doc.getElementById('accountMenuActions')")&&layout.includes("menu.append(signOut)"));const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.equal((source.match(/await api.signOut\(\)/g)||[]).length,1);assert.ok(source.includes('event.key==="Escape"'));assert.ok(source.includes('window.addEventListener(api.AUTH_SESSION_EVENT,syncAccountMenu)'));assert.ok(source.includes('accountMenu.hidden=!api.userIdFromToken()'));
 });

@@ -8,6 +8,7 @@ import { createIntroSourceResolver } from "./intro-source.js";
 import { authenticatedReturnPath } from "./testing-auth-handoff.js";
 import { createOwnedUploadBlob } from "./resumable-upload.js";
 import { renderUploadError } from "../app/upload-feedback.js";
+import { createSocialsEditor, validateSocialLinks, SOCIAL_ERROR_MESSAGES } from "./socials.js";
 import { IntroStatusPoller, isProcessingIntroState } from "./intro-status-poller.js";
 import { buildGameLibrary } from "./game-list.js";
 import { attachGameProfile, indexGameProfiles, profileForGame } from "./game-profile.js";
@@ -34,6 +35,14 @@ let savedProfile = null;
 let pendingAvatar = null;
 const editor = mountProfileEditor(document);
 const sectionSaveQueue = createSectionSaveQueue();
+// My Socials: a draft list edited in its own section; saved by its Save Changes / Save All Changes. Until the owner's saved list has loaded, nothing can be
+// saved (a failed load must never let an empty draft replace the real list).
+const socialsEditor = createSocialsEditor(document, { onChange: () => refreshEditorSaves() });
+document.getElementById("socialsSlot").append(socialsEditor.element);
+let socialsLoaded = false, socialsCount = 0;
+// Save All Changes (end of the editor): saves every section that has something to save, through each section's own save path
+const saveAllButton = document.getElementById("saveAllButton"), saveAllFeedback = document.getElementById("saveAllFeedback");
+let savingAll = false;
 const sectionFeedback = new Map();
 let profileFeedbackEpoch = 0;
 const stagedVisibility = new Map();
@@ -238,7 +247,7 @@ function syncEducationContext() {
 function isProfileDirty() {
   if(!identity)return false;
   return sectionSaveQueue.busy || actionDraftsDirty() || Boolean(savedProfile && (hasProfileChanges(savedProfile, profileDraft(), Boolean(pendingAvatar))
-    || hasIntroChanges(savedIntro, introDraft(), Boolean(pendingIntroSource)) || stagedVisibility.size>0 || (savedLanguage!==null && document.querySelector("#languageForm select").value!==savedLanguage)));
+    || hasIntroChanges(savedIntro, introDraft(), Boolean(pendingIntroSource)) || stagedVisibility.size>0 || (socialsLoaded && socialsEditor.isDirty()) || (savedLanguage!==null && document.querySelector("#languageForm select").value!==savedLanguage)));
 }
 
 function renderIntroState() {
@@ -458,6 +467,7 @@ async function showIdentity(data) {
   if (isProcessingIntroState(intro)) introStatusPoller.start();
   updateProfilePreview();
   await loadSectionVisibility();
+  await loadSocials();
   stagedVisibility.clear();
   actionDrafts.clear();
   savedLanguage=document.querySelector("#languageForm select").value;
@@ -469,6 +479,19 @@ async function showIdentity(data) {
   // My Duo fills in on its own (the panel shows its loading line until then); #my-duo (a notification destination) focuses it
   loadDuo().then(() => { if (location.hash === "#my-duo") openNotificationDestination("account.my_duo"); });
   loadCrew().then(() => { if (location.hash === "#my-crew") openNotificationDestination("account.my_crew"); });
+}
+
+async function loadSocials() {
+  socialsLoaded = false;
+  const epoch = profileFeedbackEpoch, owner = api.userIdFromToken();
+  try {
+    const rows = await api.getMySocialLinks();
+    if (epoch !== profileFeedbackEpoch || owner !== api.userIdFromToken()) return;
+    socialsEditor.setSaved(rows); socialsCount = rows.length; socialsLoaded = true;
+  } catch {
+    if (epoch === profileFeedbackEpoch) { socialsEditor.setSaved([]); socialsCount = -1; }
+  }
+  refreshEditorSaves();
 }
 
 function permanentGamidUrl() {
@@ -1892,7 +1915,7 @@ function refreshEditorSaves() {
  for(const [key,{panel}] of editor.sections){if(!['name','bio','roles','education'].includes(key))continue;if(panel.dataset.invalidDraft&&panel.dataset.invalidDraft!==JSON.stringify(sectionDraft({},draft,key))&&validateProfileDraft(sectionDraft(savedProfile,draft,key),profileCatalogs()).valid){panel.querySelectorAll('[aria-invalid]').forEach(c=>{c.removeAttribute('aria-invalid');c.removeAttribute('aria-describedby');});panel.querySelector('.field-error')?.remove();const feedback=editor.saves.get(key)?.feedback;if(feedback&&panel.dataset.validationMessage===feedback.textContent)feedbackFor(feedback).hide();delete panel.dataset.validationMessage;delete panel.dataset.invalidDraft;}}
  for(const [key,{button}] of editor.saves){
   if(key==='league')button.closest('.section-save').hidden=!leagueProfile;
-  const changed=key==='avatar'?Boolean(pendingAvatar):key==='intro'?hasIntroChanges(savedIntro,introDraft(),Boolean(pendingIntroSource)):sectionChanged(savedProfile,draft,key);
+  const changed=key==='avatar'?Boolean(pendingAvatar):key==='intro'?hasIntroChanges(savedIntro,introDraft(),Boolean(pendingIntroSource)):key==='socials'?socialsLoaded&&socialsEditor.isDirty():sectionChanged(savedProfile,draft,key);
   const pending=[...stagedVisibility.values()].some(v=>v.section===key);
   button.disabled=sectionSaveQueue.has(key)||!(changed||pending);
   button.textContent=sectionSaveQueue.has(key)?'Saving…':'Save Changes';
@@ -1903,15 +1926,18 @@ function refreshEditorSaves() {
  editor.sections.get('avatar').status.textContent=pendingAvatar?'Unsaved avatar':savedProfile.avatarPath?'Avatar saved':'No avatar yet';
  editor.sections.get('share').status.textContent=`@${identity.gamid_handle} · Link and QR`;
  editor.sections.get('preview').status.textContent=`Current draft · ${draft.displayName.trim()||'Your GamID'}`;
- const language=document.querySelector('#languageForm select');editor.sections.get('language').status.textContent=language.selectedOptions[0]?.textContent||'Language preference';
+ editor.sections.get('socials').status.textContent=socialsCount<0?'Could not load your social accounts. Reload to try again.':socialsEditor.isDirty()?'Unsaved changes':socialsCount?`${socialsCount} account${socialsCount===1?'':'s'}`:'Add your social accounts';
+ // Save All Changes: available whenever at least one section has something to save, never while it is already running
+ saveAllButton.disabled=savingAll||![...editor.saves.values()].some(save=>!save.button.disabled);
 }
 function profileFromRow(updated){return {displayName:updated.display_name,bio:updated.bio,avatarPath:updated.avatar_media_reference,roleKeys:updated.role_keys||[],primaryRoleKey:updated.primary_role_key,educationWorkStatus:updated.education_work_status,institution:updated.institution||'',fieldOfStudy:updated.field_of_study||''};}
+// -> true when this section's changes were saved, false otherwise (Save All Changes reports per section from this).
 async function saveEditorSection(key){
- if(!identity||sectionSaveQueue.has(key))return;
+ if(!identity||sectionSaveQueue.has(key))return false;
  const owner=api.userIdFromToken(),entity=identity.entity_id,epoch=profileFeedbackEpoch;
  const section=editor.sections.get(key),controls=[...section.panel.querySelectorAll('input,select,textarea,button')];
  const prior=controls.map(c=>c.disabled);controls.forEach(c=>c.disabled=true);section.card.setAttribute('aria-busy','true');
- const snapshot=profileDraft(),introChange=introDraft(),source=pendingIntroSource,avatar=pendingAvatar;
+ const snapshot=profileDraft(),introChange=introDraft(),source=pendingIntroSource,avatar=pendingAvatar,socials=socialsEditor.draft();
  reportSection(key,'Saving…',false,true);
  try{await sectionSaveQueue.run(key,async()=>{
   if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
@@ -1944,33 +1970,73 @@ async function saveEditorSection(key){
    if(key==='education'){document.getElementById('educationWorkStatus').value=updated.education_work_status||'';document.getElementById('profileInstitution').value=updated.institution||'';document.getElementById('profileFieldOfStudy').value=updated.field_of_study||'';syncEducationContext();}
    if(key==='roles'){document.querySelectorAll('input[name=gamingRole]').forEach(input=>input.checked=(updated.role_keys||[]).includes(input.value));syncPrimaryRole();document.getElementById('primaryRoleSelect').value=updated.primary_role_key||'';}
    if(key==='avatar'){resetAvatarCropLifecycle('save-success');await setPersistedAvatar(updated.avatar_media_reference,updated.display_name?.[0]?.toUpperCase()||'G');}
+  }else if(key==='socials'){
+   // the whole list is replaced in one server call (validated again there, all or nothing); a refused row is marked inline and nothing is written
+   if(!socialsLoaded)throw Error('SOCIALS_NOT_LOADED');
+   const check=validateSocialLinks(socials);
+   if(!check.ok){socialsEditor.showError(check.index,check.code);throw Object.assign(Error(check.code),{socialValidation:true});}
+   const rows=await api.setMySocialLinks(check.links);
+   if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
+   socialsEditor.setSaved(rows);socialsCount=rows.length;
   }
   for(const [id,entry] of [...stagedVisibility])if(entry.section===key){if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');await entry.commit(entry.value);if(stagedVisibility.get(id)===entry)stagedVisibility.delete(id);}
- });if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken()&&entity===identity?.entity_id)reportSection(key,'Saved successfully',true);
+ });if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken()&&entity===identity?.entity_id){reportSection(key,'Saved successfully',true);return true;}
+ return false;
  }catch(error){
- if(epoch!==profileFeedbackEpoch)return;
- if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)return;
- const text=errorMessage(reasonFrom(error)||error.message);
+ if(epoch!==profileFeedbackEpoch)return false;
+ if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)return false;
+ const socialCode=key==='socials'?Object.keys(SOCIAL_ERROR_MESSAGES).find(code=>error?.code===code||String(error?.message||'').includes(code)):null;
+ const text=socialCode?SOCIAL_ERROR_MESSAGES[socialCode]:errorMessage(reasonFrom(error)||error.message);
+ // a My Socials row refused by the browser check is marked on the row itself (until edited): its copy below Save Changes is transient, like a field error
+ if(error?.socialValidation){reportSection(key,text,false,false,false);return false;}
  const selector={INVALID_DISPLAY_NAME:'#profileDisplayName',BIO_TOO_LONG:'#profileBio',INSTITUTION_TOO_LONG:'#profileInstitution',FIELD_OF_STUDY_TOO_LONG:'#profileFieldOfStudy',INVALID_EDUCATION_WORK_STATUS:'#educationWorkStatus'}[reasonFrom(error)];
  const field=selector?section.panel.querySelector(selector):section.panel.querySelector('input:not([type=file]),textarea,select');
  const fieldValidation=Boolean(field&&['name','bio','roles','education'].includes(key)&&['INVALID_DISPLAY_NAME','BIO_TOO_LONG','INSTITUTION_TOO_LONG','FIELD_OF_STUDY_TOO_LONG','INVALID_EDUCATION_WORK_STATUS','DUPLICATE_GAMING_ROLE','PRIMARY_ROLE_WITHOUT_ROLES','INVALID_PRIMARY_ROLE','INVALID_GAMING_ROLE'].includes(reasonFrom(error)));
  // a field validation error stays inline on the field; its copy below Save Changes is transient (five visible seconds). Other errors stay persistent.
  reportSection(key,text,false,false,!fieldValidation);
  if(['avatar','intro'].includes(key))showUploadError(key,uploadErrorFrom(error,text));
+ if(socialCode&&!error?.socialValidation)socialsEditor.showError(-1,socialCode);
  if(fieldValidation){section.panel.dataset.validationMessage=text;section.panel.dataset.invalidDraft=JSON.stringify(sectionDraft({},snapshot,key));field.setAttribute('aria-invalid','true');let hint=section.panel.querySelector('.field-error');if(!hint){hint=document.createElement('p');hint.className='field-error';hint.id='editor-field-error-'+key;hint.setAttribute('role','alert');field.after(hint);}hint.textContent=text;field.setAttribute('aria-describedby',hint.id);}
+ return false;
  }
  finally{controls.forEach((c,i)=>{if(c.isConnected)c.disabled=prior[i];});section.card.removeAttribute('aria-busy');updateProfilePreview();}
 }
 for(const [key,{button}] of editor.saves)button.addEventListener('click',()=>saveEditorSection(key));
+// Save All Changes: every section that has something to save, one after another through its OWN save path (same validation, progress and errors as its Save
+// Changes). Unchanged sections are not sent. A failure never shows an overall success: the sections that did not save are named (their drafts stay) and the
+// first one is opened; the sections that saved stay saved. Section Save Changes keeps working on its own.
+const sectionTitle=key=>editor.sections.get(key)?.toggle.querySelector('strong')?.textContent?.trim()||key;
+function revealSection(key){
+ const section=editor.sections.get(key);if(!section)return;
+ for(let node=section.card;node;node=node.parentElement){const owner=node.dataset?.editorSection&&editor.sections.get(node.dataset.editorSection);if(owner&&owner.toggle.getAttribute('aria-expanded')!=='true')owner.toggle.click();}
+ section.card.scrollIntoView?.({block:'center'});
+}
+saveAllButton.addEventListener('click',async()=>{
+ if(savingAll||!identity)return;
+ const keys=[...editor.saves].filter(([,save])=>!save.button.disabled).map(([key])=>key);
+ if(!keys.length)return;
+ const epoch=profileFeedbackEpoch;
+ savingAll=true;saveAllButton.disabled=true;saveAllButton.textContent='Saving…';
+ feedbackFor(saveAllFeedback).show(`Saving ${keys.length} section${keys.length===1?'':'s'}…`,{progress:true});
+ const saved=[],failed=[];
+ try{for(const key of keys){if(epoch!==profileFeedbackEpoch)break;(await saveEditorSection(key)?saved:failed).push(key);}}
+ finally{savingAll=false;saveAllButton.textContent='Save All Changes';refreshEditorSaves();}
+ if(epoch!==profileFeedbackEpoch)return;
+ const workflow=actionDraftsDirty()?' Unsaved My Games or League entries are saved with their own buttons.':'';
+ if(!failed.length){feedbackFor(saveAllFeedback).show(`All changes saved: ${saved.map(sectionTitle).join(', ')}.${workflow}`,{tone:'success'});return;}
+ feedbackFor(saveAllFeedback).show(`Not saved: ${failed.map(sectionTitle).join(', ')}. Your changes there are kept - see the message in each section.${saved.length?` Saved: ${saved.map(sectionTitle).join(', ')}.`:''}${workflow}`,{tone:'error',persistent:true});
+ revealSection(failed[0]);
+});
 document.getElementById('profileForm').addEventListener('submit',event=>{event.preventDefault();const key=document.activeElement?.closest('[data-editor-section]')?.dataset.editorSection;if(key&&editor.saves.has(key))saveEditorSection(key);});
 // Same-tab links and provider redirects must not silently lose other section drafts.
 document.addEventListener('click',event=>{const link=event.target.closest('a[href]');if(identity&&link&&!event.defaultPrevented&&isProfileDirty()&&!window.confirm('Leave this page and discard your unsaved changes?'))event.preventDefault();});
-document.querySelector("#languageForm select").addEventListener("change",refreshEditorSaves);
+// Language lives in the ⋯ menu and is applied as soon as it is chosen (the menu holds no save button)
+document.querySelector("#languageForm select").addEventListener("change",()=>{refreshEditorSaves();document.getElementById("languageForm").requestSubmit();});
 const languageFeedback=document.createElement("p");languageFeedback.className="connections-message";languageFeedback.setAttribute("role","status");languageFeedback.hidden=true;document.getElementById("languageForm").append(languageFeedback);
 document.getElementById("languageForm").addEventListener("submit", async event => {
   event.preventDefault();if(languageSaving||!identity)return;languageSaving=true;const owner=api.userIdFromToken(),epoch=profileFeedbackEpoch; const form = event.currentTarget; const language = new FormData(form).get("language"); busy(form, true);
   try { await api.updateLanguage(language);if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken())throw Error("AUTH_REQUIRED"); savedLanguage=language; feedbackFor(languageFeedback).show("Language preference saved.",{tone:"success"}); }
-  catch (error) { if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken())feedbackFor(languageFeedback).show(error.message,{tone:"error",persistent:true}); }
+  catch { if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken()&&savedLanguage!==null)form.querySelector("select").value=savedLanguage; if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken())feedbackFor(languageFeedback).show("Language could not be saved. Check your connection and choose it again.",{tone:"error",persistent:true}); }
   finally { languageSaving=false;busy(form, false); }
 });
 
@@ -1981,6 +2047,7 @@ document.getElementById("signOutButton").addEventListener("click", async () => {
   stopIntroPreview(); introSource.invalidate();
   for(const feedback of sectionFeedback.values())feedback.hide();
   clearUploadErrors();
+  socialsEditor.setSaved([]); socialsLoaded = false;
   try { await api.signOut(); }
   finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; stopCrewRealtime?.(); stopCrewRealtime = null; crewPanel = null; introStatusPoller.stop(); releasePendingIntro(); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; stagedVisibility.clear(); actionDrafts.clear(); savedLanguage=null; showView("auth"); document.getElementById("signinTab").click(); }
 });

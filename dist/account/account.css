@@ -329,6 +329,38 @@ a.duo-handle:hover,a.duo-handle:focus-visible{text-decoration:underline}
 .upload-error-actions{display:flex;flex-wrap:wrap;gap:.4rem;margin-left:auto}
 .upload-error-actions button{min-height:44px;min-width:44px;margin:0;padding:0 .8rem;border:1px solid #754151;border-radius:.5rem;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer}
 .upload-error-actions button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+/* Profile Editor completion: PROFILE INFORMATION label, My Socials (socials.js), Save All Changes, Account Settings inside the ⋯ menu */
+[data-profile-editor] .editor-group-label{margin:1.1rem 0 .35rem}
+.social-list{display:grid;gap:.5rem;margin:.6rem 0;padding:0;list-style:none}
+.social-row{display:grid;grid-template-columns:2.25rem minmax(0,1fr) auto;align-items:center;gap:.35rem .6rem;padding:.55rem;border:1px solid var(--line);border-radius:.7rem;background:#14111d}
+.social-row .social-name{font-weight:800;font-size:.82rem}
+.social-row input{grid-column:1/-1;width:100%;min-width:0;margin:0}
+.social-row .text-button{grid-column:3;grid-row:1;width:auto;min-height:44px;margin:0}
+.social-error{margin:.2rem 0 0;color:#ffb8c4;font-size:.8rem;line-height:1.5}.social-row .social-error{grid-column:1/-1;margin:0}.socials-editor [aria-invalid=true]{border-color:#ff839c}
+.social-add{display:grid;grid-template-columns:minmax(0,1fr);gap:.45rem;margin-top:.4rem}
+.social-add .secondary{width:100%;min-height:44px;margin:0}
+@media(min-width:760px){.social-row{grid-template-columns:2.25rem 7rem minmax(0,1fr) auto}.social-row input{grid-column:3;grid-row:1}.social-row .text-button{grid-column:4}.social-add{grid-template-columns:11rem minmax(0,1fr) auto}.social-add .secondary{width:auto}}
+.social-icon{display:inline-grid;place-items:center;width:2.25rem;height:2.25rem;border-radius:50%;background:#2b2738;color:#fff;font:900 .78rem/1 system-ui,sans-serif;letter-spacing:-.02em;flex:0 0 auto}
+.social-icon[data-platform=instagram]{background:linear-gradient(45deg,#f58529,#dd2a7b,#8134af)}
+.social-icon[data-platform=tiktok]{background:#000;box-shadow:inset 0 0 0 2px #25f4ee}
+.social-icon[data-platform=youtube]{background:#ff0000}
+.social-icon[data-platform=twitch]{background:#9146ff}
+.social-icon[data-platform=kick]{background:#53fc18;color:#000}
+.social-icon[data-platform=x],.social-icon[data-platform=threads]{background:#000;box-shadow:inset 0 0 0 1px #5a5470}
+.social-icon[data-platform=snapchat]{background:#fffc00;color:#000}
+.social-icon[data-platform=discord]{background:#5865f2}
+.social-icon[data-platform=facebook]{background:#1877f2;font-size:1.05rem}
+.social-icon[data-platform=reddit]{background:#ff4500}
+.social-icon[data-platform=linkedin]{background:#0a66c2}
+[data-profile-editor] .save-all-bar{display:grid;gap:.5rem;margin:1.4rem 0 .6rem;padding-top:1rem;border-top:1px solid var(--line)}
+[data-profile-editor] .save-all-bar .primary{min-height:48px;width:100%;margin:0}
+@media(min-width:760px){[data-profile-editor] .save-all-bar .primary{width:auto;justify-self:end;min-width:16rem}}
+.account-menu-actions{min-width:15rem}
+.account-menu-actions .account-email{margin:.35rem .45rem .5rem;color:var(--muted);font-size:.72rem;overflow-wrap:break-word}
+.account-menu-actions .menu-language{margin:0 .45rem .45rem}
+.account-menu-actions .menu-language label{display:grid;gap:.3rem;font-size:.72rem;color:var(--muted)}
+.account-menu-actions .menu-language select{min-height:44px;width:100%}
+.account-menu-actions .menu-language .connections-message{margin-top:.4rem}
 
 /* Steam Connection Foundation: the SteamID64 is the whole identity, so on the Steam card it wraps and is never ellipsized (same approach as
    the League card fix). Scoped to the Steam card only: Discord and League styling is untouched. */

@@ -445,6 +445,12 @@ export async function getPublicIdentity(handle) {
   return rows?.[0] || null;
 }
 
+// My Socials (supabase/migrations/20261009120000_my_socials.sql): the caller's own links; Save replaces the whole list (validated server-side, all or nothing).
+export async function getMySocialLinks() { return (await rpc("get_my_social_links")) || []; }
+export async function setMySocialLinks(links) { return (await rpc("set_my_social_links", { candidate_links: links })) || []; }
+// A PUBLISHED GamID's saved links (anonymous; an unpublished GamID returns none).
+export async function getPublicSocialLinks(handle) { return (await rpc("get_public_social_links", { candidate_handle: handle }, { anonymous: true })) || []; }
+
 export async function getPublicIdentityByQr(token) {
   const rows = await rpc("get_public_identity_by_qr", { candidate_token: token }, { anonymous: true });
   return rows?.[0] || null;

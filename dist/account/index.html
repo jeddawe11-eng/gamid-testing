@@ -82,6 +82,7 @@
           </div>
           <p id="shareMessage" class="share-message" role="status" hidden></p>
         </section>
+        <p class="eyebrow editor-group-label">PROFILE INFORMATION</p>
         <form id="profileForm" class="profile-form" novalidate>
           <label class="avatar-picker">Avatar <span>Private storage</span><input id="profileAvatarInput" name="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /><small>Tap to replace · JPG, PNG, WebP, or AVIF · max 5 MB</small></label>
           <div class="identity-section intro-section">
@@ -110,6 +111,7 @@
           <button id="saveProfileButton" class="primary" type="submit" disabled>SAVE GAMID</button>
           <p id="saveConfirmation" class="save-confirmation" role="status" hidden>Saved ✓</p>
         </form>
+        <section id="socialsSection" class="connections-section socials-section" aria-label="My Socials"><div id="socialsSlot"></div></section>
         <section class="play-together-entry" aria-label="Play Together">
           <div><p class="eyebrow">PLAY TOGETHER</p><h3>Find your next squad</h3><p>Create a Play Now session and tell GamID who you need.</p></div>
           <a class="primary play-together-link" href="../play-together/">OPEN PLAY TOGETHER</a>
@@ -146,10 +148,10 @@
             <p id="leagueMessage" class="connections-message" role="status" hidden></p>
           </div>
         </section>
-        <div class="future-board" aria-label="Future GamID identity areas"><p class="eyebrow">IDENTITY BOARD · FUTURE</p><div><span>Games</span><span>Stats</span><span>Connections</span><span>Socials</span></div></div>
-        <hr/><p class="eyebrow">ACCOUNT SETTINGS</p><p class="account-email">Signed in as <strong id="accountEmail"></strong></p>
+        <p class="account-email">Signed in as <strong id="accountEmail"></strong></p>
         <form id="languageForm"><label>Preferred language<select name="language"><option value="en">English</option><option value="ar">العربية</option><option value="ms">Bahasa Melayu</option></select></label><button class="secondary">Save language</button></form>
         <button id="signOutButton" class="text-button danger">Sign out</button>
+        <div id="saveAllBar" class="save-all-bar"><button id="saveAllButton" class="primary" type="button" disabled>Save All Changes</button><p id="saveAllFeedback" class="connections-message" role="status" aria-live="polite" hidden></p></div>
         <details id="avatarDiagnostics" class="avatar-diagnostics" hidden>
           <summary>Avatar test diagnostics</summary>
           <p>Temporary TESTING-only event trace. It contains no image contents, filenames, URLs, account data, or tokens.</p>

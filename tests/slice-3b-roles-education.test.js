@@ -68,6 +68,8 @@ test("live preview and existing Save Profile flow include Slice 3B state", () =>
 });
 
 test("future Slice 3 sections remain inactive and unimplemented", () => {
-  assert.match(html, /<span>Games<\/span><span>Stats<\/span><span>Connections<\/span><span>Socials<\/span>/);
+  // the old "IDENTITY BOARD · FUTURE" placeholder was replaced by the real My Socials section (Profile Editor completion, authorized by Mazen 2026-10-09)
+  assert.doesNotMatch(html, /IDENTITY BOARD · FUTURE|future-board/);
+  assert.match(html, /<section id="socialsSection" class="connections-section socials-section" aria-label="My Socials">/);
   assert.doesNotMatch(migration, /game_catalog|player_id|rank|verified_badge|discord|steam|xbox|playstation/i);
 });

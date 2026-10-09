@@ -1,4 +1,5 @@
-import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall } from "../account/supabase-client.js";
+import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks } from "../account/supabase-client.js";
+import { renderPublicSocials } from "../account/socials.js";
 import { createIntroSourceResolver } from "../account/intro-source.js";
 import { createFlowLayout } from "../flow-layout.js";
 import { normalizeLibrary, renderGamesPreview, createGamesLibrary } from "./public-games.js";
@@ -8,6 +9,17 @@ import { createVisitorNav } from "./visitor-nav.js";
 import { duoSection } from "./public-duo.js";
 
 const catalogLabel = (catalog, key) => catalog?.find(item => item.key === key)?.label || key || "";
+
+// My Socials leads the panel: the owner's OWN accounts (saved links of a published GamID only, from get_public_social_links), as clickable icons. -> drawn?
+export function prependPublicSocials(panel, socialLinks) {
+  const socials = node("div", "public-socials");
+  if (renderPublicSocials(socials, socialLinks, document) === 0) return false;
+  const block = node("section", "public-section public-socials-block");
+  block.setAttribute("aria-label", "Social accounts");
+  block.append(node("p", "public-section-label", "SOCIALS"), socials);
+  panel.prepend(block);
+  return true;
+}
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // Optional public sections (Phase 1: visibility foundation). The server only ever returns a section when its owner switched
@@ -239,7 +251,10 @@ async function render() {
     sign: signPublicIntroMedia,
   });
 
+  // My Socials: shown on the public profile even when the owner has no Wall (a published Wall, when there is one, replaces this whole body); a failed read shows none
+  const socialLinks = await getPublicSocialLinks(identity.gamid_handle).catch(() => []);
   hasSections = renderPublicSections(sectionsPanel, identity.public_sections, { ownerHandle: identity.gamid_handle, pathname: location.pathname, loadAvatar: loadPublicAvatar }) > 0;
+  hasSections = prependPublicSocials(sectionsPanel, socialLinks) || hasSections;
   // My Games: the server sends the section only when the owner switched it ON (and there is at least one game): the first six games + the true count. The full
   // library, its search and Game Details load through the same public function, page by page, only when a visitor asks for them.
   const gamesPreview = normalizeLibrary(identity.public_sections?.my_games, LEAGUE_SOURCE_LABELS);

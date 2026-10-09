@@ -33,23 +33,27 @@ export function mountProfileEditor(doc) {
   const toggle=doc.getElementById(id),panel=doc.getElementById(toggle.getAttribute('aria-controls')),card=toggle.parentElement;card.classList.add('editor-section');card.dataset.editorSection=key;sections.set(key,{card,panel,toggle,status:toggle.querySelector('small')});
  }
  for(const [selector,key,title,icon,summary] of [
-  ['.identity-preview','preview','Live Preview','◈','Your current draft'],['.share-section','share','Share your GamID','↗','Link and QR code'],['.play-together-entry:not(.wall-entry)','play','Play Together','🎮','Find your next squad'],['.wall-entry','wall','My Wall','▦','Edit your Wall'],['#duoSection','duo','My Duo','♧','Your Duo and requests'],['#crewSection','crew','My Crew','♧','Your Crews and invitations'],['#myGamesSection','games','My Games','🎮','Games and platforms'],['#gameDisplaySection','game-display','Game Display','◉','Public games, playtime and stats'],['#leagueSection','league','League of Legends','🎮','Your connected League profile'],['#connectionsSection','connections','Connections','⌁','Gaming accounts'],['#languageForm','language','Account Settings','⚙','Language preference']]) {
+  ['.identity-preview','preview','Live Preview','◈','Your current draft'],['.share-section','share','Share your GamID','↗','Link and QR code'],['.play-together-entry:not(.wall-entry)','play','Play Together','🎮','Find your next squad'],['.wall-entry','wall','My Wall','▦','Edit your Wall'],['#duoSection','duo','My Duo','♧','Your Duo and requests'],['#crewSection','crew','My Crew','♧','Your Crews and invitations'],['#myGamesSection','games','My Games','🎮','Games and platforms'],['#gameDisplaySection','game-display','Game Display','◉','Public games, playtime and stats'],['#leagueSection','league','League of Legends','🎮','Your connected League profile'],['#connectionsSection','connections','Connections','⌁','Gaming accounts'],['#socialsSection','socials','My Socials','🔗','Your social accounts']]) {
   const node=doc.querySelector(selector);const panel=wrap(node,key,title,icon,summary);
   if(node&&['games','game-display'].includes(key)){
    const card=sections.get(key).card;const sync=()=>{card.hidden=node.hidden;};new MutationObserver(sync).observe(node,{attributes:true,attributeFilter:['hidden']});sync();
   }
-  if(key==='language'){panel.prepend(doc.getElementById('accountEmail').closest('p'));const signOut=doc.getElementById('signOutButton');signOut.textContent='Sign Out';doc.getElementById('accountMenuActions').append(signOut);}
   if(node&&['duo','crew','games','league'].includes(key)){
    const status=sections.get(key).status;const summarize=()=>{const empty=node.querySelector('.connections-empty');const text=(empty?.textContent||node.querySelector('h3,h4,strong')?.textContent||summary).trim().slice(0,90);if(status.textContent!==text)status.textContent=text;};new MutationObserver(summarize).observe(node,{childList:true,subtree:true,characterData:true});summarize();
   }
  }
  const saves=new Map();
- for(const key of ['avatar','name','bio','intro','roles','education','connections','game-display','league','duo']) {
+ for(const key of ['avatar','name','bio','intro','roles','education','socials','connections','game-display','league','duo']) {
   const {panel}=sections.get(key);const footer=doc.createElement('div');footer.className='section-save';const button=doc.createElement('button');button.type='button';button.className='primary';button.textContent='Save Changes';button.dataset.profileSave=key;button.disabled=true;
   const feedback=doc.createElement('p');feedback.id='editor-feedback-'+key;feedback.className='connections-message';feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');feedback.hidden=true;
   footer.append(button,feedback);panel.append(footer);saves.set(key,{button,feedback});
  }
- const language=doc.querySelector('#languageForm button');language.textContent='Save Changes';language.type='submit';
+ // Account Settings live only in the ⋯ menu (no standalone 'language' section): who is signed in, Language (applied as soon as it is chosen, so the menu holds
+ // no save button) and Sign Out. Section Save Changes and Save All Changes stay in the editor.
+ const menu=doc.getElementById('accountMenuActions'),languageForm=doc.getElementById('languageForm'),signOut=doc.getElementById('signOutButton');
+ const email=doc.getElementById('accountEmail')?.closest('p');if(email)menu.append(email);
+ languageForm.classList.add('menu-language');const languageButton=languageForm.querySelector('button');languageButton.type='submit';languageButton.hidden=true;menu.append(languageForm);
+ signOut.textContent='Sign Out';menu.append(signOut);
  const old=doc.getElementById('saveProfileButton');old?.remove();doc.getElementById('saveConfirmation')?.remove();
  for(const {toggle,panel} of sections.values())toggle.addEventListener('click',()=>{const open=toggle.getAttribute('aria-expanded')!=='true';toggle.setAttribute('aria-expanded',String(open));panel.hidden=!open;});
  return {sections,saves};

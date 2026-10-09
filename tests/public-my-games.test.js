@@ -514,6 +514,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261004114230_play_together_marvel_rivals.sql", // Multi-game Play Together catalog
       "20261004170252_global_usage_gateway.sql", // Owner Usage; public game contracts untouched
       "20261006090000_play_together_notifications.sql", "20261007160000_intro_duration_tolerance.sql", // Play Together's three contracted notifications; public game contracts untouched
+      "20261009120000_my_socials.sql",   // My Socials: own tables + RPCs (get_public_social_links is separate); public identity / My Games contracts untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );
