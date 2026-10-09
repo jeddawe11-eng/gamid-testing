@@ -76,7 +76,7 @@ Rules:
 | Prefix | Category | Folder | Last issued |
 |---|---|---|---|
 | DIS | Discussions | discussions/ | DIS-0003 |
-| DEC | Decisions | decisions/ | DEC-0001 |
+| DEC | Decisions | decisions/ | DEC-0002 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0006 |
 | REV | Reviews | reviews/ | REV-0001 |
@@ -86,6 +86,7 @@ Rules:
 | ID | Title | Status | Record |
 |---|---|---|---|
 | DEC-0001 | Implement the approved Profile Editor notes (My Socials, Save All Changes, Account Settings menu) | IMPLEMENTED | [DEC-0001-implement-profile-editor-notes.md](decisions/DEC-0001-implement-profile-editor-notes.md) |
+| DEC-0002 | One social link engine for the Wall and My Socials (Discord personal profiles) | IMPLEMENTED | [DEC-0002-one-social-link-engine.md](decisions/DEC-0002-one-social-link-engine.md) |
 | IDEA-0001 | Profile Editor gaming-dashboard redesign | DEFERRED | [IDEA-0001-profile-editor-dashboard-redesign.md](ideas/IDEA-0001-profile-editor-dashboard-redesign.md) |
 | IDEA-0002 | Monitor permanent coverage growth and gap detection | DISCUSSION | [IDEA-0002-monitor-coverage-growth.md](ideas/IDEA-0002-monitor-coverage-growth.md) |
 | ISS-0001 | Unified Upload & Add Error UX | FIXED | [ISS-0001-unified-upload-add-error-ux.md](issues/ISS-0001-unified-upload-add-error-ux.md) |

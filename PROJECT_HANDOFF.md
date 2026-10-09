@@ -1952,3 +1952,52 @@ Product checkpoint `9e11076bb1ea19eb09e911030ad1dcc6cdd09150` on `feature/play-t
 - Real Android was not tested.
 
 STOP for Mazen's manual acceptance.
+
+## 24. One social link engine for the Wall and My Socials; Discord personal profiles — 2026-10-09
+
+Product checkpoint `67042938426f7c234c175483c6882c709b09046d` on `feature/play-together-notifications`; manual acceptance PENDING. Product Memory DEC-0002 (IMPLEMENTED).
+
+**Root cause.**
+- My Socials kept its own platform/URL pattern catalog (browser and server) beside the Wall's link engine: two independent rule sets.
+- The Wall's Discord adapter knew server invites only, so `https://discord.com/users/<id>` was refused in the Wall as unrecognized content.
+
+**Changed.**
+- **Wall** (source of truth):
+  - `wall-kit/embed/providers/discord.js` adds the kind `profile` (`discord.com/users/<17-20 digits>`, opened at that same official address), declared Link only;
+  - `wall-kit/embed/engine.js` lets a kind narrow its presentations, and validation refuses others;
+  - `wall-editor/controls.js` derives Show as from the engine instead of a fixed list;
+  - migration `20261009150000_wall_discord_profile` (additive) adds the row to `private.wall_embed_specs`;
+  - invites, all other providers and every saved Wall are unchanged.
+- **My Socials:**
+  - `account/socials.js` has no patterns: `detectEmbed` recognizes the platform and kind, the adapter's id rule validates, `openUrl` rebuilds the address, and labels come from the adapters;
+  - it stores `{ platform, kind, id }`; account kinds only (Instagram/TikTok/X/Snapchat profile, YouTube/Twitch/Kick channel, Facebook page, Discord profile or invite);
+  - migration `20261009151000_my_socials_link_engine`: links stored as `kind` + `account_id`, validated against `wall_embed_specs`, `social_platform_catalog.account_kinds`;
+  - Threads, Reddit and LinkedIn removed (not Wall platforms);
+  - saved links are converted losslessly, and one that can't be expressed stops the migration.
+- RLS, ownership, the PUBLIC gate, Save Changes / Save All, Discord OAuth / Connections and the public layout are unchanged. Content is never copied between the Wall and My Socials.
+
+**@black.** The only saved My Socials link on TESTING was @black's Discord profile, the URL under test. Mazen approved converting it.
+- Before: discord, `https://discord.com/users/374102653111762948`, order 0, updated `04:59:22.601022`, entity md5 `30fe0d86…`.
+- After: discord / profile / `374102653111762948` (the engine rebuilds the identical URL), same order, same timestamp, same entity md5.
+- The anonymous reader returns it; nothing else of @black was touched.
+
+**Tests.**
+- Full suite 1,748: 1,747 pass, 1 skip. Lint, typecheck, Truth and Product Memory validation pass.
+- `tests/my-socials.test.js`:
+  - one engine (no own patterns; every platform and kind in the adapters and in `wall_embed_specs`; account-kind parity);
+  - the Discord URL on both surfaces; invites; dangerous, foreign and content links;
+  - the three migrations in PGlite, including lossless conversion and refusal of an inexpressible link.
+- `tests/wall-post-qa-media.test.js`: capability matrix (Discord profile Link only); Show as derived from the engine.
+- `tests/wall-w3-editor.test.js`: `socials.js` may import only the shared link engine, never the editor or draft.
+- TESTING rehearsal of both migrations in a rolled-back transaction: 15/15 PASS.
+- Mocked fixtures at 1280/390, local and served `--live`: Profile Editor (Discord profile saved as parts, video refused), public socials (Discord icon opens discord.com/users/<id>), Wall (Discord profile Link only, invite Card/Link, unsafe link refused).
+- Real on TESTING as GM-TEST-01, desktop and mobile: 18/18 PASS.
+  - Wall without saving: Link only, invite Card/Link, unsafe link refused.
+  - My Socials: video refused; the same Discord URL saved and reloaded as that exact address with the Discord icon; edited to an invite; removed.
+  - The persona ends with 0 links.
+
+**Deployment.** Workflow [37892333328](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37892333328) SUCCESS from the branch ref, whose head was exactly `6704293`. The Account stamp reads `6704293`, and the changed files match Git byte-for-byte.
+
+**Not done / limits.** Threads, Reddit and LinkedIn are no longer available in My Socials. With a published Wall (as @black has), the Wall replaces the Classic Profile, so the icon is not shown there.
+
+STOP for Mazen's manual test of the Wall and the Classic Profile.

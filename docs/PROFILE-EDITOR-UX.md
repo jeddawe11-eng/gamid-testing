@@ -24,7 +24,7 @@ All 17 existing owner sections are independently expandable, initially compact, 
 | Game Display | Own Save Changes for existing Games/playtime/stats visibility flags |
 | League of Legends | Existing Riot-ID lookup form now labelled Save Changes; its existing public visibility has a separate section footer when a League profile exists; Refresh/Remove remain explicit actions |
 | Connections | Own Save Changes for provider visibility; connect/disconnect/OAuth retain explicit existing actions |
-| My Socials | The owner's own accounts on 12 named platforms (no Other): add / edit / remove as a draft; own Save Changes replaces the saved list (server-validated, all or nothing). Replaced the old IDENTITY BOARD · FUTURE placeholder (2026-10-09). |
+| My Socials | The owner's own accounts on 9 Wall platforms (Instagram, TikTok, YouTube, Twitch, Kick, X, Snapchat, Discord, Facebook; no Other): add / edit / remove as a draft; own Save Changes replaces the saved list (server-validated, all or nothing). Recognised, validated and rebuilt by the Wall's link engine (DEC-0002): account kinds only (profile, channel, page, Discord profile or invite). Replaced the old IDENTITY BOARD · FUTURE placeholder (2026-10-09). |
 | ⋯ menu (no section) | Signed-in email, Language (applied when chosen, no save button) and the existing confirmed Sign Out. The standalone Account Settings section was removed on 2026-10-09. |
 
 Readonly/navigation sections do not get dummy saves. Relationship and lookup actions retain their established intentional submission/confirmation semantics; Save Changes never sends an invitation, joins a Crew, starts OAuth, refreshes external data, publishes a GamID or saves a Wall.

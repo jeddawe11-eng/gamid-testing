@@ -64,14 +64,15 @@
       "name": "My Socials (the owner's own social accounts, shown as icons on the public GamID)",
       "status": "PENDING_ACCEPTANCE",
       "surfaces": ["/account/", "/@<handle>"],
-      "limits": { "socialPlatforms": 12, "socialLinksPerPlatform": 1, "socialUrlMaxChars": 200 },
+      "limits": { "socialPlatforms": 9, "socialLinksPerPlatform": 1, "socialUrlMaxChars": 200 },
       "contracts": [
-        { "id": "socials-own-named-platforms", "rule": "My Socials holds the owner's own accounts on a fixed list of named platforms (Instagram, TikTok, YouTube, Twitch, Kick, X, Threads, Snapchat, Discord, Facebook, Reddit, LinkedIn), at most one link each, added, edited and removed as a draft and saved by the section's Save Changes or Save All Changes. There is no Other option; the Wall keeps its own Other link." },
-        { "id": "socials-server-validation", "rule": "The database validates every link against its platform's pattern (https, the platform's own host, an account path) and replaces the owner's list all-or-nothing; other schemes, hosts, credentials and markup are refused. Links are reachable only through owner functions acting on the caller's own GamID and an anonymous reader." },
+        { "id": "socials-own-named-platforms", "rule": "My Socials holds the owner's own accounts on named Wall platforms (Instagram, TikTok, YouTube, Twitch, Kick, X, Snapchat, Discord, Facebook), at most one link each, added, edited and removed as a draft and saved by the section's Save Changes or Save All Changes. Only account kinds are accepted (a profile, channel, page, Discord personal profile or server invite), never a post or a video. There is no Other option; the Wall keeps its own Other link." },
+        { "id": "socials-shared-link-engine", "rule": "The Wall's link engine is the only source of platform and URL rules for the Wall and My Socials: the Wall adapters recognise a link and rebuild every address from its validated parts, and the server checks My Socials ids against the Wall's own server rules. My Socials only narrows which Wall platforms and account kinds it offers. Saved content is never copied between the Wall and My Socials." },
+        { "id": "socials-server-validation", "rule": "A saved link is stored as platform, account kind and id, validated by the database against the Wall's server rules, and the owner's list is replaced all-or-nothing; other schemes, hosts, kinds, credentials and markup are refused. Links are reachable only through owner functions acting on the caller's own GamID and an anonymous reader." },
         { "id": "socials-public-display", "rule": "Saved links of a published (PUBLIC) GamID appear as labelled icon links leading the public profile panel, also when the owner has no Wall, opening in a new tab without referrer. An unpublished GamID shows none. When a published Wall replaces the profile body, the links are not shown." }
       ],
-      "checkpoint": "9e11076bb1ea19eb09e911030ad1dcc6cdd09150",
-      "record": "PROJECT_HANDOFF.md §23; docs/PROFILE-EDITOR-UX.md; migration supabase/migrations/20261009120000_my_socials.sql"
+      "checkpoint": "67042938426f7c234c175483c6882c709b09046d",
+      "record": "PROJECT_HANDOFF.md §23 and §24; docs/PROFILE-EDITOR-UX.md; migrations supabase/migrations/20261009120000_my_socials.sql, 20261009151000_my_socials_link_engine.sql"
     },
     {
       "id": "gaming-roles-education-work",
@@ -191,7 +192,7 @@
       "surfaces": ["/wall-editor/"],
       "checkpoint": "0934af4276f4955db5b3e79cf5db53e318ba9277",
       "record": "accepted main baseline 0934af4 (W1 accepted 1bbec1b; later rounds landed on main after acceptance)",
-      "notes": "Asset and video limits are recorded under global-usage."
+      "notes": "Asset and video limits are recorded under global-usage. Discord personal profiles (discord.com/users/<id>) are offered as a Link only since 67042938 (PROJECT_HANDOFF.md §24; migration 20261009150000_wall_discord_profile); that extension is pending manual acceptance."
     },
     {
       "id": "public-wall-publishing",
