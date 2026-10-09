@@ -1817,6 +1817,16 @@ TESTING workflow [37862526301](https://github.com/jeddawe11-eng/gamid-testing/ac
 
 `5e2664e` moves the new Account-menu and preview styles out of the Steam-scoped CSS region. The first deploy (run `37864954855`, at `58720da`) had stopped in full validation on the two Steam scoping tests (`steam-connection`, `steam-games-contract`), before deploying.
 
-TESTING workflow [37865851238](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37865851238) SUCCESS: 1,696 tests, 1,692 pass, 4 skipped, 0 fail; Cloudflare version `d5ee4aa7-8141-40a2-b486-826a7ab2e496`. Served `account.css`, `account.js` and `profile-editor.js` are byte-identical to `5e2664e`. `account/index.html` matches except its deploy-time `?v=` stamp, which reads `da2e020` because the workflow was dispatched with `ref=main`. No database, schema, storage, worker or auth change.
+TESTING workflow [37865851238](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37865851238) SUCCESS: 1,696 tests, 1,692 pass, 4 skipped, 0 fail; Cloudflare version `d5ee4aa7-8141-40a2-b486-826a7ab2e496`. That run stamped `?v=da2e020`. Cause:
+- `scripts/stage-cloudflare.mjs` stamps the first 7 characters of `GITHUB_SHA`;
+- the runner does not let a step override built-in `GITHUB_*` variables, so the workflow's `env: GITHUB_SHA: <source sha>` is ignored;
+- the stamp is therefore the commit of the workflow's dispatch ref, which was `main`.
+
+Corrected without any code change, by redeploying from a deploy-only branch ref, `feature/deploy-5e2664e`, which points exactly at `5e2664e`:
+- workflow [37866396455](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37866396455) SUCCESS: 1,696 / 1,692 pass / 4 skipped / 0 fail; staged "asset version 5e2664e"; Cloudflare version `3cc18b33-2184-48a9-a53b-e6782545486d`;
+- served `account/index.html` equals the `5e2664e` source with stamp `5e2664e`;
+- its four referenced assets and all 18 modules imported by `account.js` are byte-identical to `5e2664e`.
+
+To get a correct stamp, the dispatch ref must point exactly at the product commit being deployed. No database, schema, storage, worker or auth change.
 
 STOP for Mazen's manual acceptance of the four fixes.

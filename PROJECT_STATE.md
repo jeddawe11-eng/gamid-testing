@@ -56,7 +56,7 @@ Snapshot from 2026-10-09; verify with `git status -sb` and `git log -1`.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
 - **TESTING serves `5e2664e`.**
-  - Static site: workflow run `37865851238`; served Account files verified byte-for-byte (the `account/index.html` `?v=` stamp reads `da2e020`). Source: `PROJECT_HANDOFF.md` §20.
+  - Static site: workflow run `37866396455` from ref `feature/deploy-5e2664e`; the Account HTML stamp reads `5e2664e`, and the HTML, its assets and modules were verified byte-for-byte. Source: `PROJECT_HANDOFF.md` §20.
   - Intro worker: correction checkpoint 3f72eb2 deployed with image-only update, F2 smoke and dedicated READY verification; exact build/image/execution in `docs/INTRO-DURATION-TOLERANCE.md`. Accepted F2 derivative policy remains unchanged.
   - Database: accepted notifications migration remains applied; Intro duration migration also applied once, recorded in `docs/INTRO-DURATION-TOLERANCE.md`.
   - Per-capability checkpoints are in Truth.
