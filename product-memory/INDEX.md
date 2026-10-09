@@ -75,11 +75,11 @@ Rules:
 
 | Prefix | Category | Folder | Last issued |
 |---|---|---|---|
-| DIS | Discussions | discussions/ | DIS-0002 |
+| DIS | Discussions | discussions/ | DIS-0003 |
 | DEC | Decisions | decisions/ | none |
 | IDEA | Ideas | ideas/ | IDEA-0001 |
 | ISS | Issues | issues/ | ISS-0005 |
-| REV | Reviews | reviews/ | none |
+| REV | Reviews | reviews/ | REV-0001 |
 
 ## Register
 
@@ -94,3 +94,5 @@ Rules:
 
 | DIS-0001 | Existing platform picker and Other link in Wall | CONCLUDED | [DIS-0001-existing-platform-picker-and-other-link.md](discussions/DIS-0001-existing-platform-picker-and-other-link.md) |
 | DIS-0002 | GamID full-list navigation and next-chat continuity | CONCLUDED | [DIS-0002-gamid-full-list-continuity.md](discussions/DIS-0002-gamid-full-list-continuity.md) |
+| DIS-0003 | Profile Editor visual and social settings notes | CONCLUDED | [DIS-0003-profile-editor-visual-social-notes.md](discussions/DIS-0003-profile-editor-visual-social-notes.md) |
+| REV-0001 | Mazen manual acceptance checklist items 1 through 6 | COMPLETED | [REV-0001-manual-acceptance-checklist.md](reviews/REV-0001-manual-acceptance-checklist.md) |
