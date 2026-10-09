@@ -78,7 +78,7 @@ Rules:
 | DIS | Discussions | discussions/ | none |
 | DEC | Decisions | decisions/ | none |
 | IDEA | Ideas | ideas/ | IDEA-0001 |
-| ISS | Issues | issues/ | none |
+| ISS | Issues | issues/ | ISS-0001 |
 | REV | Reviews | reviews/ | none |
 
 ## Register
@@ -86,3 +86,4 @@ Rules:
 | ID | Title | Status | Record |
 |---|---|---|---|
 | IDEA-0001 | Profile Editor gaming-dashboard redesign | DEFERRED | [IDEA-0001-profile-editor-dashboard-redesign.md](ideas/IDEA-0001-profile-editor-dashboard-redesign.md) |
+| ISS-0001 | Unified Upload & Add Error UX | OPEN | [ISS-0001-unified-upload-add-error-ux.md](issues/ISS-0001-unified-upload-add-error-ux.md) |
