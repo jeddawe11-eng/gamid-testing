@@ -42,7 +42,7 @@ Snapshot from 2026-10-09; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest frontend product:** `8ce1616ce4024c0f875f97094dc516c8e62e41a1`, Profile Editor independent sections and feedback lifecycle, deployed to TESTING; manual acceptance PENDING. Source: `docs/PROFILE-EDITOR-UX.md`, `PROJECT_HANDOFF.md` §20 and Truth `your-gamid-editor`. Subsequent commits are continuation documentation only; verify Git.
+- **Latest frontend product:** `5e2664ee66298a0a6f914507b63a14abab10fa05`, Profile Editor independent sections and feedback lifecycle (`8ce1616`) plus four QA fixes (`58720da`, CSS placement `5e2664e`), deployed to TESTING; manual acceptance PENDING. Source: `docs/PROFILE-EDITOR-UX.md`, `PROJECT_HANDOFF.md` §20 and Truth `your-gamid-editor`. Subsequent commits are continuation documentation only; verify Git.
   - Prior Intro worker correction `3f72eb23ef483ca29b9076715ec76ab311dcbcfe` remains deployed with READY verification complete; its separate Android duration-boundary manual retest remains PENDING (§19). Cloudflare migration remains ACCEPTED; Pages retirement remains complete.
   - F5 product 4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59 remains **manually ACCEPTED by Mazen** (2026-10-07); its Intro delivery is unchanged.
   - F2 product 04877c20d213f0105fbdc2871146248194eaf773 remains manually ACCEPTED by Mazen (2026-10-07); its worker/derivative policy is unchanged.
@@ -55,8 +55,8 @@ Snapshot from 2026-10-09; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `8ce1616`.**
-  - Static site: workflow run `37862526301`; exact served Account files/stamp and isolated desktop/narrow fixture verified. Source: `docs/PROFILE-EDITOR-UX.md`.
+- **TESTING serves `5e2664e`.**
+  - Static site: workflow run `37865851238`; served Account files verified byte-for-byte (the `account/index.html` `?v=` stamp reads `da2e020`). Source: `PROJECT_HANDOFF.md` §20.
   - Intro worker: correction checkpoint 3f72eb2 deployed with image-only update, F2 smoke and dedicated READY verification; exact build/image/execution in `docs/INTRO-DURATION-TOLERANCE.md`. Accepted F2 derivative policy remains unchanged.
   - Database: accepted notifications migration remains applied; Intro duration migration also applied once, recorded in `docs/INTRO-DURATION-TOLERANCE.md`.
   - Per-capability checkpoints are in Truth.
@@ -88,7 +88,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Current stop point:** Profile Editor product `8ce1616ce4024c0f875f97094dc516c8e62e41a1` is deployed and technically verified. STOP for Mazen desktop/Android manual acceptance (`docs/PROFILE-EDITOR-UX.md`; handoff §20); `your-gamid-editor` remains PENDING_ACCEPTANCE. The prior Intro Android duration-boundary retest is separately pending (§19); do not repeat its worker/migration/fixtures. No other task is authorized.
+**Current stop point:** Profile Editor product `5e2664ee66298a0a6f914507b63a14abab10fa05` (including the four QA fixes) is deployed and technically verified. STOP for Mazen desktop/Android manual acceptance (`docs/PROFILE-EDITOR-UX.md`; handoff §20); `your-gamid-editor` remains PENDING_ACCEPTANCE. The prior Intro Android duration-boundary retest is separately pending (§19); do not repeat its worker/migration/fixtures. No other task is authorized.
 
 **Previously outstanding continuation (not performed in F2/F3/F4):**
 1. **Remaining manual acceptance checks for global-usage.** Core accounting PASS; remaining checks are listed in `PROJECT_HANDOFF.md` §10. This capability remains PENDING_ACCEPTANCE in Truth.

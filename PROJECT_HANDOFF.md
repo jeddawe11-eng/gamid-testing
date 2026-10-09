@@ -1808,3 +1808,15 @@ Final review closed reused-node feedback ownership: dispose old timers/observers
 74/74 focused checks PASS; lint/typechecks/diff check PASS. Reused prior full-suite evidence (1,687 PASS / one existing skip); final workflow complete build PASS. Local and final served-frontend Chrome fixtures at 1280/390 pass all 17 section toggles, independent saves, retry/validation, five-second visible timing, sign-out/re-sign-in and account switch isolation, notification destinations and no horizontal overflow/page errors. All backend traffic mocked; no real users/media mutated. Narrow Chrome is not real Android acceptance.
 
 TESTING workflow [37862526301](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37862526301) SUCCESS; exact `8ce1616ce4024c0f875f97094dc516c8e62e41a1` Account HTML stamp and six changed frontend files verified byte-for-byte. No database/schema/storage/worker/auth configuration changes. Truth UPDATED: existing editor capability checkpoint/contracts, still PENDING_ACCEPTANCE. Prior Intro Android duration-boundary acceptance remains separately PENDING (§19). STOP for Mazen; no Production/main/Monitor/unrelated work.
+
+**Profile Editor QA fixes — 2026-10-09.** Current product checkpoint `5e2664ee66298a0a6f914507b63a14abab10fa05` on `feature/play-together-notifications`; PENDING_ACCEPTANCE. It contains four fixes, with tests, in `58720da140464c11f07f2d2f5ad6a4d49538efad`:
+- the internal "LIVE PREVIEW" label no longer overlaps the avatar and name;
+- a field-validation notice is cleared once that field becomes valid;
+- the Saved message shows one success icon (CSS) and no duplicate textual checkmark;
+- a ⋮ Account header menu holds Sign Out, reusing the existing sign-out button and handler.
+
+`5e2664e` moves the new Account-menu and preview styles out of the Steam-scoped CSS region. The first deploy (run `37864954855`, at `58720da`) had stopped in full validation on the two Steam scoping tests (`steam-connection`, `steam-games-contract`), before deploying.
+
+TESTING workflow [37865851238](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37865851238) SUCCESS: 1,696 tests, 1,692 pass, 4 skipped, 0 fail; Cloudflare version `d5ee4aa7-8141-40a2-b486-826a7ab2e496`. Served `account.css`, `account.js` and `profile-editor.js` are byte-identical to `5e2664e`. `account/index.html` matches except its deploy-time `?v=` stamp, which reads `da2e020` because the workflow was dispatched with `ref=main`. No database, schema, storage, worker or auth change.
+
+STOP for Mazen's manual acceptance of the four fixes.
