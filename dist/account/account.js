@@ -34,6 +34,7 @@ let pendingAvatar = null;
 const editor = mountProfileEditor(document);
 const sectionSaveQueue = createSectionSaveQueue();
 const sectionFeedback = new Map();
+let profileFeedbackEpoch = 0;
 const stagedVisibility = new Map();
 let savedLanguage = null, languageSaving = false;
 let editorActionSection = null;
@@ -402,6 +403,7 @@ async function openAvatarCrop(file) {
 }
 
 async function showIdentity(data) {
+  profileFeedbackEpoch++;
   const [editor, intro] = await Promise.all([api.getIdentityProfile(), api.getMyIntro()]);
   resetAvatarCropLifecycle("profile-restored");
   for(const feedback of sectionFeedback.values())feedback.hide();
@@ -1873,28 +1875,28 @@ function refreshEditorSaves() {
 function profileFromRow(updated){return {displayName:updated.display_name,bio:updated.bio,avatarPath:updated.avatar_media_reference,roleKeys:updated.role_keys||[],primaryRoleKey:updated.primary_role_key,educationWorkStatus:updated.education_work_status,institution:updated.institution||'',fieldOfStudy:updated.field_of_study||''};}
 async function saveEditorSection(key){
  if(!identity||sectionSaveQueue.has(key))return;
- const owner=api.userIdFromToken(),entity=identity.entity_id;
+ const owner=api.userIdFromToken(),entity=identity.entity_id,epoch=profileFeedbackEpoch;
  const section=editor.sections.get(key),controls=[...section.panel.querySelectorAll('input,select,textarea,button')];
  const prior=controls.map(c=>c.disabled);controls.forEach(c=>c.disabled=true);section.card.setAttribute('aria-busy','true');
  const snapshot=profileDraft(),introChange=introDraft(),source=pendingIntroSource,avatar=pendingAvatar;
  reportSection(key,'Saving…',false,true);
  try{await sectionSaveQueue.run(key,async()=>{
-  if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
+  if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
   if(key==='intro'){
-   if(source){let sourcePath;try{sourcePath=await api.uploadIntroSource(source.file,owner,source.jobId);if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error("AUTH_REQUIRED");await api.queueIntro({jobId:source.jobId,sourcePath,transitionKey:introChange.transitionKey,sourceMime:source.file.type,sourceSize:source.file.size,durationMs:source.durationMs});}catch(error){if (sourcePath) {try{await api.deleteIntroSource(sourcePath);}catch{/* Existing server cleanup remains available. */}}throw error;}}
+   if(source){let sourcePath;try{sourcePath=await api.uploadIntroSource(source.file,owner,source.jobId);if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error("AUTH_REQUIRED");await api.queueIntro({jobId:source.jobId,sourcePath,transitionKey:introChange.transitionKey,sourceMime:source.file.type,sourceSize:source.file.size,durationMs:source.durationMs});}catch(error){if (sourcePath) {try{await api.deleteIntroSource(sourcePath);}catch{/* Existing server cleanup remains available. */}}throw error;}}
    else if(introChange.action==='remove')await api.removeIntro();
    else if(savedIntro?.transitionKey!==introChange.transitionKey)await api.setIntroTransition(introChange.transitionKey);
-   if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
-   const intro=await api.getMyIntro();if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');await restoreIntroState(intro);if(isProcessingIntroState(intro))introStatusPoller.start();
+   if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
+   const intro=await api.getMyIntro();if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');await restoreIntroState(intro);if(isProcessingIntroState(intro))introStatusPoller.start();
   }else if(['name','bio','avatar','roles','education'].includes(key)){
-   const latest=await api.getIdentityProfile();if(owner!==api.userIdFromToken()||entity!==identity?.entity_id||latest?.entity_id!==entity)throw Error('AUTH_REQUIRED');
+   const latest=await api.getIdentityProfile();if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id||latest?.entity_id!==entity)throw Error('AUTH_REQUIRED');
    savedProfile=profileFromRow(latest);
    const draft=validateProfileDraft(sectionDraft(savedProfile,snapshot,key),profileCatalogs());
    if(!draft.valid)throw Error(draft.reason);
    let avatarPath=null;if(key==='avatar'&&avatar)avatarPath=await api.uploadAvatar(avatar,owner,{attach:false});
-   if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error("AUTH_REQUIRED");
+   if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error("AUTH_REQUIRED");
    const updated=await api.updateIdentityProfile({...draft,avatarPath});
-   if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
+   if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
    identity={...identity,...updated};savedProfile=profileFromRow(updated);
    // Never rewrite other section inputs or clear another section's pending media.
    if(key==='name')document.getElementById('profileDisplayName').value=updated.display_name;
@@ -1903,9 +1905,10 @@ async function saveEditorSection(key){
    if(key==='roles'){document.querySelectorAll('input[name=gamingRole]').forEach(input=>input.checked=(updated.role_keys||[]).includes(input.value));syncPrimaryRole();document.getElementById('primaryRoleSelect').value=updated.primary_role_key||'';}
    if(key==='avatar'){resetAvatarCropLifecycle('save-success');await setPersistedAvatar(updated.avatar_media_reference,updated.display_name?.[0]?.toUpperCase()||'G');}
   }
-  for(const [id,entry] of [...stagedVisibility])if(entry.section===key){if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');await entry.commit(entry.value);if(stagedVisibility.get(id)===entry)stagedVisibility.delete(id);}
- });if(owner===api.userIdFromToken()&&entity===identity?.entity_id)reportSection(key,'Saved ✓',true);
+  for(const [id,entry] of [...stagedVisibility])if(entry.section===key){if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');await entry.commit(entry.value);if(stagedVisibility.get(id)===entry)stagedVisibility.delete(id);}
+ });if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken()&&entity===identity?.entity_id)reportSection(key,'Saved ✓',true);
  }catch(error){
+ if(epoch!==profileFeedbackEpoch)return;
  if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)return;
  const text=errorMessage(reasonFrom(error)||error.message);reportSection(key,text);
  const selector={INVALID_DISPLAY_NAME:'#profileDisplayName',BIO_TOO_LONG:'#profileBio',INSTITUTION_TOO_LONG:'#profileInstitution',FIELD_OF_STUDY_TOO_LONG:'#profileFieldOfStudy',INVALID_EDUCATION_WORK_STATUS:'#educationWorkStatus'}[reasonFrom(error)];
@@ -1921,14 +1924,15 @@ document.addEventListener('click',event=>{const link=event.target.closest('a[hre
 document.querySelector("#languageForm select").addEventListener("change",refreshEditorSaves);
 const languageFeedback=document.createElement("p");languageFeedback.className="connections-message";languageFeedback.setAttribute("role","status");languageFeedback.hidden=true;document.getElementById("languageForm").append(languageFeedback);
 document.getElementById("languageForm").addEventListener("submit", async event => {
-  event.preventDefault();if(languageSaving||!identity)return;languageSaving=true;const owner=api.userIdFromToken(); const form = event.currentTarget; const language = new FormData(form).get("language"); busy(form, true);
-  try { await api.updateLanguage(language);if(owner!==api.userIdFromToken())throw Error("AUTH_REQUIRED"); savedLanguage=language; feedbackFor(languageFeedback).show("Language preference saved.",{tone:"success"}); }
-  catch (error) { if(owner===api.userIdFromToken())feedbackFor(languageFeedback).show(error.message,{tone:"error",persistent:true}); }
+  event.preventDefault();if(languageSaving||!identity)return;languageSaving=true;const owner=api.userIdFromToken(),epoch=profileFeedbackEpoch; const form = event.currentTarget; const language = new FormData(form).get("language"); busy(form, true);
+  try { await api.updateLanguage(language);if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken())throw Error("AUTH_REQUIRED"); savedLanguage=language; feedbackFor(languageFeedback).show("Language preference saved.",{tone:"success"}); }
+  catch (error) { if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken())feedbackFor(languageFeedback).show(error.message,{tone:"error",persistent:true}); }
   finally { languageSaving=false;busy(form, false); }
 });
 
 document.getElementById("signOutButton").addEventListener("click", async () => {
   if (isProfileDirty() && !window.confirm("Discard your unsaved profile changes and sign out?")) return;
+  profileFeedbackEpoch++;
   stopIntroPreview(); introSource.invalidate();
   for(const feedback of sectionFeedback.values())feedback.hide();
   try { await api.signOut(); }
