@@ -24,9 +24,19 @@ All 17 existing owner sections are independently expandable, initially compact, 
 | Game Display | Own Save Changes for existing Games/playtime/stats visibility flags |
 | League of Legends | Existing Riot-ID lookup form now labelled Save Changes; its existing public visibility has a separate section footer when a League profile exists; Refresh/Remove remain explicit actions |
 | Connections | Own Save Changes for provider visibility; connect/disconnect/OAuth retain explicit existing actions |
-| Account Settings | Own Save Changes for language; existing confirmed Sign out |
+| My Socials | The owner's own accounts on 12 named platforms (no Other): add / edit / remove as a draft; own Save Changes replaces the saved list (server-validated, all or nothing). Replaced the old IDENTITY BOARD · FUTURE placeholder (2026-10-09). |
+| ⋯ menu (no section) | Signed-in email, Language (applied when chosen, no save button) and the existing confirmed Sign Out. The standalone Account Settings section was removed on 2026-10-09. |
 
 Readonly/navigation sections do not get dummy saves. Relationship and lookup actions retain their established intentional submission/confirmation semantics; Save Changes never sends an invitation, joins a Crew, starts OAuth, refreshes external data, publishes a GamID or saves a Wall.
+
+## Profile Editor completion (2026-10-09)
+
+Product checkpoint `9e11076bb1ea19eb09e911030ad1dcc6cdd09150` (`97853c4` + desktop row layout fix); PENDING_ACCEPTANCE. Authorized by Mazen (Product Memory DEC-0001, from the notes in DIS-0003).
+
+- **PROFILE INFORMATION** label above Avatar, Intro, Identity, Bio, Gaming Roles and Education & Work; every existing section and field is kept.
+- **My Socials**: see the table. Public display: the saved links of a published GamID lead the public profile panel as labelled icon links (44 px targets, new tab, no referrer), also without a Wall; a published Wall still replaces the whole profile body. Data: migration `20261009120000_my_socials` (`social_platform_catalog`, `identity_social_links`; RLS on, no table privileges; `get_my_social_links` / `set_my_social_links` for the caller's own SOLO GamID; anonymous `get_public_social_links` gated on `visibility = 'PUBLIC'`). The browser catalog in `dist/account/socials.js` must stay identical to the migration (tested).
+- **Save All Changes** at the end of the editor: saves every section whose Save Changes is enabled, one after another through that section's own save path (same validation, progress, errors). Unchanged sections are not sent; a running Save All cannot start again. On any failure the summary names the sections that did not save (their drafts stay, the first is opened) and those that did; no overall success is shown. Workflow drafts (My Games entries, League lookup) keep their own buttons and are mentioned in the summary.
+- **Account Settings** moved to the ⋯ menu (see the table).
 
 ## Implementation and safety
 

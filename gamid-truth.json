@@ -50,12 +50,28 @@
       "name": "YOUR GAMID identity editor",
       "status": "PENDING_ACCEPTANCE",
       "surfaces": ["/account/"],
-      "checkpoint": "fd9c9a9df25583050991b5069a087142abeb13b9",
+      "checkpoint": "9e11076bb1ea19eb09e911030ad1dcc6cdd09150",
       "contracts": [
         { "id": "profile-independent-sections", "rule": "Owner editor sections expand independently. Editable profile and visibility drafts persist only through their own Save Changes action; saving one section preserves other drafts. Existing relationship, lookup, navigation and publishing actions retain their explicit workflow boundaries." },
+        { "id": "profile-save-all", "rule": "Save All Changes, at the end of the editor, saves every section that has something to save, each once and through that section's own save path; unchanged sections are not sent and a running Save All cannot be started again. Section Save Changes remains. If any section fails, no overall success is shown: the failed sections are named, their drafts are kept and the first is opened, while sections that saved stay saved. Workflow actions (My Games entries, League lookup, relationships) keep their own buttons." },
+        { "id": "profile-account-menu", "rule": "There is no Account Settings section: Language (applied as soon as it is chosen) and Sign Out are in the editor's ⋯ menu, which holds no save button." },
         { "id": "profile-feedback-lifecycle", "rule": "Profile transient feedback receives five seconds of actual visibility, reset by each new message. Progress and actionable errors remain persistent. A field validation error stays inline on its field until the field is valid; its notification below Save Changes is transient (five visible seconds) and clears at once when the field becomes valid. Replaced feedback controllers are disposed; owner lifecycle cleanup and stale-save guards prevent former-owner feedback from affecting the current editor." }
       ],
-      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20; original Slice 3A: §3"
+      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20 and §23; original Slice 3A: §3"
+    },
+    {
+      "id": "my-socials",
+      "name": "My Socials (the owner's own social accounts, shown as icons on the public GamID)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/account/", "/@<handle>"],
+      "limits": { "socialPlatforms": 12, "socialLinksPerPlatform": 1, "socialUrlMaxChars": 200 },
+      "contracts": [
+        { "id": "socials-own-named-platforms", "rule": "My Socials holds the owner's own accounts on a fixed list of named platforms (Instagram, TikTok, YouTube, Twitch, Kick, X, Threads, Snapchat, Discord, Facebook, Reddit, LinkedIn), at most one link each, added, edited and removed as a draft and saved by the section's Save Changes or Save All Changes. There is no Other option; the Wall keeps its own Other link." },
+        { "id": "socials-server-validation", "rule": "The database validates every link against its platform's pattern (https, the platform's own host, an account path) and replaces the owner's list all-or-nothing; other schemes, hosts, credentials and markup are refused. Links are reachable only through owner functions acting on the caller's own GamID and an anonymous reader." },
+        { "id": "socials-public-display", "rule": "Saved links of a published (PUBLIC) GamID appear as labelled icon links leading the public profile panel, also when the owner has no Wall, opening in a new tab without referrer. An unpublished GamID shows none. When a published Wall replaces the profile body, the links are not shown." }
+      ],
+      "checkpoint": "9e11076bb1ea19eb09e911030ad1dcc6cdd09150",
+      "record": "PROJECT_HANDOFF.md §23; docs/PROFILE-EDITOR-UX.md; migration supabase/migrations/20261009120000_my_socials.sql"
     },
     {
       "id": "gaming-roles-education-work",

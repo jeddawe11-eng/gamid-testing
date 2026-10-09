@@ -1905,3 +1905,50 @@ The box has role `alert` and is linked to its button with `aria-describedby`. It
 - The Account HTML stamp reads `d2c24b9`. The Account and Wall Editor HTML and the eleven changed frontend files are byte-identical to `d2c24b9`.
 
 No database, schema, storage, Edge Function, worker or auth change. GamID Truth unchanged: no capability status, limit or approved contract changed. STOP for Mazen's manual acceptance.
+
+## 23. Profile Editor completion: My Socials, Save All Changes, Account Settings menu — 2026-10-09
+
+Product checkpoint `9e11076bb1ea19eb09e911030ad1dcc6cdd09150` on `feature/play-together-notifications` (`97853c4` plus a desktop socials-row layout fix); manual acceptance PENDING. Authorized by Mazen from the DIS-0003 notes; Product Memory DEC-0001 (IMPLEMENTED). IDEA-0001 (dashboard redesign) unchanged, DEFERRED.
+
+**Before.** Account Settings was a standalone section (signed-in email, Language with its own save, Sign Out already moved to the ⋯ menu). A static IDENTITY BOARD · FUTURE card listed "Socials". There was no Save All Changes (DIS-0003 called it existing; it was not). No social-link data existed.
+
+**Changed.**
+- `dist/account/index.html`: PROFILE INFORMATION label; My Socials section after the profile form (placeholder removed); Save All bar at the end.
+- `profile-editor.js`: `socials` section with its own Save Changes; email, Language and Sign Out in the ⋯ menu, with no Language save button.
+- `socials.js` (new): catalog, normalization, validation, editor, public icons.
+- `account.js`: socials load / dirty / save branch (refused only after validation; no save until the saved list has loaded); `saveEditorSection` returns its outcome; Save All handler; Language applied on change and reverted on failure.
+- `supabase-client.js`: socials RPCs.
+- `public/public.js` and `public.css`: a Socials block leads the public sections panel; `renderPublicSections` and the accepted page grid are unchanged.
+- `account.css`.
+- Migration `20261009120000_my_socials.sql`.
+
+**Database (TESTING).**
+- Rehearsed first inside a transaction ending in ROLLBACK, as GM-TEST-01 / GM-TEST-02: 12/12 checks passed.
+  - Owner save, `javascript:` refused, a refused list changes nothing, look-alike host refused, no Other.
+  - Table closed to authenticated; another persona sees nothing.
+  - Anonymous: owner functions closed; a DRAFT GamID shows nothing; a PUBLIC GamID shows its links in order.
+- Applied once in its own transaction, then `migration repair --status applied 20261009120000`.
+- Verified: 12 platforms, 0 links, anon may read only the public reader, authenticated has no table access.
+
+**Tests.**
+- Full suite 1,749: 1,748 pass, 1 skip. Lint, shell audit, typecheck, Truth and Product Memory validation pass.
+- New `tests/my-socials.test.js`: catalog parity with the migration, normalization, dangerous links, safe rendering, and the real migration in PGlite (ownership, permissions, all-or-nothing, PUBLIC gate, cascade). It caught a `platform_key` check that refused the one-letter key `x` before anything reached TESTING.
+- Mocked browser fixtures at 1280 and 390, local and served (`--live`):
+  - `scripts/profile-editor-browser.mjs`: socials add/edit/remove and inline refusal, Save All, duplicate click, partial failure, network loss and recovery, Language and Sign Out in the menu, and every earlier scenario;
+  - new `scripts/public-socials-browser.mjs`: icons below the profile without a Wall, the `javascript:` link never drawn, nothing for an empty list;
+  - `scripts/wall-upload-browser.mjs` (regression).
+- Real end-to-end on TESTING as GM-TEST-01, desktop and mobile, behind the Monitor guard, writes limited to socials / bio / language: 20/20 PASS.
+  - Covered: add and persist, edit and remove, dangerous link refused, Save All of Bio and My Socials, Language from the menu (restored), Sign Out from the menu, and the DRAFT public page showing nothing.
+  - Cleanup verified: no links remain on TESTING, the persona's bio and language are restored, and it stays DRAFT.
+
+**Deployment.**
+- Workflows [37883751545](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37883751545) (`97853c4`, Cloudflare version `e5112982-a595-4359-b7ba-304c7e484e07`) and [37884326476](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37884326476) (`9e11076`): both SUCCESS from the branch ref, whose head was exactly the product commit.
+- The Account and Public HTML stamps and the changed files match Git byte-for-byte.
+
+**Not done / limits.**
+- Socials are not shown while a published Wall replaces the profile body.
+- Icons are consistent colour badges with a short mark, not official brand logos.
+- The desktop Play Together / My Wall card typography note (DIS-0003) was out of scope.
+- Real Android was not tested.
+
+STOP for Mazen's manual acceptance.
