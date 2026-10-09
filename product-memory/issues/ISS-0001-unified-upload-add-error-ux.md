@@ -1,7 +1,7 @@
 ---
 id: ISS-0001
 title: Unified Upload & Add Error UX
-status: AUTHORIZED
+status: FIXED
 created: 2026-10-09
 updated: 2026-10-09
 scope: All GamID file upload and Add surfaces (including Wall, Avatar, Intro, backgrounds, and future supported media)
@@ -11,7 +11,7 @@ save_approval: Mazen 2026-10-09
 kind: IMPROVEMENT
 authorization: Mazen 2026-10-09, explicit task "GAMID — ISS-0001 FULL IMPLEMENTATION + PRODUCT MEMORY" (all five audit phases, TESTING only)
 truth_refs: [game-id-wall, global-usage, intro-identity, your-gamid-editor]
-checkpoints: []
+checkpoints: [d2c24b9dede6614a84f98bdec22ca3c7ea11995d]
 sources: []
 ---
 
@@ -37,9 +37,10 @@ The read-only code audit of 2026-10-09 confirmed the gaps above and four concret
 
 ## Resolution
 
-Unresolved. Implementation of the five audit phases is authorized; nothing is fixed or verified yet.
+Fixed at `d2c24b9` (TESTING run 37876188206): one shared persistent inline upload error box (`dist/app/upload-feedback.js`) on every in-scope surface - reason and next step, Retry only for retryable failures, View Usage for the storage quota and Wall limits, Dismiss; one upload at a time on Wall; no hardcoded limit figures. Evidence: `tests/upload-feedback.test.js`, `scripts/profile-editor-browser.mjs`, `scripts/wall-upload-browser.mjs` (mocked backend, local and served TESTING files). Awaiting Mazen's manual acceptance (VERIFIED).
 
 ## History
 
 - 2026-10-09 OPEN — Scope agreed for every GamID upload/Add surface; Mazen explicitly approved saving this Product Memory improvement only.
 - 2026-10-09 AUTHORIZED — Audit clarification saved with Mazen's approval; Mazen explicitly authorized implementing all five audit phases.
+- 2026-10-09 FIXED — Implemented at d2c24b9 and deployed to TESTING (run 37876188206); acceptance pending.

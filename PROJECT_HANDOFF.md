@@ -1859,3 +1859,49 @@ Governance and documentation only; awaiting Mazen's acceptance. `product-memory/
 - **Pointers:** `PROJECT_STATE.md` and `CLAUDE.md` point to the index.
 - **Validation:** `scripts/product-memory.mjs` (no dependencies; `check` / `list` / `next`) runs in `npm test` through `tests/product-memory.test.js`, which includes malformed-record, broken-reference and index-drift fixtures.
 - **Not done:** no records were saved and nothing was migrated. No application code, deployment, database, Monitor or Truth change.
+
+## 22. Unified upload and Add error feedback (ISS-0001..ISS-0005) — 2026-10-09
+
+Product checkpoint `d2c24b9dede6614a84f98bdec22ca3c7ea11995d` on `feature/play-together-notifications`; manual acceptance PENDING. It implements the five audit phases Mazen authorized (Product Memory ISS-0001, with BUG records ISS-0002 to ISS-0005, all FIXED, none VERIFIED).
+
+**The pattern.** One persistent inline box (`dist/app/upload-feedback.js`) next to the control that failed:
+- the reason and next step;
+- Retry only for retryable failures (network, gateway, expired or conflicting upload), never for the storage quota, a Wall limit or hard validation;
+- View Usage only for the storage quota and Wall limits, opening the existing shell Usage panel (`openUsagePanel` in `dist/app/authenticated-shell.js`);
+- Dismiss, which returns focus to the upload control.
+
+The box has role `alert` and is linked to its button with `aria-describedby`. It stays until dismissed or resolved. No limit figure is hardcoded; the server stays authoritative.
+
+**Changes by surface.**
+- **Wall** (`dist/wall-kit/assets.js`, `dist/wall-editor/assets.js` and `tools.js`):
+  - quota, gateway and network codes are mapped;
+  - the stale 10-video text and `maxVideos` are removed;
+  - a failed video is never called an image;
+  - one Assets upload at a time (Upload is disabled, and a second pick is refused);
+  - a background video upload in progress refuses another;
+  - a box sits under Upload and beside the background video;
+  - a delete resolves a limit or quota error.
+- **Intro** (`dist/account/domain.js`, `resumable-upload.js`, `account.js`):
+  - messages refer to Save Changes instead of the removed SAVE GAMID button;
+  - gateway refusal codes have their own words;
+  - a 4xx refusal of a chunk keeps its code and is not retried (one PATCH, then the upload is terminated);
+  - a failed replacement is shown while the active Intro stays active;
+  - worker failure codes are mapped to reasons.
+- **Avatar** (`dist/account/account.js`, `supabase-client.js`):
+  - sign-up and Profile Editor Avatar errors use the same box;
+  - a network drop names the upload instead of "Authentication service";
+  - an avatar stored but never taken by the profile is deleted only after the owner's current profile is read back without it, because the gateway itself would allow deleting the attached avatar.
+
+**Tests.**
+- Full suite: 1,740 tests, 1,739 pass, 1 skipped, 0 fail. Lint, authenticated-shell audit, typecheck, Product Memory validation and diff check: PASS.
+- New: `tests/upload-feedback.test.js` (classification, the box, the Wall quota through the real client with a stubbed gateway, Intro messages, chunk refusal, avatar orphan guard).
+- Browser fixtures, all backend traffic mocked, at 1280 and 390, local and against the served TESTING files (`--live`), all PASS:
+  - `scripts/profile-editor-browser.mjs`, extended with avatar quota, View Usage, Dismiss, orphan removal, Retry after a dropped connection, an invalid Intro file and a failed replacement Intro;
+  - new `scripts/wall-upload-browser.mjs`: quota, View Usage, Dismiss, Retry, a single upload at a time, the video limit, and resolution by delete.
+
+**TESTING deployment.**
+- Workflow [37876188206](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37876188206) SUCCESS from ref `feature/play-together-notifications`, whose head was exactly `d2c24b9`: 1,740 tests, 1,736 pass, 4 skipped, 0 fail.
+- Cloudflare version `62ac3cb0-df69-4fb0-a464-a95f89b95201`.
+- The Account HTML stamp reads `d2c24b9`. The Account and Wall Editor HTML and the eleven changed frontend files are byte-identical to `d2c24b9`.
+
+No database, schema, storage, Edge Function, worker or auth change. GamID Truth unchanged: no capability status, limit or approved contract changed. STOP for Mazen's manual acceptance.

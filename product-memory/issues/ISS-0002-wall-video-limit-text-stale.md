@@ -1,7 +1,7 @@
 ---
 id: ISS-0002
 title: Wall video limit text says 10 instead of the authoritative 15
-status: AUTHORIZED
+status: FIXED
 created: 2026-10-09
 updated: 2026-10-09
 scope: Wall Editor (Assets and background video)
@@ -11,7 +11,7 @@ save_approval: Mazen 2026-10-09
 kind: BUG
 authorization: Mazen 2026-10-09, explicit task "GAMID — ISS-0001 FULL IMPLEMENTATION + PRODUCT MEMORY" (audit phase 1)
 truth_refs: [global-usage, game-id-wall]
-checkpoints: [1a9d072d733dc8774e9a45c0247ecbca87c9bb84]
+checkpoints: [d2c24b9dede6614a84f98bdec22ca3c7ea11995d]
 sources: [dist/wall-kit/assets.js, supabase/migrations/20261005025319_wall_video_limit_15.sql]
 ---
 
@@ -30,9 +30,10 @@ The client text is stale; Truth and the server agree. No Truth change is needed.
 
 ## Resolution
 
-Unresolved. Fix authorized (audit phase 1); not yet implemented.
+Fixed at `d2c24b9` (TESTING run 37876188206): `VIDEO_LIMITS` no longer declares a video count; `WALL_VIDEO_LIMIT` and `WALL_ASSET_LIMIT` messages name the limit without a figure and offer View Usage. Evidence: `tests/upload-feedback.test.js`, `scripts/wall-upload-browser.mjs`. Awaiting Mazen's manual acceptance (VERIFIED).
 
 ## History
 
 - 2026-10-09 OPEN — Found in the read-only upload error audit.
 - 2026-10-09 AUTHORIZED — Mazen explicitly authorized the fix as part of the five-phase implementation.
+- 2026-10-09 FIXED — Implemented at d2c24b9 and deployed to TESTING (run 37876188206); acceptance pending.

@@ -1,7 +1,7 @@
 ---
 id: ISS-0005
 title: Replacement Intro processing failure may be hidden
-status: AUTHORIZED
+status: FIXED
 created: 2026-10-09
 updated: 2026-10-09
 scope: Profile Editor Intro section
@@ -11,7 +11,7 @@ save_approval: Mazen 2026-10-09
 kind: BUG
 authorization: Mazen 2026-10-09, explicit task "GAMID — ISS-0001 FULL IMPLEMENTATION + PRODUCT MEMORY" (audit phase 3)
 truth_refs: [intro-identity]
-checkpoints: [1a9d072d733dc8774e9a45c0247ecbca87c9bb84]
+checkpoints: [d2c24b9dede6614a84f98bdec22ca3c7ea11995d]
 sources: [dist/account/account.js]
 ---
 
@@ -30,9 +30,10 @@ This is verified from code only; not reproduced on TESTING.
 
 ## Resolution
 
-Unresolved. Fix authorized (audit phase 3); not yet implemented.
+Fixed at `d2c24b9` (TESTING run 37876188206): a failed latest job is shown even when an Intro is active ("Your new Intro could not be processed: ... Your current Intro stays active."); known worker failure codes are mapped to reasons, unknown ones keep a short reference. Evidence: `tests/upload-feedback.test.js`, `scripts/profile-editor-browser.mjs` (mocked). Not reproduced with a real failed job on TESTING. Awaiting Mazen's manual acceptance (VERIFIED).
 
 ## History
 
 - 2026-10-09 OPEN — Found in the read-only upload error audit.
 - 2026-10-09 AUTHORIZED — Mazen explicitly authorized the fix as part of the five-phase implementation.
+- 2026-10-09 FIXED — Implemented at d2c24b9 and deployed to TESTING (run 37876188206); acceptance pending.

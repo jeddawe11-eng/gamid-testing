@@ -46,7 +46,7 @@ Snapshot from 2026-10-09; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest frontend product:** `fd9c9a9df25583050991b5069a087142abeb13b9`, Profile Editor independent sections and feedback lifecycle (`8ce1616`) plus four QA fixes (`58720da`, CSS placement `5e2664e`) and the transient field-validation save notification (`fd9c9a9`), deployed to TESTING; manual acceptance PENDING. Source: `docs/PROFILE-EDITOR-UX.md`, `PROJECT_HANDOFF.md` §20 and Truth `your-gamid-editor`. Subsequent commits are continuation documentation only; verify Git.
+- **Latest frontend product:** `d2c24b9dede6614a84f98bdec22ca3c7ea11995d`, the unified upload and Add error feedback (Product Memory ISS-0001..ISS-0005, `PROJECT_HANDOFF.md` §22) on top of the Profile Editor independent sections and feedback lifecycle (`8ce1616`), four QA fixes (`58720da`, CSS placement `5e2664e`) and the transient field-validation save notification (`fd9c9a9`), deployed to TESTING; manual acceptance PENDING. Source: `docs/PROFILE-EDITOR-UX.md`, `PROJECT_HANDOFF.md` §20 and §22, Truth `your-gamid-editor`. Subsequent commits are continuation documentation only; verify Git.
   - Prior Intro worker correction `3f72eb23ef483ca29b9076715ec76ab311dcbcfe` remains deployed with READY verification complete; its separate Android duration-boundary manual retest remains PENDING (§19). Cloudflare migration remains ACCEPTED; Pages retirement remains complete.
   - F5 product 4a978ab5e35d6f9d028f1dd9cb80faf0c2b5fd59 remains **manually ACCEPTED by Mazen** (2026-10-07); its Intro delivery is unchanged.
   - F2 product 04877c20d213f0105fbdc2871146248194eaf773 remains manually ACCEPTED by Mazen (2026-10-07); its worker/derivative policy is unchanged.
@@ -59,8 +59,8 @@ Snapshot from 2026-10-09; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `fd9c9a9`.**
-  - Static site: workflow run `37867823079` from ref `feature/deploy-fd9c9a9`; the Account HTML stamp reads `fd9c9a9`, and the HTML, its assets and modules were verified byte-for-byte. Source: `PROJECT_HANDOFF.md` §20.
+- **TESTING serves `d2c24b9`.**
+  - Static site: workflow run `37876188206` from ref `feature/play-together-notifications` (its head was exactly `d2c24b9`); the Account HTML stamp reads `d2c24b9`, and the HTML, its assets and the changed modules were verified byte-for-byte. Source: `PROJECT_HANDOFF.md` §22.
   - Intro worker: correction checkpoint 3f72eb2 deployed with image-only update, F2 smoke and dedicated READY verification; exact build/image/execution in `docs/INTRO-DURATION-TOLERANCE.md`. Accepted F2 derivative policy remains unchanged.
   - Database: accepted notifications migration remains applied; Intro duration migration also applied once, recorded in `docs/INTRO-DURATION-TOLERANCE.md`.
   - Per-capability checkpoints are in Truth.
@@ -92,7 +92,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Current stop point:** Profile Editor product `fd9c9a9df25583050991b5069a087142abeb13b9` (including the four QA fixes and the save-error notification lifecycle fix) is deployed and technically verified. STOP for Mazen desktop/Android manual acceptance (`docs/PROFILE-EDITOR-UX.md`; handoff §20); `your-gamid-editor` remains PENDING_ACCEPTANCE. The prior Intro Android duration-boundary retest is separately pending (§19); do not repeat its worker/migration/fixtures. No other task is authorized.
+**Current stop point:** product `d2c24b9dede6614a84f98bdec22ca3c7ea11995d` (Profile Editor with its QA and save-error fixes, plus the unified upload and Add error feedback for Wall, Avatar and Intro) is deployed and technically verified. STOP for Mazen desktop/Android manual acceptance (`docs/PROFILE-EDITOR-UX.md`; handoff §20 and §22); `your-gamid-editor` remains PENDING_ACCEPTANCE and ISS-0001..ISS-0005 remain FIXED, not VERIFIED. The prior Intro Android duration-boundary retest is separately pending (§19); do not repeat its worker/migration/fixtures. No other task is authorized.
 
 **Product Memory V1** (governance, structure, templates and validation) is committed on the working tip and awaits Mazen's acceptance. Saved records and their statuses are listed only in the Register of [`product-memory/INDEX.md`](product-memory/INDEX.md); rules are in `AGENTS.md` → Product Memory.
 
