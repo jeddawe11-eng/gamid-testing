@@ -78,7 +78,7 @@ Rules:
 | DIS | Discussions | discussions/ | DIS-0003 |
 | DEC | Decisions | decisions/ | DEC-0005 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
-| ISS | Issues | issues/ | ISS-0008 |
+| ISS | Issues | issues/ | ISS-0009 |
 | REV | Reviews | reviews/ | REV-0001 |
 
 ## Register
@@ -100,6 +100,7 @@ Rules:
 | ISS-0006 | Avatar offline pre-save error mislabels authentication service | OPEN | [ISS-0006-avatar-offline-auth-message.md](issues/ISS-0006-avatar-offline-auth-message.md) |
 | ISS-0007 | Avatar upload validation trusts the client-declared MIME type | OPEN | [ISS-0007-avatar-upload-trusts-declared-mime.md](issues/ISS-0007-avatar-upload-trusts-declared-mime.md) |
 | ISS-0008 | Nine apparently unreferenced Avatar objects on TESTING | OPEN | [ISS-0008-unreferenced-avatar-objects.md](issues/ISS-0008-unreferenced-avatar-objects.md) |
+| ISS-0009 | HIGH - anonymous visitors can mint long-lived signed Storage URLs that outlive PRIVATE / detach / unpublish | OPEN | [ISS-0009-anonymous-signed-urls-outlive-visibility.md](issues/ISS-0009-anonymous-signed-urls-outlive-visibility.md) |
 
 | DIS-0001 | Existing platform picker and Other link in Wall | CONCLUDED | [DIS-0001-existing-platform-picker-and-other-link.md](discussions/DIS-0001-existing-platform-picker-and-other-link.md) |
 | DIS-0002 | GamID full-list navigation and next-chat continuity | CONCLUDED | [DIS-0002-gamid-full-list-continuity.md](discussions/DIS-0002-gamid-full-list-continuity.md) |

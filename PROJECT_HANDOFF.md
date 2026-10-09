@@ -2193,3 +2193,73 @@ Authorized: Phase 1B only (TESTING). Product Memory DEC-0005 (AUTHORIZED). **Not
 **Next (Mazen decides).** Phase 1B cannot pass while Storage RLS is how visitors read the Banner. A safe design needs controlled access with no anonymous SELECT on the object, for example:
 - a small public Edge Function that re-checks "attached and PUBLIC" on every request and streams the bytes;
 - or short server-issued signed URLs with the anonymous SELECT policy removed.
+
+## 29. Classic Profile Banner — Phase 1C security containment and signed-URL audit — 2026-10-10
+
+Authorized: Phase 1C only (TESTING). Product Memory ISS-0009 (HIGH, OPEN), DEC-0005. Truth unchanged.
+
+**Containment.**
+- Migration `20261010130000_profile_banner_read_containment` drops **only** the policy "public profile banners are readable".
+- Kept unchanged:
+  - the Banner columns and owner RPCs, and "attached banners cannot be deleted";
+  - every Avatar, Intro and Wall policy;
+  - usage-upload v6, quotas and limits.
+- `private.banner_is_public` stays defined but is unused.
+- Bucket grants were reviewed: on `storage.objects`, anon and authenticated have table privileges and RLS decides. The only permissive policies granting anon SELECT are now the three accepted ones (Avatar, Intro media, published Wall media).
+- **Can a Banner become an Avatar and be read that way?** No:
+  - Avatar paths cannot contain a sub-folder: `attach_avatar` and `update_my_identity_profile` both require `^uid/[a-zA-Z0-9._-]+$`.
+  - Live, 0 of 3 Avatar references has a sub-folder.
+
+**Verification.**
+- **Rehearsal** in an aborted transaction, 8/8:
+  - exactly one policy removed, the other 24 identical;
+  - no anonymous SELECT policy mentions Banners;
+  - a synthetic attached PUBLIC Banner is not visible to anon nor to another signed-in user; the owner still sees it;
+  - the objects anon can see per bucket are unchanged: avatars 3, intro-media 3, wall-video 1.
+- **Applied**, history repaired. The live policy diff before and after shows only that policy removed.
+- **Live** with GM-TEST-01 (a synthetic Banner on a PUBLIC GamID), 18/18:
+  - anonymous signing refused (1 year and 60 s → 400), and batch signing gives no URL;
+  - anonymous direct read, public-bucket URL, image render and object info all 400; listing returns 0 rows;
+  - GM-TEST-02 (signed in) cannot sign or read it;
+  - the owner can still sign their own Banner, which is expected;
+  - after removal and deletion the test link is dead.
+- **Restored:** GM-TEST-01 DRAFT with 105,320 bytes; GM-TEST-02 DRAFT. No Banner object, none attached. @black and @zshot not updated.
+- **Banner signed URLs from Phase 1B** were all for objects since deleted, and the probe showed 400 after deletion. No residual Banner exposure.
+
+**Audit of the wider risk (read-only; no signed URL was created for any real user's file).** Storage signing requires SELECT under RLS and accepts any expiresIn; a signed URL survives every change except deleting the object.
+- **Banner:** CONFIRMED in Phase 1B, now CONTAINED.
+- **Intro media:** POSSIBLE, high likelihood.
+  - The public page signs anonymously by design (`signPublicIntroMedia`, `expiresIn: Math.min(120, …)`), and the 120-second limit exists only in the browser.
+  - The derivative remains when a GamID goes PRIVATE. The worker deletes a derivative only when the Intro is replaced.
+- **Wall media:** POSSIBLE, high likelihood.
+  - The anonymous Wall video signer (`WALL_VIDEO_URL_SECONDS = 6 h`) is browser-chosen.
+  - Images and videos remain when a Wall is disabled or unpublished.
+- **Avatar:** POSSIBLE, high likelihood.
+  - Anonymous SELECT of the current Avatar of a PUBLIC GamID.
+  - Replaced Avatars are not deleted (ISS-0008), so old links would survive.
+- **NOT AFFECTED:** `intro-sources` and every owner-only read.
+- Confirming these live would need synthetic GM-TEST fixtures (live writes), which needs Mazen's approval.
+- There is no way to list or revoke URLs already issued (they are stateless signed tokens). Only deleting or renaming the object, or rotating the project's JWT signing secret, ends them; rotation would also affect every session.
+
+**Proposed Banner delivery (design only, not built).** A public Edge Function `profile-banner` (`verify_jwt = false`), `GET|HEAD /functions/v1/profile-banner/<handle>`. It is addressed by handle, never by a storage path.
+1. Validate the handle format, then run the rate limit.
+2. Call a new **service-role-only** RPC `get_public_banner_object(handle)`. It returns the path only for a SOLO, PUBLIC GamID with an attached Banner whose object exists and carries a gateway receipt.
+3. Fetch the bytes server-side with the service key (`/storage/v1/object/authenticated/avatars/<path>`). Never sign; never return a path or URL.
+4. **Re-check** the same RPC after fetching, before responding, and answer only if the path is unchanged. This closes the race with a concurrent PRIVATE switch or replace.
+5. Respond:
+   - `200 image/jpeg`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'`, `Cross-Origin-Resource-Policy: cross-origin` (so the Cloudflare page can use it in `<img>`), `Referrer-Policy: no-referrer`, and no ETag.
+   - Every refusal, whether PRIVATE, DRAFT, detached, unknown or malformed, is the same body-less `404`, so nothing can be enumerated.
+6. **Abuse protection:**
+   - a fixed-window counter in a private table, keyed by a SHA-256 of the client IP with a daily salt (never the raw IP), for example 120 requests per minute per IP and 600 per minute per handle, answering `429` with `Retry-After`;
+   - a hard 5 MiB response cap; GET and HEAD only; a timeout on the Storage fetch.
+7. **Fits the current architecture:**
+   - Edge Function deployment through the CLI is proven (v6).
+   - Storage stays private; there is no gateway change and no new bucket.
+   - The public page would use `<img src=…/profile-banner/<handle>>`.
+   - Cost: every view becomes an invocation plus egress, with no CDN caching because of `no-store`. At about 30–60 KB per Banner, that is roughly 30–60 MB per 1,000 views.
+
+**Stop point.** Phase 1C is complete; DEC-0005 is not implemented. Next, Mazen decides:
+1. whether to approve building `profile-banner` (Phase 1D);
+2. whether to confirm ISS-0009 for Avatar, Intro and Wall with synthetic fixtures (live writes).
+
+The small open issue of the compare-and-set error returning HTTP 504 (SQLSTATE 40001) remains, recorded in §28.

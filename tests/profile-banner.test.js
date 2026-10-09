@@ -1,6 +1,7 @@
-// Classic Profile Banner storage foundation (Phase 1B): the real Banner migration + the real accepted Avatar read-policy migrations in an isolated PGlite
-// Postgres with a stubbed `storage.objects` (RLS on, Supabase-style grants) and a stubbed usage receipt check. Proves owner-only, compare-and-set attach /
-// remove, the exact anonymous read rule (attached + PUBLIC only), delete protection, orphan listing, and that the Avatar rules are unchanged.
+// Classic Profile Banner storage foundation (Phase 1B) and its Phase 1C containment: the real Banner migrations + the real accepted Avatar read-policy
+// migrations in an isolated PGlite Postgres with a stubbed `storage.objects` (RLS on, Supabase-style grants) and a stubbed usage receipt check. Proves owner-only,
+// compare-and-set attach / remove, delete protection and orphan listing; that after containment NO visitor (anonymous or another signed-in user) can SELECT -
+// and so sign - any Banner object, whatever the GamID visibility; that the owner still can; and that the Avatar rules are unchanged.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -8,6 +9,7 @@ import { PGlite } from "@electric-sql/pglite";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const banner = read("supabase/migrations/20261010120000_profile_banner.sql");
+const containment = read("supabase/migrations/20261010130000_profile_banner_read_containment.sql");
 const avatarRead = read("supabase/migrations/20260918121000_public_profile_avatar_read.sql");
 const avatarFix = read("supabase/migrations/20260918122000_public_profile_avatar_policy_fix.sql");
 const A = "11111111-1111-4111-8111-111111111111", B = "22222222-2222-4222-8222-222222222222";
@@ -15,7 +17,7 @@ const EA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", EB = "bbbbbbbb-bbbb-4bbb-8bbb
 const P1 = `${A}/banner/0000000a-0000-4000-8000-000000000001.jpg`, P2 = `${A}/banner/0000000a-0000-4000-8000-000000000002.jpg`;
 const PB = `${B}/banner/0000000b-0000-4000-8000-000000000001.jpg`, AVATAR = `${A}/avatar-0000000a-0000-4000-8000-00000000000f.webp`;
 
-async function fixture() {
+async function fixture({ contain = true } = {}) {
   const db = new PGlite();
   await db.exec(`create role anon; create role authenticated; create role service_role;
     create schema private; create schema auth; create schema storage;
@@ -43,6 +45,7 @@ async function fixture() {
   await db.exec(avatarRead);
   await db.exec(avatarFix);
   await db.exec(banner);
+  if (contain) await db.exec(containment);
   await db.query(`insert into storage.objects (bucket_id, name, metadata) values ('avatars', $1, '{"mimetype":"image/webp","size":1000}')`, [AVATAR]);
   const as = async uid => db.exec(uid ? `set role authenticated; set request.jwt.claim.sub = '${uid}';` : "set role anon; set request.jwt.claim.sub = '';");
   const admin = () => db.exec("reset role;");
@@ -88,26 +91,38 @@ test("attach: only the caller's own uploaded JPEG (receipt, type, size) under <u
   assert.deepEqual((await f.call(B, "select * from public.get_my_banner()")).map(r => r.banner_path), [null], "B never sees A's Banner");
 });
 
-test("anonymous read: exactly the attached Banner of a PUBLIC GamID - never PRIVATE, DRAFT, unattached or another owner's object", async () => {
+test("Phase 1B policy (before containment): anonymous SELECT of an attached PUBLIC Banner - the grant that made anonymous signing possible", async () => {
+  const f = await fixture({ contain: false });
+  await f.put(P1, A);
+  await f.call(A, "select * from public.attach_my_banner($1, null)", [P1]);
+  assert.equal(await f.anonSees(P1), true, "this SELECT is what POST /object/sign checks: after containment it must not exist");
+});
+
+test("containment removes exactly the Banner read policy - every other storage policy is identical", async () => {
+  assert.equal(containment.replace(/--.*$/gm, "").trim(), 'drop policy "public profile banners are readable" on storage.objects;');
+  const policies = async f => (await f.db.query("select policyname, cmd, permissive, roles::text r, coalesce(qual, '') q, coalesce(with_check, '') c from pg_policies where schemaname = 'storage' and tablename = 'objects' order by 1")).rows;
+  const before = await policies(await fixture({ contain: false })), after = await policies(await fixture());
+  assert.deepEqual(before.filter(x => x.policyname !== "public profile banners are readable"), after);
+  assert.equal(before.length - after.length, 1);
+  assert.equal(after.some(x => /banner_is_public/.test(x.q)), false, "no remaining policy hands a visitor a Banner");
+});
+
+test("after containment no visitor can SELECT (and so cannot sign) any Banner - PUBLIC, PRIVATE, DRAFT, attached, unattached or replaced; the owner still can", async () => {
   const f = await fixture();
   await f.put(P1, A); await f.put(P2, A); await f.put(PB, B);
-  assert.equal(await f.anonSees(P1), false, "uploaded but not attached");
+  const visitorSees = async path => (await f.anonSees(path)) || (await f.call(B, "select name from storage.objects where name = $1", [path])).length === 1;
+  assert.equal(await visitorSees(P1), false, "uploaded, not attached");
   await f.call(A, "select * from public.attach_my_banner($1, null)", [P1]);
-  assert.equal(await f.anonSees(P1), true, "PUBLIC + attached");
-  assert.equal(await f.anonSees(P2), false, "the owner's other, unattached Banner");
-  assert.equal(await f.anonSees(PB), false, "B's unattached Banner");
-  for (const visibility of ["PRIVATE", "DRAFT"]) {
+  assert.equal(await visitorSees(P1), false, "PUBLIC + attached: still no visitor SELECT");
+  assert.equal((await f.call(A, "select name from storage.objects where name = $1", [P1])).length, 1, "the owner reads their own Banner (gateway receipt)");
+  for (const visibility of ["PRIVATE", "DRAFT", "PUBLIC"]) {
     await f.db.exec(`update public.entities set visibility = '${visibility}' where entity_id = '${EA}'`);
-    assert.equal(await f.anonSees(P1), false, `${visibility}: not readable even with the exact path`);
-    assert.equal((await f.call(B, "select name from storage.objects where name = $1", [P1])).length, 0, `${visibility}: not readable by another signed-in user`);
+    assert.equal(await visitorSees(P1), false, visibility);
   }
-  await f.db.exec(`update public.entities set visibility = 'PUBLIC' where entity_id = '${EA}'`);
   await f.call(A, "select * from public.attach_my_banner($1, $2)", [P2, P1]);
-  assert.equal(await f.anonSees(P1), false, "replaced: the old Banner stops being readable at once");
-  assert.equal(await f.anonSees(P2), true);
-  await f.call(A, "select * from public.remove_my_banner($1)", [P2]);
-  assert.equal(await f.anonSees(P2), false, "removed: no longer readable");
-  assert.equal(await f.anonSees(AVATAR), true, "the Avatar rule is independent");
+  assert.equal(await visitorSees(P1), false, "replaced"); assert.equal(await visitorSees(P2), false, "new one");
+  assert.equal((await f.anonSees(PB)) || (await f.call(A, "select name from storage.objects where name = $1", [PB])).length === 1, false, "another owner's object");
+  assert.equal(await f.anonSees(AVATAR), true, "the accepted public Avatar rule is unchanged");
 });
 
 test("an attached Banner cannot be deleted (Storage API or gateway); a detached one can; only the service role may ask the gateway question", async () => {
