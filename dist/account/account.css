@@ -348,12 +348,10 @@ a.duo-handle:hover,a.duo-handle:focus-visible{text-decoration:underline}
 .social-icon[data-platform=youtube]{background:#ff0000}
 .social-icon[data-platform=twitch]{background:#9146ff}
 .social-icon[data-platform=kick]{background:#53fc18;color:#000}
-.social-icon[data-platform=x],.social-icon[data-platform=threads]{background:#000;box-shadow:inset 0 0 0 1px #5a5470}
+.social-icon[data-platform=x]{background:#000;box-shadow:inset 0 0 0 1px #5a5470}
 .social-icon[data-platform=snapchat]{background:#fffc00;color:#000}
 .social-icon[data-platform=discord]{background:#5865f2}
 .social-icon[data-platform=facebook]{background:#1877f2;font-size:1.05rem}
-.social-icon[data-platform=reddit]{background:#ff4500}
-.social-icon[data-platform=linkedin]{background:#0a66c2}
 [data-profile-editor] .save-all-bar{display:grid;gap:.5rem;margin:1.4rem 0 .6rem;padding-top:1rem;border-top:1px solid var(--line)}
 [data-profile-editor] .save-all-bar .primary{min-height:48px;width:100%;margin:0}
 @media(min-width:760px){[data-profile-editor] .save-all-bar .primary{width:auto;justify-self:end;min-width:16rem}}

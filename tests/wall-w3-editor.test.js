@@ -249,6 +249,13 @@ test("route: nothing else links to or serves the editor - it is not wired into A
       assert.doesNotMatch(text, /wall-editor|wall_drafts|get_my_wall|save_my_wall|publish_my_wall/);
       continue;
     }
+    // (One link engine) My Socials recognises and validates platform links with the Wall's shared LINK ENGINE (wall-kit/embed) only - never the editor, a draft or
+    // any owner Wall call. Nothing links to or serves the editor from there.
+    if (file === "dist/account/socials.js") {
+      assert.deepEqual([...text.matchAll(/from "\.\.\/wall-kit\/([^"]+)"/g)].map(match => match[1]), ["embed/index.js"]);
+      assert.doesNotMatch(text, /wall-editor|wall_drafts|get_my_wall|save_my_wall|publish_my_wall/);
+      continue;
+    }
     if (file === "dist/crew/index.html") {
       assert.deepEqual([...text.matchAll(/(wall-kit|wall-editor)[^"]*/g)].map(match => match[0]), ["wall-kit/wall-kit.css"]);
       continue;

@@ -62,6 +62,17 @@ try{for(const width of [1280,390]){
  // ISS-0002: the server's video limit is named without a stale figure, with View Usage and no Retry; deleting an asset resolves it.
  registerError='WALL_VIDEO_LIMIT';await pick({name:'fixture.webm',mimeType:'video/webm',buffer:webm});await box.waitFor();assert.match(await box.textContent(),/Wall video limit/);assert.doesNotMatch(await box.textContent(),/\d/);assert.equal(await box.getByRole('button',{name:'Retry'}).count(),0);assert.equal(await box.getByRole('button',{name:'View Usage'}).count(),1);assert.ok(deletes.length>=1,'the refused stored video is removed');registerError=null;
  await page.locator('#assetGrid .ed-danger').first().click();await page.locator('#assetMessage').filter({hasText:'deleted'}).waitFor();assert.equal(await box.count(),0,'a delete frees a slot: the limit error is resolved');
+ // One link engine: a Discord personal profile (discord.com/users/<id>) is recognised in Media & Links and offered as a Link ONLY; a server invite keeps Card / Link.
+ const DISCORD_USER='https://discord.com/users/374102653111762948';
+ await page.locator('button[data-tool="media"]:visible').first().click();await page.locator('#mediaUrl').fill(DISCORD_USER);await page.locator('#mediaUrl').press('Enter');
+ const card=page.locator('#mediaResult .ed-media-card');await card.waitFor();assert.equal((await card.locator('.tag').textContent()).trim(),'DISCORD');assert.equal((await card.locator('strong').textContent()).trim(),'Profile');
+ assert.deepEqual(await card.locator('.ed-seg button').allTextContents(),['Link'],'Link only: no Player, no Card');
+ await card.getByRole('button',{name:'Add to Wall'}).click();await page.locator('select').filter({has:page.locator('option[value=link]')}).first().waitFor();
+ const showAs=page.locator('label.ed-field').filter({hasText:'Show as'}).locator('select');assert.deepEqual(await showAs.locator('option').allTextContents(),['Link']);
+ assert.ok(await page.locator(`a[href="${DISCORD_USER}"]`).count()>=1,'it opens the official Discord profile address');
+ await page.locator('button[data-tool="media"]:visible').first().click();await page.locator('#mediaUrl').fill('https://discord.gg/abc123');await page.locator('#mediaUrl').press('Enter');
+ await card.waitFor();assert.equal((await card.locator('strong').textContent()).trim(),'Server invite');assert.deepEqual(await card.locator('.ed-seg button').allTextContents(),['Card','Link'],'invites unchanged');
+ await page.locator('#mediaUrl').fill('javascript:alert(1)');await page.locator('#mediaUrl').press('Enter');await page.locator('#mediaResult .ed-media-msg').waitFor();assert.equal(await card.count(),0,'unsafe links are refused');
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);assert.equal(overflow,false);assert.deepEqual(errors,[]);
  await page.screenshot({path:`${out}/wall-upload-${process.argv.includes('--live')?'live':'local'}-${width}.png`});
  results.push({width,uploadsSent:posts.length,storedCleanups:deletes.length,errors,overflow,ok:true});await context.close();

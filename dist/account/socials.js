@@ -1,26 +1,35 @@
-// My Socials: the owner's OWN named-platform social accounts (Profile Editor section + public icons). No "Other": free-form links belong to the Wall.
-// The platform list and URL patterns are the SAME as public.social_platform_catalog (supabase/migrations/20261009120000_my_socials.sql); the server validates
-// every saved URL again and is authoritative. Built with createElement/textContent only; every href is a URL the server accepted (https only).
-export const SOCIAL_PLATFORMS = Object.freeze([
-  { key: "instagram", label: "Instagram", glyph: "IG", example: "https://www.instagram.com/yourname", pattern: "^https://(www\\.)?instagram\\.com/[a-z0-9._]{1,30}/?$" },
-  { key: "tiktok", label: "TikTok", glyph: "TT", example: "https://www.tiktok.com/@yourname", pattern: "^https://(www\\.)?tiktok\\.com/@[a-z0-9._]{2,24}/?$" },
-  { key: "youtube", label: "YouTube", glyph: "▶", example: "https://www.youtube.com/@yourchannel", pattern: "^https://(www\\.|m\\.)?youtube\\.com/(@[a-z0-9._-]{3,30}|channel/uc[a-z0-9_-]{22}|c/[a-z0-9._-]{1,100}|user/[a-z0-9._-]{1,100})/?$" },
-  { key: "twitch", label: "Twitch", glyph: "TW", example: "https://www.twitch.tv/yourname", pattern: "^https://(www\\.)?twitch\\.tv/[a-z0-9_]{3,25}/?$" },
-  { key: "kick", label: "Kick", glyph: "K", example: "https://kick.com/yourname", pattern: "^https://(www\\.)?kick\\.com/[a-z0-9_-]{3,25}/?$" },
-  { key: "x", label: "X", glyph: "X", example: "https://x.com/yourname", pattern: "^https://(www\\.)?(x|twitter)\\.com/[a-z0-9_]{1,15}/?$" },
-  { key: "threads", label: "Threads", glyph: "@", example: "https://www.threads.net/@yourname", pattern: "^https://(www\\.)?threads\\.(net|com)/@[a-z0-9._]{1,30}/?$" },
-  { key: "snapchat", label: "Snapchat", glyph: "SC", example: "https://www.snapchat.com/add/yourname", pattern: "^https://(www\\.)?snapchat\\.com/(add/|@)[a-z0-9._-]{3,15}/?$" },
-  { key: "discord", label: "Discord", glyph: "DC", example: "https://discord.gg/yourserver", pattern: "^https://(www\\.)?(discord\\.gg/[a-z0-9-]{2,32}|discord\\.com/(invite/[a-z0-9-]{2,32}|users/[0-9]{17,20}))/?$" },
-  { key: "facebook", label: "Facebook", glyph: "f", example: "https://www.facebook.com/yourname", pattern: "^https://(www\\.|m\\.)?facebook\\.com/([a-z0-9.]{5,50}|profile\\.php\\?id=[0-9]{5,20})/?$" },
-  { key: "reddit", label: "Reddit", glyph: "R", example: "https://www.reddit.com/user/yourname", pattern: "^https://(www\\.)?reddit\\.com/(u|user)/[a-z0-9_-]{3,20}/?$" },
-  { key: "linkedin", label: "LinkedIn", glyph: "in", example: "https://www.linkedin.com/in/yourname", pattern: "^https://(www\\.)?linkedin\\.com/in/[a-z0-9-]{3,100}/?$" },
-].map(platform => Object.freeze({ ...platform, regex: new RegExp(platform.pattern, "i") })));
+// My Socials: the owner's OWN social accounts (Profile Editor section + public icons). No "Other": free-form links belong to the Wall.
+// ONE link engine for the Wall and My Socials: the Wall's provider adapters (dist/wall-kit/embed) are the only platform / URL rules. detectEmbed() recognises the
+// platform and the content kind, the adapter's id rule validates it, and the adapter rebuilds every address (openUrl) - the same parts a Wall link stores
+// ({ platform, kind, id }). My Socials only chooses WHICH platforms are offered and which kinds count as the owner's account (a profile, channel, page or server
+// invite - never a post or a video); public.social_platform_catalog.account_kinds mirrors that list and the server checks every id against the Wall's own server
+// rules (private.wall_embed_specs). Built with createElement/textContent only.
+import { PROVIDERS, detectEmbed, isAllowedOpenUrl } from "../wall-kit/embed/index.js";
+
+const ACCOUNTS = [
+  ["instagram", ["profile"], "IG", "https://www.instagram.com/yourname"],
+  ["tiktok", ["profile"], "TT", "https://www.tiktok.com/@yourname"],
+  ["youtube", ["channel"], "▶", "https://www.youtube.com/@yourchannel"],
+  ["twitch", ["channel"], "TW", "https://www.twitch.tv/yourname"],
+  ["kick", ["channel"], "K", "https://kick.com/yourname"],
+  ["x", ["profile"], "X", "https://x.com/yourname"],
+  ["snapchat", ["profile"], "SC", "https://www.snapchat.com/add/yourname"],
+  ["discord", ["profile", "invite"], "DC", "https://discord.com/users/123456789012345678"],
+  ["facebook", ["page"], "f", "https://www.facebook.com/yourpage"],
+];
+// label and account kinds come from the Wall adapters; a platform or kind the engine does not know fails loudly here (and in tests), never silently
+export const SOCIAL_PLATFORMS = Object.freeze(ACCOUNTS.map(([key, kinds, glyph, example]) => {
+  const provider = PROVIDERS.get(key);
+  if (!provider || kinds.some(kind => !Object.hasOwn(provider.kinds, kind))) throw new Error(`My Socials platform ${key} is not supported by the Wall link engine`);
+  return Object.freeze({ key, label: provider.label, glyph, example, kinds: Object.freeze([...kinds]) });
+}));
 export const SOCIAL_MAX = SOCIAL_PLATFORMS.length;
 export const SOCIAL_URL_MAX = 200;
 export const socialPlatform = key => SOCIAL_PLATFORMS.find(platform => platform.key === key) ?? null;
 
 export const SOCIAL_ERROR_MESSAGES = Object.freeze({
-  INVALID_SOCIAL_URL: "Use the full link to your own account on that platform (https://…).",
+  INVALID_SOCIAL_URL: "Use the link to your own account on that platform (https://…).",
+  NOT_A_SOCIAL_ACCOUNT: "That is a post or a video, not your account. Paste the link to your profile, channel, page or server.",
   INVALID_SOCIAL_PLATFORM: "Choose one of the listed platforms.",
   DUPLICATE_SOCIAL_PLATFORM: "Each platform can be added once.",
   TOO_MANY_SOCIAL_LINKS: `You can add up to ${SOCIAL_MAX} social accounts.`,
@@ -29,35 +38,47 @@ export const SOCIAL_ERROR_MESSAGES = Object.freeze({
   SOCIALS_NOT_LOADED: "Your social accounts have not loaded yet. Reload the page and try again.",
 });
 
-// What people paste -> the canonical form the server accepts: trimmed, https:// added when missing (http:// upgraded), tracking query / fragment dropped
-// (Facebook's profile.php?id= is the account itself and is kept). Anything that is not a plain web address is returned unchanged so it fails validation.
-export function normalizeSocialUrl(input) {
-  let raw = String(input ?? "").trim();
-  if (!raw) return "";
-  if (/^http:\/\//i.test(raw)) raw = `https://${raw.slice(7)}`;
-  else if (!/^[a-z][a-z0-9+.-]*:/i.test(raw)) raw = `https://${raw.replace(/^\/+/, "")}`;
-  let url;
-  try { url = new URL(raw); } catch { return raw; }
-  if (url.protocol !== "https:" || url.username || url.password || url.port) return raw;
-  const host = url.hostname.toLowerCase();
-  const facebookId = /(^|\.)facebook\.com$/.test(host) && url.pathname === "/profile.php" ? url.searchParams.get("id") : null;
-  return `https://${host}${url.pathname}${facebookId ? `?id=${facebookId}` : ""}`;
+// The address of a saved account, rebuilt by the platform's own Wall adapter from its validated parts (null when the parts are not a valid account).
+export function socialUrl(platformKey, kind, id) {
+  const platform = socialPlatform(platformKey), provider = PROVIDERS.get(platformKey), spec = provider?.kinds[kind];
+  if (!platform || !platform.kinds.includes(kind) || !spec || typeof id !== "string" || !new RegExp(spec.id).test(id)) return null;
+  const url = provider.openUrl(kind, id);
+  return isAllowedOpenUrl(platformKey, url) ? url : null;
 }
 
-// -> { ok: true, links: [{ platform, url }] } | { ok: false, index, code }. Mirrors the server's checks (order, one per platform, the platform's pattern).
+// One pasted link for a chosen platform -> { ok: true, platform, kind, id, url } | { ok: false, code }. The Wall engine decides what the link is.
+export function parseSocialLink(platformKey, input) {
+  const platform = socialPlatform(platformKey);
+  if (!platform) return { ok: false, code: "INVALID_SOCIAL_PLATFORM" };
+  const text = String(input ?? "").trim();
+  if (!text) return { ok: false, code: "EMPTY_SOCIAL_URL" };
+  if (text.length > SOCIAL_URL_MAX) return { ok: false, code: "INVALID_SOCIAL_URL" };
+  const detected = detectEmbed(text);
+  if (!detected.ok || detected.providerKey !== platform.key) return { ok: false, code: "INVALID_SOCIAL_URL" };
+  if (!platform.kinds.includes(detected.kind)) return { ok: false, code: "NOT_A_SOCIAL_ACCOUNT" };
+  return { ok: true, platform: platform.key, kind: detected.kind, id: detected.id, url: detected.canonicalUrl };
+}
+
+// What people paste -> the canonical address the engine rebuilds (shown back in the row); anything unrecognised is kept as typed so it fails validation visibly.
+export function normalizeSocialUrl(input, platformKey = null) {
+  const text = String(input ?? "").trim();
+  const detected = text ? detectEmbed(text) : null;
+  if (detected?.ok && (!platformKey || detected.providerKey === platformKey)) return detected.canonicalUrl;
+  return text;
+}
+
+// -> { ok: true, links: [{ platform, kind, id }] } | { ok: false, index, code }. The same checks the server makes (one per platform, an account kind, the Wall id rule).
 export function validateSocialLinks(links) {
   if (!Array.isArray(links) || links.length > SOCIAL_MAX) return { ok: false, index: -1, code: "TOO_MANY_SOCIAL_LINKS" };
   const seen = new Set();
   const out = [];
   for (const [index, link] of links.entries()) {
-    const platform = socialPlatform(link?.platform);
-    if (!platform) return { ok: false, index, code: "INVALID_SOCIAL_PLATFORM" };
-    if (seen.has(platform.key)) return { ok: false, index, code: "DUPLICATE_SOCIAL_PLATFORM" };
-    seen.add(platform.key);
-    const url = normalizeSocialUrl(link.url);
-    if (!url) return { ok: false, index, code: "EMPTY_SOCIAL_URL" };
-    if (url.length > SOCIAL_URL_MAX || !platform.regex.test(url)) return { ok: false, index, code: "INVALID_SOCIAL_URL" };
-    out.push({ platform: platform.key, url });
+    if (!socialPlatform(link?.platform)) return { ok: false, index, code: "INVALID_SOCIAL_PLATFORM" };
+    if (seen.has(link.platform)) return { ok: false, index, code: "DUPLICATE_SOCIAL_PLATFORM" };
+    seen.add(link.platform);
+    const parsed = parseSocialLink(link.platform, link.url);
+    if (!parsed.ok) return { ok: false, index, code: parsed.code };
+    out.push({ platform: parsed.platform, kind: parsed.kind, id: parsed.id });
   }
   return { ok: true, links: out };
 }
@@ -73,15 +94,17 @@ export function socialIcon(doc, key) {
   return icon;
 }
 
-// Public icons: only saved links the server returned for a published GamID. Each is an https link opened in a new tab without referrer / opener.
+// Public icons: only saved accounts the server returned for a published GamID ({ platform_key, kind, account_id }). Each address is rebuilt by the Wall adapter,
+// checked against the platform's own hosts, and opened in a new tab without referrer / opener.
 export function renderPublicSocials(container, links, doc = container.ownerDocument) {
   const items = [];
   for (const link of Array.isArray(links) ? links : []) {
     const platform = socialPlatform(link?.platform_key);
-    if (!platform || typeof link.url !== "string" || !platform.regex.test(link.url)) continue;   // never draw a link the catalog would refuse
+    const url = platform ? socialUrl(platform.key, link.kind, link.account_id) : null;
+    if (!url) continue;   // never draw something the engine would refuse
     const a = doc.createElement("a");
     a.className = "public-social";
-    a.href = link.url;
+    a.href = url;
     a.target = "_blank";
     a.rel = "noopener noreferrer nofollow";
     a.setAttribute("aria-label", `${platform.label} (opens in a new tab)`);
@@ -93,7 +116,6 @@ export function renderPublicSocials(container, links, doc = container.ownerDocum
   container.hidden = items.length === 0;
   return items.length;
 }
-
 // The Profile Editor section body. Draft-only: nothing is sent until the section's Save Changes (or Save All Changes); `onChange` lets the editor refresh its
 // save buttons. -> { element, draft(), setSaved(rows), isDirty(), showError(index, code), clearErrors() }
 export function createSocialsEditor(doc, { onChange = () => {} } = {}) {
@@ -117,7 +139,7 @@ export function createSocialsEditor(doc, { onChange = () => {} } = {}) {
 
   let saved = [];
   let rows = [];   // [{ platform, url }]
-  const snapshot = list => JSON.stringify(list.map(row => ({ platform: row.platform, url: normalizeSocialUrl(row.url) })));
+  const snapshot = list => JSON.stringify(list.map(row => ({ platform: row.platform, url: normalizeSocialUrl(row.url, row.platform) })));
   function renderOptions() {
     const used = new Set(rows.map(row => row.platform));
     const keep = select.value;
@@ -157,10 +179,9 @@ export function createSocialsEditor(doc, { onChange = () => {} } = {}) {
   add.addEventListener("click", () => {
     const platform = socialPlatform(select.value);
     if (!platform) return;
-    const url = normalizeSocialUrl(input.value);
-    const check = validateSocialLinks([{ platform: platform.key, url }]);
-    if (!check.ok) { showAddError(SOCIAL_ERROR_MESSAGES[check.code]); input.focus(); return; }
-    rows.push({ platform: platform.key, url });
+    const parsed = parseSocialLink(platform.key, input.value);
+    if (!parsed.ok) { showAddError(SOCIAL_ERROR_MESSAGES[parsed.code]); input.focus(); return; }
+    rows.push({ platform: platform.key, url: parsed.url });
     input.value = "";
     showAddError("");
     render();
@@ -170,9 +191,10 @@ export function createSocialsEditor(doc, { onChange = () => {} } = {}) {
   render();
   return {
     element,
-    draft: () => rows.map(row => ({ platform: row.platform, url: normalizeSocialUrl(row.url) })),
+    draft: () => rows.map(row => ({ platform: row.platform, url: normalizeSocialUrl(row.url, row.platform) })),
     setSaved(next) {
-      saved = (Array.isArray(next) ? next : []).map(row => ({ platform: row.platform_key ?? row.platform, url: row.url }));
+      // saved rows are { platform_key, kind, account_id }: the address is rebuilt by the Wall adapter
+      saved = (Array.isArray(next) ? next : []).map(row => { const platform = row.platform_key ?? row.platform; return { platform, url: row.url ?? socialUrl(platform, row.kind, row.account_id) ?? '' }; });
       rows = saved.map(row => ({ ...row }));
       showAddError("");
       render();

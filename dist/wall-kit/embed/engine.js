@@ -48,6 +48,8 @@ export function validateEmbedData(provider, data) {
   if (!idOk(kind, data.id)) errors.push("INVALID_ID");
   // legacyEmbed: a kind that USED to offer a Player keeps accepting presentation "embed" so Walls saved then stay valid (it is shown as a Card - describeEmbed)
   if (!PRESENTATIONS.includes(data.presentation) || (data.presentation === "embed" && !kind.inline && !kind.legacyEmbed)) errors.push("INVALID_PRESENTATION");
+  // a kind that declares its own presentations (e.g. Discord profile: Link only) accepts no other
+  else if (kind.presentations && !kind.presentations.includes(data.presentation)) errors.push("INVALID_PRESENTATION");
   if (isSet(data.aspect) && !ASPECTS.includes(data.aspect)) errors.push("INVALID_ASPECT");
   if (isSet(data.caption) && (typeof data.caption !== "string" || codePoints(data.caption) > CAPTION_MAX)) errors.push("INVALID_CAPTION");
   return errors;
@@ -149,7 +151,8 @@ export const humanReason = {
 // ---- capability matrix (what the editor tells the owner, derived ONLY from the adapters - there is no second list to drift) ------------------------------
 export const PRESENTATION_LABELS = Object.freeze({ embed: "Player", card: "Card", link: "Link" });
 // Presentations a kind can honestly be shown as: a Player only where the provider has a working official player for that content.
-export const presentationsFor = kind => (kind.inline ? ["embed", "card", "link"] : ["card", "link"]);
+// A kind may narrow this with its own `presentations` (never widen it: a Player still needs `inline`).
+export const presentationsFor = kind => (kind.inline ? ["embed", "card", "link"] : ["card", "link"]).filter(value => !kind.presentations || kind.presentations.includes(value));
 // `featuredOrder`: the provider keys to list first, in that order (the registry module supplies it; this engine names no provider). Every other registered provider
 // follows, marked featured: false.
 export function capabilityMatrix(featuredOrder = []) {

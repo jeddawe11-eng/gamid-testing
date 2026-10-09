@@ -515,6 +515,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261004170252_global_usage_gateway.sql", // Owner Usage; public game contracts untouched
       "20261006090000_play_together_notifications.sql", "20261007160000_intro_duration_tolerance.sql", // Play Together's three contracted notifications; public game contracts untouched
       "20261009120000_my_socials.sql",   // My Socials: own tables + RPCs (get_public_social_links is separate); public identity / My Games contracts untouched
+      "20261009151000_my_socials_link_engine.sql",   // My Socials on the Wall link engine (own tables / RPCs only); public identity / My Games contracts untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

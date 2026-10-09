@@ -6,7 +6,7 @@ import { FONT_CATALOG, fontKnown } from "../wall-kit/fonts.js";
 import { TEXT_LIMITS, WEIGHTS, LINK_MAX } from "../wall-kit/text.js";
 import { normalizeLinkInput, LINK_PROBLEMS } from "../wall-kit/links.js";
 import { describeErrors } from "../wall-kit/messages.js";
-import { PROVIDERS, isAllowedOpenUrl } from "../wall-kit/embed/engine.js";
+import { PROVIDERS, isAllowedOpenUrl, presentationsFor } from "../wall-kit/embed/engine.js";
 import { ALT_MAX, MASKS, BLENDS, CROP_PRESETS, SPLIT_COUNTS, EFFECT_LIMITS, FADE_MAX, cropFor } from "../wall-kit/image.js";
 import { DATA_FIELD_INFO, DATA_ITEMS, DATA_TEXT_FIELDS, DATA_COLLECTIONS, dataTextStyle, renderGamidDataPayload } from "../wall-kit/gamid-data.js";
 import { resolveGamidData } from "../wall-kit/gamid-data-paint.js";
@@ -516,9 +516,10 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     // one operation: the data change and, for a player, the box refitted to the selected aspect (one undo step)
     const patchData = patch => ops.setEmbedData(session.doc, session.state.selection[0], patch);
     // Only the presentations this content honestly supports (a Player only where the provider has a working official player).
-    const presentations = [{ value: "card", label: "Card" }, { value: "link", label: "Link" }, ...(kind?.inline ? [{ value: "embed", label: "Player" }] : [])];
+    const offered = kind ? presentationsFor(kind) : ["card", "link"];
+    const presentations = [{ value: "card", label: "Card" }, { value: "link", label: "Link" }, { value: "embed", label: "Player" }].filter(option => offered.includes(option.value));
     root.append(selectField({ label: "Show as", options: presentations, get: item => item.payload.data.presentation, set: value => patchData({ presentation: value }), key: "embedShow" }));
-    if (!kind?.inline) root.append(h("p", { class: "ed-hint", text: `${provider?.label ?? "This platform"} has no player for this content, so it opens on ${provider?.label ?? "the platform"} as a Card or Link.` }));
+    if (!kind?.inline) root.append(h("p", { class: "ed-hint", text: `${provider?.label ?? "This platform"} has no player for this content, so it opens on ${provider?.label ?? "the platform"} as ${offered.includes("card") ? "a Card or Link" : "a Link"}.` }));
     // Shape: a Player's own shapes from its adapter (never a copied list); a card keeps its own box, so it has no Shape.
     const shapes = (kind?.aspects ?? []).filter(value => value !== "auto");
     if (element.payload.data.presentation === "embed" && shapes.length > 1) root.append(selectField({ label: "Shape", options: shapes.map(value => ({ value, label: value })), get: item => item.payload.data.aspect ?? kind.aspect, set: value => patchData({ aspect: value === kind.aspect ? undefined : value }), key: "embedAspect" }));

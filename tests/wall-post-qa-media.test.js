@@ -151,7 +151,7 @@ test("D capability matrix: the requested Media & Links providers in order, each 
     snapchat: { spotlight: P, profile: C },
     x: { post: P, profile: C },
     instagram: { post: C, reel: C, profile: C },   // no Player (Instagram platform limitation; saved Players stay valid as Cards)
-    discord: { invite: C },
+    discord: { invite: C, profile: "link" },   // a personal profile (discord.com/users/<id>) has no card or player: a Link only
     steam: { app: P, profile: C, group: C },
   });
   assert.equal(list.find(entry => entry.key === "facebook").player, false);
@@ -165,7 +165,11 @@ test("D unsupported Player modes can never be chosen: the engine refuses them an
   for (const url of ["https://kick.com/xqc", "https://vimeo.com/76979871", "https://soundcloud.com/forss", "https://www.snapchat.com/spotlight/W7_EDlXWTBiXAEEniNoMPwAAYdWxvYnBhaHR3AaARhNpsAaARhNmWAAAAAQ"]) assert.deepEqual(refuse(url), [], url);
   for (const url of ["https://www.facebook.com/NASA", "https://www.snapchat.com/add/snapchat"]) assert.deepEqual(detectEmbed(url).presentations, ["card", "link"], `${url} is never offered as a Player`);
   const controls = read("dist/wall-editor/controls.js");
-  assert.match(controls, /\.\.\.\(kind\?\.inline \? \[\{ value: "embed", label: "Player" \}\] : \[\]\)/, "Show as offers Player only for an inline kind");
+  // the editor's Show as is derived from the engine (presentationsFor): a Player only for an inline kind, and a kind can narrow it further (Discord profile: Link)
+  assert.match(controls, /const offered = kind \? presentationsFor\(kind\) : \["card", "link"\];/, "Show as offers exactly what the engine allows");
+  assert.match(controls, /\{ value: "embed", label: "Player" \}\]\.filter\(option => offered\.includes\(option\.value\)\)/);
+  assert.deepEqual(detectEmbed("https://discord.com/users/374102653111762948").presentations, ["link"], "a Discord personal profile is a Link only");
+  assert.deepEqual(buildEmbedPayload(detectEmbed("https://discord.com/users/374102653111762948"), { presentation: "card" }).errors, ["INVALID_PRESENTATION"]);
 });
 
 test("D normalisation & allowlists for the new providers: only parts are stored, every address is rebuilt on the provider's own hosts, look-alikes and short links are refused", () => {
