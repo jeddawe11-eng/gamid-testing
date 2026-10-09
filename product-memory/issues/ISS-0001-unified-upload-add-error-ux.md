@@ -1,16 +1,16 @@
 ---
 id: ISS-0001
 title: Unified Upload & Add Error UX
-status: OPEN
+status: AUTHORIZED
 created: 2026-10-09
 updated: 2026-10-09
 scope: All GamID file upload and Add surfaces (including Wall, Avatar, Intro, backgrounds, and future supported media)
 summary: Standardize persistent, contextual and actionable error feedback for every file upload or Add action across GamID.
-related: []
+related: [ISS-0002, ISS-0003, ISS-0004, ISS-0005]
 save_approval: Mazen 2026-10-09
 kind: IMPROVEMENT
-authorization: NONE
-truth_refs: []
+authorization: Mazen 2026-10-09, explicit task "GAMID — ISS-0001 FULL IMPLEMENTATION + PRODUCT MEMORY" (all five audit phases, TESTING only)
+truth_refs: [game-id-wall, global-usage, intro-identity, your-gamid-editor]
 checkpoints: []
 sources: []
 ---
@@ -27,14 +27,19 @@ Expected interaction:
 - Dismiss (×) restores the normal Add control without bypassing enforcement. A corrected condition may clear the error automatically.
 - Apply consistent behavior without silently redesigning accepted UI.
 
+Scope clarification (2026-10-09 audit, approved by Mazen): "Add" here means adding a file or media upload only. Excluded: non-file Add actions (manual games, links, GamID data blocks) and placing an existing asset on the stage. Surfaces in scope today: sign-up Avatar, Profile Editor Avatar, Intro video, Wall Assets (images and videos, including Add > Image) and Wall background video.
+
 ## Evidence
 
 Product discussion on 2026-10-09: Mazen explicitly chose the full scope, “all, anything that involves uploading.” This is an approved memory record for a future improvement, not evidence that every existing screen is broken. Implementation requires a separate code audit and explicit authorization.
 
+The read-only code audit of 2026-10-09 confirmed the gaps above and four concrete defects, recorded as ISS-0002 to ISS-0005.
+
 ## Resolution
 
-Unresolved. No implementation authorized.
+Unresolved. Implementation of the five audit phases is authorized; nothing is fixed or verified yet.
 
 ## History
 
 - 2026-10-09 OPEN — Scope agreed for every GamID upload/Add surface; Mazen explicitly approved saving this Product Memory improvement only.
+- 2026-10-09 AUTHORIZED — Audit clarification saved with Mazen's approval; Mazen explicitly authorized implementing all five audit phases.
