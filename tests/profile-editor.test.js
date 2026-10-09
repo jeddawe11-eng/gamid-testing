@@ -84,6 +84,20 @@ test('owner preview has one accordion heading and no overlapping internal label'
 test('resolved field validation clears its associated feedback without hiding unrelated errors',()=>{
  const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.ok(source.includes('panel.dataset.invalidDraft&&'));assert.ok(source.includes('panel.dataset.validationMessage===feedback.textContent'));assert.ok(source.includes('section.panel.dataset.validationMessage=text'));assert.ok(source.includes('delete panel.dataset.validationMessage;const el='));
 });
+test('a field-validation save error expires after five seconds below Save Changes while the inline field error persists; other errors and success are unchanged',()=>{
+ // the helper: a non-persistent error gets the five-second clock; a persistent one (actionable failures) never does
+ let fire,delay;const el={hidden:true,classList:{toggle(){}},textContent:''};const feedback=createTransientMessage(el,{durationMs:5000,timers:{setTimeout(fn,ms){fire=fn;delay=ms;return 1;},clearTimeout(){}}});
+ feedback.show('Display name is required.',{tone:'error',persistent:false});assert.equal(delay,5000);assert.equal(el.hidden,false);fire();assert.equal(el.hidden,true,'expired after five seconds');
+ delay=undefined;feedback.show('Could not reach GamID. Try again.',{tone:'error'});assert.equal(delay,undefined);assert.equal(feedback.pending,false);assert.equal(el.hidden,false,'actionable errors still persist');
+ delay=undefined;feedback.show('Saved successfully',{tone:'success'});assert.equal(delay,5000,'success unchanged');
+ // the wiring: only a recognised field-validation failure (the case that also writes the inline .field-error) is reported non-persistent
+ const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');
+ assert.ok(source.includes('function reportSection(key,text,success=false,progress=false,persistent=!success&&!progress)'));
+ assert.ok(source.includes("reportSection(key,text,false,false,!fieldValidation);\n if(fieldValidation){section.panel.dataset.validationMessage=text;"),'the same condition drives the transient notice and the inline error');
+ assert.ok(source.includes("const fieldValidation=Boolean(field&&['name','bio','roles','education'].includes(key)&&['INVALID_DISPLAY_NAME'"));
+ assert.doesNotMatch(source,/const text=errorMessage\(reasonFrom\(error\)\|\|error\.message\);reportSection\(key,text\);/,'no unconditional persistent error report remains');
+ assert.ok(source.includes("hint.className='field-error'"),'the inline field error is still created and only removed once the field is valid');
+});
 test('saved message has one CSS success icon and no duplicate textual checkmark',()=>{
  const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.ok(source.includes("reportSection(key,'Saved successfully',true)"));assert.doesNotMatch(source,/reportSection\(key,'Saved ✓'/);const css=readFileSync(new URL('../dist/account/account.css',import.meta.url),'utf8');assert.ok(css.includes(".connections-message.success:before{content:'✓ ';}"));
 });

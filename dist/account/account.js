@@ -48,7 +48,7 @@ function actionDraftsDirty(){
 document.addEventListener('focusin',event=>{const control=event.target;if(control.matches?.('input,select,textarea')&&control.closest('[data-profile-editor]')&&!control.closest('#profileForm,#languageForm')&&!actionDrafts.has(control))actionDrafts.set(control,controlValue(control));});
 document.addEventListener("focusin",event=>{const key=event.target.closest?.("[data-editor-section]")?.dataset.editorSection;if(key)editorActionSection=key;});
 function feedbackFor(el) { if(!sectionFeedback.has(el))sectionFeedback.set(el,createTransientMessage(el,{durationMs:5000}));return sectionFeedback.get(el); }
-function reportSection(key,text,success=false,progress=false) { const panel=editor.sections.get(key)?.panel;if(panel)delete panel.dataset.validationMessage;const el=editor.saves.get(key)?.feedback; if(el)feedbackFor(el).show(text,{tone:success?"success":"error",progress,persistent:!success&&!progress}); }
+function reportSection(key,text,success=false,progress=false,persistent=!success&&!progress) { const panel=editor.sections.get(key)?.panel;if(panel)delete panel.dataset.validationMessage;const el=editor.saves.get(key)?.feedback; if(el)feedbackFor(el).show(text,{tone:success?"success":"error",progress,persistent}); }
 let roleCatalog = [];
 let educationWorkCatalog = [];
 let savedIntro = null;
@@ -1917,10 +1917,13 @@ async function saveEditorSection(key){
  }catch(error){
  if(epoch!==profileFeedbackEpoch)return;
  if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)return;
- const text=errorMessage(reasonFrom(error)||error.message);reportSection(key,text);
+ const text=errorMessage(reasonFrom(error)||error.message);
  const selector={INVALID_DISPLAY_NAME:'#profileDisplayName',BIO_TOO_LONG:'#profileBio',INSTITUTION_TOO_LONG:'#profileInstitution',FIELD_OF_STUDY_TOO_LONG:'#profileFieldOfStudy',INVALID_EDUCATION_WORK_STATUS:'#educationWorkStatus'}[reasonFrom(error)];
  const field=selector?section.panel.querySelector(selector):section.panel.querySelector('input:not([type=file]),textarea,select');
- if(field&&['name','bio','roles','education'].includes(key)&&['INVALID_DISPLAY_NAME','BIO_TOO_LONG','INSTITUTION_TOO_LONG','FIELD_OF_STUDY_TOO_LONG','INVALID_EDUCATION_WORK_STATUS','DUPLICATE_GAMING_ROLE','PRIMARY_ROLE_WITHOUT_ROLES','INVALID_PRIMARY_ROLE','INVALID_GAMING_ROLE'].includes(reasonFrom(error))){section.panel.dataset.validationMessage=text;section.panel.dataset.invalidDraft=JSON.stringify(sectionDraft({},snapshot,key));field.setAttribute('aria-invalid','true');let hint=section.panel.querySelector('.field-error');if(!hint){hint=document.createElement('p');hint.className='field-error';hint.id='editor-field-error-'+key;hint.setAttribute('role','alert');field.after(hint);}hint.textContent=text;field.setAttribute('aria-describedby',hint.id);}
+ const fieldValidation=Boolean(field&&['name','bio','roles','education'].includes(key)&&['INVALID_DISPLAY_NAME','BIO_TOO_LONG','INSTITUTION_TOO_LONG','FIELD_OF_STUDY_TOO_LONG','INVALID_EDUCATION_WORK_STATUS','DUPLICATE_GAMING_ROLE','PRIMARY_ROLE_WITHOUT_ROLES','INVALID_PRIMARY_ROLE','INVALID_GAMING_ROLE'].includes(reasonFrom(error)));
+ // a field validation error stays inline on the field; its copy below Save Changes is transient (five visible seconds). Other errors stay persistent.
+ reportSection(key,text,false,false,!fieldValidation);
+ if(fieldValidation){section.panel.dataset.validationMessage=text;section.panel.dataset.invalidDraft=JSON.stringify(sectionDraft({},snapshot,key));field.setAttribute('aria-invalid','true');let hint=section.panel.querySelector('.field-error');if(!hint){hint=document.createElement('p');hint.className='field-error';hint.id='editor-field-error-'+key;hint.setAttribute('role','alert');field.after(hint);}hint.textContent=text;field.setAttribute('aria-describedby',hint.id);}
  }
  finally{controls.forEach((c,i)=>{if(c.isConnected)c.disabled=prior[i];});section.card.removeAttribute('aria-busy');updateProfilePreview();}
 }
