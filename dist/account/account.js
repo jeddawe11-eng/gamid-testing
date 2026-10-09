@@ -48,7 +48,7 @@ function actionDraftsDirty(){
 document.addEventListener('focusin',event=>{const control=event.target;if(control.matches?.('input,select,textarea')&&control.closest('[data-profile-editor]')&&!control.closest('#profileForm,#languageForm')&&!actionDrafts.has(control))actionDrafts.set(control,controlValue(control));});
 document.addEventListener("focusin",event=>{const key=event.target.closest?.("[data-editor-section]")?.dataset.editorSection;if(key)editorActionSection=key;});
 function feedbackFor(el) { if(!sectionFeedback.has(el))sectionFeedback.set(el,createTransientMessage(el,{durationMs:5000}));return sectionFeedback.get(el); }
-function reportSection(key,text,success=false,progress=false) { const el=editor.saves.get(key)?.feedback; if(el)feedbackFor(el).show(text,{tone:success?"success":"error",progress,persistent:!success&&!progress}); }
+function reportSection(key,text,success=false,progress=false) { const panel=editor.sections.get(key)?.panel;if(panel)delete panel.dataset.validationMessage;const el=editor.saves.get(key)?.feedback; if(el)feedbackFor(el).show(text,{tone:success?"success":"error",progress,persistent:!success&&!progress}); }
 let roleCatalog = [];
 let educationWorkCatalog = [];
 let savedIntro = null;
@@ -141,7 +141,14 @@ const cropZoom = document.getElementById("avatarZoom");
 const introTransition = document.getElementById("introTransition");
 for (const key of INTRO_TRANSITIONS) introTransition.add(new Option(PRESETS[key].label, key));
 
+const accountMenu=document.getElementById("accountMenu");
+function syncAccountMenu(){accountMenu.hidden=!api.userIdFromToken();if(accountMenu.hidden)accountMenu.open=false;}
+window.addEventListener(api.AUTH_SESSION_EVENT,syncAccountMenu);
+document.addEventListener("click",event=>{if(accountMenu.open&&!accountMenu.contains(event.target))accountMenu.open=false;});
+accountMenu.addEventListener("keydown",event=>{if(event.key==="Escape"&&accountMenu.open){event.preventDefault();accountMenu.open=false;accountMenu.querySelector("summary").focus();}});
+
 function showView(name) {
+  syncAccountMenu();
   views.forEach(view => view.classList.toggle("is-active", view.id === `${name}View`));
   message.hidden = true;
   window.scrollTo({ top: 0, behavior: "instant" });
@@ -409,7 +416,7 @@ async function showIdentity(data) {
   for(const feedback of sectionFeedback.values())feedback.hide();
   document.querySelectorAll('[data-profile-editor] .field-error').forEach(node=>node.remove());
   document.querySelectorAll('[data-profile-editor] [aria-invalid]').forEach(node=>{node.removeAttribute('aria-invalid');node.removeAttribute('aria-describedby');});
-  document.querySelectorAll('[data-profile-editor] [data-invalid-draft]').forEach(node=>delete node.dataset.invalidDraft);
+  document.querySelectorAll('[data-profile-editor] [data-invalid-draft]').forEach(node=>{delete node.dataset.invalidDraft;delete node.dataset.validationMessage;});
   identity = { ...data, ...editor };
   roleCatalog = editor.role_catalog || [];
   educationWorkCatalog = editor.education_work_catalog || [];
@@ -1856,7 +1863,7 @@ document.getElementById("applyAvatarCrop").addEventListener("click", async event
 function refreshEditorSaves() {
  if(!savedProfile)return;
  const draft=profileDraft();
- for(const [key,{panel}] of editor.sections){if(!['name','bio','roles','education'].includes(key))continue;if(panel.dataset.invalidDraft!==JSON.stringify(sectionDraft({},draft,key))&&validateProfileDraft(sectionDraft(savedProfile,draft,key),profileCatalogs()).valid){panel.querySelectorAll('[aria-invalid]').forEach(c=>{c.removeAttribute('aria-invalid');c.removeAttribute('aria-describedby');});panel.querySelector('.field-error')?.remove();delete panel.dataset.invalidDraft;}}
+ for(const [key,{panel}] of editor.sections){if(!['name','bio','roles','education'].includes(key))continue;if(panel.dataset.invalidDraft&&panel.dataset.invalidDraft!==JSON.stringify(sectionDraft({},draft,key))&&validateProfileDraft(sectionDraft(savedProfile,draft,key),profileCatalogs()).valid){panel.querySelectorAll('[aria-invalid]').forEach(c=>{c.removeAttribute('aria-invalid');c.removeAttribute('aria-describedby');});panel.querySelector('.field-error')?.remove();const feedback=editor.saves.get(key)?.feedback;if(feedback&&panel.dataset.validationMessage===feedback.textContent)feedbackFor(feedback).hide();delete panel.dataset.validationMessage;delete panel.dataset.invalidDraft;}}
  for(const [key,{button}] of editor.saves){
   if(key==='league')button.closest('.section-save').hidden=!leagueProfile;
   const changed=key==='avatar'?Boolean(pendingAvatar):key==='intro'?hasIntroChanges(savedIntro,introDraft(),Boolean(pendingIntroSource)):sectionChanged(savedProfile,draft,key);
@@ -1870,7 +1877,7 @@ function refreshEditorSaves() {
  editor.sections.get('avatar').status.textContent=pendingAvatar?'Unsaved avatar':savedProfile.avatarPath?'Avatar saved':'No avatar yet';
  editor.sections.get('share').status.textContent=`@${identity.gamid_handle} · Link and QR`;
  editor.sections.get('preview').status.textContent=`Current draft · ${draft.displayName.trim()||'Your GamID'}`;
- const language=document.querySelector('#languageForm select');editor.sections.get('language').status.textContent=language.selectedOptions[0]?.textContent||'Language and sign out';
+ const language=document.querySelector('#languageForm select');editor.sections.get('language').status.textContent=language.selectedOptions[0]?.textContent||'Language preference';
 }
 function profileFromRow(updated){return {displayName:updated.display_name,bio:updated.bio,avatarPath:updated.avatar_media_reference,roleKeys:updated.role_keys||[],primaryRoleKey:updated.primary_role_key,educationWorkStatus:updated.education_work_status,institution:updated.institution||'',fieldOfStudy:updated.field_of_study||''};}
 async function saveEditorSection(key){
@@ -1906,14 +1913,14 @@ async function saveEditorSection(key){
    if(key==='avatar'){resetAvatarCropLifecycle('save-success');await setPersistedAvatar(updated.avatar_media_reference,updated.display_name?.[0]?.toUpperCase()||'G');}
   }
   for(const [id,entry] of [...stagedVisibility])if(entry.section===key){if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');await entry.commit(entry.value);if(stagedVisibility.get(id)===entry)stagedVisibility.delete(id);}
- });if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken()&&entity===identity?.entity_id)reportSection(key,'Saved ✓',true);
+ });if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken()&&entity===identity?.entity_id)reportSection(key,'Saved successfully',true);
  }catch(error){
  if(epoch!==profileFeedbackEpoch)return;
  if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)return;
  const text=errorMessage(reasonFrom(error)||error.message);reportSection(key,text);
  const selector={INVALID_DISPLAY_NAME:'#profileDisplayName',BIO_TOO_LONG:'#profileBio',INSTITUTION_TOO_LONG:'#profileInstitution',FIELD_OF_STUDY_TOO_LONG:'#profileFieldOfStudy',INVALID_EDUCATION_WORK_STATUS:'#educationWorkStatus'}[reasonFrom(error)];
  const field=selector?section.panel.querySelector(selector):section.panel.querySelector('input:not([type=file]),textarea,select');
- if(field&&['name','bio','roles','education'].includes(key)&&['INVALID_DISPLAY_NAME','BIO_TOO_LONG','INSTITUTION_TOO_LONG','FIELD_OF_STUDY_TOO_LONG','INVALID_EDUCATION_WORK_STATUS','DUPLICATE_GAMING_ROLE','PRIMARY_ROLE_WITHOUT_ROLES','INVALID_PRIMARY_ROLE','INVALID_GAMING_ROLE'].includes(reasonFrom(error))){section.panel.dataset.invalidDraft=JSON.stringify(sectionDraft({},snapshot,key));field.setAttribute('aria-invalid','true');let hint=section.panel.querySelector('.field-error');if(!hint){hint=document.createElement('p');hint.className='field-error';hint.id='editor-field-error-'+key;hint.setAttribute('role','alert');field.after(hint);}hint.textContent=text;field.setAttribute('aria-describedby',hint.id);}
+ if(field&&['name','bio','roles','education'].includes(key)&&['INVALID_DISPLAY_NAME','BIO_TOO_LONG','INSTITUTION_TOO_LONG','FIELD_OF_STUDY_TOO_LONG','INVALID_EDUCATION_WORK_STATUS','DUPLICATE_GAMING_ROLE','PRIMARY_ROLE_WITHOUT_ROLES','INVALID_PRIMARY_ROLE','INVALID_GAMING_ROLE'].includes(reasonFrom(error))){section.panel.dataset.validationMessage=text;section.panel.dataset.invalidDraft=JSON.stringify(sectionDraft({},snapshot,key));field.setAttribute('aria-invalid','true');let hint=section.panel.querySelector('.field-error');if(!hint){hint=document.createElement('p');hint.className='field-error';hint.id='editor-field-error-'+key;hint.setAttribute('role','alert');field.after(hint);}hint.textContent=text;field.setAttribute('aria-describedby',hint.id);}
  }
  finally{controls.forEach((c,i)=>{if(c.isConnected)c.disabled=prior[i];});section.card.removeAttribute('aria-busy');updateProfilePreview();}
 }
@@ -1932,6 +1939,7 @@ document.getElementById("languageForm").addEventListener("submit", async event =
 
 document.getElementById("signOutButton").addEventListener("click", async () => {
   if (isProfileDirty() && !window.confirm("Discard your unsaved profile changes and sign out?")) return;
+  accountMenu.open=false;
   profileFeedbackEpoch++;
   stopIntroPreview(); introSource.invalidate();
   for(const feedback of sectionFeedback.values())feedback.hide();

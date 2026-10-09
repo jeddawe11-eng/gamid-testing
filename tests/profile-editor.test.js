@@ -76,3 +76,18 @@ test('explicitly transient errors, warnings and information each receive five vi
 test('same-account re-sign-in invalidates save feedback from the previous editor lifecycle',()=>{
  const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.match(source,/async function showIdentity\(data\) \{\s*profileFeedbackEpoch\+\+/);assert.ok(source.includes('if(epoch!==profileFeedbackEpoch)return;'));assert.ok(source.includes('epoch=profileFeedbackEpoch'));assert.ok(source.includes('if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken()&&entity===identity?.entity_id)reportSection'));
 });
+
+
+test('owner preview has one accordion heading and no overlapping internal label',()=>{
+ const html=readFileSync(new URL('../dist/account/index.html',import.meta.url),'utf8');assert.doesNotMatch(html,/class="preview-state"/);const source=readFileSync(new URL('../dist/account/profile-editor.js',import.meta.url),'utf8');assert.ok(source.includes("'Live Preview'"));
+});
+test('resolved field validation clears its associated feedback without hiding unrelated errors',()=>{
+ const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.ok(source.includes('panel.dataset.invalidDraft&&'));assert.ok(source.includes('panel.dataset.validationMessage===feedback.textContent'));assert.ok(source.includes('section.panel.dataset.validationMessage=text'));assert.ok(source.includes('delete panel.dataset.validationMessage;const el='));
+});
+test('saved message has one CSS success icon and no duplicate textual checkmark',()=>{
+ const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.ok(source.includes("reportSection(key,'Saved successfully',true)"));assert.doesNotMatch(source,/reportSection\(key,'Saved ✓'/);const css=readFileSync(new URL('../dist/account/account.css',import.meta.url),'utf8');assert.ok(css.includes(".connections-message.success:before{content:'✓ ';}"));
+});
+test('Account menu moves the existing sign-out button and keeps one secure handler',()=>{
+ const html=readFileSync(new URL('../dist/account/index.html',import.meta.url),'utf8');assert.match(html,/id="accountMenu"[^>]*hidden/);assert.ok(html.includes('aria-label="Account menu"'));assert.equal((html.match(/id="signOutButton"/g)||[]).length,1);
+ const layout=readFileSync(new URL('../dist/account/profile-editor.js',import.meta.url),'utf8');assert.ok(layout.includes("getElementById('accountMenuActions').append(signOut)"));const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.equal((source.match(/await api.signOut\(\)/g)||[]).length,1);assert.ok(source.includes('event.key==="Escape"'));assert.ok(source.includes('window.addEventListener(api.AUTH_SESSION_EVENT,syncAccountMenu)'));assert.ok(source.includes('accountMenu.hidden=!api.userIdFromToken()'));
+});

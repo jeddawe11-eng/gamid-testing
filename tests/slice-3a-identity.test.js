@@ -36,7 +36,7 @@ test("avatar replacement reuses the private bucket and validates caller ownershi
 
 test("Your GamID UI exposes live editable fields but no handle mutation", () => {
   assert.match(html, />YOUR GAMID</);
-  assert.match(html, /LIVE PREVIEW/);
+  assert.match(html, /aria-label="Live GamID identity preview"/);
   assert.match(html, /id="profileDisplayName"/);
   assert.match(html, /id="profileBio"[\s\S]*maxlength="160"/);
   assert.match(html, /id="profileAvatarInput"/);
