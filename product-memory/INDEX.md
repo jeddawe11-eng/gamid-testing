@@ -75,7 +75,7 @@ Rules:
 
 | Prefix | Category | Folder | Last issued |
 |---|---|---|---|
-| DIS | Discussions | discussions/ | none |
+| DIS | Discussions | discussions/ | DIS-0001 |
 | DEC | Decisions | decisions/ | none |
 | IDEA | Ideas | ideas/ | IDEA-0001 |
 | ISS | Issues | issues/ | ISS-0001 |
@@ -87,3 +87,5 @@ Rules:
 |---|---|---|---|
 | IDEA-0001 | Profile Editor gaming-dashboard redesign | DEFERRED | [IDEA-0001-profile-editor-dashboard-redesign.md](ideas/IDEA-0001-profile-editor-dashboard-redesign.md) |
 | ISS-0001 | Unified Upload & Add Error UX | OPEN | [ISS-0001-unified-upload-add-error-ux.md](issues/ISS-0001-unified-upload-add-error-ux.md) |
+
+| DIS-0001 | Existing platform picker and Other link in Wall | CONCLUDED | [DIS-0001-existing-platform-picker-and-other-link.md](discussions/DIS-0001-existing-platform-picker-and-other-link.md) |
