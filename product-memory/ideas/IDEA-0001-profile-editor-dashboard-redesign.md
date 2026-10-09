@@ -41,4 +41,3 @@ Reopening this deferred redesign for discussion requires a new explicit decision
 
 - 2026-10-09 DISCUSSION — Recorded on this date; original discussion date not verified. Redesign direction discussed.
 - 2026-10-09 DEFERRED — Recorded on this date. Mazen decided to keep the existing Profile Editor UI unchanged for now; not authorized for implementation.
-- 2026-10-09 DEFERRED — Mazen approved clarifying that reopening this idea requires a new decision and never grants automatic implementation authorization.
