@@ -50,7 +50,7 @@
       "name": "YOUR GAMID identity editor",
       "status": "PENDING_ACCEPTANCE",
       "surfaces": ["/account/"],
-      "checkpoint": "5e2664ee66298a0a6f914507b63a14abab10fa05",
+      "checkpoint": "fd9c9a9df25583050991b5069a087142abeb13b9",
       "contracts": [
         { "id": "profile-independent-sections", "rule": "Owner editor sections expand independently. Editable profile and visibility drafts persist only through their own Save Changes action; saving one section preserves other drafts. Existing relationship, lookup, navigation and publishing actions retain their explicit workflow boundaries." },
         { "id": "profile-feedback-lifecycle", "rule": "Profile transient feedback receives five seconds of actual visibility, reset by each new message. Progress and actionable errors remain persistent. A field validation error stays inline on its field until the field is valid; its notification below Save Changes is transient (five visible seconds) and clears at once when the field becomes valid. Replaced feedback controllers are disposed; owner lifecycle cleanup and stale-save guards prevent former-owner feedback from affecting the current editor." }

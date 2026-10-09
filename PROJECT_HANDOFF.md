@@ -1830,3 +1830,23 @@ Corrected without any code change, by redeploying from a deploy-only branch ref,
 To get a correct stamp, the dispatch ref must point exactly at the product commit being deployed. No database, schema, storage, worker or auth change.
 
 STOP for Mazen's manual acceptance of the four fixes.
+
+**Profile Editor save-error notification lifecycle — 2026-10-09.** Current product checkpoint `fd9c9a9df25583050991b5069a087142abeb13b9` on `feature/play-together-notifications`; PENDING_ACCEPTANCE. Bug: clearing Identity → Display Name and saving showed the inline field error and a red notification below Save Changes, and both stayed indefinitely. Cause: every save failure went through `reportSection(key,text)` in `dist/account/account.js`, whose default marks errors persistent, so the five-second timer never started.
+
+Fix (`dist/account/account.js` only, in product code): recognised field-validation failures (name/bio/roles/education reasons) report the notification below Save Changes as transient, with five visible seconds. The inline field error, `aria-invalid` and the kept input value persist until the field is valid; correcting the field still clears both at once. Actionable errors, such as a network failure, stay persistent, and success is unchanged. The four QA fixes are preserved. The Truth `profile-feedback-lifecycle` contract and `docs/PROFILE-EDITOR-UX.md` are narrowed to match. Tests:
+- a focused regression in `tests/profile-editor.test.js`;
+- the mocked Chrome fixture `scripts/profile-editor-browser.mjs`, which now asserts the notification is hidden after 5.1 s while the inline error remains.
+
+Local results:
+- full suite 1,697: 1,696 pass, 1 skip, 0 fail;
+- lint, authenticated-shell audit, typecheck and diff check PASS;
+- fixture PASS at 1280 and 390, with all backend traffic mocked.
+
+TESTING deployment, from deploy ref `feature/deploy-fd9c9a9` pointing exactly at the product commit:
+- workflow [37867823079](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37867823079) SUCCESS: 1,697 tests, 1,693 pass, 4 skipped, 0 fail;
+- staged "asset version fd9c9a9";
+- Cloudflare version `560aa9a7-efaf-4dbe-bdd5-d87ddf0c94c8`;
+- served `account/index.html` is byte-identical to the stamped source, with stamp `fd9c9a9`;
+- `account.js`, `transient-message.js`, `profile-editor.js` and `account.css` are byte-identical to their Git blobs.
+
+No database, schema, storage, worker or auth change. STOP for Mazen's manual acceptance.
