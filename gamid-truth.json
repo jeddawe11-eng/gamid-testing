@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-07",
+  "updated": "2026-10-09",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -50,7 +50,12 @@
       "name": "YOUR GAMID identity editor",
       "status": "PENDING_ACCEPTANCE",
       "surfaces": ["/account/"],
-      "record": "PROJECT_HANDOFF.md §3 (Slice 3A)"
+      "checkpoint": "8ce1616ce4024c0f875f97094dc516c8e62e41a1",
+      "contracts": [
+        { "id": "profile-independent-sections", "rule": "Owner editor sections expand independently. Editable profile and visibility drafts persist only through their own Save Changes action; saving one section preserves other drafts. Existing relationship, lookup, navigation and publishing actions retain their explicit workflow boundaries." },
+        { "id": "profile-feedback-lifecycle", "rule": "Profile transient feedback receives five seconds of actual visibility, reset by each new message. Progress and actionable/field validation errors remain persistent. Replaced feedback controllers are disposed; owner lifecycle cleanup and stale-save guards prevent former-owner feedback from affecting the current editor." }
+      ],
+      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20; original Slice 3A: §3"
     },
     {
       "id": "gaming-roles-education-work",
