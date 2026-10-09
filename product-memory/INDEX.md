@@ -75,7 +75,7 @@ Rules:
 
 | Prefix | Category | Folder | Last issued |
 |---|---|---|---|
-| DIS | Discussions | discussions/ | DIS-0001 |
+| DIS | Discussions | discussions/ | DIS-0002 |
 | DEC | Decisions | decisions/ | none |
 | IDEA | Ideas | ideas/ | IDEA-0001 |
 | ISS | Issues | issues/ | ISS-0005 |
@@ -93,3 +93,4 @@ Rules:
 | ISS-0005 | Replacement Intro processing failure may be hidden | AUTHORIZED | [ISS-0005-replacement-intro-failure-hidden.md](issues/ISS-0005-replacement-intro-failure-hidden.md) |
 
 | DIS-0001 | Existing platform picker and Other link in Wall | CONCLUDED | [DIS-0001-existing-platform-picker-and-other-link.md](discussions/DIS-0001-existing-platform-picker-and-other-link.md) |
+| DIS-0002 | GamID full-list navigation and next-chat continuity | CONCLUDED | [DIS-0002-gamid-full-list-continuity.md](discussions/DIS-0002-gamid-full-list-continuity.md) |
