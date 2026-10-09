@@ -27,6 +27,10 @@ The Profile Editor currently uses independent sections with their own save and f
 
 The direction may raise the editor's visual quality and make long section lists easier to scan. Mazen prefers to keep the current Profile Editor UI unchanged for now and to revisit improvements gradually later. The idea is kept so it isn't lost or proposed again from scratch.
 
+## Reopening and authorization
+
+Reopening this deferred redesign for discussion requires a new explicit decision from Mazen. Reopening or discussing it does not authorize implementation; coding requires separate explicit task authorization. Until then, the existing Profile Editor UI remains unchanged.
+
 ## Open questions
 
 - When to revisit it, as part of gradual later improvements.
@@ -37,3 +41,4 @@ The direction may raise the editor's visual quality and make long section lists 
 
 - 2026-10-09 DISCUSSION — Recorded on this date; original discussion date not verified. Redesign direction discussed.
 - 2026-10-09 DEFERRED — Recorded on this date. Mazen decided to keep the existing Profile Editor UI unchanged for now; not authorized for implementation.
+- 2026-10-09 DEFERRED — Mazen approved clarifying that reopening this idea requires a new decision and never grants automatic implementation authorization.
