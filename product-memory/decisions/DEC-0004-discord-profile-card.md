@@ -1,14 +1,15 @@
 ---
 id: DEC-0004
 title: Discord Profile Card in My Socials from the existing Discord connection
-status: IMPLEMENTED
+status: ACCEPTED
 created: 2026-10-09
-updated: 2026-10-09
+updated: 2026-10-10
 scope: Profile Editor Connections (Discord), Classic Profile My Socials, Gaming Connections
 summary: Visitors who click the Discord icon in My Socials may see a small card (display name, @username, avatar, Open on Discord) taken from the owner's existing Discord connection, only with a separate opt-in and a server-verified match between the My Socials link and the connected account.
 related: [DEC-0002]
 save_approval: Mazen 2026-10-09
 authorization: Mazen 2026-10-09, explicit task "GamID — Discord Profile Card in My Socials" (TESTING only)
+acceptance: Mazen manually tested and explicitly accepted the Discord Profile Card on 2026-10-10 (stated in the task "Classic Profile Desktop Redesign — Phase 0"); implementation checkpoint 5757c5f, TESTING run 37898776747; record PROJECT_HANDOFF.md §27
 supersedes: []
 truth_refs: [discord-profile-card, connection-discord, my-socials]
 checkpoints: [5757c5fcd1be61c5058718d971aef200bb751341]
@@ -44,3 +45,4 @@ A Discord link in My Socials leads to Discord, which needs a Discord login to vi
 - 2026-10-09 APPROVED — Mazen approved the feature after the read-only Discord OAuth audit.
 - 2026-10-09 AUTHORIZED — Mazen explicitly authorized the implementation on TESTING.
 - 2026-10-09 IMPLEMENTED — Implemented at 5757c5f and deployed to TESTING (run 37898776747). Migration 20261009190000 was rehearsed (14/14) and applied, and the existing connection rows (@black, @zshot) were verified unchanged and OFF. Acceptance pending. Open requirement: GamID has no privacy policy yet (Discord Developer Terms 5(a)).
+- 2026-10-10 ACCEPTED — Mazen manually tested and explicitly accepted the card on TESTING (checkpoint 5757c5f unchanged). The privacy policy requirement above remains open. The separate Discord section is to leave the desktop Classic Profile under DEC-0005; the card itself is unchanged.

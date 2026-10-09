@@ -2109,3 +2109,31 @@ On TESTING, `gaming_connections` also carries the later Steam columns (`auth_met
 - The approved interactive simulation was not available in this session; the layout follows the written specification.
 
 STOP for Mazen's manual acceptance with @black.
+
+## 27. Discord Profile Card acceptance; Classic Profile desktop redesign decisions (Phase 0) — 2026-10-10
+
+Documentation only. No product, database, storage or deployment change.
+
+**Acceptance.** Mazen manually tested the Discord Profile Card (§26) on TESTING and explicitly ACCEPTED it on 2026-10-10. The implementation checkpoint stays `5757c5fcd1be61c5058718d971aef200bb751341` (TESTING run 37898776747). The records now say:
+- Truth `discord-profile-card`: ACCEPTED.
+- Product Memory DEC-0004: ACCEPTED.
+
+The open Discord Developer Terms 5(a) requirement (a public privacy policy linked in the Developer Portal) is unchanged and still Mazen's to resolve.
+
+**Desktop redesign decisions.** Mazen approved the product decisions for the Classic Profile desktop redesign. They are recorded in Product Memory **DEC-0005** (APPROVED, not authorized):
+- breakpoint 1280px;
+- 6:1 Banner at 1920×320, from a source file of at most 5 MB in JPEG, PNG, WebP, GIF (static first frame) or AVIF, desktop only, with crop and position controls and a gradient fallback;
+- the separate Discord section leaves the desktop Classic Profile only;
+- Member Since from `entities.created_at`;
+- About Me Location (max 60), Languages (max 5) and Favorite Genres (max 5), each hidden until opted in;
+- the hero game count only when My Games is public;
+- `avatars` bucket reuse only once its safety conditions are proven;
+- mobile, the Intro engine, Full Preview, Wall behaviour and the Manual labels kept.
+
+**Truth.** Truth describes only what exists on TESTING, so none of this is in it yet. The redesign intentionally changes two current presentation facts, which Truth will record when that work is implemented:
+- the Discord section disappears from the desktop Classic Profile;
+- the desktop hero is built by the public page rather than the Intro frame.
+
+Until then, the current contracts (`public-section-visibility`, `public-my-games`, `public-wall-publishing`, `wall-visibility-toggle`, `intro-transition-engine`) stay as they are.
+
+STOP: Phase 1 needs Mazen's explicit approval.

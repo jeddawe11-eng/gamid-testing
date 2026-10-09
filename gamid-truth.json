@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-09",
+  "updated": "2026-10-10",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -219,7 +219,7 @@
     {
       "id": "discord-profile-card",
       "name": "Discord Profile Card in My Socials (Classic Profile), from the existing Discord connection",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": ["/account/", "/@<handle>"],
       "contracts": [
         { "id": "discord-card-conditions", "rule": "A visitor gets the card only when all hold, checked on the server: the GamID is PUBLIC; the Discord connection exists; its Show on my GamID is on; the owner's separate Show Discord Profile Card consent is on; and the owner's saved My Socials Discord link is a personal profile (discord.com/users/<id>) whose numeric id equals the connected Discord account id. Otherwise no card data is returned and the Discord icon stays the ordinary link. Ownership is never inferred from a username or a pasted link." },
@@ -227,7 +227,7 @@
         { "id": "discord-card-consent", "rule": "Show Discord Profile Card is a separate, explicit opt-in in Profile Editor -> Connections -> Discord, OFF by default (existing connections included), unavailable while Discord is not connected, saved with the section's Save Changes and shown as saved only after the server confirms it. The consent time is recorded while it is on; turning it off or disconnecting Discord removes the card at once and a new connection starts OFF. There is no separate public copy. Show on my GamID keeps its meaning." }
       ],
       "checkpoint": "5757c5fcd1be61c5058718d971aef200bb751341",
-      "record": "PROJECT_HANDOFF.md §26; migration supabase/migrations/20261009190000_discord_profile_card.sql; Product Memory DEC-0004"
+      "record": "PROJECT_HANDOFF.md §26; migration supabase/migrations/20261009190000_discord_profile_card.sql; manual acceptance by Mazen 2026-10-10 (PROJECT_HANDOFF.md §27); Product Memory DEC-0004"
     },
     {
       "id": "notifications",
