@@ -1,4 +1,5 @@
-import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks } from "../account/supabase-client.js";
+import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard } from "../account/supabase-client.js";
+import { attachDiscordCard } from "./discord-card.js";
 import { renderPublicSocials } from "../account/socials.js";
 import { createIntroSourceResolver } from "../account/intro-source.js";
 import { createFlowLayout } from "../flow-layout.js";
@@ -255,6 +256,9 @@ async function render() {
   const socialLinks = await getPublicSocialLinks(identity.gamid_handle).catch(() => []);
   hasSections = renderPublicSections(sectionsPanel, identity.public_sections, { ownerHandle: identity.gamid_handle, pathname: location.pathname, loadAvatar: loadPublicAvatar }) > 0;
   hasSections = prependPublicSocials(sectionsPanel, socialLinks) || hasSections;
+  // Discord Profile Card: asked for only when My Socials shows a Discord personal profile; the server decides whether there is a card (else the link stays)
+  const discordLink = sectionsPanel.querySelector('.public-socials a.public-social[href^="https://discord.com/users/"]');
+  if (discordLink) getPublicDiscordCard(identity.gamid_handle).then(card => { if (card) attachDiscordCard(discordLink, card, document); }, () => {});
   // My Games: the server sends the section only when the owner switched it ON (and there is at least one game): the first six games + the true count. The full
   // library, its search and Game Details load through the same public function, page by page, only when a visitor asks for them.
   const gamesPreview = normalizeLibrary(identity.public_sections?.my_games, LEAGUE_SOURCE_LABELS);

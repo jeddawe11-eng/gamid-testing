@@ -132,6 +132,8 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .visibility-switch.is-on{border-color:#27604a;background:#10251d;color:var(--green)}
 .visibility-switch.is-on .visibility-switch-knob{background:var(--green)}
 .section-visibility-hint{margin:.55rem 0 0;color:var(--muted);font-size:.74rem;line-height:1.5;overflow-wrap:anywhere}
+.discord-card-setting{margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--line)}
+.discord-card-description{margin:0 0 .35rem;color:var(--text);font-size:.8rem;line-height:1.45}
 .visibility-slot{margin-top:.4rem}
 .visibility-slot .section-visibility{margin-top:.9rem}
 @media(prefers-reduced-motion:reduce){.visibility-switch-knob{transition:none}}

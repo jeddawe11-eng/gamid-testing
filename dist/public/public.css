@@ -158,3 +158,20 @@ html.is-public-wall .public-shell .replay-button{grid-area:2/1;justify-self:star
 .public-social .social-icon[data-platform=discord]{background:#5865f2}
 .public-social .social-icon[data-platform=facebook]{background:#1877f2;font-size:1.1rem}
 .public-social .social-icon[data-platform=linkedin]{background:#0a66c2}
+/* Discord Profile Card (My Socials -> Discord icon, opened on click): a compact modal card in the GamID palette, Discord's blurple for its own action. */
+.discord-card-dialog{width:min(22rem,calc(100vw - 2rem));max-width:none;padding:0;border:1px solid var(--line);border-radius:1.1rem;background:var(--card);color:var(--text);box-shadow:0 1.5rem 4rem rgba(0,0,0,.6)}
+.discord-card-dialog::backdrop{background:rgba(4,3,8,.72)}
+.discord-card{position:relative;display:grid;gap:.9rem;padding:1.15rem 1.1rem 1rem}
+.discord-card-close{position:absolute;top:.45rem;right:.45rem;display:grid;place-items:center;width:44px;aspect-ratio:1;border:0;border-radius:50%;background:transparent;color:var(--muted);font:400 1.5rem/1 system-ui,sans-serif;cursor:pointer}
+.discord-card-close:hover{color:var(--text);background:#1c1a28}
+.discord-card-close:focus-visible,.discord-card-open:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.discord-card-head{display:flex;align-items:center;gap:.85rem;padding-right:2.4rem;min-width:0}
+.discord-card-avatar{flex:none;display:grid;place-items:center;width:4rem;aspect-ratio:1;border-radius:50%;overflow:hidden;background:#5865f2;color:#fff;font:800 1.5rem/1 system-ui,sans-serif}
+.discord-card-avatar img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.discord-card-copy{display:grid;gap:.2rem;min-width:0}
+.discord-card-name{font-size:1.08rem;line-height:1.25;overflow-wrap:anywhere}
+.discord-card-handle{color:var(--muted);font-size:.86rem;overflow-wrap:anywhere}
+.discord-card-badge{justify-self:start;margin-top:.2rem;padding:.18rem .55rem;border:1px solid rgba(110,240,181,.4);border-radius:999px;color:var(--green);font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.discord-card-open{display:flex;align-items:center;justify-content:center;padding:.8rem 1rem;border-radius:.75rem;background:#5865f2;color:#fff;font-weight:800;text-decoration:none}
+.discord-card-open:hover{background:#4752c4}
+.discord-card-note{margin:-.35rem 0 0;color:var(--muted);font-size:.72rem;line-height:1.45;text-align:center}

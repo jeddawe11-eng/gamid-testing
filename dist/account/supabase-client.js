@@ -450,6 +450,9 @@ export async function getMySocialLinks() { return (await rpc("get_my_social_link
 export async function setMySocialLinks(links) { return (await rpc("set_my_social_links", { candidate_links: links })) || []; }
 // A PUBLISHED GamID's saved links (anonymous; an unpublished GamID returns none).
 export async function getPublicSocialLinks(handle) { return (await rpc("get_public_social_links", { candidate_handle: handle }, { anonymous: true })) || []; }
+// Discord Profile Card: one row only when the server confirms every condition (published GamID, Show on my GamID, the owner's card consent, and a My Socials
+// Discord profile link of the very account that is connected); otherwise null and the ordinary link stays.
+export async function getPublicDiscordCard(handle) { return (await rpc("get_public_discord_card", { candidate_handle: handle }, { anonymous: true }))?.[0] ?? null; }
 
 export async function getPublicIdentityByQr(token) {
   const rows = await rpc("get_public_identity_by_qr", { candidate_token: token }, { anonymous: true });
@@ -457,6 +460,9 @@ export async function getPublicIdentityByQr(token) {
 }
 
 const CONNECTABLE_PROVIDERS = new Set(["discord", "steam"]);
+
+export async function getMyDiscordProfileCard() { return (await rpc("get_my_discord_profile_card"))?.[0] ?? null; }
+export async function setMyDiscordProfileCard(enabled) { return (await rpc("set_my_discord_profile_card", { candidate_enabled: enabled }))?.[0] ?? null; }
 
 export async function getMyConnections() {
   return (await rpc("get_my_connections")) || [];

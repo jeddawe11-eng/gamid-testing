@@ -802,6 +802,59 @@ function discoveryPanel(row) {
   return panel;
 }
 
+// Discord Profile Card: a SEPARATE, explicit opt-in (OFF by default, existing connections too) to show the connected Discord display name, @username and avatar to
+// visitors who click the Discord icon in My Socials. Like the other switches it is staged and saved by the section's Save Changes; the switch shows only what the
+// server returned (never a guessed state), and a save counts only when the server's answer carries the new choice. "Show on my GamID" is unchanged.
+const DISCORD_CARD_ERRORS = {
+  DISCORD_NOT_CONNECTED: "Connect Discord first, then you can show your Discord Profile Card.",
+  AUTH_REQUIRED: "Please sign in again, then try again.",
+  IDENTITY_NOT_FOUND: "We couldn't find your GamID. Please refresh the page.",
+};
+let discordCard = null;
+
+function discordCardNeeds(state) {
+  const needs = [];
+  if (!state.show_on_gamid) needs.push("turn on Show on my GamID above");
+  if (!state.my_socials_matches) needs.push("add this Discord account's profile link (discord.com/users/…) in My Socials");
+  if (!state.gamid_public) needs.push("publish your GamID");
+  return needs;
+}
+
+function discordCardSetting(row) {
+  const wrap = element("div", "discord-card-setting");
+  wrap.append(element("p", "discord-card-description", "Share your Discord display name, username and avatar with visitors."));
+  if (row.connected && !discordCard) {
+    wrap.append(element("p", "section-visibility-hint", "Your Discord Profile Card setting couldn't be loaded. Refresh to try again."));
+    return wrap;
+  }
+  const saved = Boolean(row.connected && discordCard?.connected && discordCard.show_profile_card);
+  const control = visibilitySwitch({ on: saved, label: "Show Discord Profile Card", settingKey: "discord_profile_card", section: "connections", onChange: async next => {
+    let result;
+    try { result = await api.setMyDiscordProfileCard(next); }
+    catch (error) { throw new Error(DISCORD_CARD_ERRORS[error?.message] || DISCORD_CARD_ERRORS[error?.code] || "Your Discord Profile Card setting couldn't be saved. Please try again."); }
+    // the previous confirmed state stays unless the server's own answer confirms the new choice
+    if (!result || result.show_profile_card !== next) throw new Error("Your Discord Profile Card setting couldn't be confirmed. Please try again.");
+    discordCard = result;
+    renderConnections();
+  } });
+  const toggle = control.querySelector("button");
+  if (!row.connected) {
+    stagedVisibility.delete("discord_profile_card");
+    toggle.disabled = true; toggle.setAttribute("aria-checked", "false"); toggle.classList.remove("is-on"); toggle.querySelector(".visibility-switch-text").textContent = "OFF";
+    wrap.append(control, element("p", "section-visibility-hint", "Connect Discord first."));
+    return wrap;
+  }
+  wrap.append(control);
+  let hint;
+  if (!saved) hint = "Off — visitors get your ordinary Discord link.";
+  else {
+    const needs = discordCardNeeds(discordCard);
+    hint = needs.length ? `On — visitors still get your ordinary Discord link until you ${needs.join(", ")}.` : "On — visitors who click the Discord icon in My Socials see your card.";
+  }
+  wrap.append(element("p", "section-visibility-hint", `${hint} Turn this off or disconnect Discord at any time and the card is removed at once. The card is read from your connection when someone visits; your avatar is loaded from Discord.`));
+  return wrap;
+}
+
 function connectionCard(row) {
   const card = element("article", `connection-card${row.connected ? " is-connected" : ""}`);
   card.dataset.provider = row.provider_key;
@@ -838,6 +891,9 @@ function connectionCard(row) {
     if (row.provider_key === "discord" || row.provider_key === "steam") {
       card.append(visibilitySwitch({ on: Boolean(row.is_public),settingKey:row.provider_key,section:"connections", onChange: next => changeSectionVisibility(row.provider_key, next, showConnectionsMessage, loadConnections) }));
     }
+  }
+  if (row.provider_key === "discord") card.append(discordCardSetting(row));
+  if (row.connected) {
     if (row.provider_key === "steam") {
       card.append(element("p", "connection-discovery-note", "Signed in through Steam. This confirms the Steam account only; nothing about any game is verified."));
       card.append(steamGamesPanel());
@@ -1058,6 +1114,8 @@ async function loadConnections() {
   catch { connectionRows = null; }
   try { discoveryRows = await api.getMyConnectionDiscovery(); }
   catch { discoveryRows = []; }
+  try { discordCard = await api.getMyDiscordProfileCard(); }
+  catch { discordCard = null; }
   await loadSteamGames();
   await loadManualGames();
   await loadGameProfiles();
