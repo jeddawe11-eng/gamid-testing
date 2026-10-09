@@ -94,7 +94,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 **Current stop point:** Profile Editor product `fd9c9a9df25583050991b5069a087142abeb13b9` (including the four QA fixes and the save-error notification lifecycle fix) is deployed and technically verified. STOP for Mazen desktop/Android manual acceptance (`docs/PROFILE-EDITOR-UX.md`; handoff §20); `your-gamid-editor` remains PENDING_ACCEPTANCE. The prior Intro Android duration-boundary retest is separately pending (§19); do not repeat its worker/migration/fixtures. No other task is authorized.
 
-**Product Memory V1** (governance, structure, templates and validation only; no records saved yet) is committed on the working tip and awaits Mazen's acceptance. Source: [`product-memory/INDEX.md`](product-memory/INDEX.md) and `AGENTS.md` → Product Memory.
+**Product Memory V1** (governance, structure, templates and validation) is committed on the working tip and awaits Mazen's acceptance. Saved records and their statuses are listed only in the Register of [`product-memory/INDEX.md`](product-memory/INDEX.md); rules are in `AGENTS.md` → Product Memory.
 
 **Previously outstanding continuation (not performed in F2/F3/F4):**
 1. **Remaining manual acceptance checks for global-usage.** Core accounting PASS; remaining checks are listed in `PROJECT_HANDOFF.md` §10. This capability remains PENDING_ACCEPTANCE in Truth.
