@@ -1,3 +1,5 @@
+import { STORAGE_QUOTA_MESSAGE } from "./resumable-upload.js";
+
 export const HANDLE_MIN = 3;
 export const HANDLE_MAX = 24;
 export const BIO_MAX = 160;
@@ -157,7 +159,29 @@ export const errorMessage = reason => ({
   INTRO_DURATION_INVALID: "Intro video must be between 0.5 and 30 seconds.",
   INTRO_PROCESSING_IN_PROGRESS: "Your previous Intro is still processing.",
   INVALID_INTRO_TRANSITION: "Choose an available Intro transition.",
-  INTRO_UPLOAD_NETWORK_ERROR: "Intro upload was interrupted. Check your connection and try SAVE GAMID again.",
-  INTRO_UPLOAD_FAILED: "Intro upload could not be completed. Try SAVE GAMID again.",
+  INTRO_UPLOAD_NETWORK_ERROR: "Intro upload was interrupted. Check your connection, then select Save Changes again.",
+  INTRO_UPLOAD_FAILED: "Intro upload could not be completed. Select Save Changes to try again.",
+  // upload gateway refusals (supabase/functions/_shared/usage-upload.js), shared by Avatar and Intro saves
+  ACCOUNT_STORAGE_QUOTA_EXCEEDED: STORAGE_QUOTA_MESSAGE,
+  UPLOAD_EXPIRED: "The upload took too long and expired. Select Save Changes to try again.",
+  UPLOAD_CONFLICT: "Another upload was already in progress. Select Save Changes to try again.",
+  UPLOAD_GATEWAY_FAILED: "The upload service is not responding right now. Select Save Changes to try again in a moment.",
+  CHUNK_TOO_LARGE: "That file could not be sent. Choose a smaller file.",
+  AVATAR_UPLOAD_NETWORK_ERROR: "The avatar upload could not reach GamID. Check your connection, then select Save Changes again.",
   AUTH_REQUIRED: "Your session expired. Sign in again before saving your Intro.",
 }[reason] || reason || "Something went wrong. Please try again.");
+
+// Why the Intro worker could not prepare a video (worker/intro-worker.mjs records its error as an upper-case failure code), in words with a next step. The source
+// stays protected on the server; an unknown code keeps a short reference for support.
+const INTRO_PROCESSING_FAILURES = {
+  SOURCE_TOO_LARGE: "The video is too large to process. Choose a smaller file.",
+  INVALID_SOURCE_DURATION: "The video's length could not be confirmed as 0.5 to 30 seconds. Choose a clip of up to 30 seconds.",
+  INVALID_SOURCE_GEOMETRY: "The video's picture size could not be read. Choose another video.",
+  DERIVATIVE_TOO_LARGE: "The video is too detailed to optimize within the Intro size limit. Choose a shorter or simpler clip.",
+};
+export function describeIntroProcessingFailure(code) {
+  const known = INTRO_PROCESSING_FAILURES[code];
+  if (known) return known;
+  const reference = /^[A-Z0-9_]{1,64}$/.test(code || "") ? ` (reference ${code})` : "";
+  return `GamID could not prepare this video${reference}. Choose the video again, or try another one.`;
+}

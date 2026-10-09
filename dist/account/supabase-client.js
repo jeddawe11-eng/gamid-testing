@@ -1,4 +1,4 @@
-import { uploadResumable } from "./resumable-upload.js";
+import { uploadResumable, STORAGE_QUOTA_MESSAGE } from "./resumable-upload.js";
 import { INTRO_SOURCE_MAX_BYTES } from "./domain.js";
 
 export const SUPABASE_PROJECT_ID = "upvtrczefcvigxdyuylw";
@@ -41,7 +41,7 @@ async function request(path, { method = "GET", body, token, headers = {} } = {})
   const payload = contentType.includes("json") ? await response.json() : await response.text();
   if (!response.ok) {
     const message = payload?.message || payload?.msg || payload?.error_description || payload?.error || `Request failed (${response.status})`;
-    throw new ApiError(message==='ACCOUNT_STORAGE_QUOTA_EXCEEDED'?'This upload would exceed your 200 MB storage allowance. Remove stored media and try again.':message, response.status, payload?.code || payload?.error_code || message);
+    throw new ApiError(message==='ACCOUNT_STORAGE_QUOTA_EXCEEDED'?STORAGE_QUOTA_MESSAGE:message, response.status, payload?.code || payload?.error_code || message);
   }
   return payload;
 }
@@ -241,14 +241,35 @@ export async function uploadAvatar(file, userId, { attach = true } = {}) {
   if (!extension) throw new ApiError("Choose a JPG, PNG, WebP, or AVIF image.", 400, "INVALID_FILE_TYPE");
   if (file.size > 5 * 1024 * 1024) throw new ApiError("Avatar must be 5 MB or smaller.", 400, "FILE_TOO_LARGE");
   const path = `${userId}/avatar-${crypto.randomUUID()}.${extension}`;
-  await request(`/functions/v1/usage-upload/object/avatars/${path}`, {
-    method: "POST",
-    token: session?.access_token,
-    body: file,
-    headers: { "Content-Type": file.type, "x-upsert": "false" },
-  });
-  if (attach) await rpc("attach_avatar", { candidate_path: path });
+  try {
+    await request(`/functions/v1/usage-upload/object/avatars/${path}`, {
+      method: "POST",
+      token: session?.access_token,
+      body: file,
+      headers: { "Content-Type": file.type, "x-upsert": "false" },
+    });
+  } catch (error) {
+    // the shared request() names Authentication when the network drops; for an upload say what actually failed
+    if (error?.code === "NETWORK_ERROR") throw new ApiError("The avatar upload could not reach GamID. Check your connection and try again.", 0, "AVATAR_UPLOAD_NETWORK_ERROR");
+    throw error;
+  }
+  if (attach) {
+    try { await rpc("attach_avatar", { candidate_path: path }); }
+    catch (error) { await discardUnattachedAvatar(path); throw error; }
+  }
   return path;
+}
+
+// An avatar object that was stored but never attached (the attach / profile update failed) would keep counting against storage until cleanup. It is removed
+// only after the owner's CURRENT profile is read back and does not use it - a write whose answer was lost may still have attached it.
+export async function discardUnattachedAvatar(path) {
+  if (!path) return false;
+  try {
+    const current = await getIdentityProfile();
+    if (!current || current.avatar_media_reference === path) return false;
+    await request(`/functions/v1/usage-upload/object/avatars/${encodeStoragePath(path)}`, { method: "DELETE", token: session?.access_token });
+    return true;
+  } catch { return false; /* left for the existing server-side reconciliation */ }
 }
 
 export async function updateIdentityProfile({ displayName, bio, avatarPath = null, roleKeys = [], primaryRoleKey = null, educationWorkStatus = null, institution = null, fieldOfStudy = null }) {
@@ -341,6 +362,9 @@ export async function uploadWallVideo(file, userId, { onProgress } = {}) {
     await uploadResumable({ endpoint: STORAGE_UPLOAD_URL, bucketName: "wall-video", objectName: path, contentType: file.type, file, token: session.access_token, apikey: PUBLISHABLE_KEY, onProgress, terminateOnFailure:true });
   } catch (error) {
     if(error?.code==='ACCOUNT_STORAGE_QUOTA_EXCEEDED') throw new ApiError(error.message,413,error.code);
+    // gateway refusals keep their own code (an expired or conflicting upload can be retried; an oversized chunk cannot); a dropped connection is a network error
+    if(["UPLOAD_EXPIRED","UPLOAD_CONFLICT","UPLOAD_GATEWAY_FAILED","CHUNK_TOO_LARGE"].includes(error?.code)) throw new ApiError(error.message,error.status ?? 0,error.code);
+    if(error?.code==="INTRO_UPLOAD_NETWORK_ERROR") throw new ApiError("The video upload did not finish. Check your connection and try again.",0,"NETWORK_ERROR");
     throw new ApiError("The video upload did not finish. Check your connection and try again.", error?.status ?? 0, error?.status === 413 ? "FILE_TOO_LARGE" : "WALL_VIDEO_UPLOAD_FAILED");
   }
   return registerWallUpload(path, "The video service could not be reached.");

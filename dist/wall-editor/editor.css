@@ -53,6 +53,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-row { display: flex; gap: .5rem; align-items: center; }
 .ed-wrap { flex-wrap: wrap; }
 .ed-hint { color: #817b8e; font-size: .7rem; line-height: 1.4; }
+/* ISS-0001 persistent upload error box (app/upload-feedback.js): reason, Retry / View Usage when they apply, Dismiss */
+.upload-error { display: flex; flex-wrap: wrap; align-items: flex-start; gap: .45rem; margin: .5rem 0; padding: .55rem .65rem; border: 1px solid rgba(255, 120, 144, .45); border-radius: .7rem; background: rgba(255, 120, 144, .08); color: #ffc1cd; font-size: .72rem; line-height: 1.4; }
+.upload-error-text { flex: 1 1 10rem; margin: 0; overflow-wrap: break-word; }
+.upload-error-actions { display: flex; flex-wrap: wrap; gap: .35rem; margin-left: auto; }
+.upload-error-actions button { min-height: 2.75rem; min-width: 2.75rem; padding: .3rem .7rem; border: 1px solid rgba(255, 120, 144, .45); border-radius: .6rem; background: transparent; color: inherit; font: inherit; font-weight: 700; cursor: pointer; }
+.upload-error-actions button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 
 .ed-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; padding: .7rem 1rem; border-bottom: 1px solid #6b5316; background: #2a2010; font-size: .8rem; }
 .ed-banner p { margin: 0; flex: 1 1 16rem; line-height: 1.4; }

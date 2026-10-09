@@ -1,12 +1,13 @@
 import { mountProfileEditor, sectionDraft, sectionChanged, createSectionSaveQueue } from "./profile-editor.js";
 import { createTransientMessage } from "./transient-message.js";
-import { INTRO_TRANSITIONS, authErrorMessage, authLanding, authTabFromSearch, debounceAsync, errorMessage, hasIntroChanges, hasProfileChanges, normalizeHandle, searchWithoutAuth, validateHandle, validateIntroSource, validateProfileDraft } from "./domain.js";
+import { INTRO_TRANSITIONS, authErrorMessage, authLanding, authTabFromSearch, debounceAsync, describeIntroProcessingFailure, errorMessage, hasIntroChanges, hasProfileChanges, normalizeHandle, searchWithoutAuth, validateHandle, validateIntroSource, validateProfileDraft } from "./domain.js";
 import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, createOwnedImageBlob, drawCropPreview, loadOrientedImage } from "./avatar-cropper.js";
 import { PRESETS } from "../transition-engine.js";
 import * as api from "./supabase-client.js";
 import { createIntroSourceResolver } from "./intro-source.js";
 import { authenticatedReturnPath } from "./testing-auth-handoff.js";
 import { createOwnedUploadBlob } from "./resumable-upload.js";
+import { renderUploadError } from "../app/upload-feedback.js";
 import { IntroStatusPoller, isProcessingIntroState } from "./intro-status-poller.js";
 import { buildGameLibrary } from "./game-list.js";
 import { attachGameProfile, indexGameProfiles, profileForGame } from "./game-profile.js";
@@ -48,7 +49,13 @@ function actionDraftsDirty(){
 document.addEventListener('focusin',event=>{const control=event.target;if(control.matches?.('input,select,textarea')&&control.closest('[data-profile-editor]')&&!control.closest('#profileForm,#languageForm')&&!actionDrafts.has(control))actionDrafts.set(control,controlValue(control));});
 document.addEventListener("focusin",event=>{const key=event.target.closest?.("[data-editor-section]")?.dataset.editorSection;if(key)editorActionSection=key;});
 function feedbackFor(el) { if(!sectionFeedback.has(el))sectionFeedback.set(el,createTransientMessage(el,{durationMs:5000}));return sectionFeedback.get(el); }
-function reportSection(key,text,success=false,progress=false,persistent=!success&&!progress) { const panel=editor.sections.get(key)?.panel;if(panel)delete panel.dataset.validationMessage;const el=editor.saves.get(key)?.feedback; if(el)feedbackFor(el).show(text,{tone:success?"success":"error",progress,persistent}); }
+function reportSection(key,text,success=false,progress=false,persistent=!success&&!progress) { clearUploadError(key);const panel=editor.sections.get(key)?.panel;if(panel)delete panel.dataset.validationMessage;const el=editor.saves.get(key)?.feedback; if(el)feedbackFor(el).show(text,{tone:success?"success":"error",progress,persistent}); }
+// ISS-0001: a failed Avatar / Intro upload is ONE persistent inline box under that section's Save Changes (reason and next step, Retry only when retryable,
+// View Usage for the storage quota, Dismiss). It replaces the plain error line and clears on the section's next outcome, a new file choice, sign-out or restore.
+function clearUploadError(key){const box=document.getElementById('upload-error-'+key);if(!box)return;box.remove();editor.saves.get(key)?.button.removeAttribute('aria-describedby');}
+function clearUploadErrors(){for(const key of editor.saves.keys())clearUploadError(key);}
+function showUploadError(key,error,{retry=true}={}){const save=editor.saves.get(key);if(!save)return;clearUploadError(key);feedbackFor(save.feedback).hide();const box=renderUploadError(document,error,{id:'upload-error-'+key,onRetry:retry?()=>{clearUploadError(key);saveEditorSection(key);}:null,onDismiss:()=>{clearUploadError(key);save.button.focus();}});save.feedback.after(box);save.button.setAttribute('aria-describedby',box.id);}
+const uploadErrorFrom=(error,text)=>({message:text,code:reasonFrom(error)||error?.code,status:error?.status});
 let roleCatalog = [];
 let educationWorkCatalog = [];
 let savedIntro = null;
@@ -174,7 +181,7 @@ function busy(form, active) {
 
 function reasonFrom(error) {
   const source = `${error?.message || ""} ${error?.code || ""}`;
-  return ["HANDLE_TAKEN","SOLO_IDENTITY_EXISTS","EMAIL_NOT_VERIFIED","AGE_NOT_ELIGIBLE","INVALID_DATE_OF_BIRTH","INVALID_DISPLAY_NAME","BIO_TOO_LONG","INVALID_LANGUAGE","DUPLICATE_GAMING_ROLE","PRIMARY_ROLE_WITHOUT_ROLES","INVALID_PRIMARY_ROLE","INVALID_GAMING_ROLE","INVALID_EDUCATION_WORK_STATUS","INSTITUTION_TOO_LONG","FIELD_OF_STUDY_TOO_LONG","INVALID_INTRO_TYPE","INTRO_SOURCE_TOO_LARGE","INTRO_DURATION_INVALID","INTRO_PROCESSING_IN_PROGRESS","INVALID_INTRO_TRANSITION","INTRO_UPLOAD_NETWORK_ERROR","INTRO_UPLOAD_FAILED","AUTH_REQUIRED","RESERVED","TAKEN"].find(code => source.includes(code));
+  return ["HANDLE_TAKEN","SOLO_IDENTITY_EXISTS","EMAIL_NOT_VERIFIED","AGE_NOT_ELIGIBLE","INVALID_DATE_OF_BIRTH","INVALID_DISPLAY_NAME","BIO_TOO_LONG","INVALID_LANGUAGE","DUPLICATE_GAMING_ROLE","PRIMARY_ROLE_WITHOUT_ROLES","INVALID_PRIMARY_ROLE","INVALID_GAMING_ROLE","INVALID_EDUCATION_WORK_STATUS","INSTITUTION_TOO_LONG","FIELD_OF_STUDY_TOO_LONG","INVALID_INTRO_TYPE","INTRO_SOURCE_TOO_LARGE","INTRO_DURATION_INVALID","INTRO_PROCESSING_IN_PROGRESS","INVALID_INTRO_TRANSITION","ACCOUNT_STORAGE_QUOTA_EXCEEDED","UPLOAD_EXPIRED","UPLOAD_CONFLICT","UPLOAD_GATEWAY_FAILED","CHUNK_TOO_LARGE","AVATAR_UPLOAD_NETWORK_ERROR","INTRO_UPLOAD_NETWORK_ERROR","INTRO_UPLOAD_FAILED","AUTH_REQUIRED","RESERVED","TAKEN"].find(code => source.includes(code));
 }
 
 function profileDraft() {
@@ -246,9 +253,11 @@ function renderIntroState() {
   } else if (["pending","processing"].includes(savedIntro?.latestJobState)) {
     status.textContent = savedIntro.latestJobState === "processing" ? "Preparing approved D3 Intro…" : "Waiting for the FFmpeg processor…";
     status.classList.add("processing"); summary.textContent = `Processing · ${PRESETS[introDraft().transitionKey]?.label || "Transition"}`;
-  } else if (savedIntro?.latestJobState === "failed" && !savedIntro?.activeJobId) {
-    status.textContent = `Processing failed${savedIntro.latestFailureCode ? ` (${savedIntro.latestFailureCode})` : ""}. Your source remains protected.`;
-    status.classList.add("failed"); summary.textContent = "Processing failed";
+  } else if (savedIntro?.latestJobState === "failed") {
+    // the LATEST job failed. With an active Intro that is a failed REPLACEMENT (get_my_intro: latest = newest job): the active Intro stays live, and says so.
+    const reason = describeIntroProcessingFailure(savedIntro.latestFailureCode);
+    status.textContent = savedIntro.activeJobId ? `Your new Intro could not be processed: ${reason} Your current Intro stays active.` : `Processing failed: ${reason} Your source remains protected.`;
+    status.classList.add("failed"); summary.textContent = savedIntro.activeJobId ? "New Intro failed · current Intro active" : "Processing failed";
   } else if (savedIntro?.activeJobId) {
     status.textContent = "Optimized D3 Intro is active."; status.classList.add("ready");
     summary.textContent = `Intro ready · ${PRESETS[introDraft().transitionKey]?.label || "Transition"}`;
@@ -374,16 +383,19 @@ function cancelAvatarCrop() {
   document.getElementById("profileAvatarInput").value = "";
 }
 
+// A picked avatar that cannot be used: hard validation, shown in the Avatar section (no Retry - choosing another image is the next step).
+function avatarProblem(text, code) { if (identity) showUploadError("avatar", { message:text, code }, { retry:false }); else setMessage(text); }
+
 async function openAvatarCrop(file) {
   if (!file) return;
   avatarDiag("open-request", `type=${file.type || "empty"};size=${file.size};modified=${file.lastModified || 0}`);
   if (!["image/jpeg","image/png","image/webp","image/avif"].includes(file.type)) {
     document.getElementById("profileAvatarInput").value = "";
-    return setMessage("Choose a JPG, PNG, WebP, or AVIF image.");
+    return avatarProblem("Choose a JPG, PNG, WebP, or AVIF image.", "INVALID_FILE_TYPE");
   }
   if (file.size > 5 * 1024 * 1024) {
     document.getElementById("profileAvatarInput").value = "";
-    return setMessage("Avatar must be 5 MB or smaller.");
+    return avatarProblem("Avatar must be 5 MB or smaller.", "FILE_TOO_LARGE");
   }
   const expectedGeneration = avatarDecoder.generation + 1;
   try {
@@ -404,7 +416,7 @@ async function openAvatarCrop(file) {
     if (expectedGeneration !== avatarDecoder.generation) return;
     releaseCropImage();
     document.getElementById("profileAvatarInput").value = "";
-    setMessage("That image could not be opened. Choose another image.");
+    avatarProblem("That image could not be opened. Choose another image.", "AVATAR_DECODE_FAILED");
     avatarDiag("open-error-shown", `g${expectedGeneration}`);
   }
 }
@@ -414,6 +426,7 @@ async function showIdentity(data) {
   const [editor, intro] = await Promise.all([api.getIdentityProfile(), api.getMyIntro()]);
   resetAvatarCropLifecycle("profile-restored");
   for(const feedback of sectionFeedback.values())feedback.hide();
+  clearUploadErrors();
   document.querySelectorAll('[data-profile-editor] .field-error').forEach(node=>node.remove());
   document.querySelectorAll('[data-profile-editor] [aria-invalid]').forEach(node=>{node.removeAttribute('aria-invalid');node.removeAttribute('aria-describedby');});
   document.querySelectorAll('[data-profile-editor] [data-invalid-draft]').forEach(node=>{delete node.dataset.invalidDraft;delete node.dataset.validationMessage;});
@@ -1664,11 +1677,19 @@ onboardingForm.addEventListener("submit", async event => {
   busy(onboardingForm, true); setMessage("");
   try {
     await api.createSoloIdentity({ handle: values.handle, displayName: values.displayName, dateOfBirth: values.dateOfBirth, language: values.language });
+    let avatarFailure = null;
     if (avatar) {
       try { await api.uploadAvatar(avatar, api.userIdFromToken()); }
-      catch { setMessage("Your GamID was created, but the optional avatar could not be saved. You can add it later."); }
+      catch (error) { avatarFailure = error; }
     }
     const created = await api.getIdentity(); await showIdentity(created);
+    // the identity exists; the optional avatar did not make it. Say why, in the Avatar section (opened), where it can be chosen again.
+    if (avatarFailure) {
+      const reason = errorMessage(reasonFrom(avatarFailure) || avatarFailure.message);
+      const section = editor.sections.get("avatar");
+      if (section?.toggle.getAttribute("aria-expanded") !== "true") section?.toggle.click();
+      showUploadError("avatar", { ...uploadErrorFrom(avatarFailure, `Your GamID was created, but the optional avatar could not be saved: ${reason} Choose it again here.`) }, { retry: false });
+    }
   } catch (error) { setMessage(errorMessage(reasonFrom(error) || error.message)); }
   finally { busy(onboardingForm, false); createButton.disabled = !handleAvailable; }
 });
@@ -1714,18 +1735,22 @@ document.getElementById("introVideoInput").addEventListener("change", async even
     const ownedFile = await createOwnedUploadBlob(file);
     const inspected = await inspectIntroFile(ownedFile);
     releasePendingIntro();
+    clearUploadError("intro");
     pendingIntroSource = inspected;
     stopIntroPreview(); introSource.invalidate();
     introAction = "replace";
     updateProfilePreview();
   } catch (error) {
     event.target.value = "";
-    setMessage(errorMessage(reasonFrom(error) || error.code || error.message));
+    const text = errorMessage(reasonFrom(error) || error.code || error.message);
+    // a file that cannot be an Intro is a hard validation failure: no Retry (choosing another file is the next step)
+    if (identity) showUploadError("intro", uploadErrorFrom(error, text), { retry: false }); else setMessage(text);
   }
 });
 
 introTransition.addEventListener("change", updateProfilePreview);
 document.getElementById("removeIntroButton").addEventListener("click", () => {
+  clearUploadError("intro");
   stopIntroPreview(); introSource.invalidate(); releasePendingIntro(); introAction = "remove"; updateProfilePreview();
 });
 
@@ -1847,6 +1872,7 @@ document.getElementById("applyAvatarCrop").addEventListener("click", async event
     if (!avatarDecoder.isCurrent(applyingOperation, applyingImage)) { avatarDiag("apply-stale", `g${applyingOperation}`); return; }
     if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
     pendingAvatar = normalized.blob;
+    clearUploadError("avatar");
     avatarPreviewUrl = URL.createObjectURL(pendingAvatar);
     const avatar = document.getElementById("avatarSummary");
     avatar.style.backgroundImage = `url("${avatarPreviewUrl}")`;
@@ -1856,7 +1882,7 @@ document.getElementById("applyAvatarCrop").addEventListener("click", async event
     document.getElementById("profileAvatarInput").value = "";
     updateProfilePreview();
     avatarDiag("apply-success", `bytes=${pendingAvatar.size};type=${pendingAvatar.type}`);
-  } catch (error) { avatarDiag("apply-failure", error?.name || "Error"); setMessage("The Avatar crop could not be prepared. Try again."); }
+  } catch (error) { avatarDiag("apply-failure", error?.name || "Error"); avatarProblem("The Avatar crop could not be prepared. Apply the crop again, or choose another image.", "AVATAR_CROP_FAILED"); }
   finally { button.disabled = false; }
 });
 
@@ -1901,8 +1927,15 @@ async function saveEditorSection(key){
    const draft=validateProfileDraft(sectionDraft(savedProfile,snapshot,key),profileCatalogs());
    if(!draft.valid)throw Error(draft.reason);
    let avatarPath=null;if(key==='avatar'&&avatar)avatarPath=await api.uploadAvatar(avatar,owner,{attach:false});
-   if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error("AUTH_REQUIRED");
-   const updated=await api.updateIdentityProfile({...draft,avatarPath});
+   let updated;
+   try{
+    if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error("AUTH_REQUIRED");
+    updated=await api.updateIdentityProfile({...draft,avatarPath});
+   }catch(error){
+    // a stored avatar the profile never took would keep counting against storage: removed once the owner's current profile is read back without it
+    if(avatarPath&&owner===api.userIdFromToken())await api.discardUnattachedAvatar(avatarPath);
+    throw error;
+   }
    if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
    identity={...identity,...updated};savedProfile=profileFromRow(updated);
    // Never rewrite other section inputs or clear another section's pending media.
@@ -1923,6 +1956,7 @@ async function saveEditorSection(key){
  const fieldValidation=Boolean(field&&['name','bio','roles','education'].includes(key)&&['INVALID_DISPLAY_NAME','BIO_TOO_LONG','INSTITUTION_TOO_LONG','FIELD_OF_STUDY_TOO_LONG','INVALID_EDUCATION_WORK_STATUS','DUPLICATE_GAMING_ROLE','PRIMARY_ROLE_WITHOUT_ROLES','INVALID_PRIMARY_ROLE','INVALID_GAMING_ROLE'].includes(reasonFrom(error)));
  // a field validation error stays inline on the field; its copy below Save Changes is transient (five visible seconds). Other errors stay persistent.
  reportSection(key,text,false,false,!fieldValidation);
+ if(['avatar','intro'].includes(key))showUploadError(key,uploadErrorFrom(error,text));
  if(fieldValidation){section.panel.dataset.validationMessage=text;section.panel.dataset.invalidDraft=JSON.stringify(sectionDraft({},snapshot,key));field.setAttribute('aria-invalid','true');let hint=section.panel.querySelector('.field-error');if(!hint){hint=document.createElement('p');hint.className='field-error';hint.id='editor-field-error-'+key;hint.setAttribute('role','alert');field.after(hint);}hint.textContent=text;field.setAttribute('aria-describedby',hint.id);}
  }
  finally{controls.forEach((c,i)=>{if(c.isConnected)c.disabled=prior[i];});section.card.removeAttribute('aria-busy');updateProfilePreview();}
@@ -1946,6 +1980,7 @@ document.getElementById("signOutButton").addEventListener("click", async () => {
   profileFeedbackEpoch++;
   stopIntroPreview(); introSource.invalidate();
   for(const feedback of sectionFeedback.values())feedback.hide();
+  clearUploadErrors();
   try { await api.signOut(); }
   finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; stopCrewRealtime?.(); stopCrewRealtime = null; crewPanel = null; introStatusPoller.stop(); releasePendingIntro(); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; stagedVisibility.clear(); actionDrafts.clear(); savedLanguage=null; showView("auth"); document.getElementById("signinTab").click(); }
 });

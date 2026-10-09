@@ -66,7 +66,7 @@ export function createAssetStore({ api, userId, onChange = () => {}, decode = de
     get videos() { return assets.filter(isVideoAsset); },
     videoUrlFor(assetId) { ensureVideoUrl(assetId); return videoUrls.get(assetId)?.url ?? null; },
     isVideo(assetId) { const asset = byId(assetId); return !!asset && isVideoAsset(asset); },
-    // -> { ok: true, asset } | { ok: false, message }
+    // -> { ok: true, asset } | { ok: true, job } | { ok: false, code, status, message }
     async uploadVideo(file, { onProgress } = {}) {
       const fileCheck = checkVideoFile({ type: file.type, size: file.size });
       if (!fileCheck.ok) return fileCheck;
@@ -79,13 +79,13 @@ export function createAssetStore({ api, userId, onChange = () => {}, decode = de
       try {
         const asset = await api.uploadWallVideo(file, currentUserId, { onProgress });
         if (asset?.job) return { ok: true, job: asset.job };   // HEVC: converted on the server; see watchVideoJob
-        if (!asset) return { ok: false, message: describeAssetError(null) };
+        if (!asset) return { ok: false, message: describeAssetError(null, { video: true }) };
         assets = [asset, ...assets.filter(existing => existing.asset_id !== asset.asset_id)];
         ensureVideoUrl(asset.asset_id);
         onChange();
         return { ok: true, asset };
       } catch (error) {
-        return { ok: false, code: error?.code, message: describeAssetError(error) };
+        return { ok: false, code: error?.code, status: error?.status, message: describeAssetError(error, { video: true }) };
       }
     },
     setUserId(id) { currentUserId = id; },
@@ -96,7 +96,7 @@ export function createAssetStore({ api, userId, onChange = () => {}, decode = de
       onChange();
       return assets;
     },
-    // -> { ok: true, asset } | { ok: false, message }
+    // -> { ok: true, asset } | { ok: false, code, status, message }
     async upload(file) {
       const fileCheck = checkAssetFile({ type: file.type, size: file.size });
       if (!fileCheck.ok) return fileCheck;
@@ -114,7 +114,7 @@ export function createAssetStore({ api, userId, onChange = () => {}, decode = de
         onChange();
         return { ok: true, asset };
       } catch (error) {
-        return { ok: false, code: error?.code, message: describeAssetError(error) };
+        return { ok: false, code: error?.code, status: error?.status, message: describeAssetError(error) };
       }
     },
     // The Wall being edited is checked first (a picture in use is never deleted from under it); the database checks the SAVED draft too.

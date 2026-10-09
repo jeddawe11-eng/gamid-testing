@@ -93,7 +93,7 @@ test('a field-validation save error expires after five seconds below Save Change
  // the wiring: only a recognised field-validation failure (the case that also writes the inline .field-error) is reported non-persistent
  const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');
  assert.ok(source.includes('function reportSection(key,text,success=false,progress=false,persistent=!success&&!progress)'));
- assert.ok(source.includes("reportSection(key,text,false,false,!fieldValidation);\n if(fieldValidation){section.panel.dataset.validationMessage=text;"),'the same condition drives the transient notice and the inline error');
+ assert.ok(source.includes("reportSection(key,text,false,false,!fieldValidation);\n if(['avatar','intro'].includes(key))showUploadError(key,uploadErrorFrom(error,text));\n if(fieldValidation){section.panel.dataset.validationMessage=text;"),'the same condition drives the transient notice and the inline error');
  assert.ok(source.includes("const fieldValidation=Boolean(field&&['name','bio','roles','education'].includes(key)&&['INVALID_DISPLAY_NAME'"));
  assert.doesNotMatch(source,/const text=errorMessage\(reasonFrom\(error\)\|\|error\.message\);reportSection\(key,text\);/,'no unconditional persistent error report remains');
  assert.ok(source.includes("hint.className='field-error'"),'the inline field error is still created and only removed once the field is valid');

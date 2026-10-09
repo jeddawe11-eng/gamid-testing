@@ -323,6 +323,12 @@ a.duo-handle:hover,a.duo-handle:focus-visible{text-decoration:underline}
 .account-menu-actions .text-button{min-height:44px;margin:0;text-align:left}
 [data-profile-editor] .identity-preview{padding:1rem;grid-template-columns:4.8rem minmax(0,1fr)}
 @media(max-width:759px){[data-profile-editor] .identity-preview{padding:.65rem;grid-template-columns:3rem minmax(0,1fr)}.account-header-controls,.site-head-end{gap:.35rem}}
+/* ISS-0001 persistent upload error box (app/upload-feedback.js): reason, Retry / View Usage when they apply, Dismiss. Same error tone as .connections-message. */
+.upload-error{display:flex;flex-wrap:wrap;align-items:flex-start;gap:.5rem;margin:.75rem 0 0;padding:.6rem .7rem;border:1px solid #754151;border-radius:.6rem;background:#28151c;color:#ffc1cd;font-size:.78rem;line-height:1.45}
+.upload-error-text{flex:1 1 12rem;margin:0;overflow-wrap:break-word}
+.upload-error-actions{display:flex;flex-wrap:wrap;gap:.4rem;margin-left:auto}
+.upload-error-actions button{min-height:44px;min-width:44px;margin:0;padding:0 .8rem;border:1px solid #754151;border-radius:.5rem;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer}
+.upload-error-actions button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 
 /* Steam Connection Foundation: the SteamID64 is the whole identity, so on the Steam card it wraps and is never ellipsized (same approach as
    the League card fix). Scoped to the Steam card only: Discord and League styling is untouched. */

@@ -1,6 +1,8 @@
 const TUS_VERSION = "1.0.0";
 export const TUS_CHUNK_BYTES = 6 * 1024 * 1024;
 const RETRY_DELAYS = [0, 3000, 5000, 10000, 20000];
+// The account storage quota refusal, in words (no figure: the quota is the server's, and Usage shows it).
+export const STORAGE_QUOTA_MESSAGE = "This upload would exceed your account storage. Delete media you no longer use, then add it again.";
 
 const encodeMetadata = value => btoa(unescape(encodeURIComponent(String(value))));
 const wait = delay => new Promise(resolve => setTimeout(resolve, delay));
@@ -26,14 +28,14 @@ export class ResumableUploadError extends Error {
 
 async function checkedFetch(url, options, fetcher) {
   try { return await fetcher(url, options); }
-  catch { throw new ResumableUploadError("Intro upload was interrupted. Check your connection and try SAVE GAMID again.", 0, "INTRO_UPLOAD_NETWORK_ERROR"); }
+  catch { throw new ResumableUploadError("The upload was interrupted. Check your connection and try again.", 0, "INTRO_UPLOAD_NETWORK_ERROR"); }
 }
 
 async function readOffset(uploadUrl, headers, fetcher) {
   const response = await checkedFetch(uploadUrl, { method:"HEAD", headers:{ ...headers, "Tus-Resumable":TUS_VERSION } }, fetcher);
-  if (!response.ok) throw new ResumableUploadError(`Intro upload could not resume (${response.status}).`, response.status);
+  if (!response.ok) throw new ResumableUploadError(`The upload could not resume (${response.status}).`, response.status);
   const offset = Number(response.headers.get("upload-offset"));
-  if (!Number.isSafeInteger(offset) || offset < 0) throw new ResumableUploadError("Intro upload returned an invalid resume position.", 0);
+  if (!Number.isSafeInteger(offset) || offset < 0) throw new ResumableUploadError("The upload returned an invalid resume position.", 0);
   return offset;
 }
 
@@ -48,11 +50,11 @@ export async function uploadResumable({ endpoint, bucketName, objectName, conten
   }, fetcher);
   if (!creation.ok) {
     let payload;try{payload=await creation.json();}catch{/* Storage responses may be plain text. */}
-    if(payload?.error==='ACCOUNT_STORAGE_QUOTA_EXCEEDED')throw new ResumableUploadError('This upload would exceed your 200 MB storage allowance. Remove stored media and try again.',creation.status,payload.error);
-    throw new ResumableUploadError(`Intro upload could not start (${creation.status}).`, creation.status,typeof payload?.error==='string'?payload.error:'INTRO_UPLOAD_FAILED');
+    if(payload?.error==='ACCOUNT_STORAGE_QUOTA_EXCEEDED')throw new ResumableUploadError(STORAGE_QUOTA_MESSAGE,creation.status,payload.error);
+    throw new ResumableUploadError(`The upload could not start (${creation.status}).`, creation.status,typeof payload?.error==='string'?payload.error:'INTRO_UPLOAD_FAILED');
   }
   const location = creation.headers.get("location");
-  if (!location) throw new ResumableUploadError("Intro upload did not return a resumable location.", 0);
+  if (!location) throw new ResumableUploadError("The upload did not return a resumable location.", 0);
   const uploadUrl = new URL(location, endpoint).href;
   let offset = Number(creation.headers.get("upload-offset") || 0);
 
@@ -71,15 +73,17 @@ export async function uploadResumable({ endpoint, bucketName, objectName, conten
         }, fetcher);
         if (response.ok) {
           const next = Number(response.headers.get("upload-offset"));
-          if (!Number.isSafeInteger(next) || next <= offset || next > file.size) throw new ResumableUploadError("Intro upload returned an invalid chunk position.", 0);
+          if (!Number.isSafeInteger(next) || next <= offset || next > file.size) throw new ResumableUploadError("The upload returned an invalid chunk position.", 0);
           offset = next; completed = true; onProgress?.(offset, file.size); break;
         }
-        if ([401,403,404,413].includes(response.status)) {
-          const permanent = new ResumableUploadError(`Intro upload failed (${response.status}).`, response.status);
+        // a refusal of this upload as such (the gateway's own code is kept, e.g. UPLOAD_EXPIRED): retrying the same chunk cannot succeed
+        if ([400,401,403,404,413].includes(response.status)) {
+          let refusal; try { refusal = (await response.json())?.error; } catch { /* Storage responses may be plain text. */ }
+          const permanent = new ResumableUploadError(`The upload failed (${response.status}).`, response.status, typeof refusal === "string" && /^[A-Z_]{3,64}$/.test(refusal) ? refusal : "INTRO_UPLOAD_FAILED");
           permanent.permanent = true;
           throw permanent;
         }
-        lastError = new ResumableUploadError(`Intro upload chunk failed (${response.status}).`, response.status);
+        lastError = new ResumableUploadError(`An upload chunk failed (${response.status}).`, response.status);
       } catch (error) {
         if (error?.permanent) throw error;
         lastError = error;
@@ -88,7 +92,7 @@ export async function uploadResumable({ endpoint, bucketName, objectName, conten
       catch (error) { lastError = error; }
       if (offset >= file.size) { completed = true; break; }
     }
-    if (!completed) throw lastError || new ResumableUploadError("Intro upload could not be completed.", 0);
+    if (!completed) throw lastError || new ResumableUploadError("The upload could not be completed.", 0);
   }
   } catch (error) {
     // A failed DELETE does not free capacity: the server keeps the reservation.

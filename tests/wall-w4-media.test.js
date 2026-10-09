@@ -104,7 +104,9 @@ test("assets: type, size, pixel size and count limits (SVG is never allowed)", (
   assert.deepEqual(startingImageSize(1000, 500), { width: 640, height: 320 });
   assert.deepEqual(startingImageSize(500, 1000), { width: 450, height: 900 });
   assert.match(describeAssetError({ code: "WALL_ASSET_IN_USE" }), /still used/);
-  assert.match(describeAssetError({ message: "WALL_ASSET_LIMIT" }), /60/);
+  // ISS-0001: the limit is named, never a figure (the server decides it; Usage shows the numbers) - images and videos share it
+  assert.match(describeAssetError({ message: "WALL_ASSET_LIMIT" }), /Wall asset limit \(images and videos together\)/);
+  assert.doesNotMatch(describeAssetError({ message: "WALL_ASSET_LIMIT" }), /\d/);
   assert.match(describeAssetError(new Error("???")), /could not be added/);
 });
 

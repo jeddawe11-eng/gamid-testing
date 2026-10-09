@@ -86,3 +86,12 @@ export async function bootAuthenticatedShell() {
   await shell.sync();
   return shell;
 }
+
+// Opens the existing global Usage panel for a page (an upload refused for storage or a Wall limit, Product Memory ISS-0001); false when no Usage is mounted.
+export function openUsagePanel() {
+  const usage = shell?.usage;
+  if (!usage) return false;
+  usage.setOpen(true);
+  usage.button?.focus?.();
+  return true;
+}

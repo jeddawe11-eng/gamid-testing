@@ -16,6 +16,7 @@ import { PROVIDERS, detectEmbed, buildEmbedPayload, defaultEmbedSize, humanReaso
 import { mediaCapabilities } from "../wall-kit/embed/index.js";
 import { fitFrame } from "../wall-kit/embed/player.js";
 import { createVideoPreviews } from "./video-preview.js";
+import { renderUploadError, classifyUploadError } from "../app/upload-feedback.js";
 
 const h = (tag, attributes = {}, ...children) => {
   const node = document.createElement(tag);
@@ -203,6 +204,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
   }
   let bgKey = "";
   let videoStatus = "";
+  let videoError = null;   // ISS-0001: a failed background video upload / conversion { message, code, status, file?, target? } - persistent until dismissed or resolved
   // Background asset deletion: never one click. An asset the Wall uses (Whole Wall / a stage background / a picture element) cannot be deleted - the panel says
   // where it is used; an unused one asks for confirmation first. The database refuses again if the SAVED Wall still uses it (nothing is ever left broken).
   let pendingDelete = null;       // asset id awaiting confirmation
@@ -219,6 +221,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
         h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete permanently", onclick: async () => {
           const result = await assets.remove(asset.asset_id, doc());
           pendingDelete = null;
+          if (result.ok) resolveUsageErrors();
           deleteStatus = result.ok ? `The ${noun} was deleted.`
             : result.code === "WALL_ASSET_IN_USE" ? `This ${noun} is still used by your saved Wall. Save your changes first, then delete it.` : result.message;
           renderBackground(true);
@@ -233,15 +236,25 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
     videoInput.value = "";
     if (!file) return;
     // the scope the owner chose when they picked the file: a converted video lands exactly there, even if they switched stage meanwhile
-    const target = scopeId();
+    await uploadBackgroundVideo(file, scopeId());
+  });
+  const videoBusy = () => /^(Checking|Uploading|Processing)/.test(videoStatus);
+  async function uploadBackgroundVideo(file, target) {
+    if (videoBusy()) { notify("A background video is already being added. Wait for it to finish."); return; }
+    videoError = null;
     videoStatus = "Checking the video…";
     renderBackground(true);
     const result = await assets.uploadVideo(file, { onProgress: (done, total) => showVideoStatus(`Uploading… ${Math.round((done / total) * 100)}%`) });
-    if (!result.ok) { videoStatus = result.message; notify(result.message); renderBackground(true); return; }
+    if (!result.ok) { videoStatus = ""; videoError = { message: result.message, code: result.code, status: result.status, file, target }; notify(result.message); renderBackground(true); return; }
     if (result.asset) { videoStatus = "Video added."; setBg(createVideoBackground(result.asset.asset_id)); return; }
     // HEVC / H.265: converted to H.264 on the server at the SAME resolution. Nothing is attached until it is READY; a failure changes nothing on the Wall.
     await followConversion(result.job.job_id, target, { attach: true });
-  });
+  }
+  // the persistent error box for the background video (rebuilt with the panel); Retry re-sends the same file to the scope it was meant for
+  const videoErrorBox = () => (videoError ? renderUploadError(document, videoError, { id: "bgVideoError",
+    onRetry: videoError.file ? (() => { const { file, target } = videoError; uploadBackgroundVideo(file, target); }) : null,
+    onDismiss: () => { videoError = null; renderBackground(true); controlsBox.querySelector(".ed-primary")?.focus(); } }) : null);
+  const videoErrorBoxes = () => (videoError ? [videoErrorBox()] : []);
   const showVideoStatus = text => { videoStatus = text; const line = $("bgVideoStatus"); if (line) line.textContent = text; else renderBackground(true); };
   async function followConversion(jobId, target, { attach }) {
     showVideoStatus("Processing video… Converting it for every browser at its full resolution. This can take a few minutes; you can keep editing.");
@@ -252,18 +265,20 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
       else { notify("Your converted background video is ready. Choose it under Background > Video."); renderBackground(true); }
       return;
     }
-    videoStatus = describeVideoJobFailure(done.failureCode);
-    notify(videoStatus);
+    // a conversion failure is the server's verdict on this video: no Retry of the same file (a limit still offers View Usage)
+    videoStatus = "";
+    videoError = { message: describeVideoJobFailure(done.failureCode), code: done.failureCode };
+    notify(videoError.message);
     renderBackground(true);
   }
   // a conversion still running from an earlier visit: show its progress and say when it is ready (it is not attached to anything by itself)
   setTimeout(async () => { for (const job of await assets.pendingVideoJobs?.() ?? []) followConversion(job.job_id, null, { attach: false }); }, 1500);
-  const pickVideo = () => { videoStatus = ""; videoInput.click(); };
+  const pickVideo = () => { if (videoBusy()) { notify("A background video is already being added. Wait for it to finish."); return; } videoStatus = ""; videoInput.click(); };
 
   function renderBackground(force = false) {
     const current = currentBackground();
     // rebuild only when the STRUCTURE changes (scope, stage, kind, picture, fit, overlay on/off, asset list) - never while a slider is being dragged
-    const key = JSON.stringify([scope, stageId(), current?.kind ?? null, current?.assetId ?? null, current?.fit ?? null, !!current?.overlay, assets.assets.length, assets.images.filter(asset => assets.urlFor(asset.asset_id)).length, assets.videos.map(asset => !!assets.videoUrlFor(asset.asset_id)).join(), doc().stages.length, scope === "stage" ? !!doc().background : null, videoStatus,
+    const key = JSON.stringify([scope, stageId(), current?.kind ?? null, current?.assetId ?? null, current?.fit ?? null, !!current?.overlay, assets.assets.length, assets.images.filter(asset => assets.urlFor(asset.asset_id)).length, assets.videos.map(asset => !!assets.videoUrlFor(asset.asset_id)).join(), doc().stages.length, scope === "stage" ? !!doc().background : null, videoStatus, videoError?.message ?? null,
       current?.flipX === true, current?.flipY === true, pendingDelete, deleteStatus, [...ops.assetsInUse(doc())].sort().join()]);
     if (!force && key === bgKey) return;
     bgKey = key;
@@ -326,9 +341,9 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
     }
     if (bg?.kind === "video") {
       controlsBox.append(videoList(bg.assetId, assetId => setBg({ ...live(), assetId })), ...deleteLine(), h("div", { class: "ed-row ed-wrap" }, h("button", { class: "ed-btn ed-primary", type: "button", text: "Upload MP4", onclick: pickVideo, disabled: /^(Checking|Uploading|Processing)/.test(videoStatus) })),
-        h("p", { id: "bgVideoStatus", class: "ed-hint", role: "status", text: videoStatus }),
+        h("p", { id: "bgVideoStatus", class: "ed-hint", role: "status", text: videoStatus }), ...videoErrorBoxes(),
         h("p", { class: "ed-hint", text: "MP4, up to 50 MB. H.264 is used as it is; an H.265 (HEVC) video is converted for every browser at the same resolution. It plays muted and looping behind everything, with no controls." }));
-    } else if (videoStatus && kind !== "video") controlsBox.append(h("p", { id: "bgVideoStatus", class: "ed-hint", role: "status", text: videoStatus }));
+    } else if ((videoStatus || videoError) && kind !== "video") controlsBox.append(h("p", { id: "bgVideoStatus", class: "ed-hint", role: "status", text: videoStatus }), ...videoErrorBoxes());
     if (bg?.kind === "image" || bg?.kind === "video") {
       controlsBox.append(h("label", { class: "ed-field" }, h("span", { text: "Fit" }), h("div", { class: "ed-inline" }, (() => {
         const select = h("select");
@@ -409,6 +424,26 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
   // plays muted and looping. Deleting follows the same safe rule as before (an asset the Wall uses is never deleted from under it).
   const grid = $("assetGrid"), message = $("assetMessage");
   const say = text => { message.textContent = text; };
+  // ISS-0001: a failed upload is ONE persistent inline box under Upload (reason and next step, Retry only when retryable, View Usage for the storage quota or a
+  // Wall limit, Dismiss). One upload at a time: while one runs, Upload is disabled and a second pick is refused, so a double tap never sends a file twice.
+  const uploadButton = $("assetUpload");
+  let uploading = false;
+  let assetError = null;   // { message, code, status, file, place }
+  function renderAssetError() {
+    $("assetUploadError")?.remove();
+    uploadButton?.removeAttribute("aria-describedby");
+    if (!assetError) return;
+    const failed = assetError;
+    message.after(renderUploadError(document, failed, { id: "assetUploadError",
+      onRetry: () => { assetError = null; renderAssetError(); uploadFile(failed.file, { place: failed.place }); },
+      onDismiss: () => { assetError = null; renderAssetError(); uploadButton?.focus(); } }));
+    uploadButton?.setAttribute("aria-describedby", "assetUploadError");
+  }
+  // a delete frees a slot / storage: a limit or quota error is resolved by it (the server decides again on the next upload)
+  const resolveUsageErrors = () => {
+    if (assetError && classifyUploadError(assetError).usage) { assetError = null; renderAssetError(); }
+    if (videoError && classifyUploadError(videoError).usage) { videoError = null; renderBackground(true); }
+  };
   let assetsKey = "";
   const videoKind = asset => (asset.mime_type === "video/webm" ? "WebM" : "MP4");
   const sizeLabel = bytes => (bytes >= 1024 * 1024 ? `${Math.round(bytes / (1024 * 1024))} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
@@ -432,7 +467,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
         inUse ? h("div", { class: "used", text: "IN USE" }) : null,
         h("div", { class: "row" },
           h("button", { class: "ed-btn", type: "button", text: "Add", "aria-label": `Add this ${noun.toLowerCase()} to the stage`, onclick: () => addImageElement(asset) }),
-          h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete", onclick: async () => { const result = await assets.remove(asset.asset_id, doc()); say(result.ok ? `${noun} deleted.` : result.message); } }))));
+          h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete", onclick: async () => { const result = await assets.remove(asset.asset_id, doc()); say(result.ok ? `${noun} deleted.` : result.message); if (result.ok) resolveUsageErrors(); } }))));
     }
   }
   // Places an asset as a media layer: a picture (image / GIF) or a video (MP4 / WebM - `media: "video"`), at its own proportions.
@@ -445,14 +480,31 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
   }
   // Upload -> (optionally) place it. Used by Assets > Upload and Add > Image. A video goes up resumably with progress; the server checks the stored file.
   async function uploadFile(file, { place = false } = {}) {
-    const video = isVideoFileType(file.type);
-    say("Uploading…");
-    const result = video ? await assets.uploadVideo(file, { onProgress: (done, total) => say(`Uploading… ${Math.round((done / total) * 100)}%`) }) : await assets.upload(file);
-    if (!result.ok) { say(result.message); notify(result.message); return null; }
-    if (result.job) { say("Processing video… it will appear in your assets when it is ready."); return null; }
-    say(video ? "Video added to your assets." : "Image added to your assets.");
-    if (place) addImageElement(result.asset);
-    return result.asset;
+    if (uploading) { say("An upload is already in progress. Wait for it to finish."); return null; }
+    uploading = true;
+    if (uploadButton) uploadButton.disabled = true;
+    assetError = null;
+    renderAssetError();
+    try {
+      const video = isVideoFileType(file.type);
+      say("Uploading…");
+      const result = video ? await assets.uploadVideo(file, { onProgress: (done, total) => say(`Uploading… ${Math.round((done / total) * 100)}%`) }) : await assets.upload(file);
+      if (!result.ok) {
+        say("");
+        assetError = { message: result.message, code: result.code, status: result.status, file, place };
+        renderAssetError();
+        notify(result.message);
+        if (place) setTool("assets");   // Add > Image: the error is shown where the upload lives
+        return null;
+      }
+      if (result.job) { say("Processing video… it will appear in your assets when it is ready."); return null; }
+      say(video ? "Video added to your assets." : "Image added to your assets.");
+      if (place) addImageElement(result.asset);
+      return result.asset;
+    } finally {
+      uploading = false;
+      if (uploadButton) uploadButton.disabled = false;
+    }
   }
 
   return {
