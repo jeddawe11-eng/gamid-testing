@@ -31,7 +31,10 @@ function validFiles() {
 }
 
 function indexFor(files, edit = t => t) {
-  let text = readFileSync(join(MEMORY, 'INDEX.md'), 'utf8').replace(/\r\n/g, '\n');
+  // start from the real index with its counters and Register emptied, so fixtures never inherit the repository's own records
+  let text = readFileSync(join(MEMORY, 'INDEX.md'), 'utf8').replace(/\r\n/g, '\n')
+    .replace(/^(\| [A-Z]+ \|[^|]*\|[^|]*\| )[A-Z]+-\d{4}( \|)$/gm, '$1none$2')
+    .replace(/^\| [A-Z]+-\d{4} \|.*\n/gm, '');
   const rows = [];
   const last = {};
   for (const [path, content] of Object.entries(files)) {

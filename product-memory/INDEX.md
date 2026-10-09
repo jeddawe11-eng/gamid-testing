@@ -77,7 +77,7 @@ Rules:
 |---|---|---|---|
 | DIS | Discussions | discussions/ | none |
 | DEC | Decisions | decisions/ | none |
-| IDEA | Ideas | ideas/ | none |
+| IDEA | Ideas | ideas/ | IDEA-0001 |
 | ISS | Issues | issues/ | none |
 | REV | Reviews | reviews/ | none |
 
@@ -85,5 +85,4 @@ Rules:
 
 | ID | Title | Status | Record |
 |---|---|---|---|
-
-_No records yet. Records are added only through Review Before Save._
+| IDEA-0001 | Profile Editor gaming-dashboard redesign | DEFERRED | [IDEA-0001-profile-editor-dashboard-redesign.md](ideas/IDEA-0001-profile-editor-dashboard-redesign.md) |
