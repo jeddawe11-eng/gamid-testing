@@ -200,7 +200,21 @@
       "status": "ACCEPTED",
       "surfaces": ["/@<handle>"],
       "checkpoint": "f609e76a0d6aa91be8d83271d23f876f4254a4d0",
-      "record": "accepted and landed on main (f609e76)"
+      "record": "accepted and landed on main (f609e76)",
+      "notes": "Visitors see the published Wall only while its owner keeps it enabled - see wall-visibility-toggle (pending acceptance)."
+    },
+    {
+      "id": "wall-visibility-toggle",
+      "name": "Enable / Disable My Wall (Profile Editor): published Wall or Classic Profile for visitors",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/account/", "/@<handle>"],
+      "contracts": [
+        { "id": "wall-toggle-public-result", "rule": "PRIVATE GamID: no public profile, whatever the Wall setting. PUBLIC GamID with a published, enabled Wall: the Wall. PUBLIC GamID with a published, disabled Wall: the Classic Profile. PUBLIC GamID without a published Wall: the Classic Profile. The server decides from the persisted setting; it is independent of the GamID's Publish / Unpublish." },
+        { "id": "wall-toggle-preserves", "rule": "Disabling keeps the published snapshot, its media and the draft untouched and editable, and the GamID stays PUBLIC; a disabled Wall's media is not publicly readable. Enabling shows the same published snapshot again. Republishing keeps the choice; existing published Walls are enabled by default. Only a published Wall can be enabled or disabled; an unpublished draft is never exposed." },
+        { "id": "wall-toggle-owner-ui", "rule": "In the Profile Editor's My Wall section the saved state is shown (Enabled / Disabled / Not published) with Edit and Disable My Wall / Enable My Wall, each confirmed first (Confirm / Cancel). Only the owner can change their own setting; one change runs at a time, and a failed change keeps the previous state with a clear error." }
+      ],
+      "checkpoint": "85146e679faaa88de46e0271f0ec5f16fbebf409",
+      "record": "PROJECT_HANDOFF.md §25; migration supabase/migrations/20261009170000_wall_public_publishing_toggle.sql; Product Memory DEC-0003"
     },
     {
       "id": "notifications",

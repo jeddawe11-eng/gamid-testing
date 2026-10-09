@@ -2001,3 +2001,42 @@ Product checkpoint `67042938426f7c234c175483c6882c709b09046d` on `feature/play-t
 **Not done / limits.** Threads, Reddit and LinkedIn are no longer available in My Socials. With a published Wall (as @black has), the Wall replaces the Classic Profile, so the icon is not shown there.
 
 STOP for Mazen's manual test of the Wall and the Classic Profile.
+
+## 25. Enable / Disable My Wall — 2026-10-09
+
+Product checkpoint `85146e679faaa88de46e0271f0ec5f16fbebf409` on `feature/play-together-notifications`; PENDING_ACCEPTANCE. Product Memory DEC-0003 (IMPLEMENTED); Truth `wall-visibility-toggle`.
+
+**Architecture.**
+- Unpublish deletes the published snapshot, so it cannot serve as Disable.
+- Migration `20261009170000_wall_public_publishing_toggle` adds `wall_publications.is_enabled` (NOT NULL DEFAULT true: existing published Walls stay enabled, no data rewritten).
+- `get_public_wall_impl` and `wall_object_is_published` (the published-media read policy) now also require `is_enabled`.
+- New owner-only RPCs `get_my_wall_visibility()` and `set_my_wall_enabled(boolean)`: the caller's own publication through `wall_owned_entity_id()`, with no owner argument; `WALL_NOT_PUBLISHED` when there is no published Wall.
+- Unchanged: Publish / Unpublish and the snapshot. Republishing keeps the choice.
+- The public page needed no change: the server returns no Wall for a disabled one, so the Classic Profile shows.
+
+**Profile Editor.**
+- `dist/account/index.html`, `account.js`, `account.css`, `supabase-client.js`.
+- My Wall shows the saved state (Enabled / Disabled / Not published), EDIT WALL plus Disable My Wall / Enable My Wall, and the approved confirmations (Confirm / Cancel).
+- One change runs at a time. Success is shown only after the server's answer confirms it; a failure keeps the previous state with a clear error. The section summary shows the state.
+
+**TESTING.**
+- Before: published Walls of @black (md5 `4b1e3b68…`, revision 52, 2026-10-07 07:47:29) and @zshot (md5 `085e348f…`, revision 8, 2026-10-04 11:07:51).
+- Rehearsed inside a rolled-back transaction: 13/13 PASS.
+- Applied once and history repaired.
+- After: both identical and enabled, and both still served to visitors.
+
+**Tests.**
+- Full suite 1,752: 1,751 pass, 1 skip. Lint and typecheck pass.
+- New `tests/wall-visibility.test.js`: the real publishing migration plus this one in PGlite (backward compatibility; the public result table; snapshot, media and visibility preserved; republish keeps the choice; PRIVATE stays private; no cross-user or anonymous toggle) and UI wiring.
+- Mocked fixtures, local and served (`--live`), 1280/390: Profile Editor (state, Cancel, Confirm Disable/Enable, one call per confirm, failure keeps state) and public (enabled Wall replaces the profile; disabled Wall gives the Classic Profile).
+- Real end-to-end as GM-TEST-01, desktop and mobile: 24/24 PASS.
+  - Visible while enabled; Cancel changes nothing; simulated failure keeps Enabled with an error; Disable gives signed-out visitors the Classic Profile while the GamID stays public.
+  - After refresh and in a new session: still Disabled. The editor still opens with the publication kept.
+  - Enable restores the same snapshot and persists. PRIVATE shows nothing either way. No page errors.
+- Cleanup: Wall unpublished and the persona returned to its original DRAFT. The GamID switch can only set PRIVATE, so DRAFT was restored with one targeted update on GM-TEST-01. Final state: DRAFT, no publication, draft revision 1, no links.
+
+**Deployment.** Workflow [37894870969](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37894870969) SUCCESS from the branch ref, whose head was exactly `85146e6`. The Account stamp reads `85146e6`, and the changed files match Git byte-for-byte.
+
+**Limits.** The Wall editor still shows its own Published state while the Wall is disabled (unchanged by scope); Enable / Disable lives only in the Profile Editor. Real Android was not tested.
+
+STOP for Mazen's manual acceptance.

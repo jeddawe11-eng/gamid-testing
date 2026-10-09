@@ -17,7 +17,7 @@ All 17 existing owner sections are independently expandable, initially compact, 
 | Live Preview | Read-only current draft; compact and collapsible |
 | Share your GamID | Existing readonly link/QR, copy/share/download actions |
 | Play Together | Existing navigation, not a settings save |
-| My Wall | Existing navigation, not a Wall save |
+| My Wall | Existing navigation (Edit), not a Wall save. Since 2026-10-09 also the saved Wall state (Enabled / Disabled / Not published) and Disable My Wall / Enable My Wall with a confirmation: whether visitors see the published Wall or the Classic Profile (DEC-0003); the Wall content is never changed. |
 | My Duo | Own visibility Save Changes; existing search/request/accept/remove confirmation actions remain explicit; staged visibility revalidates the current Duo before committing |
 | My Crew | Existing create/search/invite/respond/open-Crew actions retain their server-authoritative submission controls; no invented Crew privacy setting |
 | My Games | Existing canonical search/platform workflow; its editable platform panel has Save Changes; provider discovery/refresh remains an explicit action |
