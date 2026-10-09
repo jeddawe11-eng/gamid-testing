@@ -1850,3 +1850,12 @@ TESTING deployment, from deploy ref `feature/deploy-fd9c9a9` pointing exactly at
 - `account.js`, `transient-message.js`, `profile-editor.js` and `account.css` are byte-identical to their Git blobs.
 
 No database, schema, storage, worker or auth change. STOP for Mazen's manual acceptance.
+
+## 21. Product Memory V1 — 2026-10-09
+
+Governance and documentation only; awaiting Mazen's acceptance. `product-memory/` holds reasoning records (DIS / DEC / IDEA / ISS / REV) with one template per category, `archive/`, and a single index, `product-memory/INDEX.md` (layout, statuses and transitions, lookup, ID counters, Register).
+
+- **Rules:** `AGENTS.md` → Product Memory. The entry order is extended to seven steps, Review Before Save is mandatory, and approval, authorization, implementation and acceptance stay separate. Completion reports add a `Product Memory:` line.
+- **Pointers:** `PROJECT_STATE.md` and `CLAUDE.md` point to the index.
+- **Validation:** `scripts/product-memory.mjs` (no dependencies; `check` / `list` / `next`) runs in `npm test` through `tests/product-memory.test.js`, which includes malformed-record, broken-reference and index-drift fixtures.
+- **Not done:** no records were saved and nothing was migrated. No application code, deployment, database, Monitor or Truth change.

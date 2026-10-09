@@ -9,12 +9,15 @@ Last reviewed: 2026-10-09.
 ## 1. Mandatory entry order
 
 1. **Read this file.**
-2. **Read GamID Truth:** [`gamid-truth.json`](gamid-truth.json), with its rules in [`AGENTS.md`](AGENTS.md).
-3. **Read the specialist source for the task** (section 3).
-4. **Verify the current Git and checkpoint state** yourself. The SHAs below are a snapshot and may be stale.
-5. **Perform the task.**
-6. **Update the authoritative sources** the task changes, such as Truth (per `AGENTS.md`), docs, or Monitor records.
-7. **Update this file** only when the continuation state materially changes.
+2. **Read GamID Truth:** [`gamid-truth.json`](gamid-truth.json).
+3. **Read the agent rules:** [`AGENTS.md`](AGENTS.md).
+4. **Read the specialist source for the task** (section 3).
+5. **Read the Product Memory index** [`product-memory/INDEX.md`](product-memory/INDEX.md), then only the relevant records.
+6. **Verify the current Git and checkpoint state** yourself. The SHAs below are a snapshot and may be stale.
+7. **Perform the task.**
+8. **Update the authoritative sources** the task changes, such as Truth (per `AGENTS.md`), docs, or Monitor records.
+9. **Propose Product Memory records** at meaningful conclusions, and save them only after Mazen's explicit approval (Review Before Save, `AGENTS.md`).
+10. **Update this file** only when the continuation state materially changes.
 
 Conversation memory is helpful context, but it is **not** an authoritative project source.
 
@@ -35,6 +38,7 @@ Conversation memory is helpful context, but it is **not** an authoritative proje
 | **B. GamID product repository** | This repository, `jeddawe11-eng/gamid-testing`: `dist/`, `supabase/migrations/`, `tests/` | Implementation, migrations, tests and Git history. |
 | **C. gamid-monitor** | Sibling repository `../gamid-monitor` (`jeddawe11-eng/gamid-monitor`). Its records live in `../gamid-monitor/monitor-data/`, which is **git-ignored, local to this machine**. | Testing and inspection: runs, deterministic GM findings, issue lifecycle, coverage, and AI Observer (AO) records. |
 | **D. Specialist docs** | GamID: [`PROJECT_HANDOFF.md`](PROJECT_HANDOFF.md) and [`docs/`](docs/). Monitor: `../gamid-monitor/README.md`, `../gamid-monitor/docs/` (e.g. `ARCHITECTURE.md`, `V3-OBSERVER-P1.md`) and `../gamid-monitor/acceptance/v2/FREEZE.md` | Task-specific design, history and acceptance records. |
+| **E. GamID Product Memory** | [`product-memory/INDEX.md`](product-memory/INDEX.md), validated by `scripts/product-memory.mjs` | Reasoning: discussions, decisions, ideas, issues and reviews. Never overrides Truth; saved only through Review Before Save. Never passed to the Monitor or Observer. |
 
 ## 4. Current product checkpoint
 
@@ -89,6 +93,8 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 ## 7. Current continuation point
 
 **Current stop point:** Profile Editor product `fd9c9a9df25583050991b5069a087142abeb13b9` (including the four QA fixes and the save-error notification lifecycle fix) is deployed and technically verified. STOP for Mazen desktop/Android manual acceptance (`docs/PROFILE-EDITOR-UX.md`; handoff §20); `your-gamid-editor` remains PENDING_ACCEPTANCE. The prior Intro Android duration-boundary retest is separately pending (§19); do not repeat its worker/migration/fixtures. No other task is authorized.
+
+**Product Memory V1** (governance, structure, templates and validation only; no records saved yet) is committed on the working tip and awaits Mazen's acceptance. Source: [`product-memory/INDEX.md`](product-memory/INDEX.md) and `AGENTS.md` → Product Memory.
 
 **Previously outstanding continuation (not performed in F2/F3/F4):**
 1. **Remaining manual acceptance checks for global-usage.** Core accounting PASS; remaining checks are listed in `PROJECT_HANDOFF.md` §10. This capability remains PENDING_ACCEPTANCE in Truth.

@@ -9,7 +9,8 @@
     "test": "node --test",
     "build": "npm run lint && npm run typecheck && npm run typecheck:voice && npm test",
     "typecheck:voice": "node --check supabase/functions/_shared/voice-provider.js && node --check supabase/functions/_shared/discord-voice-provider.js && node --check supabase/functions/_shared/play-together-voice.js",
-    "templates:lab": "node prototypes/wall-templates-lab/server.mjs"
+    "templates:lab": "node prototypes/wall-templates-lab/server.mjs",
+    "memory": "node scripts/product-memory.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.3.14"
