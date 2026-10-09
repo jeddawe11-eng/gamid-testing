@@ -2040,3 +2040,72 @@ Product checkpoint `85146e679faaa88de46e0271f0ec5f16fbebf409` on `feature/play-t
 **Limits.** The Wall editor still shows its own Published state while the Wall is disabled (unchanged by scope); Enable / Disable lives only in the Profile Editor. Real Android was not tested.
 
 STOP for Mazen's manual acceptance.
+
+## 26. Discord Profile Card in My Socials — 2026-10-09
+
+Product checkpoint `5757c5fcd1be61c5058718d971aef200bb751341` on `feature/play-together-notifications`; PENDING_ACCEPTANCE. Truth `discord-profile-card`; Product Memory DEC-0004 (IMPLEMENTED).
+
+**Preflight.** Branch clean at `88272ac`, equal to origin. The read-only Discord OAuth audit was re-checked against the code and still holds:
+- `supabase/functions/_shared/discord-oauth.js` requests exactly `identify connections`, reads `/users/@me` once and revokes the token at once.
+- `gaming_connections` holds the id, username, display name and a 128 px CDN avatar address.
+- Team Voice has its own `identify guilds.join` consent.
+
+On TESTING, `gaming_connections` also carries the later Steam columns (`auth_method`, `provider_profile_url`, `provider_profile_refreshed_at`).
+
+**Discord terms.** Reviewed the official Developer Policy and the Developer Terms §5 (effective 2024-07-08) before implementing:
+- §5(b)(iii) allows sharing API Data when the user expressly directs it, with proof on request. This feature uses a separate opt-in and records the consent time.
+- §5(b) deletion: turning the card off or disconnecting removes it at once. There is no public copy.
+- Policy rules 15–20 (purpose, no scraping or selling): nothing beyond the stated card.
+- **Open requirement (not a code change):** §5(a) requires a public privacy policy for the application, linked in the Discord Developer Portal. GamID has none yet, and only Mazen can add the Portal link.
+
+**Implementation.**
+- Migration `20261009190000_discord_profile_card` (additive):
+  - `show_profile_card boolean not null default false` and `profile_card_consented_at`, with checks that the card is Discord-only and that ON always carries a consent time.
+  - Owner RPCs `get_my_discord_profile_card()` and `set_my_discord_profile_card(boolean)`: the caller's own row, no owner argument, `DISCORD_NOT_CONNECTED` without a connection. A repeated ON keeps the first consent time.
+  - Anon RPC `get_public_discord_card(handle)` returns `discord_id, username, display_name, avatar` only when all the conditions in Truth hold. The avatar must be this account's Discord CDN address, else null.
+  - `get_public_identity`, OAuth, Disconnect and Team Voice are untouched.
+- **Profile Editor** (`dist/account/account.js`, `account.css`, `supabase-client.js`):
+  - Connections → Discord shows "Show Discord Profile Card" with the approved description.
+  - Staged like the other switches and saved by the Connections Save Changes. It is shown ON only from the server's answer; a failed save keeps the server's confirmed state with the section error.
+  - Disabled with "Connect Discord first." while not connected.
+  - A hint names what is still missing: Show on my GamID, the matching My Socials link, or a published GamID.
+- **Classic Profile** (`dist/public/discord-card.js` new, `public.js`, `public.css`):
+  - When My Socials shows a Discord personal profile, the page asks for the card. It attaches only if the card's id is that link's id.
+  - Clicking opens a modal card: avatar (initial fallback), name, @username, Connected account, Open on Discord, and "Discord may ask you to sign in."
+  - Esc, Close and an outside click dismiss it, and focus returns to the icon. Modified or middle clicks keep the plain link.
+  - The Wall is not changed.
+
+**TESTING database.**
+- Before: 5 connection rows (row-set md5 `9d49dc63…`); @black and @zshot Discord and Steam row hashes recorded.
+- Rehearsed in an aborted transaction: 14/14 PASS. The functional path used a temporary GM-TEST-01 row, rolled back. Confirmed nothing persisted.
+- Applied once and history repaired.
+- After: the same md5 over the original columns, the same @black / @zshot hashes, every row OFF, and no card for @black or @zshot.
+
+**Tests.**
+- Full suite 1,760: 1,759 pass, 1 skip. Lint and typecheck pass.
+- New `tests/discord-profile-card.test.js` (8 tests), with the real Gaming Connections migration and this one in PGlite:
+  - default OFF and additive;
+  - opt-in / opt-out and consent;
+  - each condition;
+  - mismatched, invite, missing and inactive link;
+  - malformed avatar and id;
+  - Disconnect, and reconnect starting OFF;
+  - owner-only access and anonymous denial;
+  - UI wiring.
+- `tests/public-my-games.test.js` gains the migration name in its pinned list.
+- Fixtures, local and `--live`, 1280/390:
+  - public: card, mismatch, ordinary link, keyboard / Esc / Close / outside click, fit and 44 px targets;
+  - Profile Editor: OFF default, failure keeps the state, one request per save, persists, disabled after Disconnect.
+- Real TESTING as GM-TEST-01, desktop and mobile, read-only (guard on, no writes): 8/8 PASS. The server reports not connected, and the switch is OFF and disabled with the approved text.
+- Not run for real: a connected owner opting in and a visitor opening the card. No GM-TEST persona has a Discord account, and no OAuth was performed.
+
+**Deployment.** Workflow [37898776747](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/37898776747) SUCCESS from the branch ref, whose head was exactly `5757c5f`. The Account stamp reads `5757c5f`, and the 6 changed files match Git byte-for-byte.
+
+**Limits.**
+- The card shows what Discord returned at the last connect or reconnect; a new avatar appears after Reconnect.
+- Visitors' browsers load the avatar from Discord's CDN.
+- A published Wall still replaces the Classic Profile, so no card is shown there.
+- No privacy policy exists yet (see above).
+- The approved interactive simulation was not available in this session; the layout follows the written specification.
+
+STOP for Mazen's manual acceptance with @black.

@@ -217,6 +217,19 @@
       "record": "PROJECT_HANDOFF.md §25; migration supabase/migrations/20261009170000_wall_public_publishing_toggle.sql; Product Memory DEC-0003"
     },
     {
+      "id": "discord-profile-card",
+      "name": "Discord Profile Card in My Socials (Classic Profile), from the existing Discord connection",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/account/", "/@<handle>"],
+      "contracts": [
+        { "id": "discord-card-conditions", "rule": "A visitor gets the card only when all hold, checked on the server: the GamID is PUBLIC; the Discord connection exists; its Show on my GamID is on; the owner's separate Show Discord Profile Card consent is on; and the owner's saved My Socials Discord link is a personal profile (discord.com/users/<id>) whose numeric id equals the connected Discord account id. Otherwise no card data is returned and the Discord icon stays the ordinary link. Ownership is never inferred from a username or a pasted link." },
+        { "id": "discord-card-fields", "rule": "The card shows only the connected account's display name, @username and avatar (a Discord CDN address of that account, else a fallback), a Connected account indicator and Open on Discord (https://discord.com/users/<verified id>). It reuses the existing Discord connection (scopes identify connections, no stored token); no Discord call is made when someone visits, and no other connection data is exposed. It opens on click only and can be dismissed (Esc, Close, outside click); the visitor needs no Discord login to see it, and Discord itself may ask them to sign in." },
+        { "id": "discord-card-consent", "rule": "Show Discord Profile Card is a separate, explicit opt-in in Profile Editor -> Connections -> Discord, OFF by default (existing connections included), unavailable while Discord is not connected, saved with the section's Save Changes and shown as saved only after the server confirms it. The consent time is recorded while it is on; turning it off or disconnecting Discord removes the card at once and a new connection starts OFF. There is no separate public copy. Show on my GamID keeps its meaning." }
+      ],
+      "checkpoint": "5757c5fcd1be61c5058718d971aef200bb751341",
+      "record": "PROJECT_HANDOFF.md §26; migration supabase/migrations/20261009190000_discord_profile_card.sql; Product Memory DEC-0004"
+    },
+    {
       "id": "notifications",
       "name": "GamID Notifications (bell, unread count, log, Mark read / Mark all read, live toast)",
       "status": "ACCEPTED",
