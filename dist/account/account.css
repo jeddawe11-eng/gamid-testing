@@ -337,9 +337,11 @@ a.duo-handle:hover,a.duo-handle:focus-visible{text-decoration:underline}
 .social-row input{grid-column:1/-1;width:100%;min-width:0;margin:0}
 .social-row .text-button{grid-column:3;grid-row:1;width:auto;min-height:44px;margin:0}
 .social-error{margin:.2rem 0 0;color:#ffb8c4;font-size:.8rem;line-height:1.5}.social-row .social-error{grid-column:1/-1;margin:0}.socials-editor [aria-invalid=true]{border-color:#ff839c}
-.social-add{display:grid;grid-template-columns:minmax(0,1fr);gap:.45rem;margin-top:.4rem}
-.social-add .secondary{width:100%;min-height:44px;margin:0}
-@media(min-width:760px){.social-row{grid-template-columns:2.25rem 7rem minmax(0,1fr) auto}.social-row input{grid-column:3;grid-row:1}.social-row .text-button{grid-column:4}.social-add{grid-template-columns:11rem minmax(0,1fr) auto}.social-add .secondary{width:auto}}
+/* the editor column is narrow on desktop too: rows stay stacked (icon, name, Remove; then the full-width link), the adder is platform / link + Add */
+.social-add{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.45rem;margin-top:.4rem}
+.social-add select{grid-column:1/-1;min-height:44px;width:100%}
+.social-add input{min-width:0;width:100%;margin:0}
+.social-add .secondary{width:auto;min-height:44px;margin:0;padding:0 1.1rem}
 .social-icon{display:inline-grid;place-items:center;width:2.25rem;height:2.25rem;border-radius:50%;background:#2b2738;color:#fff;font:900 .78rem/1 system-ui,sans-serif;letter-spacing:-.02em;flex:0 0 auto}
 .social-icon[data-platform=instagram]{background:linear-gradient(45deg,#f58529,#dd2a7b,#8134af)}
 .social-icon[data-platform=tiktok]{background:#000;box-shadow:inset 0 0 0 2px #25f4ee}
