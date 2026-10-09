@@ -517,6 +517,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261009120000_my_socials.sql",   // My Socials: own tables + RPCs (get_public_social_links is separate); public identity / My Games contracts untouched
       "20261009151000_my_socials_link_engine.sql",   // My Socials on the Wall link engine (own tables / RPCs only); public identity / My Games contracts untouched
       "20261009190000_discord_profile_card.sql",   // Discord Profile Card: two columns on gaming_connections + own RPCs; public identity / My Games contracts untouched
+      "20261010120000_profile_banner.sql",   // Classic Profile Banner storage foundation: two profile columns, own RPCs and storage policies; public identity / My Games untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

@@ -1,18 +1,18 @@
 ---
 id: DEC-0005
 title: Classic Profile desktop redesign (Banner, About Me, desktop layout)
-status: APPROVED
+status: AUTHORIZED
 created: 2026-10-10
 updated: 2026-10-10
 scope: Classic Profile (/@<handle>) at 1280px and wider, Profile Editor (Banner, About Me), Discord section presentation
 summary: A wide desktop Classic Profile with an owner-uploaded 6:1 Banner, About Me fields and a main-content / sidebar layout, built only from real GamID data; mobile, the Intro engine, Full Preview and Wall behaviour stay unchanged.
-related: [DEC-0004, DEC-0003, DEC-0001, IDEA-0001]
+related: [DEC-0004, DEC-0003, DEC-0001, IDEA-0001, ISS-0007, ISS-0008]
 save_approval: Mazen 2026-10-10
-authorization: NONE
+authorization: Mazen 2026-10-10, Phase 1B only ("Classic Profile Banner — Phase 1B — Secure Storage & Backend Implementation", TESTING only); Phase 1A (read-only audit) before it
 supersedes: []
 truth_refs: [public-my-games, public-section-visibility, discord-profile-card, my-socials, public-wall-publishing, wall-visibility-toggle, intro-transition-engine, your-gamid-editor]
 checkpoints: []
-sources: [PROJECT_HANDOFF.md]
+sources: [PROJECT_HANDOFF.md, supabase/migrations/20261010120000_profile_banner.sql, supabase/functions/_shared/usage-upload.js]
 ---
 
 ## Context
@@ -66,3 +66,4 @@ Proposed implementation choices, approved as part of the plan, not yet built:
 ## History
 
 - 2026-10-10 APPROVED — Mazen approved the product decisions above (Phase 0, documentation only). Implementation is not authorized: Phase 1 needs his explicit approval.
+- 2026-10-10 AUTHORIZED — Phase 1A security audit, then Phase 1B (storage and backend only) authorized by Mazen. Architecture: Banner stored as a gateway re-encoded JPEG at avatars/<uid>/banner/<uuid>.jpg (replacing the planned WebP output); owner compare-and-set attach / remove; anonymous read only of an attached Banner of a PUBLIC GamID; attached Banners cannot be deleted; the gateway accepts only a direct POST, fully decodes it with the trusted jpeg-js 0.4.4, requires exactly 1920×320, re-encodes so no metadata survives, and refuses before any reservation. Phase 1B was then halted at a mandatory stop condition. Migration 20261010120000 was rehearsed (16/16) and applied, usage-upload v6 deployed, and GM-TEST-01 tested live. While the GamID was PUBLIC an anonymous visitor could mint a signed Storage URL valid for one year; that URL still served the Banner after the GamID became PRIVATE and after the Banner was detached, and only deleting the object stopped it. GM-TEST-01 was restored and no Banner is attached on TESTING. Not implemented, not accepted (PROJECT_HANDOFF.md §28).

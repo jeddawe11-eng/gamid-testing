@@ -2137,3 +2137,59 @@ The open Discord Developer Terms 5(a) requirement (a public privacy policy linke
 Until then, the current contracts (`public-section-visibility`, `public-my-games`, `public-wall-publishing`, `wall-visibility-toggle`, `intro-transition-engine`) stay as they are.
 
 STOP: Phase 1 needs Mazen's explicit approval.
+
+## 28. Classic Profile Banner — Phase 1B storage and backend: HALTED at a stop condition — 2026-10-10
+
+Authorized: Phase 1B only (TESTING). Product Memory DEC-0005 (AUTHORIZED). **Not implemented, not accepted.** Truth unchanged.
+
+**Built and deployed.**
+- **Migration `20261010120000_profile_banner`** (additive):
+  - `profiles.banner_media_reference` and `banner_updated_at`, with a check that the path is `<uid>/banner/<uuid>.jpg`. An Avatar path, which has no sub-folder, can never be a Banner.
+  - Owner RPCs `get_my_banner`, `attach_my_banner(path, expected)` and `remove_my_banner(expected)`, both writes compare-and-set; `list_my_unattached_banners` lists objects older than an hour.
+  - Service-only `authorize_banner_delete`.
+  - Storage policies "public profile banners are readable" (anon SELECT only of an attached Banner of a PUBLIC SOLO GamID) and the restrictive "attached banners cannot be deleted".
+  - Avatar policies, the usage functions and the quota were not touched.
+  - Rehearsed in an aborted transaction (16/16), confirmed nothing persisted, applied once, history repaired.
+- **`usage-upload` v6.** Deployed source verified identical to Git; v5 had been verified identical to the previous Git first. For `avatars/<uid>/banner/…` paths:
+  - only a direct POST of at most 5 MiB is accepted;
+  - the declared type must be `image/jpeg` and the SOF must be exactly 1920×320, checked before decoding;
+  - the image must end with an EOI marker and fully decode with **jpeg-js 0.4.4** (`npm:jpeg-js@0.4.4`, pure JavaScript; non-tolerant mode, 1 MP and 32 MB limits);
+  - the gateway stores its **own re-encoded JPEG** (quality 85, deterministic), so no EXIF, GPS or trailing payload survives;
+  - TUS is refused for Banners;
+  - every refusal happens before any reservation;
+  - deleting an attached Banner is refused.
+- **Unchanged:** Avatar and every other path. Avatar files are still stored byte-for-byte.
+- **Storage:** reuses the private `avatars` bucket (5 MiB limit, `gateway_required = true`). Banner bytes count in the existing 200,000,000-byte quota, under the "avatar" category. The "Avatar & Banner" label is deferred to Phase 2, because no frontend was deployed.
+- **The decision to store Banners as JPEG** (instead of the planned WebP) came from the decoder choice approved by Mazen together with the jpeg-js and Supabase CLI downloads. The CLI was re-downloaded as v2.117.0 from the official GitHub release, with SHA-256 verified.
+
+**Tests.**
+- Full suite 1,773: 1,772 pass, 1 skip. Lint and typecheck pass.
+- New `tests/profile-banner-gateway.test.js` (7 tests, with the real jpeg-js): accepted and re-encoded; metadata removed; wrong type, size, truncation, corruption and 5 MiB refused with nothing reserved; fails closed with no decoder; strict paths; TUS and other owners refused; delete protection; Avatar unchanged.
+- New `tests/profile-banner.test.js` (6 tests, PGlite with the real Avatar read-policy migrations): compare-and-set; ownership, receipt, type and size; the exact anonymous read rule across PUBLIC, PRIVATE, DRAFT, unattached and replaced; delete protection; orphan listing; anonymous denial.
+
+**Live on TESTING (GM-TEST-01; tokens kept in memory only).**
+- 44 of 46 checks passed:
+  - every refusal, with usage unchanged;
+  - a real browser JPEG with injected EXIF stored metadata-free at 1920×320;
+  - usage grew by exactly the stored bytes (35,499) and returned to exactly 105,320;
+  - DRAFT, PRIVATE (three identical, non-cache-busted requests, `cf-cache-status: BYPASS`), unattached and replaced Banners were refused through the RLS endpoint;
+  - the public-bucket URL was refused;
+  - the attached Banner could not be deleted through the gateway or the Storage API;
+  - the Avatar upload was unchanged (8,252 bytes stored as uploaded).
+- **Two failures:**
+  1. A stale compare-and-set raised SQLSTATE 40001, which PostgREST returns as HTTP 504. The change was refused, but the code should be a non-40xxx error. Not fixed, because of the stop.
+  2. **Stop condition.** An **anonymous visitor can create a signed URL** (`POST /storage/v1/object/sign/avatars/<path>`, expiresIn one year accepted) for an attached Banner while the GamID is PUBLIC, because the read policy grants anonymous SELECT.
+     - That signed URL **kept returning 200 after the GamID became PRIVATE, and after the Banner was detached**. Only deleting the object ended it.
+     - So a PRIVATE or detached Banner stays anonymously reachable to anyone who minted a link earlier.
+     - By the same mechanism this likely affects every anonymous-SELECT storage policy: the public Avatar, Intro media and published Wall media. That has **not** been tested live.
+
+**State after stop.**
+- GM-TEST-01 restored: DRAFT, no Avatar, no Banner, 1 object, 105,320 bytes.
+- No Banner object exists and none is attached on TESTING.
+- @black and @zshot untouched: profiles not updated today; entity hashes as before.
+- The migration and v6 stay deployed: with no attached Banner, nothing is currently exposed.
+- No frontend change.
+
+**Next (Mazen decides).** Phase 1B cannot pass while Storage RLS is how visitors read the Banner. A safe design needs controlled access with no anonymous SELECT on the object, for example:
+- a small public Edge Function that re-checks "attached and PUBLIC" on every request and streams the bytes;
+- or short server-issued signed URLs with the anonymous SELECT policy removed.
