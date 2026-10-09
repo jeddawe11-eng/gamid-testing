@@ -355,6 +355,16 @@ a.duo-handle:hover,a.duo-handle:focus-visible{text-decoration:underline}
 [data-profile-editor] .save-all-bar{display:grid;gap:.5rem;margin:1.4rem 0 .6rem;padding-top:1rem;border-top:1px solid var(--line)}
 [data-profile-editor] .save-all-bar .primary{min-height:48px;width:100%;margin:0}
 @media(min-width:760px){[data-profile-editor] .save-all-bar .primary{width:auto;justify-self:end;min-width:16rem}}
+/* Enable / Disable My Wall: the state chip under the My Wall description; Edit + the toggle in one actions column; the result line spans the card */
+.wall-entry-actions{display:grid;gap:.5rem}
+.wall-entry-actions .secondary{width:100%;min-height:44px;margin:0}
+@media(min-width:42rem){.wall-entry-actions{min-width:12rem}}
+.play-together-entry .wall-state{display:inline-block;margin-top:.6rem;padding:.2rem .65rem;border:1px solid #3a334b;border-radius:999px;font-size:.7rem;font-weight:800;letter-spacing:.04em;color:var(--muted)}
+.play-together-entry .wall-state[data-state=enabled]{border-color:rgba(110,240,181,.5);color:#91f4c8}
+.play-together-entry .wall-state[data-state=disabled]{border-color:rgba(255,200,87,.55);color:#ffe2a6}
+.wall-entry>.connections-message{grid-column:1/-1;margin:0}
+.wall-toggle-dialog h2{margin:0 0 .5rem;font-size:1.15rem}
+.wall-toggle-dialog p{margin:0 0 1.1rem;color:var(--muted);line-height:1.5}
 .account-menu-actions{min-width:15rem}
 .account-menu-actions .account-email{margin:.35rem .45rem .5rem;color:var(--muted);font-size:.72rem;overflow-wrap:break-word}
 .account-menu-actions .menu-language{margin:0 .45rem .45rem}

@@ -117,8 +117,9 @@
           <a class="primary play-together-link" href="../play-together/">OPEN PLAY TOGETHER</a>
         </section>
         <section class="play-together-entry wall-entry" aria-label="My Wall">
-          <div><p class="eyebrow">MY WALL</p><h3>Design your Wall</h3><p>Build your Wall with text, images, media, links and real GamID blocks. It stays private until you choose to publish it.</p></div>
-          <a class="primary play-together-link" href="../wall-editor/">EDIT WALL</a>
+          <div><p class="eyebrow">MY WALL</p><h3>Design your Wall</h3><p>Build your Wall with text, images, media, links and real GamID blocks. It stays private until you choose to publish it.</p><p id="wallState" class="wall-state" role="status" aria-live="polite">Checking your Wall…</p></div>
+          <div class="wall-entry-actions"><a class="primary play-together-link" href="../wall-editor/">EDIT WALL</a><button id="wallToggleButton" class="secondary" type="button" hidden>Disable My Wall</button></div>
+          <p id="wallToggleMessage" class="connections-message" role="status" aria-live="polite" hidden></p>
         </section>
         <section id="duoSection" class="connections-section duo-section" aria-label="My Duo">
           <p class="eyebrow">MY DUO</p>
@@ -159,6 +160,12 @@
           <div><button id="copyAvatarDiagnostics" class="secondary" type="button">Copy diagnostics</button><button id="clearAvatarDiagnostics" class="text-button" type="button">Clear</button></div>
         </details>
       </div>
+
+      <dialog id="wallToggleDialog" class="share-qr-dialog wall-toggle-dialog" aria-labelledby="wallToggleTitle" aria-describedby="wallToggleText">
+        <h2 id="wallToggleTitle">Disable My Wall?</h2>
+        <p id="wallToggleText">Your Classic Profile will appear instead. Your Wall content will be saved.</p>
+        <div class="crop-actions"><button id="wallToggleCancel" class="secondary" type="button">Cancel</button><button id="wallToggleConfirm" class="primary" type="button">Confirm</button></div>
+      </dialog>
 
       <dialog id="avatarCropDialog" class="avatar-crop-dialog" aria-labelledby="avatarCropTitle">
         <div class="crop-dialog-head"><p class="eyebrow">AVATAR POSITION</p><h2 id="avatarCropTitle">Choose your focus</h2><p>Drag the image and zoom until the circle shows exactly what you want.</p></div>

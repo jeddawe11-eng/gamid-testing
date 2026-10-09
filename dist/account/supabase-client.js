@@ -680,6 +680,12 @@ export async function loadPublicAvatar(path) {
   return URL.createObjectURL(await response.blob());
 }
 
+// ---- Enable / Disable My Wall (owner; supabase/migrations/20261009170000_wall_public_publishing_toggle.sql) ---------------------------------------
+// -> { published, is_enabled, draft_revision, published_at }: whether a Wall is published and whether visitors see it (false = the Classic Profile shows).
+export async function getMyWallVisibility() { return (await rpc("get_my_wall_visibility"))?.[0] ?? null; }
+// Shows / hides the caller's OWN published Wall; the snapshot itself is never changed. No published Wall -> WALL_NOT_PUBLISHED.
+export async function setMyWallEnabled(enabled) { return (await rpc("set_my_wall_enabled", { candidate_enabled: enabled }))?.[0] ?? null; }
+
 // ---- the PUBLISHED Wall (visitors) ----------------------------------------------------------------------------------------------------------------
 // The published snapshot of a PUBLIC GamID (never the private draft), with the storage location of only the assets it references; null when there is none.
 export async function getPublicWall(handle) {

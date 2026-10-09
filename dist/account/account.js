@@ -468,6 +468,7 @@ async function showIdentity(data) {
   updateProfilePreview();
   await loadSectionVisibility();
   await loadSocials();
+  wallVisibility = undefined; wallBusy = false; renderWallVisibility(); loadWallVisibility();
   stagedVisibility.clear();
   actionDrafts.clear();
   savedLanguage=document.querySelector("#languageForm select").value;
@@ -480,6 +481,64 @@ async function showIdentity(data) {
   loadDuo().then(() => { if (location.hash === "#my-duo") openNotificationDestination("account.my_duo"); });
   loadCrew().then(() => { if (location.hash === "#my-crew") openNotificationDestination("account.my_crew"); });
 }
+
+// Enable / Disable My Wall: whether visitors see the owner's PUBLISHED Wall or the Classic Profile. The server state (get_my_wall_visibility) is the only truth -
+// the label and button follow it, a change is confirmed first, and a failed change leaves the previous state on screen with a clear error.
+const wallState = document.getElementById("wallState"), wallToggle = document.getElementById("wallToggleButton"), wallToggleMessage = document.getElementById("wallToggleMessage");
+const wallDialog = document.getElementById("wallToggleDialog");
+let wallVisibility = undefined, wallBusy = false;   // undefined = loading, null = could not be read
+function renderWallVisibility() {
+  const v = wallVisibility, published = Boolean(v?.published), enabled = published && v.is_enabled === true;
+  wallState.dataset.state = v === undefined ? "loading" : v === null ? "unknown" : !published ? "unpublished" : enabled ? "enabled" : "disabled";
+  wallState.textContent = v === undefined ? "Checking your Wall…" : v === null ? "Your Wall status could not be loaded. Reload to try again."
+    : !published ? "Not published yet - publish it from the editor first." : enabled ? "Enabled - visitors see your Wall." : "Disabled - visitors see your Classic Profile.";
+  wallToggle.hidden = !published;
+  wallToggle.textContent = enabled ? "Disable My Wall" : "Enable My Wall";
+  wallToggle.disabled = wallBusy;
+  wallToggle.setAttribute("aria-busy", String(wallBusy));
+  const summary = editor.sections.get("wall")?.status;
+  if (summary) summary.textContent = !published ? "Edit your Wall" : enabled ? "Enabled" : "Disabled";
+}
+async function loadWallVisibility() {
+  const epoch = profileFeedbackEpoch, owner = api.userIdFromToken();
+  try {
+    const v = await api.getMyWallVisibility();
+    if (epoch !== profileFeedbackEpoch || owner !== api.userIdFromToken()) return;
+    wallVisibility = v ?? { published: false, is_enabled: false };
+  } catch { if (epoch === profileFeedbackEpoch) wallVisibility = null; }
+  renderWallVisibility();
+}
+wallToggle.addEventListener("click", () => {
+  if (wallBusy || !wallVisibility?.published) return;
+  const disabling = wallVisibility.is_enabled === true;
+  document.getElementById("wallToggleTitle").textContent = disabling ? "Disable My Wall?" : "Enable My Wall?";
+  document.getElementById("wallToggleText").textContent = disabling ? "Your Classic Profile will appear instead. Your Wall content will be saved." : "Your saved Wall will appear on your public profile again.";
+  wallDialog.dataset.target = disabling ? "disable" : "enable";
+  wallDialog.showModal();
+});
+document.getElementById("wallToggleCancel").addEventListener("click", () => { wallDialog.close(); wallToggle.focus(); });
+document.getElementById("wallToggleConfirm").addEventListener("click", async () => {
+  if (wallBusy || !wallDialog.open) return;
+  const enable = wallDialog.dataset.target === "enable";
+  wallDialog.close();
+  const epoch = profileFeedbackEpoch, owner = api.userIdFromToken();
+  wallBusy = true; renderWallVisibility();
+  feedbackFor(wallToggleMessage).show(enable ? "Enabling My Wall…" : "Disabling My Wall…", { progress: true });
+  try {
+    const v = await api.setMyWallEnabled(enable);
+    if (epoch !== profileFeedbackEpoch || owner !== api.userIdFromToken()) return;
+    if (!v || v.is_enabled !== enable) throw Object.assign(new Error("WALL_VISIBILITY_NOT_SAVED"), { code: "WALL_VISIBILITY_NOT_SAVED" });
+    wallVisibility = v;
+    feedbackFor(wallToggleMessage).show(enable ? "My Wall is enabled. Visitors see your Wall again." : "My Wall is disabled. Visitors see your Classic Profile.", { tone: "success" });
+  } catch (error) {
+    if (epoch !== profileFeedbackEpoch || owner !== api.userIdFromToken()) return;
+    // the previous state stays: nothing on screen claims a change the server did not make
+    const notPublished = /WALL_NOT_PUBLISHED/.test(`${error?.code ?? ""} ${error?.message ?? ""}`);
+    feedbackFor(wallToggleMessage).show(notPublished ? "Your Wall is not published. Publish it from the editor first." : `My Wall could not be ${enable ? "enabled" : "disabled"}. Nothing changed - check your connection and try again.`, { tone: "error", persistent: true });
+  } finally {
+    if (epoch === profileFeedbackEpoch) { wallBusy = false; renderWallVisibility(); wallToggle.focus(); }
+  }
+});
 
 async function loadSocials() {
   socialsLoaded = false;
@@ -2048,6 +2107,8 @@ document.getElementById("signOutButton").addEventListener("click", async () => {
   for(const feedback of sectionFeedback.values())feedback.hide();
   clearUploadErrors();
   socialsEditor.setSaved([]); socialsLoaded = false;
+  if (wallDialog.open) wallDialog.close();
+  wallVisibility = undefined; wallBusy = false; renderWallVisibility();
   try { await api.signOut(); }
   finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; stopCrewRealtime?.(); stopCrewRealtime = null; crewPanel = null; introStatusPoller.stop(); releasePendingIntro(); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; stagedVisibility.clear(); actionDrafts.clear(); savedLanguage=null; showView("auth"); document.getElementById("signinTab").click(); }
 });
