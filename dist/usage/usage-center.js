@@ -31,7 +31,7 @@ export function createUsageCenter({api,doc=globalThis.document,onOpen=()=>{}}) {
   if(s.reserved_bytes)nodes.push(make('p','usage-note',`${mb(s.reserved_bytes)} reserved for uploads · ${mb(s.available_bytes)} available to upload`));
   if(!s.enforcement_active)nodes.push(make('p','usage-note','Upload gateway activation pending.'));
   nodes.push(make('h3','','MEDIA BREAKDOWN'));
-  for(const [key,label] of [['intro','Intro'],['wall','Wall Media'],['avatar','Avatar'],['other','Other']])nodes.push(make('p','usage-row',`${label} · ${mb(data.media[key]||0)}`));
+  for(const [key,label] of [['intro','Intro'],['wall','Wall Media'],['avatar','Avatar & Banner'],['other','Other']])nodes.push(make('p','usage-row',`${label} · ${mb(data.media[key]||0)}`));
   nodes.push(make('h3','','FEATURE USAGE'),make('p','usage-note','Wall counts reflect the saved composition and registered assets.'));
   const capacity=wallCapacity(data.quotas);
   for(const q of data.quotas) {
