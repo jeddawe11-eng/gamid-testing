@@ -2389,3 +2389,81 @@ Authorized: Phases 2, 3 and 4 as one task (TESTING only).
 - The deferred signed-URL closure review (§30 residuals) is still pending; no key was rotated.
 
 STOP for final acceptance.
+
+## 32. Classic Profile visual review — approved changes — 2026-10-10
+
+Authorized: "Classic Profile Visual Review: Approved Changes" (TESTING only), starting from `4948f6c`.
+- Product checkpoint: `568b5300c3849b2d0b07948989dda014355d4d9d`.
+- Frontend run: [38047308404](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38047308404). TESTING serves `568b530` (Account stamp `v=568b530`); `public.js`, `public-desktop.js`, `public-games.js`, `public.css`, `about-editor.js` and `account.css` verified byte-for-byte.
+- Migration `20261010180000_member_since_date`: rehearsed 7/7 in an aborted transaction, applied, history repaired.
+- Truth: `about-me` (Member Since contract) and `classic-profile-desktop` (four new contracts), both still PENDING_ACCEPTANCE at `568b530`.
+
+**Unchanged by design.** Banner and Avatar (size, crop, fallback, overlap), name alignment, the six roles (no "+3"), the bio, Intro / Replay / Skip / Back, the Wall replacing the Classic Profile, privacy, Avatar / Banner upload and security, quotas, Save Changes / Save All, and everything below 1280 px. No Favorites / Games I've Played.
+
+**Changes.**
+- **Member Since** is the full registration date. `get_my_about`, `set_my_about` and `get_public_profile_extras` gain a trailing `member_since_date` (`entities.created_at` as a UTC calendar date, `YYYY-MM-DD`; nothing else is exposed). The page shows "10 October 2026" with no Date object or time zone (`formatMemberSince`, in `about-editor.js`), so every visitor sees the same day. It is read-only. The year column stays; the page falls back to it only if a server sends no date. The `set_my_about_impl` body, the extras' privacy rules and every grant are word-for-word the accepted ones (tested).
+- **Games counter**: the same stat, now `a.desk-stat` → `#publicGames`. Smooth scroll (instant with reduced motion); focus moves to My Games (`tabindex=-1`); aria-label "N games - go to My Games"; visible focus ring. The count is the authoritative public `library_count`.
+- **About Me checkboxes**: root cause is the global `input,select{display:block;width:100%;padding;min-height:3rem}` rule in `account.css`, which turned each chip's checkbox into a large white square. `.about-chip input[type=checkbox]` now resets it to one 16 px native box (`flex:0 0 auto`). Long labels wrap beside it. The 5 + 5 maximum is unchanged. Also fixed: each toggle rebuilt the chips and dropped keyboard focus to the page; focus now stays on the toggled chip. The fix applies wherever the editor is used.
+- **My Games**: each row gets a 56 px tile before the title / year / Manual-source badges. The chevron stays, because Game Details is a real destination. 6 rows, View all unchanged. Desktop only (`.game-thumb` is hidden unless `html.is-public-desktop .public-games`).
+- **League**: a 50 px tile beside the card's text (absolutely positioned at the content top, so the card structure is unchanged). Desktop only.
+- **Artwork: BLOCKED (product decision needed).** No approved source exists:
+  - the accepted `public_my_games` contract sends no Steam app id or icon;
+  - Steam icon hashes are private in `discovered_games`;
+  - manual games have no image;
+  - the game-logos backlog has not started;
+  - League has only `profile_icon_id` (Riot Data Dragon would be a new provider).
+
+  So every tile is the fallback: the title's initials (`data-initials`, drawn by CSS, so no text is added to rows or cards) on one of six neutral tones chosen deterministically from the title. Nothing was downloaded, fetched, matched or guessed, and no service was added.
+- **My Socials**: Discord and Instagram show their marks, as static white CSS masks (Discord = the simple-icons path, CC0; Instagram = a camera glyph drawn from a rounded square, a ring and a dot). Badge size, colours, placement, links and aria-labels are unchanged. Desktop-scoped, so the mobile badges keep "DC" / "IG". The independent mobile Discord section is untouched.
+- **My Duo**: no change needed. Verified: the card opens the Duo's GamID (with Back), keyboard Enter works, a 60-character name wraps inside the card, and the data is real (`public_sections.duo`).
+- **MY CREW** (`crewSection` in `public-desktop.js`): beneath My Duo in the desktop sidebar, one card per Crew in the server's `public_sections.crews` (20261003234309: PUBLIC GamID, ACTIVE membership, Crew Wall PUBLISHED; ordered by game, game_key, crew_id). The selection rule is the existing one: all listed Crews, in that order, no primary Crew. Each card reuses the Duo card's classes and opens `/crew/?c=<id>&from=<handle>` (`crewWallHref`). The public section has no Crew image, so a card shows the initial. Hidden when nothing is listed. The block is `.desk-only` inside the sections panel, which a published Wall hides. A panel holding only My Crew shows on desktop only (`hasDeskSide`), including when the width crosses the breakpoint.
+  - `tests/wall-crews-block.test.js` §9 originally forbade any crew rendering in `public.js`; it encoded the a3c0ae4 correction (no fixed MY CREW section *below the Wall*). It now asserts that rule exactly: no section below the Wall, a published Wall hides the panel, and the only crew rendering is this desktop-only card.
+
+**Validation.**
+- **Automated:** suite 1,810 (1,809 pass, 1 skip); lint, typecheck and `npm run build` pass.
+  - New: `tests/classic-profile-visual-review.test.js` (11):
+    - the migration in PGlite on top of the real About Me migrations (UTC date under Honolulu / Riyadh / Kiritimati session time zones, privacy, grants, the unchanged `set_my_about` body);
+    - `formatMemberSince`;
+    - the counter;
+    - MY CREW (order, links, initial, malformed rows, panel rules);
+    - tiles, socials marks and checkboxes.
+  - Updated: the pinned migration list, the League renderer harness (its one import) and the crew guard above.
+- **Fixtures** (local and `--live` against the deployed files):
+  - `public-desktop-browser.mjs` 14/14 at 1280, 1440 and 1920:
+    - full content with a Banner, the Duo + 2 Crews, the counter (keyboard Enter → My Games focused), 56 px tiles, the League tile, Discord / Instagram marks;
+    - maximum content at 1280 / 1920: 60-character Location, 5 + 5 long labels, a 60-character Duo name, a 40-character Crew name, with no overflow or collision;
+    - some-private and Crew-only panels (hidden below 1280; the card opens the Crew Wall);
+    - plain, refused Banner and published Wall;
+    - mobile at 390 / 768 / 1279 **pixel-identical to `4948f6c`** with the Duo and Crew data present.
+  - `profile-editor-browser.mjs` 2/2 (1280, 390): 12 checkboxes all 16×16 inside their chips; a long label wraps without resizing its box; Space toggles and keeps focus.
+- **Live on TESTING, GM-TEST-01 / GM-TEST-02 (real UI), 44/44:**
+  - Owner:
+    - a real Avatar (upload, crop, Save) and Banner through the editor;
+    - all 54 About Me checkboxes 16×16; at the maximum, 10 checked and 44 disabled;
+    - Space keeps focus;
+    - 60-character Location and 5 + 5 public;
+    - Member Since "4 October 2026" (`created_at` 2026-10-04).
+  - Setup: two fictional social links, 7 manual games with My Games public, a Duo with GM-TEST-02, and a Crew with a published Crew Wall.
+  - Visitor at 1280 / 1440 / 1920:
+    - the real Banner and Avatar;
+    - About Me: Location, Member Since 4 October 2026, 5 languages and 5 genres, with no clipping or collision;
+    - counter "7 Games" linking to My Games, with keyboard Enter scrolling and focusing, and a visible 2 px ring;
+    - 6 tiles, View all 7, Manual kept;
+    - static marks;
+    - the Duo card opens `/@gm_test_02` with Back;
+    - the Crew card opens that Crew Wall.
+  - Visitor at 390 / 768 / 1279: the accepted layout (no hero, About Me, Crew card, tiles or marks; the text badges stay).
+  - Privacy: some-private and all-private show only what the server sends; an unpublished Crew Wall removes the card.
+  - Intro from the real worker: first, then the desktop profile; Replay; mobile unchanged.
+  - A published Wall still replaces everything.
+- **Restored exactly:**
+  - Both personas: DRAFT, no Avatar / Banner / About Me / socials / manual games / Duo / Crew / Intro rows, notifications back to 6 each, Wall draft unchanged (rev 1, same md5), My Games private.
+  - GM-TEST-01: 1 object, 105,320 bytes. GM-TEST-02: 0 objects, 0 bytes.
+  - One earlier run's restore left a detached Banner object; it was deleted by owner DELETE and the restore now deletes it directly.
+  - @black and @zshot were not touched.
+
+**Open.**
+- The game / League artwork source is a product decision (above).
+- The deferred signed-URL closure review (§30 residuals) is still open and is **not** closed by this task; no key was rotated.
+
+STOP for visual acceptance.

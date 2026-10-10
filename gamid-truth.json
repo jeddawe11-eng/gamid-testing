@@ -263,11 +263,11 @@
       "surfaces": ["/account/", "/@<handle>"],
       "limits": { "aboutLocationMaxChars": 60, "aboutLanguagesMax": 5, "aboutGenresMax": 5 },
       "contracts": [
-        { "id": "about-me-privacy", "rule": "Location (typed city / country, never geolocated), Languages and Favorite Genres are optional and each has its own Show on my GamID switch, OFF by default; a switch is available only while its value is set and turns OFF when the value is cleared. Only switched-on values of a PUBLIC GamID are ever sent to visitors. Member Since is the year the GamID was created and is always shown on the public profile; it cannot be edited." },
+        { "id": "about-me-privacy", "rule": "Location (typed city / country, never geolocated), Languages and Favorite Genres are optional and each has its own Show on my GamID switch, OFF by default; a switch is available only while its value is set and turns OFF when the value is cleared. Only switched-on values of a PUBLIC GamID are ever sent to visitors. Member Since is the date the GamID was registered (entities.created_at as a UTC calendar date, shown as day, full month name and year, e.g. 10 October 2026, the same for every visitor's time zone) and is always shown on the public profile; it cannot be edited." },
         { "id": "about-me-display", "rule": "About Me appears on the desktop Classic Profile (1280px and wider); the mobile layout does not show it." }
       ],
-      "checkpoint": "4948f6ccc88b4cb54f5aec23e40932798df19e74",
-      "record": "PROJECT_HANDOFF.md §31; migration supabase/migrations/20261010160000_profile_about_me.sql; Product Memory DEC-0005"
+      "checkpoint": "568b5300c3849b2d0b07948989dda014355d4d9d",
+      "record": "PROJECT_HANDOFF.md §31-§32; migrations supabase/migrations/20261010160000_profile_about_me.sql and 20261010180000_member_since_date.sql; Product Memory DEC-0005"
     },
     {
       "id": "classic-profile-desktop",
@@ -276,12 +276,16 @@
       "surfaces": ["/@<handle>"],
       "limits": { "desktopBreakpointPx": 1280 },
       "contracts": [
-        { "id": "desktop-layout", "rule": "At 1280px and wider, when no published and enabled Wall replaces the profile, the Classic Profile shows a wide hero (Banner, Avatar, display name, @handle, roles, education / work, bio and the real game count only when My Games is public), About Me, My Games, and the My Socials / My Duo / League / Steam panel. Only real GamID data is shown: no friends, teams, achievements, game covers, search or messaging." },
+        { "id": "desktop-layout", "rule": "At 1280px and wider, when no published and enabled Wall replaces the profile, the Classic Profile shows a wide hero (Banner, Avatar, display name, @handle, roles, education / work, bio and the real game count only when My Games is public), About Me, My Games, and the My Socials / My Duo / MY CREW / League / Steam panel. Only real GamID data is shown: no friends, achievements, game covers, search or messaging." },
+        { "id": "desktop-game-count", "rule": "The hero's game count is the authoritative public My Games count and is a link to the My Games section on the same page (smooth scroll, instant with reduced motion; keyboard reachable, visible focus; focus moves to My Games)." },
+        { "id": "desktop-my-crew", "rule": "On the desktop layout only, MY CREW sits beneath My Duo in the sidebar: one card, in the My Duo card's style, for every Crew the server's public crews section lists for this GamID (ACTIVE membership, Crew Wall PUBLISHED; the server's order; there is no primary Crew), each opening that existing Crew Wall. No Crew image exists: a card shows the Crew's initial. No listed Crew, no MY CREW. A published, enabled Wall still replaces all of it; mobile is unchanged." },
+        { "id": "desktop-game-tiles", "rule": "On the desktop layout a My Games row shows a 56px tile and the League card a 50px tile beside the game. No approved game-artwork source exists, so a tile shows the title's initials on a neutral colour (never a fetched, matched or guessed image)." },
+        { "id": "desktop-social-marks", "rule": "On the desktop layout the Discord and Instagram icons in My Socials show their recognisable marks (static, local, no animation); size, colours, placement, links and accessible names are unchanged, and the mobile icons keep their text marks." },
         { "id": "desktop-preserves", "rule": "The Intro still plays first (full screen) and its transition reveals the desktop profile; Replay Intro, Skip and Back work as before; a published, enabled Wall still replaces the Classic Profile. Below 1280px the accepted mobile / tablet layout is unchanged, and crossing the width switches between the two without replaying the Intro." },
         { "id": "desktop-discord", "rule": "On the desktop layout the separate Discord section is not shown: a connected Discord appears inside My Socials (its Discord Profile Card when there is a matching Discord link, otherwise its name with CONNECTED). On mobile the separate Discord section is unchanged." }
       ],
-      "checkpoint": "4948f6ccc88b4cb54f5aec23e40932798df19e74",
-      "record": "PROJECT_HANDOFF.md §31; Product Memory DEC-0005"
+      "checkpoint": "568b5300c3849b2d0b07948989dda014355d4d9d",
+      "record": "PROJECT_HANDOFF.md §31-§32; Product Memory DEC-0005"
     },
     {
       "id": "notifications",

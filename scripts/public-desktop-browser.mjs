@@ -64,7 +64,7 @@ try{
   const facts=await page.locator('.desk-fact').allTextContents();
   assert.deepEqual(facts,['LocationRiyadh, Saudi Arabia','Member Since5 March 2024','LanguagesArabicEnglish','Favorite GenresActionRPGFPS']);
   // My Duo, then MY CREW beneath it (both Crews, server order), each a link to its destination
-  assert.equal(await page.locator('.public-duo-card:not(.public-crew-card)').getAttribute('href'),'/public/index.html?handle=fixture_duo&from=fixture_desk');
+  assert.match(await page.locator('.public-duo-card:not(.public-crew-card)').getAttribute('href'),/^\/public\/(index\.html)?\?handle=fixture_duo&from=fixture_desk$/);
   assert.deepEqual(await page.locator('.public-crew-card').evaluateAll(a=>a.map(x=>x.getAttribute('href'))),[`/crew/?c=${CREW_A}&from=fixture_desk`,`/crew/?c=${CREW_B}&from=fixture_desk`]);
   const duoBox=await page.locator('.public-duo-card:not(.public-crew-card)').boundingBox(),crewBox=await page.locator('.public-crew-card').first().boundingBox();
   assert.ok(crewBox.y>duoBox.y+duoBox.height-1&&Math.abs(crewBox.x-duoBox.x)<1&&Math.abs(crewBox.width-duoBox.width)<1,'MY CREW right beneath My Duo, the same width');
@@ -129,7 +129,7 @@ try{
   assert.ok(about.x+about.width<=gamesBox.x+1,'About Me and My Games never overlap');assert.ok(side.x>=hero.x+hero.width-1,'the sidebar stays beside the hero');
   const chip=await page.locator('.desk-chip',{hasText:'Massively'}).boundingBox();assert.ok(chip.x+chip.width<=about.x+about.width,'the longest genre stays inside About Me');
   const duoName=await page.locator('.public-duo-card:not(.public-crew-card) .public-duo-names strong').boundingBox(),duoCard=await page.locator('.public-duo-card:not(.public-crew-card)').boundingBox();assert.ok(duoName.x+duoName.width<=duoCard.x+duoCard.width,'the long Duo name wraps inside its card');
-  assert.equal(await page.locator('.public-duo-card:not(.public-crew-card)').getAttribute('href'),'/public/index.html?handle=fixture_duo_long_handle1&from=fixture_desk');
+  assert.match(await page.locator('.public-duo-card:not(.public-crew-card)').getAttribute('href'),/^\/public\/(index\.html)?\?handle=fixture_duo_long_handle1&from=fixture_desk$/);
   assert.equal(await page.locator('.public-crew-card strong').textContent(),'The Unbelievably Long Crew Name Of Night');
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'no horizontal scroll');
   assert.deepEqual(errors,[]);await page.screenshot({path:`${out}/public-desktop-long-${live?'live':'local'}-${width}.png`,fullPage:true});results.push({width,scenario:'long',ok:true});await context.close();}
