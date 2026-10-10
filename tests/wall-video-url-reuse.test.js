@@ -74,7 +74,8 @@ test("F4 privacy regression: public refresh still obtains server publication; ow
   const owner = client.slice(client.indexOf("export async function signWallVideo("), client.indexOf("export async function signWallVideo(") + 850);
   assert.match(owner, /await restoreSession\(\)/); assert.match(owner, /token: session\?\.access_token/);
   assert.doesNotMatch(owner, /publishedVideoUrls|createPublishedVideoUrlCache/);
-  const publicSigner = client.slice(client.indexOf("export async function signPublicWallVideo("), client.indexOf("export async function signPublicWallVideo(") + 1000);
+  // the visitor signers end where the owner's own Intro signer begins (Phase 1D: they ask the public-media function, never with a session)
+  const publicSigner = client.slice(client.indexOf("async function publicMediaLease("), client.indexOf("export async function signIntroMedia("));
   assert.doesNotMatch(publicSigner, /access_token|Authorization/);
   assert.match(client, /WALL_VIDEO_URL_SECONDS = 6 \* 60 \* 60/);
   assert.match(read("supabase/migrations/20261002120000_wall_public_publishing.sql"), /private.wall_object_is_published\(bucket_id, name\)/);

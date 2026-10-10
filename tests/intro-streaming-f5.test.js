@@ -71,7 +71,9 @@ test("public and owner signers preserve authorization and request at most 120s",
   const api=await import("../dist/account/supabase-client.js?f5-signer-regression");
   await api.signPublicIntroMedia("owner-a/job/intro-d3.webm",999);
   assert.equal(calls[0].options.headers.Authorization,undefined);
-  assert.equal(JSON.parse(calls[0].options.body).expiresIn,120);
+  // Phase 1D (ISS-0009): the visitor's lease comes from the public-media function, which enforces the 120 s lifetime server-side; the page sends none
+  assert.match(calls[0].url,/\/functions\/v1\/public-media$/);
+  assert.deepEqual(JSON.parse(calls[0].options.body),{bucket:"intro-media",path:"owner-a/job/intro-d3.webm"});
   assert.ok(await api.signIntroMedia("owner-a/job/intro-d3.webm"));
   assert.equal(calls[1].options.headers.Authorization,"Bearer "+jwt);
   assert.equal(await api.signIntroMedia("owner-b/job/intro-d3.webm"),null);

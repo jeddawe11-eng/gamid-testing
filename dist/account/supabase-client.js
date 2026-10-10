@@ -707,27 +707,28 @@ export async function loadPublicWallPicture(path) {
   if (!response.ok) return null;
   return URL.createObjectURL(await response.blob());
 }
-// A published video streams (range requests) from a short-lived signed address of that one object - never downloaded whole. Falls back to null (the layer shows
-// its placeholder) if the object is not published.
-export async function signPublicWallVideo(path, mime) {
-  if (!path) return null;
-  const bucket = publicWallBucketFor(path, mime);
-  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/${bucket}/${encodeStoragePath(path)}`, {
-    method: "POST", headers: { apikey: PUBLISHABLE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ expiresIn: WALL_VIDEO_URL_SECONDS }),
+// Visitors cannot sign Storage objects (only owners can: 20261010140000_visitor_storage_signing.sql). A visitor's streaming lease for a published Wall video or
+// a public Intro comes from the public-media Edge Function, which decides with the accepted public predicates and signs with a SERVER-chosen lifetime
+// (Wall video 6 h, Intro 120 s) - the page never chooses one. Null (the layer shows its placeholder / the Intro is skipped) when it is not public.
+async function publicMediaLease(bucket, path) {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/public-media`, {
+    method: "POST", headers: { apikey: PUBLISHABLE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ bucket, path }),
   });
   if (!response.ok) return null;
-  const signed = await response.json().catch(() => null);
-  const relative = signed?.signedURL ?? signed?.signedUrl;
+  const relative = (await response.json().catch(() => null))?.signedURL;
   if (typeof relative !== "string" || !relative.startsWith(`/object/sign/${bucket}/`)) return null;
   return `${SUPABASE_URL}/storage/v1${relative}`;
 }
-
-// F5: existing intro-media SELECT policies authorize both signers; no media download.
-export async function signPublicIntroMedia(path, seconds = 120) {
+// A published video streams (range requests) from a short-lived signed address of that one object - never downloaded whole.
+export async function signPublicWallVideo(path, mime) {
   if (!path) return null;
-  const signed = await request("/storage/v1/object/sign/intro-media/" + encodeStoragePath(path), { method: "POST", body: { expiresIn: Math.min(120, seconds) } });
-  const relative = signed?.signedURL ?? signed?.signedUrl;
-  return typeof relative === "string" && relative.startsWith("/object/sign/intro-media/") ? SUPABASE_URL + "/storage/v1" + relative : null;
+  return publicMediaLease(publicWallBucketFor(path, mime), path);
+}
+
+// F5: the visitor's Intro lease is issued by public-media (at most 120 s, enforced by the server); the owner's own signer below is unchanged. No media download.
+export async function signPublicIntroMedia(path) {
+  if (!path) return null;
+  return publicMediaLease("intro-media", path);
 }
 export async function signIntroMedia(path, seconds = 120) {
   const owner = await restoreSession();

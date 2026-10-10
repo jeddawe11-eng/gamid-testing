@@ -519,6 +519,8 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261009190000_discord_profile_card.sql",   // Discord Profile Card: two columns on gaming_connections + own RPCs; public identity / My Games contracts untouched
       "20261010120000_profile_banner.sql",   // Classic Profile Banner storage foundation: two profile columns, own RPCs and storage policies; public identity / My Games untouched
       "20261010130000_profile_banner_read_containment.sql",   // Phase 1C: drops only the anonymous Banner read policy
+      "20261010140000_visitor_storage_signing.sql",   // Phase 1D: service-only lease / Banner / rate RPCs and the Banner 409; public identity / My Games untouched
+      "20261010141000_visitor_storage_signing_ban.sql",   // Phase 1D: only owners can sign storage objects (restrictive)
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

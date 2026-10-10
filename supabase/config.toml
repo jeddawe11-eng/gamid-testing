@@ -63,3 +63,10 @@ verify_jwt = false
 # Custom auth: validates owner JWT through Auth or proves service-only RPC access.
 [functions.usage-upload]
 verify_jwt = false
+
+# Visitor media (Phase 1D, ISS-0009): anonymous by nature - a visitor has no session. Safe because each request is decided server-side by service-only RPCs
+# that reuse the accepted public predicates; public-media returns a short server-chosen lease, profile-banner streams bytes with no Storage URL at all.
+[functions.public-media]
+verify_jwt = false
+[functions.profile-banner]
+verify_jwt = false
