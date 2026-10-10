@@ -9,6 +9,8 @@ import { authenticatedReturnPath } from "./testing-auth-handoff.js";
 import { createOwnedUploadBlob } from "./resumable-upload.js";
 import { renderUploadError } from "../app/upload-feedback.js";
 import { createSocialsEditor, validateSocialLinks, SOCIAL_ERROR_MESSAGES } from "./socials.js";
+import { createBannerEditor } from "./banner-editor.js";
+import { createAboutEditor, ABOUT_MESSAGES } from "./about-editor.js";
 import { IntroStatusPoller, isProcessingIntroState } from "./intro-status-poller.js";
 import { buildGameLibrary } from "./game-list.js";
 import { attachGameProfile, indexGameProfiles, profileForGame } from "./game-profile.js";
@@ -40,6 +42,12 @@ const sectionSaveQueue = createSectionSaveQueue();
 const socialsEditor = createSocialsEditor(document, { onChange: () => refreshEditorSaves() });
 document.getElementById("socialsSlot").append(socialsEditor.element);
 let socialsLoaded = false, socialsCount = 0;
+// Banner + About Me (DEC-0005): each is its own section, saved by its Save Changes / Save All Changes; until its saved state has loaded nothing can be saved.
+const bannerEditor = createBannerEditor(document, { api, userId: () => api.userIdFromToken(), onChange: () => refreshEditorSaves() });
+document.getElementById("bannerSlot").append(bannerEditor.element);
+const aboutEditor = createAboutEditor(document, { onChange: () => refreshEditorSaves() });
+document.getElementById("aboutSlot").append(aboutEditor.element);
+let bannerLoaded = false, aboutLoaded = false, bannerFailed = false, aboutFailed = false;
 // Save All Changes (end of the editor): saves every section that has something to save, through each section's own save path
 const saveAllButton = document.getElementById("saveAllButton"), saveAllFeedback = document.getElementById("saveAllFeedback");
 let savingAll = false;
@@ -247,7 +255,7 @@ function syncEducationContext() {
 function isProfileDirty() {
   if(!identity)return false;
   return sectionSaveQueue.busy || actionDraftsDirty() || Boolean(savedProfile && (hasProfileChanges(savedProfile, profileDraft(), Boolean(pendingAvatar))
-    || hasIntroChanges(savedIntro, introDraft(), Boolean(pendingIntroSource)) || stagedVisibility.size>0 || (socialsLoaded && socialsEditor.isDirty()) || (savedLanguage!==null && document.querySelector("#languageForm select").value!==savedLanguage)));
+    || hasIntroChanges(savedIntro, introDraft(), Boolean(pendingIntroSource)) || stagedVisibility.size>0 || (socialsLoaded && socialsEditor.isDirty()) || (bannerLoaded && bannerEditor.isDirty()) || (aboutLoaded && aboutEditor.isDirty()) || (savedLanguage!==null && document.querySelector("#languageForm select").value!==savedLanguage)));
 }
 
 function renderIntroState() {
@@ -468,6 +476,7 @@ async function showIdentity(data) {
   updateProfilePreview();
   await loadSectionVisibility();
   await loadSocials();
+  loadBannerAndAbout();
   wallVisibility = undefined; wallBusy = false; renderWallVisibility(); loadWallVisibility();
   stagedVisibility.clear();
   actionDrafts.clear();
@@ -539,6 +548,17 @@ document.getElementById("wallToggleConfirm").addEventListener("click", async () 
     if (epoch === profileFeedbackEpoch) { wallBusy = false; renderWallVisibility(); wallToggle.focus(); }
   }
 });
+
+async function loadBannerAndAbout() {
+  bannerLoaded = false; aboutLoaded = false; bannerFailed = false; aboutFailed = false;
+  const epoch = profileFeedbackEpoch, owner = api.userIdFromToken();
+  const fresh = () => epoch === profileFeedbackEpoch && owner === api.userIdFromToken();
+  await Promise.all([
+    bannerEditor.load().then(() => { if (fresh()) bannerLoaded = true; }, () => { if (fresh()) bannerFailed = true; }),
+    api.getMyAbout().then(row => { if (fresh() && row) { aboutEditor.setSaved(row); aboutLoaded = true; } else if (fresh()) aboutFailed = true; }, () => { if (fresh()) aboutFailed = true; }),
+  ]);
+  if (fresh()) refreshEditorSaves();
+}
 
 async function loadSocials() {
   socialsLoaded = false;
@@ -2032,7 +2052,7 @@ function refreshEditorSaves() {
  for(const [key,{panel}] of editor.sections){if(!['name','bio','roles','education'].includes(key))continue;if(panel.dataset.invalidDraft&&panel.dataset.invalidDraft!==JSON.stringify(sectionDraft({},draft,key))&&validateProfileDraft(sectionDraft(savedProfile,draft,key),profileCatalogs()).valid){panel.querySelectorAll('[aria-invalid]').forEach(c=>{c.removeAttribute('aria-invalid');c.removeAttribute('aria-describedby');});panel.querySelector('.field-error')?.remove();const feedback=editor.saves.get(key)?.feedback;if(feedback&&panel.dataset.validationMessage===feedback.textContent)feedbackFor(feedback).hide();delete panel.dataset.validationMessage;delete panel.dataset.invalidDraft;}}
  for(const [key,{button}] of editor.saves){
   if(key==='league')button.closest('.section-save').hidden=!leagueProfile;
-  const changed=key==='avatar'?Boolean(pendingAvatar):key==='intro'?hasIntroChanges(savedIntro,introDraft(),Boolean(pendingIntroSource)):key==='socials'?socialsLoaded&&socialsEditor.isDirty():sectionChanged(savedProfile,draft,key);
+  const changed=key==='avatar'?Boolean(pendingAvatar):key==='intro'?hasIntroChanges(savedIntro,introDraft(),Boolean(pendingIntroSource)):key==='socials'?socialsLoaded&&socialsEditor.isDirty():key==='banner'?bannerLoaded&&bannerEditor.isDirty():key==='about'?aboutLoaded&&aboutEditor.isDirty():sectionChanged(savedProfile,draft,key);
   const pending=[...stagedVisibility.values()].some(v=>v.section===key);
   button.disabled=sectionSaveQueue.has(key)||!(changed||pending);
   button.textContent=sectionSaveQueue.has(key)?'Saving…':'Save Changes';
@@ -2044,6 +2064,8 @@ function refreshEditorSaves() {
  editor.sections.get('share').status.textContent=`@${identity.gamid_handle} · Link and QR`;
  editor.sections.get('preview').status.textContent=`Current draft · ${draft.displayName.trim()||'Your GamID'}`;
  editor.sections.get('socials').status.textContent=socialsCount<0?'Could not load your social accounts. Reload to try again.':socialsEditor.isDirty()?'Unsaved changes':socialsCount?`${socialsCount} account${socialsCount===1?'':'s'}`:'Add your social accounts';
+ editor.sections.get('banner').status.textContent=bannerFailed?'Could not load your Banner. Reload to try again.':bannerEditor.status();
+ editor.sections.get('about').status.textContent=aboutFailed?'Could not load About Me. Reload to try again.':aboutLoaded&&aboutEditor.isDirty()?'Unsaved changes':aboutEditor.status();
  // Save All Changes: available whenever at least one section has something to save, never while it is already running
  saveAllButton.disabled=savingAll||![...editor.saves.values()].some(save=>!save.button.disabled);
 }
@@ -2095,6 +2117,17 @@ async function saveEditorSection(key){
    const rows=await api.setMySocialLinks(check.links);
    if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
    socialsEditor.setSaved(rows);socialsCount=rows.length;
+  }else if(key==='banner'){
+   // upload (the gateway decodes / re-encodes) -> compare-and-set attach -> delete the replaced object; a failure keeps the staged image for a retry
+   if(!bannerLoaded)throw Error('Your Banner has not loaded yet. Reload the page and try again.');
+   await bannerEditor.save();
+   if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
+  }else if(key==='about'){
+   if(!aboutLoaded)throw Error('About Me has not loaded yet. Reload the page and try again.');
+   const row=await api.setMyAbout(aboutEditor.payload());
+   if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
+   if(!row)throw Error('About Me could not be confirmed. Please try again.');
+   aboutEditor.setSaved(row);
   }
   for(const [id,entry] of [...stagedVisibility])if(entry.section===key){if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');await entry.commit(entry.value);if(stagedVisibility.get(id)===entry)stagedVisibility.delete(id);}
  });if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken()&&entity===identity?.entity_id){reportSection(key,'Saved successfully',true);return true;}
@@ -2103,7 +2136,11 @@ async function saveEditorSection(key){
  if(epoch!==profileFeedbackEpoch)return false;
  if(owner!==api.userIdFromToken()||entity!==identity?.entity_id)return false;
  const socialCode=key==='socials'?Object.keys(SOCIAL_ERROR_MESSAGES).find(code=>error?.code===code||String(error?.message||'').includes(code)):null;
- const text=socialCode?SOCIAL_ERROR_MESSAGES[socialCode]:errorMessage(reasonFrom(error)||error.message);
+ const aboutCode=key==='about'?Object.keys(ABOUT_MESSAGES).find(code=>error?.code===code||String(error?.message||'').includes(code)):null;
+ const text=socialCode?SOCIAL_ERROR_MESSAGES[socialCode]:aboutCode?ABOUT_MESSAGES[aboutCode]:errorMessage(reasonFrom(error)||error.message);
+ if(key==='banner')bannerEditor.showError(text);
+ if(aboutCode)aboutEditor.showServerError(aboutCode);
+ if(error?.aboutValidation){reportSection(key,text,false,false,false);return false;}
  // a My Socials row refused by the browser check is marked on the row itself (until edited): its copy below Save Changes is transient, like a field error
  if(error?.socialValidation){reportSection(key,text,false,false,false);return false;}
  const selector={INVALID_DISPLAY_NAME:'#profileDisplayName',BIO_TOO_LONG:'#profileBio',INSTITUTION_TOO_LONG:'#profileInstitution',FIELD_OF_STUDY_TOO_LONG:'#profileFieldOfStudy',INVALID_EDUCATION_WORK_STATUS:'#educationWorkStatus'}[reasonFrom(error)];
@@ -2165,6 +2202,7 @@ document.getElementById("signOutButton").addEventListener("click", async () => {
   for(const feedback of sectionFeedback.values())feedback.hide();
   clearUploadErrors();
   socialsEditor.setSaved([]); socialsLoaded = false;
+  bannerEditor.reset(); aboutEditor.reset(); bannerLoaded = false; aboutLoaded = false;
   if (wallDialog.open) wallDialog.close();
   wallVisibility = undefined; wallBusy = false; renderWallVisibility();
   try { await api.signOut(); }

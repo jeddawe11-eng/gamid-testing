@@ -175,3 +175,55 @@ html.is-public-wall .public-shell .replay-button{grid-area:2/1;justify-self:star
 .discord-card-open{display:flex;align-items:center;justify-content:center;padding:.8rem 1rem;border-radius:.75rem;background:#5865f2;color:#fff;font-weight:800;text-decoration:none}
 .discord-card-open:hover{background:#4752c4}
 .discord-card-note{margin:-.35rem 0 0;color:var(--muted);font-size:.72rem;line-height:1.45;text-align:center}
+/* DESKTOP CLASSIC PROFILE (public-desktop.js, DEC-0005). Only while html.is-public-desktop is set - 1280px and wider, no published Wall, the Intro over: the page
+   draws the wide identity hero, About Me, My Games and the My Socials / My Duo / League panel in one grid. Nothing below applies to narrower screens, so the
+   accepted mobile / tablet layout is untouched. The separate Discord section is not shown here: Discord lives in My Socials (.desk-only items). */
+.desk-only{display:none}
+.desk-hero[hidden],.desk-about[hidden]{display:none}
+@media(min-width:80rem){
+html.is-public-desktop .public-shell{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) 22rem;grid-template-areas:"hero hero side" "about games games" "replay replay replay";gap:1.25rem;align-items:start;align-content:start;justify-items:stretch;width:min(90rem,100%);margin:0 auto;padding:1.5rem max(1.5rem,env(safe-area-inset-right)) 0 max(1.5rem,env(safe-area-inset-left));box-sizing:border-box;background:transparent}
+html.is-public-desktop:not(.desk-has-side) .public-shell{grid-template-areas:"hero hero hero" "about games games" "replay replay replay"}
+html.is-public-desktop:not(.desk-has-games) .public-shell{grid-template-areas:"hero hero side" "about about side" "replay replay replay"}
+html.is-public-desktop:not(.desk-has-side):not(.desk-has-games) .public-shell{grid-template-areas:"hero hero hero" "about about about" "replay replay replay"}
+html.is-public-desktop body{background:radial-gradient(circle at 12% 0,#27134e 0,transparent 32rem),#090811}
+html.is-public-desktop .experience-wrap{display:none}
+html.is-public-desktop.is-public-desktop-reveal .experience-wrap{display:block;position:fixed;inset:0;z-index:20;background:transparent}
+html.is-public-desktop .public-shell .desk-hero{grid-area:hero}
+html.is-public-desktop .public-shell .desk-about{grid-area:about}
+html.is-public-desktop .public-shell .public-sections{grid-area:side;width:auto;margin:0;justify-self:stretch}
+html.is-public-desktop .public-shell .public-games{grid-area:games;width:auto;margin:0}
+html.is-public-desktop .public-shell .replay-button{grid-area:replay}
+html.is-public-desktop .public-section-discord{display:none}
+html.is-public-desktop .desk-only{display:revert}
+html.is-public-desktop .public-socials-block.desk-only{display:grid}
+html.is-public-desktop .public-socials .public-social-account.desk-only{display:inline-flex}
+}
+.desk-hero{position:relative;z-index:1;min-width:0;overflow:hidden;border:1px solid rgba(255,255,255,.16);border-radius:1.25rem;background:rgba(14,12,22,.92)}
+.desk-banner{position:relative;aspect-ratio:6/1;background:linear-gradient(115deg,#27134e 0%,#3a1f7a 38%,#1c4d78 72%,#0e6f86 100%)}
+.desk-banner::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,rgba(14,12,22,.85))}
+.desk-banner-img{position:absolute;inset:0;width:100%;aspect-ratio:6/1;object-fit:cover;display:block}
+.desk-identity{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:1.5rem;align-items:end;padding:0 1.75rem 1.5rem}
+.desk-avatar{align-self:start;width:9.5rem;aspect-ratio:1;margin-top:-4.75rem;border-radius:50%;padding:.28rem;background:conic-gradient(from 200deg,#ff5ccd,#8b5dff,#62e7ff,#ff5ccd);box-shadow:0 18px 40px rgba(0,0,0,.5)}
+.desk-avatar img,.desk-avatar-initial{display:grid;place-items:center;width:100%;aspect-ratio:1;border-radius:50%;object-fit:cover;background:#1c1828;color:#fff;font:800 3rem/1 Inter,system-ui,sans-serif}
+.desk-copy{min-width:0;padding-top:1rem}
+.desk-name{margin:0;font-size:clamp(2rem,2.6vw,2.6rem);line-height:1.05;letter-spacing:-.02em;overflow-wrap:anywhere}
+.desk-handle{margin:.3rem 0 0;color:var(--muted);font-size:1rem}
+.desk-roles{display:flex;flex-wrap:wrap;gap:.45rem;margin:.9rem 0 0;padding:0;list-style:none}
+.desk-role{padding:.32rem .75rem;border:1px solid rgba(255,255,255,.22);border-radius:999px;color:var(--text);font-size:.78rem}
+.desk-role.is-primary{border-color:#fff;background:#fff;color:#0b0a10;font-weight:800}
+.desk-education{margin:.75rem 0 0;color:var(--green);font-size:.88rem;font-weight:650}
+.desk-bio{max-width:44rem;margin:.6rem 0 0;color:#d9d4e6;font-size:.95rem;line-height:1.6;overflow-wrap:anywhere}
+.desk-stats{display:flex;gap:1.5rem;margin:0;padding-bottom:.25rem}
+.desk-stat{display:grid;justify-items:center;padding:.6rem 1.1rem;border:1px solid rgba(255,255,255,.14);border-radius:.9rem;background:rgba(255,255,255,.04)}
+.desk-stat-value{margin:0;font-size:1.6rem;font-weight:800;line-height:1.1}
+.desk-stat-label{color:var(--muted);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase}
+.desk-about{position:relative;z-index:1;min-width:0;padding:1.1rem 1.25rem;border:1px solid rgba(255,255,255,.2);border-radius:1rem;background:rgba(10,8,16,.78)}
+.desk-facts{display:grid;gap:.85rem;margin:.6rem 0 0}
+.desk-fact{display:grid;grid-template-columns:8.5rem minmax(0,1fr);gap:.75rem;align-items:start}
+.desk-fact dt{color:var(--muted);font-size:.82rem}
+.desk-fact dd{margin:0;font-size:.9rem;overflow-wrap:anywhere}
+.desk-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin:0;padding:0;list-style:none}
+.desk-chip{padding:.25rem .65rem;border:1px solid rgba(255,255,255,.22);border-radius:999px;font-size:.78rem}
+.public-social-account{align-items:center;gap:.55rem;padding:.25rem .7rem .25rem .25rem;border:1px solid rgba(255,255,255,.14);border-radius:999px}
+.public-social-account .social-icon{display:inline-grid;place-items:center;width:2.25rem;aspect-ratio:1;border-radius:50%;background:#5865f2;color:#fff;font:900 .75rem/1 system-ui,sans-serif}
+.public-social-account-name{font-size:.86rem;font-weight:700}

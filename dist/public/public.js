@@ -1,6 +1,7 @@
-import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard } from "../account/supabase-client.js";
+import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl } from "../account/supabase-client.js";
+import { createDesktopProfile, DESKTOP_QUERY } from "./public-desktop.js";
 import { attachDiscordCard } from "./discord-card.js";
-import { renderPublicSocials } from "../account/socials.js";
+import { renderPublicSocials, socialIcon } from "../account/socials.js";
 import { createIntroSourceResolver } from "../account/intro-source.js";
 import { createFlowLayout } from "../flow-layout.js";
 import { normalizeLibrary, renderGamesPreview, createGamesLibrary } from "./public-games.js";
@@ -47,7 +48,8 @@ export function renderPublicSections(panel, sections, duoOptions = null) {
   if (duo) blocks.push(duo);
   const discord = sections?.discord;
   if (discord && (discord.display_name || discord.username)) {
-    const block = node("section", "public-section");
+    // public-section-discord: on the desktop Classic Profile (1280 px and wider) this separate section is not shown - Discord lives in My Socials there (DEC-0005)
+    const block = node("section", "public-section public-section-discord");
     block.append(node("p", "public-section-label", "DISCORD"), node("strong", "", discord.display_name || `@${discord.username}`));
     if (discord.username && discord.display_name && discord.username !== discord.display_name) block.append(node("span", "public-section-sub", `@${discord.username}`));
     block.append(node("span", "public-chip", "CONNECTED"));
@@ -130,6 +132,11 @@ async function render() {
   // Replay Intro still plays the Intro. Without one, `wall` stays null and every line below behaves exactly as before.
   let wall = null;
   let visitorNav = null;   // Back to @previous + Skip Intro, when the visitor came from another GamID
+  // Desktop Classic Profile (public-desktop.js): at 1280 px and wider, without a published Wall, the page draws the wide hero itself and the Intro frame only plays the
+  // Intro (hostReveal). Below that width - and whenever it crosses back - the accepted frame profile is used exactly as before.
+  let desktopView = null, lastState = null;
+  const desktopQuery = typeof matchMedia === "function" ? matchMedia(DESKTOP_QUERY) : null;
+  const desktopActive = () => Boolean(desktopView && desktopQuery?.matches);
 
   // Layout mode. While the Intro plays (and before anything is known) the stage is a full-viewport overlay ("experience"). Once the profile shows, the page becomes
   // ordinary document flow ("flow"): the iframe takes exactly the height the profile inside it reports, so the profile, the provider panel and Replay Intro are simply
@@ -157,7 +164,7 @@ async function render() {
     introResolving = false;
     if (!latestIntroIdentity) {
       introSource.invalidate(); hasIntro = false; config = null;
-      wall?.hide(); experienceWrap.hidden = true; sectionsPanel.hidden = true; gamesBlock.hidden = true;
+      wall?.hide(); hideDesktop(); experienceWrap.hidden = true; sectionsPanel.hidden = true; gamesBlock.hidden = true;
       notFound.hidden = false; loading.hidden = true;
       return;
     }
@@ -173,7 +180,7 @@ async function render() {
     if (current !== introRequest || !config || introResolving) return;
     if (!valid) {
       stopIntro(); introSource.invalidate(); config.videoUrl = ""; hasIntro = false;
-      if (!latestIntroIdentity) { config = null; wall?.hide(); experienceWrap.hidden = true; sectionsPanel.hidden = true; gamesBlock.hidden = true; notFound.hidden = false; }
+      if (!latestIntroIdentity) { config = null; wall?.hide(); hideDesktop(); experienceWrap.hidden = true; sectionsPanel.hidden = true; gamesBlock.hidden = true; notFound.hidden = false; }
     }
   };
   addEventListener("focus", checkIntro);
@@ -197,6 +204,8 @@ async function render() {
       gamesBlock.hidden = !hasGames || event.data.state !== "profile";
       if (event.data.state !== "profile") gamesLibrary?.close();
       layout.setProfileShowing(event.data.state === "profile");
+      lastState = event.data.state;
+      if (!wall && desktopActive()) showDesktop(event.data.state);
       if (wall) showWall(event.data.state);
       visitorNav?.setIntroState(event.data.state);
     }
@@ -217,6 +226,17 @@ async function render() {
       experienceWrap.hidden = state === "profile";
     } else if (wall.showing) { wall.hide(); root.classList.remove("is-public-wall", "is-public-wall-reveal"); experienceWrap.hidden = false; }
   }
+  // like the Wall: during the Intro's transition the transparent frame stays on top of the desktop profile, so the transition reveals it; at "profile" the
+  // frame is not shown at all (the profile below IS the page). While the Intro plays the overlay is the whole viewport, as always.
+  function showDesktop(state) {
+    const root = document.documentElement;
+    if (state === "profile" || state === "transitioning") {
+      root.classList.add("is-public-desktop"); desktopView.show();
+      root.classList.toggle("is-public-desktop-reveal", state === "transitioning");
+      experienceWrap.hidden = state === "profile";
+    } else { hideDesktop(); experienceWrap.hidden = false; }
+  }
+  function hideDesktop() { desktopView?.hide(); document.documentElement.classList.remove("is-public-desktop", "is-public-desktop-reveal"); }
   frame.addEventListener("load", () => { frameReady = true; sendInitial(); });
   replayButton.addEventListener("click", layout.enterExperience);   // the Intro needs the full viewport again (registered first, so it runs before the config is sent)
   replayButton.addEventListener("click", sendReplay);
@@ -259,6 +279,23 @@ async function render() {
   // Discord Profile Card: asked for only when My Socials shows a Discord personal profile; the server decides whether there is a card (else the link stays)
   const discordLink = sectionsPanel.querySelector('.public-socials a.public-social[href^="https://discord.com/users/"]');
   if (discordLink) getPublicDiscordCard(identity.gamid_handle).then(card => { if (card) attachDiscordCard(discordLink, card, document); }, () => {});
+  // Desktop only: the separate Discord section is not shown there (CSS), so a connected Discord shown on this GamID without a Discord link in My Socials
+  // appears inside My Socials instead (name + CONNECTED; no address - none is public). On mobile these elements are never displayed (.desk-only).
+  const discordShown = identity.public_sections?.discord;
+  if (!discordLink && discordShown && (discordShown.display_name || discordShown.username)) {
+    let socials = sectionsPanel.querySelector(".public-socials");
+    if (!socials) {
+      const block = node("section", "public-section public-socials-block desk-only"); block.setAttribute("aria-label", "Social accounts");
+      socials = node("div", "public-socials");
+      block.append(node("p", "public-section-label", "SOCIALS"), socials);
+      sectionsPanel.prepend(block);
+    }
+    const item = node("span", "public-social-account desk-only");
+    const name = discordShown.display_name || `@${discordShown.username}`;
+    item.setAttribute("aria-label", `Discord: ${name}${discordShown.username && discordShown.display_name ? ` (@${discordShown.username})` : ""}, connected account`);
+    item.append(socialIcon(document, "discord"), node("span", "public-social-account-name", name), node("span", "public-chip", "CONNECTED"));
+    socials.append(item); socials.hidden = false;
+  }
   // My Games: the server sends the section only when the owner switched it ON (and there is at least one game): the first six games + the true count. The full
   // library, its search and Game Details load through the same public function, page by page, only when a visitor asks for them.
   const gamesPreview = normalizeLibrary(identity.public_sections?.my_games, LEAGUE_SOURCE_LABELS);
@@ -272,7 +309,9 @@ async function render() {
     hasGames = true;
   }
   // the published Wall is looked up alongside the Intro config (one anonymous call); its media and data load while the Intro plays
+  const extrasRequest = getPublicProfileExtras(identity.gamid_handle).catch(() => null);   // the desktop profile's Member Since / Banner / About Me (in parallel)
   const [built, published] = await Promise.all([buildConfig(identity), getPublicWall(identity.gamid_handle).catch(() => null)]);
+  const extras = await extrasRequest;
   if (published?.document) {
     const host = node("section", "public-wall");
     host.id = "publicWall";
@@ -282,7 +321,24 @@ async function render() {
     wall = createPublicWallView({ host, prepared: preparePublicWall(published, identity.gamid_handle).catch(() => null), handle: identity.gamid_handle });
   }
   // with a published Wall the Intro frame shows no profile card and stays transparent (hostReveal): its transition reveals the Wall behind it
+  if (!wall) {
+    desktopView = createDesktopProfile({ doc: document, profile: built, extras, gamesCount: hasGames ? gamesPreview.libraryCount : 0, bannerUrl: publicBannerUrl(identity.gamid_handle) });
+    sectionsPanel.before(desktopView.hero, desktopView.about);
+    document.documentElement.classList.toggle("desk-has-side", hasSections);
+    document.documentElement.classList.toggle("desk-has-games", hasGames);
+    // the width crossed the desktop breakpoint: the next Intro uses the matching mode; when the profile is showing, switch it now (to mobile: the frame draws its accepted
+    // profile again - no Intro replay; to desktop: the frame is hidden and the desktop profile shows)
+    desktopQuery?.addEventListener?.("change", () => {
+      if (!config) return;
+      config = { ...config, hostReveal: desktopActive() };
+      if (lastState !== "profile") return;
+      if (desktopActive()) showDesktop("profile");
+      else { hideDesktop(); experienceWrap.hidden = false; frame.contentWindow?.postMessage({ type: "gamid-intro-preview", config: { ...config, hostReveal: false, videoUrl: "" } }, location.origin); }
+    });
+  }
+  // with a published Wall the Intro frame shows no profile card and stays transparent (hostReveal): its transition reveals the Wall behind it
   config = wall ? { ...built, hostReveal: true } : built;
+  if (desktopActive()) config = { ...config, hostReveal: true };   // the same for the desktop profile
   if (visitorNav) config = { ...config, hostSkip: true };   // the frame hides its own Skip: the visitor's Skip Intro sits beside Back
   hasIntro = Boolean(config.videoUrl);
   sendInitial();

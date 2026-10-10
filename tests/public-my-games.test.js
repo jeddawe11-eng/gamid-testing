@@ -521,6 +521,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261010130000_profile_banner_read_containment.sql",   // Phase 1C: drops only the anonymous Banner read policy
       "20261010140000_visitor_storage_signing.sql",   // Phase 1D: service-only lease / Banner / rate RPCs and the Banner 409; public identity / My Games untouched
       "20261010141000_visitor_storage_signing_ban.sql",   // Phase 1D: only owners can sign storage objects (restrictive)
+      "20261010160000_profile_about_me.sql",   // DEC-0005 Phase 2: About Me columns + own RPCs + get_public_profile_extras; public identity / My Games untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

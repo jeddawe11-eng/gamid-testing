@@ -449,6 +449,10 @@ export async function getPublicIdentity(handle) {
 export async function getMySocialLinks() { return (await rpc("get_my_social_links")) || []; }
 export async function setMySocialLinks(links) { return (await rpc("set_my_social_links", { candidate_links: links })) || []; }
 // A PUBLISHED GamID's saved links (anonymous; an unpublished GamID returns none).
+// Desktop Classic Profile extras of a PUBLISHED GamID: Member Since, whether a Banner can be shown, and only the About Me values the owner made public.
+export async function getPublicProfileExtras(handle) { return (await rpc("get_public_profile_extras", { candidate_handle: handle }, { anonymous: true }))?.[0] ?? null; }
+// The Banner is never a Storage address: the profile-banner Edge Function decides on every request (PUBLIC + attached) and streams it with no-store.
+export const publicBannerUrl = handle => `${SUPABASE_URL}/functions/v1/profile-banner/${encodeURIComponent(handle)}`;
 export async function getPublicSocialLinks(handle) { return (await rpc("get_public_social_links", { candidate_handle: handle }, { anonymous: true })) || []; }
 // Discord Profile Card: one row only when the server confirms every condition (published GamID, Show on my GamID, the owner's card consent, and a My Socials
 // Discord profile link of the very account that is connected); otherwise null and the ordinary link stays.
@@ -463,6 +467,40 @@ const CONNECTABLE_PROVIDERS = new Set(["discord", "steam"]);
 
 export async function getMyDiscordProfileCard() { return (await rpc("get_my_discord_profile_card"))?.[0] ?? null; }
 export async function setMyDiscordProfileCard(enabled) { return (await rpc("set_my_discord_profile_card", { candidate_enabled: enabled }))?.[0] ?? null; }
+
+// ---- Classic Profile Banner + About Me (owner; DEC-0005). The Banner is stored by the usage-upload gateway (it fully decodes the JPEG, requires exactly
+// 1920x320 and stores its own re-encoded copy) at avatars/<uid>/banner/<uuid>.jpg; attach / remove are compare-and-set (BANNER_CHANGED = someone else changed it).
+export const BANNER_WIDTH = 1920, BANNER_HEIGHT = 320;
+export async function getMyBanner() { return (await rpc("get_my_banner"))?.[0] ?? { banner_path: null, banner_updated_at: null }; }
+export async function uploadBanner(blob, userId) {
+  if (!(blob instanceof Blob) || blob.type !== "image/jpeg") throw new ApiError("The Banner could not be prepared. Choose the image again.", 400, "INVALID_BANNER");
+  const path = `${userId}/banner/${crypto.randomUUID()}.jpg`;
+  try {
+    await request(`/functions/v1/usage-upload/object/avatars/${path}`, { method: "POST", token: session?.access_token, body: blob, headers: { "Content-Type": "image/jpeg", "x-upsert": "false" } });
+  } catch (error) {
+    if (error?.code === "NETWORK_ERROR") throw new ApiError("The Banner upload could not reach GamID. Check your connection, then select Save Changes again.", 0, "BANNER_UPLOAD_NETWORK_ERROR");
+    throw error;
+  }
+  return path;
+}
+export async function attachMyBanner(path, expected) { return (await rpc("attach_my_banner", { candidate_path: path, candidate_expected: expected ?? null }))?.[0] ?? null; }
+export async function removeMyBanner(expected) { return (await rpc("remove_my_banner", { candidate_expected: expected ?? null }))?.[0] ?? null; }
+export async function listMyUnattachedBanners() { return (await rpc("list_my_unattached_banners")) || []; }
+// Deletes one of the caller's OWN detached Banner objects through the gateway (an attached Banner is refused there: BANNER_IN_USE). Never throws.
+export async function deleteBannerObject(path) {
+  if (!path) return false;
+  try { await request(`/functions/v1/usage-upload/object/avatars/${encodeStoragePath(path)}`, { method: "DELETE", token: session?.access_token }); return true; } catch { return false; }
+}
+// The owner's own Banner, read with the owner's session (gateway receipt read policy) for the editor preview.
+export async function loadMyBanner(path) {
+  if (!path) return null;
+  const blob = await requestBlob(`/storage/v1/object/authenticated/avatars/${encodeStoragePath(path)}`, session?.access_token, "BANNER_READ_FAILED");
+  return URL.createObjectURL(blob);
+}
+export async function getMyAbout() { return (await rpc("get_my_about"))?.[0] ?? null; }
+export async function setMyAbout({ location, languages, genres, showLocation, showLanguages, showGenres }) {
+  return (await rpc("set_my_about", { candidate_location: location ?? null, candidate_languages: languages ?? [], candidate_genres: genres ?? [], candidate_show_location: Boolean(showLocation), candidate_show_languages: Boolean(showLanguages), candidate_show_genres: Boolean(showGenres) }))?.[0] ?? null;
+}
 
 export async function getMyConnections() {
   return (await rpc("get_my_connections")) || [];

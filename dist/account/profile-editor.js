@@ -33,7 +33,7 @@ export function mountProfileEditor(doc) {
   const toggle=doc.getElementById(id),panel=doc.getElementById(toggle.getAttribute('aria-controls')),card=toggle.parentElement;card.classList.add('editor-section');card.dataset.editorSection=key;sections.set(key,{card,panel,toggle,status:toggle.querySelector('small')});
  }
  for(const [selector,key,title,icon,summary] of [
-  ['.identity-preview','preview','Live Preview','◈','Your current draft'],['.share-section','share','Share your GamID','↗','Link and QR code'],['.play-together-entry:not(.wall-entry)','play','Play Together','🎮','Find your next squad'],['.wall-entry','wall','My Wall','▦','Edit your Wall'],['#duoSection','duo','My Duo','♧','Your Duo and requests'],['#crewSection','crew','My Crew','♧','Your Crews and invitations'],['#myGamesSection','games','My Games','🎮','Games and platforms'],['#gameDisplaySection','game-display','Game Display','◉','Public games, playtime and stats'],['#leagueSection','league','League of Legends','🎮','Your connected League profile'],['#connectionsSection','connections','Connections','⌁','Gaming accounts'],['#socialsSection','socials','My Socials','🔗','Your social accounts']]) {
+  ['.identity-preview','preview','Live Preview','◈','Your current draft'],['.share-section','share','Share your GamID','↗','Link and QR code'],['.play-together-entry:not(.wall-entry)','play','Play Together','🎮','Find your next squad'],['.wall-entry','wall','My Wall','▦','Edit your Wall'],['#duoSection','duo','My Duo','♧','Your Duo and requests'],['#crewSection','crew','My Crew','♧','Your Crews and invitations'],['#myGamesSection','games','My Games','🎮','Games and platforms'],['#gameDisplaySection','game-display','Game Display','◉','Public games, playtime and stats'],['#leagueSection','league','League of Legends','🎮','Your connected League profile'],['#connectionsSection','connections','Connections','⌁','Gaming accounts'],['#bannerSection','banner','Banner','▭','Wide picture for large screens'],['#aboutSection','about','About Me','ⓘ','Location, languages, genres'],['#socialsSection','socials','My Socials','🔗','Your social accounts']]) {
   const node=doc.querySelector(selector);const panel=wrap(node,key,title,icon,summary);
   if(node&&['games','game-display'].includes(key)){
    const card=sections.get(key).card;const sync=()=>{card.hidden=node.hidden;};new MutationObserver(sync).observe(node,{attributes:true,attributeFilter:['hidden']});sync();
@@ -43,7 +43,7 @@ export function mountProfileEditor(doc) {
   }
  }
  const saves=new Map();
- for(const key of ['avatar','name','bio','intro','roles','education','socials','connections','game-display','league','duo']) {
+ for(const key of ['avatar','name','bio','intro','roles','education','banner','about','socials','connections','game-display','league','duo']) {
   const {panel}=sections.get(key);const footer=doc.createElement('div');footer.className='section-save';const button=doc.createElement('button');button.type='button';button.className='primary';button.textContent='Save Changes';button.dataset.profileSave=key;button.disabled=true;
   const feedback=doc.createElement('p');feedback.id='editor-feedback-'+key;feedback.className='connections-message';feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');feedback.hidden=true;
   footer.append(button,feedback);panel.append(footer);saves.set(key,{button,feedback});

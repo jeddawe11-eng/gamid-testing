@@ -134,6 +134,34 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .section-visibility-hint{margin:.55rem 0 0;color:var(--muted);font-size:.74rem;line-height:1.5;overflow-wrap:anywhere}
 .discord-card-setting{margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--line)}
 .discord-card-description{margin:0 0 .35rem;color:var(--text);font-size:.8rem;line-height:1.45}
+/* Classic Profile Banner + About Me editors (DEC-0005) */
+.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.banner-editor,.about-editor{display:grid;gap:.75rem}
+.banner-frame{position:relative;width:100%;aspect-ratio:6/1;overflow:hidden;border:1px solid var(--line);border-radius:.85rem;background:linear-gradient(115deg,#27134e 0%,#3a1f7a 38%,#1c4d78 72%,#0e6f86 100%);touch-action:none}
+.banner-frame.is-editing{cursor:grab;outline:2px dashed rgba(98,231,255,.55);outline-offset:3px}
+.banner-frame.is-editing:active{cursor:grabbing}
+.banner-frame:focus-visible{outline:2px solid #62e7ff;outline-offset:3px}
+.banner-frame canvas,.banner-frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.banner-frame canvas[hidden],.banner-frame img[hidden]{display:none}
+.banner-controls{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem}
+.banner-pick{position:relative;display:inline-flex;align-items:center;min-height:2.75rem;padding:.55rem 1rem;cursor:pointer}
+.banner-pick:focus-within{outline:2px solid #62e7ff;outline-offset:2px}
+.banner-zoom{display:inline-flex;align-items:center;gap:.5rem;margin:0;font-size:.8rem}
+.banner-zoom input{width:9rem}
+.banner-help,.about-hint{color:var(--muted);font-size:.74rem;line-height:1.5}
+.banner-note{margin:0;color:#ffd27a;font-size:.8rem;line-height:1.5}
+.about-field{display:grid;gap:.45rem;padding:.75rem .85rem;border:1px solid var(--line);border-radius:.85rem;background:rgba(17,16,26,.6)}
+.about-field-head{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem}
+.about-field-head strong{margin-right:auto}
+.about-field input:not([type=checkbox]){width:100%}
+.about-field [aria-invalid=true]{border-color:#ff839c}
+.about-chips{display:flex;flex-wrap:wrap;gap:.4rem}
+.about-chip{display:inline-flex;align-items:center;gap:.35rem;min-height:2.25rem;margin:0;padding:.3rem .7rem;border:1px solid #3a334b;border-radius:999px;background:#1c1828;font-size:.78rem;cursor:pointer}
+.about-chip input{margin:0;accent-color:#62e7ff}
+.about-chip.is-on{border-color:rgba(98,231,255,.6);background:rgba(98,231,255,.1)}
+.about-chip:has(input:disabled){opacity:.45;cursor:not-allowed}
+.about-chip:focus-within{outline:2px solid #62e7ff;outline-offset:2px}
+.about-member-since{margin:0;color:var(--muted);font-size:.78rem}
 .visibility-slot{margin-top:.4rem}
 .visibility-slot .section-visibility{margin-top:.9rem}
 @media(prefers-reduced-motion:reduce){.visibility-switch-knob{transition:none}}
