@@ -1,7 +1,7 @@
 ---
 id: DEC-0005
 title: Classic Profile desktop redesign (Banner, About Me, desktop layout)
-status: AUTHORIZED
+status: IMPLEMENTED
 created: 2026-10-10
 updated: 2026-10-10
 scope: Classic Profile (/@<handle>) at 1280px and wider, Profile Editor (Banner, About Me), Discord section presentation
@@ -10,8 +10,8 @@ related: [DEC-0004, DEC-0003, DEC-0001, IDEA-0001, ISS-0007, ISS-0008, ISS-0009]
 save_approval: Mazen 2026-10-10
 authorization: Mazen 2026-10-10, Phase 1B only ("Classic Profile Banner — Phase 1B — Secure Storage & Backend Implementation", TESTING only); Phase 1A (read-only audit) before it
 supersedes: []
-truth_refs: [public-my-games, public-section-visibility, discord-profile-card, my-socials, public-wall-publishing, wall-visibility-toggle, intro-transition-engine, your-gamid-editor]
-checkpoints: [660d91100a78f94c86288168c279e2b536dcdb0f]
+truth_refs: [profile-banner, about-me, classic-profile-desktop, visitor-media-access, public-my-games, public-section-visibility, discord-profile-card, my-socials, public-wall-publishing, wall-visibility-toggle, intro-transition-engine, your-gamid-editor]
+checkpoints: [660d91100a78f94c86288168c279e2b536dcdb0f, a116c3f79a3510b523e5adc1c9f1fb3898d41681, 4948f6ccc88b4cb54f5aec23e40932798df19e74]
 sources: [PROJECT_HANDOFF.md, supabase/migrations/20261010120000_profile_banner.sql, supabase/functions/_shared/usage-upload.js]
 ---
 
@@ -67,3 +67,4 @@ Proposed implementation choices, approved as part of the plan, not yet built:
 
 - 2026-10-10 APPROVED — Mazen approved the product decisions above (Phase 0, documentation only). Implementation is not authorized: Phase 1 needs his explicit approval.
 - 2026-10-10 AUTHORIZED — Phase 1A security audit, then Phase 1B (storage and backend only) authorized by Mazen. Architecture: Banner stored as a gateway re-encoded JPEG at avatars/<uid>/banner/<uuid>.jpg (replacing the planned WebP output); owner compare-and-set attach / remove; anonymous read only of an attached Banner of a PUBLIC GamID; attached Banners cannot be deleted; the gateway accepts only a direct POST, fully decodes it with the trusted jpeg-js 0.4.4, requires exactly 1920×320, re-encodes so no metadata survives, and refuses before any reservation. Phase 1B was then halted at a mandatory stop condition. Migration 20261010120000 was rehearsed (16/16) and applied, usage-upload v6 deployed, and GM-TEST-01 tested live. While the GamID was PUBLIC an anonymous visitor could mint a signed Storage URL valid for one year; that URL still served the Banner after the GamID became PRIVATE and after the Banner was detached, and only deleting the object stopped it. GM-TEST-01 was restored and no Banner is attached on TESTING. Not implemented, not accepted (PROJECT_HANDOFF.md §28). Phase 1C containment (Mazen authorized, 2026-10-10): migration 20261010130000 removed only the anonymous Banner read policy; rehearsal 8/8; live 18/18 with a synthetic Banner on a PUBLIC GamID (anonymous signing, batch signing, direct, public, render, info and listing all refused, and another signed-in persona refused); the owner can still read and sign their own Banner. Public delivery must go through a controlled Edge Function (designed in PROJECT_HANDOFF.md §29, not built). Risks of the same kind for Avatar, Intro and Wall are tracked in ISS-0009. Phase 1D (Mazen authorized, 2026-10-10): the risk was confirmed live for Avatar, Intro and Wall and fixed on TESTING at 660d911 (only owners can sign; public-media leases; profile-banner delivery with no-store bytes, re-checked after the read, uniform 404, rate limits; Banner compare-and-set conflicts now HTTP 409). The Banner editor UI, About Me and the desktop layout are still not built (PROJECT_HANDOFF.md §30).
+- 2026-10-10 IMPLEMENTED — Phases 2-4 authorized by Mazen as one task and implemented on TESTING (a116c3f, then 4948f6c; frontend runs 38043009621 and 38043681013; migration 20261010160000). Delivered: the Banner editor, About Me, and the desktop Classic Profile at 1280px and wider; Discord inside My Socials on desktop; mobile pixel-identical to 660d911. Live acceptance on GM-TEST-01 passed 26/26 (PROJECT_HANDOFF.md §31). About Me is shown on desktop only. Final acceptance pending.

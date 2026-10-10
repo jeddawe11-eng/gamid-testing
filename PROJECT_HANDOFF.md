@@ -2325,3 +2325,67 @@ So signing can be restricted without touching direct reads, which re-check RLS o
 - (e) `no-store` means one Edge invocation per Banner view, with no CDN caching.
 
 STOP for Mazen's acceptance. Not started: Phase 2, the Banner editor UI, About Me and the desktop layout.
+
+## 31. Classic Profile redesign — Phases 2-4 (Banner + About Me editor, desktop Classic Profile, validation) — 2026-10-10
+
+Authorized: Phases 2, 3 and 4 as one task (TESTING only).
+- Product checkpoints: `a116c3f79a3510b523e5adc1c9f1fb3898d41681`, then `4948f6ccc88b4cb54f5aec23e40932798df19e74` (the Usage label).
+- Frontend runs: [38043009621](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38043009621) and [38043681013](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38043681013). TESTING serves `4948f6c`; files verified byte-for-byte.
+- Truth: `profile-banner`, `about-me` and `classic-profile-desktop`, all PENDING_ACCEPTANCE.
+- DEC-0005: IMPLEMENTED.
+
+**Profile Editor (Phase 2).** Two new sections, Banner and About Me, each with its own Save Changes and included in Save All.
+- **Banner** (`dist/account/banner-editor.js`):
+  - **Accepted files:** JPEG, PNG, WebP, GIF and AVIF, recognised by their bytes; a declared type that contradicts them is refused. Size up to 5 MiB, and at most 8192 px a side / 40 MP for decoding.
+  - **Animated GIF:** the first frame is used, with a note saying so. A source smaller than 1200×200 gets a soft-image note.
+  - **Positioning:** a fixed 6:1 frame with drag (pointer), arrow keys and a zoom from 1 to 4.
+  - **Rendering:** the browser renders 1920×320 JPEG at quality 0.9 and uploads it through the usage-upload gateway, which fully decodes it and stores its own re-encoded copy (§28).
+  - **Attach / remove:** compare-and-set (a 409 shows "changed somewhere else"). The replaced or removed file is deleted, and old unattached uploads are cleaned when the section loads.
+  - **Errors:** refusals stay inline until the next choice.
+- **About Me** (`dist/account/about-editor.js`):
+  - Location: typed text, at most 60 characters, no links or markup.
+  - Languages: up to 5. Favorite Genres: up to 5.
+  - One Show on my GamID switch per field, OFF by default, available only while the field has a value.
+  - Member Since: read-only.
+- **Migration `20261010160000_profile_about_me`** (rehearsed 6/6, applied, history repaired):
+  - language list (34) and genre list (20);
+  - private-by-default `profiles` columns, with a check that a switch cannot be ON without a value;
+  - `get_my_about` / `set_my_about`, which validate everything on the server;
+  - anonymous `get_public_profile_extras(handle)`, for PUBLIC SOLO GamIDs only: Member Since year (`entities.created_at`), whether a Banner can be delivered, and only the switched-on values. It never returns a path.
+  - `get_public_identity` is unchanged.
+- The Usage category is now labelled "Avatar & Banner".
+
+**Desktop Classic Profile (Phase 3)** (`dist/public/public-desktop.js`, `public.js`, `public.css`). At 1280 px and wider, without a published, enabled Wall:
+- The page draws a wide hero: Banner via `profile-banner` (gradient fallback), Avatar, name, @handle, role chips, education / work, bio, and the real game count only when My Games is public. Alongside it: About Me, My Games, and the Socials / Duo / League / Steam panel in one grid.
+- The Intro frame runs in the accepted `hostReveal` mode, exactly like the Wall path: the Intro plays full-screen, its transition reveals the desktop profile, and Replay / Skip / Back are unchanged.
+- Crossing 1280 px switches between the two layouts without replaying the Intro; below the breakpoint the frame redraws its accepted profile.
+- The separate Discord section is hidden on desktop only. Discord appears in My Socials: the Discord Profile Card icon, or the name with CONNECTED.
+- No invented data.
+- `intro-preview` and `get_public_identity` are untouched.
+- The accepted source-pinning tests were kept: the pinned lines remain verbatim.
+
+**Validation (Phase 4).**
+- **Automated:** full suite 1,799, 1,798 pass, 1 skip. Lint and typecheck pass.
+  - New: `tests/profile-about-me.test.js` (5, PGlite with the real Banner / visitor-media migrations) and `tests/classic-profile-redesign.test.js` (5).
+  - Updated: the pinned migration list.
+- **Fixtures, local and `--live` against the deployed files:**
+  - `scripts/public-desktop-browser.mjs` (new), 10/10: desktop at 1280, 1440 and 1920 (layout, Banner, About Me, Discord in Socials, no overflow, headings and alt text); crossing the breakpoint both ways; no Banner, refused Banner and published Wall; and mobile at 390, 768 and 1279 **pixel-identical to `660d911`** (same mocked profile, screenshots byte-equal).
+  - `profile-editor-browser.mjs` 2/2: 19 sections; Banner refusals, the GIF note, drag / keys / zoom, one JPEG upload, compare-and-set, remove; About Me switches, the browser refusal and limits.
+  - `public-socials` 12/12 and `wall-upload` 2/2.
+- **Live on TESTING as GM-TEST-01 (real UI), 26/26:**
+  - Banner: fake file and over-5 MB refusals. PNG 3000×1000, animated GIF 1500×300, WebP 2400×480 and AVIF 2400×600 each stored as a 1920×320 JPEG, with the previous one deleted and usage exactly baseline plus the current Banner.
+  - About Me: private by default; saved values persist after reload.
+  - Visitor desktop 1440 / 1920: the hero, the Banner (200, no-store), only the public About Me values, the frame hidden, no errors.
+  - Visitor mobile 390: unchanged.
+  - Intro from the real worker: on desktop it plays first and then the desktop profile shows; Replay works; mobile is unchanged.
+  - Wall: published and enabled shows the Wall; disabled shows the desktop profile.
+  - Privacy changes apply at once. PRIVATE gives not-found, and `profile-banner` 404.
+  - Banner removal gives the gradient.
+- **Restored:** GM-TEST-01 is DRAFT with no Avatar, no Banner, About Me cleared, 1 object, 105,320 bytes, no Wall publication, no Intro rows, and the draft unchanged. @black and @zshot were not touched.
+
+**Limits.**
+- About Me shows on desktop only (mobile is unchanged by decision).
+- The Banner is desktop only.
+- The deferred signed-URL closure review (§30 residuals) is still pending; no key was rotated.
+
+STOP for final acceptance.

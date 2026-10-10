@@ -244,6 +244,46 @@
       "record": "PROJECT_HANDOFF.md §30; migrations 20261010140000_visitor_storage_signing.sql and 20261010141000_visitor_storage_signing_ban.sql; Product Memory ISS-0009, DEC-0005"
     },
     {
+      "id": "profile-banner",
+      "name": "Classic Profile Banner (Profile Editor upload / crop / replace / remove; shown on the desktop Classic Profile)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/account/", "/@<handle>"],
+      "limits": { "bannerSourceMaxBytes": 5242880, "bannerWidth": 1920, "bannerHeight": 320, "bannerMaxSourceSide": 8192, "bannerMaxSourcePixels": 40000000 },
+      "contracts": [
+        { "id": "banner-editor", "rule": "In the Profile Editor's Banner section the owner chooses a JPEG, PNG, WebP, GIF or AVIF image of at most 5 MiB (recognised by its bytes; an animated GIF uses its first frame), positions it in a fixed 6:1 frame (drag, arrow keys, zoom) and saves it with Save Changes / Save All Changes. Refused files keep a clear inline message. The saved Banner is exactly 1920x320 JPEG, re-encoded by the server; replacing or removing it deletes the previous file, and a change made elsewhere is refused instead of overwritten." },
+        { "id": "banner-display", "rule": "The Banner is shown only on the desktop Classic Profile (1280px and wider) of a PUBLIC GamID, delivered by profile-banner (visitor-media-access); without a Banner, or when it cannot be delivered, a GamID gradient is shown. Banner bytes count toward the existing storage quota (shown as 'Avatar & Banner')." }
+      ],
+      "checkpoint": "4948f6ccc88b4cb54f5aec23e40932798df19e74",
+      "record": "PROJECT_HANDOFF.md §28-§31; Product Memory DEC-0005"
+    },
+    {
+      "id": "about-me",
+      "name": "About Me (Location, Languages, Favorite Genres, Member Since)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/account/", "/@<handle>"],
+      "limits": { "aboutLocationMaxChars": 60, "aboutLanguagesMax": 5, "aboutGenresMax": 5 },
+      "contracts": [
+        { "id": "about-me-privacy", "rule": "Location (typed city / country, never geolocated), Languages and Favorite Genres are optional and each has its own Show on my GamID switch, OFF by default; a switch is available only while its value is set and turns OFF when the value is cleared. Only switched-on values of a PUBLIC GamID are ever sent to visitors. Member Since is the year the GamID was created and is always shown on the public profile; it cannot be edited." },
+        { "id": "about-me-display", "rule": "About Me appears on the desktop Classic Profile (1280px and wider); the mobile layout does not show it." }
+      ],
+      "checkpoint": "4948f6ccc88b4cb54f5aec23e40932798df19e74",
+      "record": "PROJECT_HANDOFF.md §31; migration supabase/migrations/20261010160000_profile_about_me.sql; Product Memory DEC-0005"
+    },
+    {
+      "id": "classic-profile-desktop",
+      "name": "Desktop Classic Profile layout (1280px and wider)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/@<handle>"],
+      "limits": { "desktopBreakpointPx": 1280 },
+      "contracts": [
+        { "id": "desktop-layout", "rule": "At 1280px and wider, when no published and enabled Wall replaces the profile, the Classic Profile shows a wide hero (Banner, Avatar, display name, @handle, roles, education / work, bio and the real game count only when My Games is public), About Me, My Games, and the My Socials / My Duo / League / Steam panel. Only real GamID data is shown: no friends, teams, achievements, game covers, search or messaging." },
+        { "id": "desktop-preserves", "rule": "The Intro still plays first (full screen) and its transition reveals the desktop profile; Replay Intro, Skip and Back work as before; a published, enabled Wall still replaces the Classic Profile. Below 1280px the accepted mobile / tablet layout is unchanged, and crossing the width switches between the two without replaying the Intro." },
+        { "id": "desktop-discord", "rule": "On the desktop layout the separate Discord section is not shown: a connected Discord appears inside My Socials (its Discord Profile Card when there is a matching Discord link, otherwise its name with CONNECTED). On mobile the separate Discord section is unchanged." }
+      ],
+      "checkpoint": "4948f6ccc88b4cb54f5aec23e40932798df19e74",
+      "record": "PROJECT_HANDOFF.md §31; Product Memory DEC-0005"
+    },
+    {
       "id": "notifications",
       "name": "GamID Notifications (bell, unread count, log, Mark read / Mark all read, live toast)",
       "status": "ACCEPTED",

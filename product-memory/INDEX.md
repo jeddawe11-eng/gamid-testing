@@ -89,7 +89,7 @@ Rules:
 | DEC-0002 | One social link engine for the Wall and My Socials (Discord personal profiles) | IMPLEMENTED | [DEC-0002-one-social-link-engine.md](decisions/DEC-0002-one-social-link-engine.md) |
 | DEC-0003 | Enable / Disable My Wall without unpublishing | IMPLEMENTED | [DEC-0003-enable-disable-my-wall.md](decisions/DEC-0003-enable-disable-my-wall.md) |
 | DEC-0004 | Discord Profile Card in My Socials from the existing Discord connection | ACCEPTED | [DEC-0004-discord-profile-card.md](decisions/DEC-0004-discord-profile-card.md) |
-| DEC-0005 | Classic Profile desktop redesign (Banner, About Me, desktop layout) | AUTHORIZED | [DEC-0005-classic-profile-desktop-redesign.md](decisions/DEC-0005-classic-profile-desktop-redesign.md) |
+| DEC-0005 | Classic Profile desktop redesign (Banner, About Me, desktop layout) | IMPLEMENTED | [DEC-0005-classic-profile-desktop-redesign.md](decisions/DEC-0005-classic-profile-desktop-redesign.md) |
 | IDEA-0001 | Profile Editor gaming-dashboard redesign | DEFERRED | [IDEA-0001-profile-editor-dashboard-redesign.md](ideas/IDEA-0001-profile-editor-dashboard-redesign.md) |
 | IDEA-0002 | Monitor permanent coverage growth and gap detection | DISCUSSION | [IDEA-0002-monitor-coverage-growth.md](ideas/IDEA-0002-monitor-coverage-growth.md) |
 | ISS-0001 | Unified Upload & Add Error UX | FIXED | [ISS-0001-unified-upload-add-error-ux.md](issues/ISS-0001-unified-upload-add-error-ux.md) |
