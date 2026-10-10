@@ -2263,3 +2263,65 @@ Authorized: Phase 1C only (TESTING). Product Memory ISS-0009 (HIGH, OPEN), DEC-0
 2. whether to confirm ISS-0009 for Avatar, Intro and Wall with synthetic fixtures (live writes).
 
 The small open issue of the compare-and-set error returning HTTP 504 (SQLSTATE 40001) remains, recorded in §28.
+
+## 30. Phase 1D — complete remediation of visitor-minted signed URLs (ISS-0009) — 2026-10-10
+
+Authorized: Phase 1D end-to-end (TESTING only). Product checkpoint `660d91100a78f94c86288168c279e2b536dcdb0f`. Truth: new `visitor-media-access` (PENDING_ACCEPTANCE). ISS-0009 FIXED (not VERIFIED). DEC-0005 still AUTHORIZED: the Banner UI, About Me and the desktop layout are not built.
+
+**1. Confirmed before the fix** (GM-TEST-01 synthetic fixtures only; no real user's file was ever signed). A visitor minted a 365-day signed URL, and it kept returning 200 after:
+- PRIVATE (Avatar);
+- replacement (the old Avatar);
+- Disable and Unpublish (Wall video; the Wall publication was a synthetic SQL row on GM-TEST-01's existing video asset);
+- PRIVATE (Intro: the real pipeline, upload → pg_net → Cloud Run worker, READY in 20 s).
+
+**2. How the fix works.** A temporary probe policy (always returning false; removed, live state back to 24 policies) showed that Storage sets `storage.operation()` to:
+- `storage.object.sign` / `storage.object.sign_many` when signing;
+- `storage.object.get_authenticated` / `object.get_authenticated_info` for direct reads.
+
+So signing can be restricted without touching direct reads, which re-check RLS on every request.
+
+**3. Implementation.**
+- **Migration `20261010140000_visitor_storage_signing`:**
+  - service-only `public_media_lease_allowed(bucket, path)`, built on the accepted `intro_media_is_public` / `wall_object_is_published` (Avatars and pictures are never leased);
+  - `public_banner_object(handle)`: the attached JPEG of a SOLO PUBLIC GamID whose object exists;
+  - a `public_media_hit` fixed-window counter, keyed only by a daily-salted SHA-256 client key;
+  - Banner compare-and-set conflicts raise `PT409`, so PostgREST returns **409** (the 504 is fixed).
+- **Migration `20261010141000_visitor_storage_signing_ban`:** the restrictive policy "only owners can sign storage objects", for anon and authenticated (`operation !~* 'sign'` or the folder belongs to the caller).
+- Both rehearsed in one aborted transaction (9/9), applied in order, history repaired. The live policy diff shows only that one policy added.
+- **Edge Functions:** `public-media` v1 and `profile-banner` v1 (`verify_jwt = false`), sharing the tested `_shared/public-media.js`.
+  - `public-media`: server lifetimes Intro 120 s and Wall video 21,600 s (the accepted F5 / F4 values); CORS for the GamID site; 240 requests / min / client.
+  - `profile-banner`: no-store JPEG, nosniff, CSP `default-src 'none'`, CORP cross-origin, no ETag; re-checked after the read; 120 / min / client and 600 / min / handle.
+  - Both: every refusal is the same empty 404; 429 when rate limited; no service credential and no reusable Storage URL ever leaves the server.
+- **Frontend** (`dist/account/supabase-client.js`): `signPublicIntroMedia` and `signPublicWallVideo` now ask `public-media`, and the page sends no lifetime. Owner signers are unchanged.
+- **Deployment order:** migration A → functions → frontend (workflow [38040935387](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38040935387), stamp `660d911`, files byte-for-byte) → migration B. The public page therefore never depended on visitor signing at the moment it stopped working.
+
+**4. Tests.**
+- Full suite 1,789: 1,788 pass, 1 skip. Lint and typecheck pass.
+- New: `tests/public-media.test.js` (7) and `tests/visitor-storage-signing.test.js` (7, PGlite with the real accepted Avatar policies and the Banner migrations).
+- Updated: the F5 signer and F4 boundary tests, and the pinned migration list.
+- **Live after the fix, 64 checks:**
+  - signing refused for anon (one year, 60 s, batch) and for GM-TEST-02 on Avatar, Intro and Wall video; the owner still signs;
+  - direct reads unchanged while public, refused at once on PRIVATE, Disable, Unpublish and replacement; no new lease in those cases;
+  - an Intro lease is exactly 120 s and a Wall lease exactly 6 h, whatever lifetime the request asks for;
+  - `public-media` refuses Avatars, Intro sources and dot segments;
+  - `profile-banner`: 200 with exact bytes and headers; HEAD; 404 for PRIVATE, DRAFT, removed, unknown and malformed; replacement served at once; a stale compare-and-set returns 409; every request started after a PRIVATE switch is refused; 429 at request 121;
+  - the real public page streams the Intro from a `public-media` lease (206), with no visitor signing and no page errors.
+- Live fixtures: public 12/12 and Profile Editor 2/2.
+- One cleanup call returned non-200, because the Intro source had already been removed by the worker.
+
+**5. Restored.**
+- GM-TEST-01: DRAFT, no Avatar, 1 object, 105,320 bytes, no Wall publication, no Intro rows, Wall draft revision 1 with the same md5.
+- GM-TEST-02: DRAFT, 0 objects.
+- 0 Banner objects, none attached. @black and @zshot not updated.
+- The local scratch file that held fixture URLs was deleted.
+
+**6. Residual.**
+- (a) Signed URLs minted **before** the fix cannot be revoked until they expire or the object is deleted.
+  - On TESTING, one test URL to GM-TEST-01's kept Wall video asset is still valid; that asset was kept on purpose, because it is listed test data.
+  - Any older URLs for real users' files cannot be listed. Rotating the project JWT secret would end them all, but also every session (Mazen's decision).
+- (b) Issued leases stay valid until expiry: Intro up to 120 s, Wall video up to 6 h (the accepted F4 behaviour; shortening it is a product decision).
+- (c) The fix relies on Supabase setting `storage.operation()`; a periodic live signing check is recommended.
+- (d) Owners can sign their own files.
+- (e) `no-store` means one Edge invocation per Banner view, with no CDN caching.
+
+STOP for Mazen's acceptance. Not started: Phase 2, the Banner editor UI, About Me and the desktop layout.

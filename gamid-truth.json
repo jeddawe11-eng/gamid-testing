@@ -230,6 +230,20 @@
       "record": "PROJECT_HANDOFF.md §26; migration supabase/migrations/20261009190000_discord_profile_card.sql; manual acceptance by Mazen 2026-10-10 (PROJECT_HANDOFF.md §27); Product Memory DEC-0004"
     },
     {
+      "id": "visitor-media-access",
+      "name": "Visitor access to stored media (Avatar, Intro, Wall media, Classic Profile Banner): server-decided, no visitor-minted Storage URLs",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/@<handle>", "/functions/v1/public-media", "/functions/v1/profile-banner/<handle>"],
+      "limits": { "introLeaseSeconds": 120, "wallVideoLeaseSeconds": 21600, "bannerMaxBytes": 5242880 },
+      "contracts": [
+        { "id": "visitor-no-signing", "rule": "Only the owner of a stored object (its <uid>/ folder) can create a signed Storage URL for it. Visitors - anonymous or other signed-in users - cannot sign any object, whatever its visibility. Visitors read public Avatars and Wall pictures directly, and every such read re-checks the current visibility, so it ends as soon as a GamID goes PRIVATE, an Avatar is replaced or a Wall is disabled / unpublished." },
+        { "id": "visitor-media-leases", "rule": "A visitor's streaming address for a public Intro or a published, enabled Wall video comes only from public-media, which decides with the same public rules as the read policies and signs with a server-chosen lifetime (Intro 120 s, Wall video 6 h); the visitor never chooses a lifetime, and no lease is issued once the content is no longer public. An already issued lease stays valid until it expires." },
+        { "id": "banner-delivery", "rule": "The Classic Profile Banner is never readable or signable through Storage by visitors. profile-banner returns the attached Banner of a PUBLIC GamID as image/jpeg with Cache-Control: no-store, checked before and after reading it; every refusal (PRIVATE, DRAFT, detached, unknown, malformed) is the same empty 404, and requests are rate limited (429)." }
+      ],
+      "checkpoint": "660d91100a78f94c86288168c279e2b536dcdb0f",
+      "record": "PROJECT_HANDOFF.md §30; migrations 20261010140000_visitor_storage_signing.sql and 20261010141000_visitor_storage_signing_ban.sql; Product Memory ISS-0009, DEC-0005"
+    },
+    {
       "id": "notifications",
       "name": "GamID Notifications (bell, unread count, log, Mark read / Mark all read, live toast)",
       "status": "ACCEPTED",
