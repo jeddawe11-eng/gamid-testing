@@ -3,7 +3,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
-import { normalizePublicGame, buildGameRow, renderGamesPreview, createGamesLibrary, sourceBadges, gameDetails } from "../dist/public/public-games.js";
+import { normalizePublicGame, buildGameRow, renderGamesPreview, createGamesLibrary, sourceBadges, gameDetails, gameTile } from "../dist/public/public-games.js";
 
 const root = new URL("../", import.meta.url);
 const read = path => readFileSync(new URL(path, root), "utf8").replace(/\r\n/g, "\n");
@@ -37,9 +37,9 @@ class FakeNode {
 const element = (tag, className, text) => { const node = new FakeNode(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
 const textOf = node => node.textContent;
 
-// the REAL renderer from public.js (its source between the League constants and buildConfig), run with a fake document
+// the REAL renderer from public.js (its source between the League constants and buildConfig), run with a fake document and its one import (the game tile)
 const rendererSource = publicJs.slice(publicJs.indexOf("const LEAGUE_APEX_TIERS"), publicJs.indexOf("async function buildConfig")).replace("export function renderPublicSections", "function renderPublicSections");
-const { renderPublicSections } = new Function("document", `${rendererSource}\nreturn { renderPublicSections };`)({ createElement: tag => new FakeNode(tag) });
+const { renderPublicSections } = new Function("document", "gameTile", `${rendererSource}\nreturn { renderPublicSections };`)({ createElement: tag => new FakeNode(tag) }, gameTile);
 const render = sections => { const panel = new FakeNode("aside"); const count = renderPublicSections(panel, sections); return { panel, count, text: textOf(panel), league: panel.byClass("public-section").find(node => textOf(node).startsWith("LEAGUE")) }; };
 
 const LEAGUE_IDENTITY = { game_name: "Espada black", tag_line: "esp", platform_id: "ME1", trust_status: "MANUAL", identity_source: "MANUAL_RIOT_ID", data_source: "OPGG_TEMPORARY", updated_at: "2026-09-20T10:00:00Z" };

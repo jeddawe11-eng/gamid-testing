@@ -1,5 +1,5 @@
 // About Me (Profile Editor; DEC-0005): Location (manual city / country, max 60), Languages (max 5) and Favorite Genres (max 5), each with its own explicit
-// "Show on my GamID" switch - OFF by default, unavailable while the value is empty, and switched OFF again when the value is cleared. Member Since (the year
+// "Show on my GamID" switch - OFF by default, unavailable while the value is empty, and switched OFF again when the value is cleared. Member Since (the date
 // the GamID was created) is read-only and always shown on the public profile. Draft-only: nothing is sent until the section's Save Changes. The server
 // (set_my_about) validates everything again. Built with createElement / textContent only.
 export const ABOUT_LIMITS = Object.freeze({ location: 60, languages: 5, genres: 5 });
@@ -12,6 +12,17 @@ export const ABOUT_MESSAGES = Object.freeze({
   INVALID_LANGUAGE: "Choose languages from the list.",
   INVALID_GENRE: "Choose genres from the list.",
 });
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+// The registration date the server sends as a plain calendar date (UTC, 'YYYY-MM-DD') -> "10 October 2026". No Date object and no time zone are involved, so every
+// visitor sees the same day. -> "" when it is not a valid date.
+export function formatMemberSince(value) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value ?? ""));
+  if (!m) return "";
+  const year = Number(m[1]), month = Number(m[2]), day = Number(m[3]);
+  const days = [31, year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (month < 1 || month > 12 || day < 1 || day > days[month - 1]) return "";
+  return `${day} ${MONTHS[month - 1]} ${year}`;
+}
 // the same rules the server applies -> { ok: true, value } | { ok: false, code }
 export function normalizeLocation(text) {
   const raw = String(text ?? "");
@@ -84,6 +95,9 @@ export function createAboutEditor(doc, { onChange = () => {} } = {}) {
   function showFieldError(text) { locationError.textContent = text || ""; locationError.hidden = !text; if (text) { locationInput.setAttribute("aria-invalid", "true"); locationInput.setAttribute("aria-describedby", locationError.id); } else { locationInput.removeAttribute("aria-invalid"); locationInput.removeAttribute("aria-describedby"); } }
   function renderChips(group, list, key, field, max) {
     const chosen = new Set(draft[field]);
+    // the chips are rebuilt on every change: a keyboard user keeps focus on the same chip (it would otherwise fall back to the page)
+    const active = doc.activeElement;
+    const focused = active && group.contains(active) ? active.value : null;
     group.replaceChildren(...list.map(item => {
       const label = h("label", "about-chip");
       const box = h("input"); box.type = "checkbox"; box.value = item[key]; box.checked = chosen.has(item[key]);
@@ -98,6 +112,7 @@ export function createAboutEditor(doc, { onChange = () => {} } = {}) {
       label.append(box, h("span", "", item.label));
       return label;
     }));
+    if (focused !== null) [...group.querySelectorAll("input")].find(box => box.value === focused)?.focus();
   }
   function setSwitch(button, on, available) {
     button.disabled = !available;
@@ -116,7 +131,7 @@ export function createAboutEditor(doc, { onChange = () => {} } = {}) {
     genresHint.textContent = `${draft.genres.length}/${ABOUT_LIMITS.genres} · ${hint(draft.showGenres, hasGenre, "Choose at least one genre first.")}`;
     renderChips(languagesGroup, catalogs.languages, "code", "languages", ABOUT_LIMITS.languages);
     renderChips(genresGroup, catalogs.genres, "key", "genres", ABOUT_LIMITS.genres);
-    memberSince.textContent = saved.memberSince ? `Member since ${saved.memberSince} - always shown on your public GamID (the year your GamID was created).` : "";
+    memberSince.textContent = saved.memberSince ? `Member since ${saved.memberSince} - always shown on your public GamID (the date your GamID was created).` : "";
   }
   const snapshot = d => { const v = validateAbout(d, null); return JSON.stringify(v.ok ? v.value : d); };
   render();
@@ -124,7 +139,7 @@ export function createAboutEditor(doc, { onChange = () => {} } = {}) {
     element,
     setSaved(row) {
       if (row?.catalogs) catalogs = { languages: row.catalogs.languages || [], genres: row.catalogs.genres || [] };
-      saved = { location: row?.about_location ?? null, languages: row?.about_languages || [], genres: row?.about_genres || [], showLocation: Boolean(row?.show_location), showLanguages: Boolean(row?.show_languages), showGenres: Boolean(row?.show_genres), memberSince: row?.member_since_year ?? null };
+      saved = { location: row?.about_location ?? null, languages: row?.about_languages || [], genres: row?.about_genres || [], showLocation: Boolean(row?.show_location), showLanguages: Boolean(row?.show_languages), showGenres: Boolean(row?.show_genres), memberSince: formatMemberSince(row?.member_since_date) || row?.member_since_year || null };
       draft = { ...saved, languages: [...saved.languages], genres: [...saved.genres] };
       showFieldError(""); render();
     },

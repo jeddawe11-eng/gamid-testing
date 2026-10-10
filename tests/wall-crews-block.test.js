@@ -264,14 +264,18 @@ test("removing: deleting the My Crew block takes it off the Wall; the saved and 
 test("no automatic MY CREW: the public page appends nothing below the Wall - My Crew exists only as a Wall block the owner placed", () => {
   assert.equal(existsSync(new URL("../dist/public/public-crews.js", import.meta.url)), false, "the fixed-section module is gone");
   const page = read("dist/public/public.js");
-  assert.doesNotMatch(page, /crews|public-crews|crewsSection|crewsBlock/i);
+  assert.doesNotMatch(page, /public-crews|crewsSection|crewsBlock/i);
   const css = read("dist/public/public.css");
-  assert.doesNotMatch(css, /public-crew|MY CREW/);
+  assert.doesNotMatch(css, /MY CREW/);
   assert.match(css, /\.public-shell\[data-mode="flow"\] \.replay-button\{grid-area:4\/1/, "the accepted page grid (Replay Intro right after the profile body / Wall)");
   assert.doesNotMatch(read("package.json"), /public-crews/);
-  const sections = page.slice(page.indexOf("export function renderPublicSections"), page.indexOf("\n}\n", page.indexOf("export function renderPublicSections")));
-  assert.ok(sections.length > 100);
-  assert.doesNotMatch(sections, /crew/i, "the Public Profile sections do not render it either");
+  // DEC-0005 visual review (Mazen, 2026-10-10): the desktop Classic Profile - only WITHOUT a published Wall - shows a MY CREW card beneath My Duo in its sidebar.
+  // It is the one crew use in the page: a .desk-only block inside the sections panel, which a published Wall hides (the Wall IS the profile body), so nothing is
+  // ever appended below the Wall and the mobile / tablet panel never shows it.
+  assert.deepEqual(page.match(/crewSection\([^)]*\)/g), ["crewSection(sections?.crews, duoOptions)"], "the sections panel is the only place it is drawn");
+  assert.match(page, /sectionsPanel\.hidden = true; gamesBlock\.hidden = true;   \/\/ the Wall IS the profile body/, "a published Wall hides the panel that holds it");
+  assert.match(read("dist/public/public-desktop.js"), /h\("section", "public-section public-duo public-crew desk-only"\)/);
+  assert.deepEqual(css.match(/[^{}]*public-crew[^{}]*\{/g).map(s => s.trim()), ["html.is-public-desktop .public-crew.desk-only{"], "shown only by the desktop Classic Profile");
 });
 
 // ---------- 10. My Duo unchanged ----------

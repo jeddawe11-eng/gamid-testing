@@ -522,6 +522,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261010140000_visitor_storage_signing.sql",   // Phase 1D: service-only lease / Banner / rate RPCs and the Banner 409; public identity / My Games untouched
       "20261010141000_visitor_storage_signing_ban.sql",   // Phase 1D: only owners can sign storage objects (restrictive)
       "20261010160000_profile_about_me.sql",   // DEC-0005 Phase 2: About Me columns + own RPCs + get_public_profile_extras; public identity / My Games untouched
+      "20261010180000_member_since_date.sql",   // DEC-0005 visual review: About Me RPCs + extras gain member_since_date; public identity / My Games untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

@@ -158,6 +158,11 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .about-chips{display:flex;flex-wrap:wrap;gap:.4rem}
 .about-chip{display:inline-flex;align-items:center;gap:.35rem;min-height:2.25rem;margin:0;padding:.3rem .7rem;border:1px solid #3a334b;border-radius:999px;background:#1c1828;font-size:.78rem;cursor:pointer}
 .about-chip input{margin:0;accent-color:#62e7ff}
+/* the global input rule (display:block; width:100%; padding; min-height:3rem) made these checkboxes large white squares: reset it to one compact native box that
+   never stretches, and let a long label wrap beside it */
+.about-chip input[type=checkbox]{flex:0 0 auto;display:inline-block;width:1rem;height:1rem;min-height:0;margin:0;padding:0;border-radius:.2rem;accent-color:#62e7ff;cursor:inherit}
+.about-chip{max-width:100%;box-sizing:border-box}
+.about-chip span{min-width:0;overflow-wrap:anywhere}
 .about-chip.is-on{border-color:rgba(98,231,255,.6);background:rgba(98,231,255,.1)}
 .about-chip:has(input:disabled){opacity:.45;cursor:not-allowed}
 .about-chip:focus-within{outline:2px solid #62e7ff;outline-offset:2px}

@@ -154,6 +154,24 @@ function badgeNode(element, badge) {
   return node;
 }
 
+// The artwork fallback (DEC-0005 visual review): no approved game-artwork source exists yet (public_my_games carries no image or Steam app id, a manual game has
+// none), so a game shows a neutral tile with the title's initials in one of six tones chosen from the title - never a guessed, matched or fetched image.
+// Decoration only (aria-hidden): the title beside it carries the meaning. Shown on the desktop Classic Profile only (CSS).
+const MINOR_WORDS = new Set(["a", "an", "and", "of", "the", "to"]);
+export function gameTile(element, name, className = "game-thumb") {
+  const title = String(name ?? "");
+  const words = title.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const main = words.filter(word => !MINOR_WORDS.has(word.toLowerCase()));
+  const initials = (main.length ? main : words).slice(0, 2).map(word => [...word][0]).join("").toUpperCase() || "?";
+  let hash = 0;
+  for (const ch of title) hash = (hash * 31 + ch.codePointAt(0)) >>> 0;
+  const tile = element("span", className);
+  tile.setAttribute("data-initials", initials);   // drawn by CSS: the tile adds no text to the row or card
+  tile.setAttribute("aria-hidden", "true");
+  tile.setAttribute("data-tone", String(hash % 6));
+  return tile;
+}
+
 export function buildGameRow({ element, game, onOpen }) {
   const item = element("li", "pg-item");
   const button = element("button", "pg-row");
@@ -168,7 +186,7 @@ export function buildGameRow({ element, game, onOpen }) {
   copy.append(title, badges);
   const chevron = element("span", "pg-chevron", "›");
   chevron.setAttribute("aria-hidden", "true");
-  button.append(copy, chevron);
+  button.append(gameTile(element, game.name), copy, chevron);
   button.addEventListener("click", () => onOpen(game, button));
   item.append(button);
   return item;

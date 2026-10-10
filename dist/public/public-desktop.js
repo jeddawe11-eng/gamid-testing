@@ -3,6 +3,9 @@
 // My Duo / League / Steam panel and My Games. The Intro frame then plays the Intro only (hostReveal, exactly like the published-Wall path) and its transition
 // reveals this profile; below 1280px nothing here is shown and the accepted mobile layout is untouched. Only real data is drawn: no invented statistics.
 // Built with createElement / textContent only.
+import { normalizeCrews, crewWallHref, RELATIONSHIP_LABELS } from "./identity-link.js";
+import { formatMemberSince } from "../account/about-editor.js";
+
 export const DESKTOP_QUERY = "(min-width: 80rem)";
 
 const node = (doc, tag, className, text) => { const el = doc.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
@@ -36,9 +39,21 @@ export function createDesktopProfile({ doc = globalThis.document, profile, extra
   if (profile.bio) copy.append(h("p", "desk-bio", profile.bio));
   identity.append(avatar, copy);
   if (gamesCount > 0) {
-    const stats = h("dl", "desk-stats");
-    const item = h("div", "desk-stat");
-    item.append(h("dd", "desk-stat-value", String(gamesCount)), h("dt", "desk-stat-label", gamesCount === 1 ? "Game" : "Games"));
+    // the authoritative public count (My Games is public); it takes the visitor to My Games on this page
+    const stats = h("div", "desk-stats");
+    const item = h("a", "desk-stat");
+    item.href = "#publicGames";
+    item.setAttribute("aria-label", `${gamesCount} ${gamesCount === 1 ? "game" : "games"} - go to My Games`);
+    item.append(h("span", "desk-stat-value", String(gamesCount)), h("span", "desk-stat-label", gamesCount === 1 ? "Game" : "Games"));
+    item.addEventListener("click", event => {
+      const games = doc.getElementById("publicGames");
+      if (!games || games.hidden) return;
+      event.preventDefault();
+      const reduce = typeof globalThis.matchMedia === "function" && globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      games.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+      if (!games.hasAttribute("tabindex")) games.setAttribute("tabindex", "-1");
+      games.focus({ preventScroll: true });
+    });
     stats.append(item);
     identity.append(stats);
   }
@@ -51,7 +66,8 @@ export function createDesktopProfile({ doc = globalThis.document, profile, extra
   const fact = (label, value) => { const row = h("div", "desk-fact"); row.append(h("dt", "", label)); if (typeof value === "string") row.append(h("dd", "", value)); else { const dd = h("dd"); dd.append(value); row.append(dd); } facts.append(row); };
   const chips = list => { const ul = h("ul", "desk-chips"); for (const item of list) ul.append(h("li", "desk-chip", item.label)); return ul; };
   if (typeof extras?.about_location === "string" && extras.about_location.trim()) fact("Location", extras.about_location.trim());
-  if (Number.isInteger(extras?.member_since_year)) fact("Member Since", String(extras.member_since_year));
+  const joined = formatMemberSince(extras?.member_since_date);   // the full registration date; the year alone only if an older server sends no date
+  if (joined) fact("Member Since", joined); else if (Number.isInteger(extras?.member_since_year)) fact("Member Since", String(extras.member_since_year));
   const languages = Array.isArray(extras?.about_languages) ? extras.about_languages.filter(x => typeof x?.label === "string") : [];
   const genres = Array.isArray(extras?.about_genres) ? extras.about_genres.filter(x => typeof x?.label === "string") : [];
   if (languages.length) fact("Languages", chips(languages));
@@ -64,4 +80,27 @@ export function createDesktopProfile({ doc = globalThis.document, profile, extra
     show() { hero.hidden = false; about.hidden = !hasAbout; },
     hide() { hero.hidden = true; about.hidden = true; },
   };
+}
+
+// MY CREW on the desktop sidebar, beneath My Duo: the server's public 'crews' section (get_public_identity: this PUBLIC GamID's ACTIVE memberships in Crews whose
+// Crew Wall is PUBLISHED - automatic, there is no primary Crew), all of them in the server's order, each opening that existing Crew Wall (/crew/?c=<id>&from=<handle>).
+// It looks like the My Duo card. The public section carries no Crew image, so each card shows the Crew's initial. Desktop only (.desk-only): mobile is unchanged.
+export function crewSection(section, { ownerHandle = "", pathname = "/", doc = globalThis.document } = {}) {
+  const crews = normalizeCrews(section).map(crew => ({ ...crew, href: crewWallHref(crew.id, { pathname, from: ownerHandle }) })).filter(crew => crew.href);
+  if (!crews.length || !doc) return null;
+  const h = (tag, className, text) => node(doc, tag, className, text);
+  const block = h("section", "public-section public-duo public-crew desk-only");
+  block.setAttribute("aria-label", "My Crew");
+  block.append(h("p", "public-section-label", RELATIONSHIP_LABELS.crews));
+  for (const crew of crews) {
+    const link = h("a", "public-duo-card public-crew-card");
+    link.href = crew.href;
+    const detail = [crew.gameName, crew.members ? `${crew.members} ${crew.members === 1 ? "member" : "members"}` : ""].filter(Boolean).join(" · ");
+    link.setAttribute("aria-label", `My Crew: ${crew.name}, ${detail}. Open the Crew Wall`);
+    const names = h("span", "public-duo-names");
+    names.append(h("strong", "", crew.name), h("span", "public-section-sub", detail));
+    link.append(h("span", "public-duo-avatar public-crew-avatar", crew.name.charAt(0).toUpperCase() || "C"), names, h("span", "public-duo-chevron", "›"));
+    block.append(link);
+  }
+  return block;
 }

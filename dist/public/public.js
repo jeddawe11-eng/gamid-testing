@@ -1,10 +1,11 @@
 import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl } from "../account/supabase-client.js";
-import { createDesktopProfile, DESKTOP_QUERY } from "./public-desktop.js";
+import { createDesktopProfile, crewSection, DESKTOP_QUERY } from "./public-desktop.js";
 import { attachDiscordCard } from "./discord-card.js";
 import { renderPublicSocials, socialIcon } from "../account/socials.js";
 import { createIntroSourceResolver } from "../account/intro-source.js";
 import { createFlowLayout } from "../flow-layout.js";
 import { normalizeLibrary, renderGamesPreview, createGamesLibrary } from "./public-games.js";
+import { gameTile } from "./public-games.js";
 import { preparePublicWall, createPublicWallView } from "./public-wall.js";
 import { backHandle, crewIdFromSearch } from "./identity-link.js";
 import { createVisitorNav } from "./visitor-nav.js";
@@ -46,6 +47,9 @@ export function renderPublicSections(panel, sections, duoOptions = null) {
   // My Duo (public-duo.js) leads: it is the GamID's own identity relationship, not an external account
   const duo = duoOptions ? duoSection(sections?.duo, duoOptions) : null;
   if (duo) blocks.push(duo);
+  // My Crew (public-desktop.js) beneath it - desktop Classic Profile only (.desk-only), so it is not counted as a section the mobile panel shows
+  const crew = duoOptions ? crewSection(sections?.crews, duoOptions) : null;
+  if (crew) blocks.push(crew);
   const discord = sections?.discord;
   if (discord && (discord.display_name || discord.username)) {
     // public-section-discord: on the desktop Classic Profile (1280 px and wider) this separate section is not shown - Discord lives in My Socials there (DEC-0005)
@@ -66,7 +70,9 @@ export function renderPublicSections(panel, sections, duoOptions = null) {
   }
   const league = sections?.league;
   if (league && league.game_name) {
-    const block = node("section", "public-section");
+    const block = node("section", "public-section public-section-league");
+    // the game's tile beside the card on the desktop Classic Profile (.desk-only): the initials fallback - no approved League artwork source exists (public-games.js)
+    block.append(gameTile(node, "League of Legends", "public-game-tile desk-only"));
     block.append(node("p", "public-section-label", "LEAGUE OF LEGENDS"), node("strong", "", `${league.game_name}#${league.tag_line} · ${league.platform_id}`));
     // The rank / stat values are their own privacy scope ("Show ranks & stats on my GamID"): while that is OFF the server sends no rank_state at all, so there is
     // nothing to show and NO rank line is drawn (not even "no ranked rank reported" - that would also be a statement about the stats).
@@ -78,7 +84,7 @@ export function renderPublicSections(panel, sections, duoOptions = null) {
     blocks.push(block);
   }
   panel.replaceChildren(...blocks);
-  return blocks.length;
+  return blocks.length - (crew ? 1 : 0);
 }
 
 async function buildConfig(identity) {
@@ -126,6 +132,7 @@ async function render() {
   const gamesBlock = document.getElementById("publicGames");
   const shell = document.getElementById("publicShell");
   let hasSections = false;
+  let hasDeskSide = false;   // the panel holds a desktop-only block (My Crew): with nothing else in it, it shows on the desktop profile only
   let hasGames = false;
   let gamesLibrary = null;
   // The owner's PUBLISHED Wall (the published-Wall module), when there is one: once the Intro is over it replaces the profile body (the profile card, sections and My Games);
@@ -201,6 +208,7 @@ async function render() {
       requestMeasure();
       replayButton.hidden = !hasIntro || event.data.state !== "profile";
       sectionsPanel.hidden = !hasSections || event.data.state !== "profile";
+      if (!hasSections && hasDeskSide) sectionsPanel.hidden = !desktopActive() || event.data.state !== "profile";
       gamesBlock.hidden = !hasGames || event.data.state !== "profile";
       if (event.data.state !== "profile") gamesLibrary?.close();
       layout.setProfileShowing(event.data.state === "profile");
@@ -276,6 +284,7 @@ async function render() {
   const socialLinks = await getPublicSocialLinks(identity.gamid_handle).catch(() => []);
   hasSections = renderPublicSections(sectionsPanel, identity.public_sections, { ownerHandle: identity.gamid_handle, pathname: location.pathname, loadAvatar: loadPublicAvatar }) > 0;
   hasSections = prependPublicSocials(sectionsPanel, socialLinks) || hasSections;
+  hasDeskSide = Boolean(sectionsPanel.querySelector(".public-crew"));
   // Discord Profile Card: asked for only when My Socials shows a Discord personal profile; the server decides whether there is a card (else the link stays)
   const discordLink = sectionsPanel.querySelector('.public-socials a.public-social[href^="https://discord.com/users/"]');
   if (discordLink) getPublicDiscordCard(identity.gamid_handle).then(card => { if (card) attachDiscordCard(discordLink, card, document); }, () => {});
@@ -324,7 +333,7 @@ async function render() {
   if (!wall) {
     desktopView = createDesktopProfile({ doc: document, profile: built, extras, gamesCount: hasGames ? gamesPreview.libraryCount : 0, bannerUrl: publicBannerUrl(identity.gamid_handle) });
     sectionsPanel.before(desktopView.hero, desktopView.about);
-    document.documentElement.classList.toggle("desk-has-side", hasSections);
+    document.documentElement.classList.toggle("desk-has-side", hasSections || hasDeskSide);
     document.documentElement.classList.toggle("desk-has-games", hasGames);
     // the width crossed the desktop breakpoint: the next Intro uses the matching mode; when the profile is showing, switch it now (to mobile: the frame draws its accepted
     // profile again - no Intro replay; to desktop: the frame is hidden and the desktop profile shows)
@@ -332,6 +341,7 @@ async function render() {
       if (!config) return;
       config = { ...config, hostReveal: desktopActive() };
       if (lastState !== "profile") return;
+      if (!hasSections && hasDeskSide) sectionsPanel.hidden = !desktopActive();
       if (desktopActive()) showDesktop("profile");
       else { hideDesktop(); experienceWrap.hidden = false; frame.contentWindow?.postMessage({ type: "gamid-intro-preview", config: { ...config, hostReveal: false, videoUrl: "" } }, location.origin); }
     });
