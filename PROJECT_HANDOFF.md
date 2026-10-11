@@ -3083,3 +3083,36 @@ These may only be fixed with Mazen's approval. Once fixed, deploy `ec3fda4`, the
   - **375 px:** every badge keeps its text mark (44 px), with no horizontal overflow.
 - Truth: `classic-profile-desktop` (still ACCEPTED) contract `desktop-social-marks` now names the four new marks, with the extension pending Mazen's manual acceptance; checkpoint `ec3fda4`. `my-socials` is unchanged (ACCEPTED).
 - Product Memory: not modified. ISS-0013 stays OPEN until Mazen accepts.
+
+## 46. Public profile scroll bug (desktop Classic Profile) — 2026-10-11
+
+TESTING only. Product checkpoint `5529d17df626b524c08514f321ee1499af87ff3c`. Workflow run [38153071764](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38153071764): full validation passed; TESTING serves `5529d17`.
+
+**Bug.** At 1280 px and wider, `/@<handle>` could not be scrolled by the user (wheel, trackpad, keyboard, touch). Scripted scrolling still worked.
+
+**Root cause.**
+- While the Intro plays, `html.is-public-live:not(.is-public-flow){overflow:hidden}` locks the page.
+- `createFlowLayout` (`dist/flow-layout.js`) lifts the lock only in "flow", which needs a height reported by the Intro frame (`wantsFlow && height > 0`).
+- On desktop the page draws the Classic Profile itself: the frame is asked for `hostReveal`, and `showDesktop` hides it at `profile`. A hidden frame reports no height, so flow never started and the lock stayed (live: `overflow-y: hidden` with a 1,476 px page in a 900 px viewport).
+- The published-Wall path never had this problem, because it already has its own rule (`html.is-public-live.is-public-wall{overflow-y:auto}`). Mobile and tablet use the frame's reported height, so they were never affected.
+
+**Fix** (one CSS rule in `dist/public/public.css`): `html.is-public-live.is-public-desktop:not(.is-public-desktop-reveal){overflow-x:hidden;overflow-y:auto;scrollbar-gutter:stable}`.
+- It mirrors the Wall rule and is more specific than the lock.
+- It applies only once the desktop profile shows: the Intro and its reveal transition keep the lock, and Replay Intro relocks (`hideDesktop()` removes `is-public-desktop`).
+- No nested scrolling: only the root scrolls. No JavaScript, layout or design change.
+
+**Verification.**
+- `tests/public-profile-desktop-scroll.test.js` (3); 38 related test files 627/627; lint and typecheck pass; CI passed.
+- **Live `/@black` at 1440 px, before the fix:** a 10-notch wheel scroll stayed at 0.
+- **After the fix:** wheel 571/571 and End 571/571 (the bottom); no horizontal overflow.
+- **Lifecycle,** on the real page code with the frame's own state messages: intro locked, transitioning locked, profile scrolls, Replay Intro (intro) locked, profile scrolls again.
+- **375 px:** unchanged; flow mode, page scrolls, no nested scrollers, no horizontal overflow.
+- @black currently has no Intro (Replay hidden), so a real Intro playback was not run.
+
+**Truth:** no change (a bug fix restoring the accepted behaviour; no contract, limit or status changes). **Product Memory:** not modified.
+
+**Manual check (Mazen).**
+1. Open `/@black` on desktop.
+2. Scroll to the bottom with the mouse wheel or trackpad, and with the keyboard (End / Page Down).
+3. With an Intro: after it ends and after Replay Intro, scrolling still works.
+4. On a phone, touch scrolling still works.
