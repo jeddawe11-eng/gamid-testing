@@ -108,7 +108,7 @@ Rules:
 | DIS-0001 | Existing platform picker and Other link in Wall | CONCLUDED | [DIS-0001-existing-platform-picker-and-other-link.md](discussions/DIS-0001-existing-platform-picker-and-other-link.md) |
 | DIS-0002 | GamID full-list navigation and next-chat continuity | CONCLUDED | [DIS-0002-gamid-full-list-continuity.md](discussions/DIS-0002-gamid-full-list-continuity.md) |
 | DIS-0003 | Profile Editor visual and social settings notes | CONCLUDED | [DIS-0003-profile-editor-visual-social-notes.md](discussions/DIS-0003-profile-editor-visual-social-notes.md) |
-| REV-0001 | Mazen manual acceptance checklist items 1 through 6 (Global Usage full acceptance reconciled 2026-10-11) | COMPLETED | [REV-0001-manual-acceptance-checklist.md](reviews/REV-0001-manual-acceptance-checklist.md) |
+| REV-0001 | Mazen manual acceptance checklist items 1 through 6 | COMPLETED | [REV-0001-manual-acceptance-checklist.md](reviews/REV-0001-manual-acceptance-checklist.md) |
 | REV-0002 | CP-01 My Crews panel sizing - Mazen manual acceptance | COMPLETED | [REV-0002-cp01-my-crews-panel-sizing-acceptance.md](reviews/REV-0002-cp01-my-crews-panel-sizing-acceptance.md) |
 | REV-0003 | GR-01 Role Suggestions review inside Gaming Roles - Mazen manual acceptance | COMPLETED | [REV-0003-gr01-role-suggestions-placement-acceptance.md](reviews/REV-0003-gr01-role-suggestions-placement-acceptance.md) |
 | REV-0004 | YOUR GAMID Editor - Mazen desktop manual acceptance (16 tests) | COMPLETED | [REV-0004-your-gamid-editor-desktop-acceptance.md](reviews/REV-0004-your-gamid-editor-desktop-acceptance.md) |

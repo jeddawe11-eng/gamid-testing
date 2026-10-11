@@ -9,6 +9,7 @@ summary: A wide desktop Classic Profile with an owner-uploaded 6:1 Banner, About
 related: [DEC-0004, DEC-0003, DEC-0001, IDEA-0001, ISS-0007, ISS-0008, ISS-0009]
 save_approval: Mazen 2026-10-10
 authorization: Mazen 2026-10-10, Phase 1B only ("Classic Profile Banner — Phase 1B — Secure Storage & Backend Implementation", TESTING only); Phase 1A (read-only audit) before it
+acceptance: Mazen 2026-10-11 - he confirmed that he completed testing of the current Classic Profile Desktop on TESTING and explicitly accepted the entire desktop capability, and separately confirmed full acceptance of Profile Banner and About Me on TESTING (Truth classic-profile-desktop, profile-banner and about-me ACCEPTED); owner-reported manual acceptance
 supersedes: []
 truth_refs: [profile-banner, about-me, classic-profile-desktop, visitor-media-access, public-my-games, public-section-visibility, discord-profile-card, my-socials, public-wall-publishing, wall-visibility-toggle, intro-transition-engine, your-gamid-editor]
 checkpoints: [660d91100a78f94c86288168c279e2b536dcdb0f, a116c3f79a3510b523e5adc1c9f1fb3898d41681, 4948f6ccc88b4cb54f5aec23e40932798df19e74]
@@ -63,6 +64,10 @@ Proposed implementation choices, approved as part of the plan, not yet built:
 - Animated GIF Banners in V1 — deferred: decoding cost and bandwidth, and they would need the original file or a server worker.
 - Remove the Discord section on every screen size — rejected: mobile must stay unchanged.
 
+## Acceptance
+
+- 2026-10-11 ACCEPTED (Profile Banner and About Me): Mazen separately confirmed full acceptance of Profile Banner (`profile-banner`) and About Me (`about-me`) on TESTING, in addition to the previously accepted Classic Profile Desktop. Both capability statuses are ACCEPTED in GamID Truth. This records owner confirmation; no repeat tests or new deployment.
+
 ## History
 
 - 2026-10-10 APPROVED — Mazen approved the product decisions above (Phase 0, documentation only). Implementation is not authorized: Phase 1 needs his explicit approval.
@@ -70,5 +75,3 @@ Proposed implementation choices, approved as part of the plan, not yet built:
 - 2026-10-10 IMPLEMENTED — Phases 2-4 authorized by Mazen as one task and implemented on TESTING (a116c3f, then 4948f6c; frontend runs 38043009621 and 38043681013; migration 20261010160000). Delivered: the Banner editor, About Me, and the desktop Classic Profile at 1280px and wider; Discord inside My Socials on desktop; mobile pixel-identical to 660d911. Live acceptance on GM-TEST-01 passed 26/26 (PROJECT_HANDOFF.md §31). About Me is shown on desktop only. Final acceptance pending.
 
 - 2026-10-11 ACCEPTED — Mazen confirmed that he completed testing of the current Classic Profile Desktop on TESTING and explicitly accepted the entire desktop capability. This supersedes the earlier final-acceptance-pending statement; no repeat tests or deployment required. Truth `classic-profile-desktop` is ACCEPTED (commit `1af13bd`).
-
-- 2026-10-11 ACCEPTED — Mazen separately confirmed full acceptance of Profile Banner (`profile-banner`) and About Me (`about-me`) on TESTING, in addition to the previously accepted Classic Profile Desktop. Both capability statuses are ACCEPTED in GamID Truth. This records owner confirmation; no repeat tests or new deployment.

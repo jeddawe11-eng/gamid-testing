@@ -35,6 +35,8 @@ Mazen explicitly reported that all pictured items were checked and PASS. No inde
 
 This record captures the user's manual checklist confirmations, not a claim that technical prerequisites, Steam API configuration, all subcases or automatic test suites were independently verified. No GamID Truth status transitions are made by this documentation-only save.
 
+2026-10-11 acceptance reconciled (Global Usage Center): Mazen explicitly confirmed that his Global Usage Center testing covered the full feature, including the previously listed outstanding acceptance scenarios, and approved final acceptance. Truth `global-usage` is ACCEPTED (commit `1af13bd`). This is owner-reported manual acceptance; no new test execution or independent verification is claimed. The other five review items retain their own separate scope and status.
+
 ## Follow-up
 
 Reconcile each scoped PASS with the authoritative acceptance requirements and evidence before changing any capability status in GamID Truth. Preserve the deferred desktop layout notes. No implementation or deployment authorized.
@@ -42,5 +44,3 @@ Reconcile each scoped PASS with the authoritative acceptance requirements and ev
 ## History
 
 - 2026-10-09 COMPLETED — Mazen explicitly confirmed PASS for checklist items 1 through 6; saved as manual review evidence.
-
-- 2026-10-11 ACCEPTANCE RECONCILED — Mazen explicitly confirmed that his Global Usage Center testing covered the full feature, including the previously listed outstanding acceptance scenarios, and approved final acceptance. Truth `global-usage` is ACCEPTED (commit `1af13bd`). This is owner-reported manual acceptance; no new test execution or independent verification is claimed. The other five review items retain their own separate scope and status.
