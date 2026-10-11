@@ -2999,3 +2999,49 @@ Mazen's approved product decision, TESTING only. The maximum single Intro upload
 - Migration `20261011260000` applied and history repaired. Live values: `intro-sources` = 52428800, the CHECK at 1..52428800, the queue RPC bound 52428800; all other buckets unchanged.
 - Frontend: workflow run [38147127030](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38147127030), full validation passed, stamp `v=af2af0d`. The served `/account/` shows "MP4, MOV, or WebM · max 50 MB.", and `domain.js` / `supabase-client.js` carry the 50 MiB constant and "Intro video must be 50 MB or smaller.".
 - PENDING Mazen's manual acceptance.
+
+## 44. ISS-0010: the editor's Intro Preview returns to the editor — 2026-10-11
+
+Approved by Mazen, TESTING only. Product checkpoint `737360748eff1b15dca938bb6f6fff2ae999660f`. Frontend workflow run [38148668016](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38148668016): full validation passed, stamp `v=7373607`.
+
+**Root cause** (confirmed in the earlier read-only investigation).
+- The editor's preview config (`currentPreviewConfig`) never asked the Intro frame for `hostReveal`.
+- Skip (`terminatePlayback`) and the natural end (`begin` -> `finish`) both put the frame in its `profile` state, which shows the frame's own built-in profile card. That card is the original mobile card, with a static `DRAFT · PRIVATE` chip that is hidden only in `publicMode`.
+- The public page passes `publicMode` / `hostReveal` and reveals the real Wall or Classic Profile instead, so visitors were never affected.
+
+**Fix.**
+- `dist/account/intro-preview-host.js` (new, `createEditorPreviewEnd`): once an editor preview has started (`intro` / `transitioning`), the frame's next `profile` state ends it. A `profile` report without a started preview is ignored, and each new preview resets the tracker.
+- `dist/account/account.js`:
+  - the preview config adds `hostReveal: true`, so the card is hidden even during the closing transition;
+  - the frame's state messages (only from `introPreviewFrame`) feed the tracker;
+  - the end and the Return to editor button share `closeIntroPreviewDialog()` (`stopIntroPreview()` + `dialog.close()`).
+- **Unchanged:** `intro-preview.js`, `intro-preview.css`, `public.js`, transitions, Skip / Tap to play, leases and privacy.
+- `package.json`: the new module is in `typecheck`.
+
+**Verification.**
+- `tests/intro-preview-editor-end.test.js` (6), using the real experience state machine:
+  - Skip ends once; the natural end ends once, after the transition; stale states are ignored;
+  - the wiring; the card hidden by `host-reveal`; the frame code unchanged; the visitor host unchanged.
+- `tests/wall-public-publishing.test.js`: its V2b guard ("the owner's preview never asks for hostReveal") now asserts the approved ISS-0010 rule, exactly one request, in the preview config.
+- 84 related test files pass (1 existing opt-in skip); lint and typecheck pass; CI passed.
+- **Local real-browser harness** (the real frame and module, a synthetic 1.2-second WebM, no TESTING data):
+
+| Run | States | Ended | Card / badge visible |
+|---|---|---|---|
+| Skip | `intro > profile` | once | never |
+| Natural end | `intro > transitioning > profile` | once | never |
+| Control: old config, no `hostReveal` | — | — | `DRAFT · PRIVATE` card visible after Skip (reproduces the bug) |
+
+- In the natural run the video was muted before Tap to play, because the automation browser blocks unmuted autoplay.
+
+**Truth.** `your-gamid-editor` has a new contract `intro-preview-returns-to-editor` and checkpoint `7373607`; it stays PENDING_ACCEPTANCE.
+
+**Product Memory.** Not modified. ISS-0010 is still OPEN; its update to FIXED needs Mazen's save approval.
+
+**Manual check (Mazen, desktop).**
+1. `/account/` → Preview Intro → Skip Intro: back to the editor at once, with no `DRAFT · PRIVATE` card.
+2. Preview Intro again and let it finish: after the transition, back to the editor.
+3. Change something without saving, preview, then check that the draft is still there.
+4. Optionally, as a visitor, `/@<handle>` still reveals the Wall or Classic Profile after the Intro.
+
+STOP for owner acceptance.

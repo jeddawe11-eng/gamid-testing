@@ -50,16 +50,17 @@
       "name": "YOUR GAMID identity editor",
       "status": "PENDING_ACCEPTANCE",
       "surfaces": ["/account/"],
-      "checkpoint": "a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7",
+      "checkpoint": "737360748eff1b15dca938bb6f6fff2ae999660f",
       "limits": { "avatarMinSidePx": 16, "avatarMaxSidePx": 1024 },
       "contracts": [
         { "id": "avatar-upload-validation", "rule": "ISS-0007: an Avatar is stored only as the upload gateway's own re-encoded JPEG. The editor (crop step) and onboarding export the chosen picture as a square JPEG (at least 16 px; JPG, PNG, WebP and AVIF can still be chosen); the gateway accepts it only as a direct upload of a square 16-1024 px JPEG that fully decodes, within the existing 5 MB limit and storage quota, and refuses anything else (disguised, mismatched, corrupted, unsupported, wrong size) with a clear error before any quota is reserved. Resumable uploads into the Avatar bucket are refused. A new Avatar must be such a validated object; the Avatar a GamID already shows is kept, and stored Avatars are never modified." },
+        { "id": "intro-preview-returns-to-editor", "rule": "ISS-0010 (Mazen 2026-10-11): in the Profile Editor, Preview Intro plays the Intro, and both Skip Intro and its natural completion return the owner directly to the Profile Editor with every draft and saved value kept, like Return to editor. The Intro frame's old built-in profile card (DRAFT · PRIVATE) is never shown there, and the preview never opens the public profile. The public visitor Intro is unchanged: it still reveals the applicable Wall or Classic Profile." },
         { "id": "profile-independent-sections", "rule": "Owner editor sections expand independently. Editable profile and visibility drafts persist only through their own Save Changes action; saving one section preserves other drafts. Existing relationship, lookup, navigation and publishing actions retain their explicit workflow boundaries." },
         { "id": "profile-save-all", "rule": "Save All Changes, at the end of the editor, saves every section that has something to save, each once and through that section's own save path; unchanged sections are not sent and a running Save All cannot be started again. Section Save Changes remains. If any section fails, no overall success is shown: the failed sections are named, their drafts are kept and the first is opened, while sections that saved stay saved. Workflow actions (My Games entries, League lookup, relationships) keep their own buttons." },
         { "id": "profile-account-menu", "rule": "There is no Account Settings section: Language (applied as soon as it is chosen) and Sign Out are in the editor's ⋯ menu, which holds no save button." },
         { "id": "profile-feedback-lifecycle", "rule": "Profile transient feedback receives five seconds of actual visibility, reset by each new message. Progress and actionable errors remain persistent. A field validation error stays inline on its field until the field is valid; its notification below Save Changes is transient (five visible seconds) and clears at once when the field becomes valid. Replaced feedback controllers are disposed; owner lifecycle cleanup and stale-save guards prevent former-owner feedback from affecting the current editor." }
       ],
-      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23, §38 (ISS-0007) and §41; desktop manual acceptance by Mazen 2026-10-11 (16 tests, Product Memory REV-0004) - Android Chrome acceptance still outstanding, so the capability stays PENDING_ACCEPTANCE; original Slice 3A: §3"
+      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23, §38 (ISS-0007), §41 and §44 (ISS-0010); desktop manual acceptance by Mazen 2026-10-11 (16 tests, Product Memory REV-0004) - Android Chrome acceptance still outstanding, so the capability stays PENDING_ACCEPTANCE; original Slice 3A: §3"
     },
     {
       "id": "my-socials",

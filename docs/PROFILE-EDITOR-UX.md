@@ -88,3 +88,9 @@ No Production, main merge, Monitor, database migration, worker deployment or rea
 - Test 11 (pending Avatar draft preservation) passed, but its visual preview was not conclusively verified.
 - **Android Chrome real-device acceptance is still outstanding** (checklist item 1 above), so the capability remains PENDING_ACCEPTANCE in GamID Truth.
 - An Intro Preview Skip destination problem seen during test 15 is tracked separately as ISS-0010 (OPEN, needs investigation).
+## Intro Preview returns to the editor (ISS-0010, 2026-10-11)
+
+Product `7373607`, TESTING run 38148668016.
+- **Behaviour:** Preview Intro plays the Intro. Skip Intro, and the natural end after its transition, both close the preview through the existing Return to editor path (`stopIntroPreview()` + `dialog.close()`), so focus goes back to Preview Intro and every draft is kept.
+- **How:** the editor asks the frame for `hostReveal`, so the frame's old built-in profile card (`DRAFT · PRIVATE`) is never shown. `dist/account/intro-preview-host.js` (`createEditorPreviewEnd`) reacts only to a preview that actually started, and only to the editor's own frame.
+- **Unchanged:** the public visitor Intro, the frame, transitions and controls. This fix is PENDING Mazen's manual acceptance.
