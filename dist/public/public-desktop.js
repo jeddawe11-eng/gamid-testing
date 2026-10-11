@@ -150,3 +150,28 @@ export function initialsOf(name) {
   const main = words.filter(word => !MINOR.has(word.toLowerCase()));
   return (main.length ? main : words).slice(0, 2).map(word => [...word][0]).join("").toUpperCase() || "?";
 }
+
+// FAVORITE GAMES (desktop, directly below the hero and above My Games): up to three of the owner's games, in their order, as large portrait covers with the
+// name below. Covers come from the existing artwork resolver (a portrait cover only); without one the card keeps the title's initials. A card opens the
+// existing Game Details when My Games lists the game. Read-only: visitors see the selection, only the owner changes it (Profile Editor -> My Games hearts).
+export const FAVORITE_GAMES_SHOWN = 3;
+export function favoriteGamesSection(favorites, { doc = globalThis.document, onOpen = null } = {}) {
+  const list = (Array.isArray(favorites) ? favorites : []).filter(f => typeof f?.game_key === "string" && typeof f?.name === "string" && f.name.trim()).slice(0, FAVORITE_GAMES_SHOWN);
+  if (!list.length || !doc) return null;
+  const h = (tag, className, text) => node(doc, tag, className, text);
+  const section = h("section", "desk-favorites"); section.id = "desktopFavorites"; section.setAttribute("aria-label", "Favorite Games"); section.hidden = true;
+  section.append(h("p", "public-section-label", "FAVORITE GAMES"));
+  const row = h("ul", "desk-favorites-list");
+  row.dataset.count = String(list.length);
+  for (const fav of list) {
+    const li = h("li", "desk-favorite");
+    const card = h(typeof onOpen === "function" ? "button" : "div", "desk-favorite-card");
+    if (typeof onOpen === "function") { card.type = "button"; card.setAttribute("aria-label", `${fav.name}. Open game details`); card.addEventListener("click", () => onOpen(fav, card)); }
+    const cover = h("span", "desk-favorite-cover");
+    cover.setAttribute("aria-hidden", "true"); cover.setAttribute("data-game-cover", fav.game_key); cover.setAttribute("data-initials", initialsOf(fav.name));
+    card.append(cover, h("span", "desk-favorite-name", fav.name));
+    li.append(card); row.append(li);
+  }
+  section.append(row);
+  return section;
+}

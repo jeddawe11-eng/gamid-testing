@@ -505,7 +505,11 @@ export async function setMyAbout({ countryCode, cityId, keepLegacy, languages, g
 }
 // owner city search inside one country (at most 12, most populous first)
 export async function searchLocationCities(countryCode, query) { return (await rpc("search_location_cities", { candidate_country: countryCode, candidate_query: query ?? "" })) || []; }
-// the consolidated My Crews view of a PUBLISHED GamID (anonymous): the Crews its public section lists, member counts and up to six PUBLIC members
+// Favorite Games: at most 3 catalog game keys from the owner's own My Games, in order (the server enforces the limit and the library membership)
+export async function getMyFavoriteGames() { const rows = await rpc("get_my_favorite_games"); return Array.isArray(rows) ? rows.filter(key => typeof key === "string") : []; }
+export async function setMyFavoriteGames(keys) { const rows = await rpc("set_my_favorite_games", { candidate_keys: Array.isArray(keys) ? keys : [] }); return Array.isArray(rows) ? rows.filter(key => typeof key === "string") : []; }
+// a PUBLISHED GamID's Favorite Games (anonymous; only while its My Games is public): [{ game_key, name, year }]
+export async function getPublicFavoriteGames(handle) { return (await rpc("get_public_favorite_games", { candidate_handle: handle }, { anonymous: true })) || []; }// the consolidated My Crews view of a PUBLISHED GamID (anonymous): the Crews its public section lists, member counts and up to six PUBLIC members
 export async function getPublicCrews(handle) { return (await rpc("get_public_crews", { candidate_handle: handle }, { anonymous: true })) || []; }
 
 export async function getMyConnections() {

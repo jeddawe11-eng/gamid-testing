@@ -88,14 +88,23 @@ export async function resolveGame(fetchImpl, env, game) {
   const icon = first(await providerGet(fetchImpl, env, `/icons/game/${id}?styles=official,custom&mimes=image/png&${IMAGE_FILTERS}`));
   const grid = first(await providerGet(fetchImpl, env, `/grids/game/${id}?dimensions=460x215,920x430&${IMAGE_FILTERS}`));
   const hero = game.purposes?.includes("crews") ? first(await providerGet(fetchImpl, env, `/heroes/game/${id}?${IMAGE_FILTERS}`)) : null;
-  if (!icon && !grid && !hero) return { game_key: game.game_key, status: "NO_MATCH" };
-  return { game_key: game.game_key, status: "MATCHED", match_basis: basis, provider_game_id: id, icon_url: icon, grid_url: grid, hero_url: hero };
+  const wantsCover = Boolean(game.purposes?.includes("favorites"));
+  const cover = wantsCover ? await resolveCover(fetchImpl, env, id) : null;
+  if (!icon && !grid && !hero && !cover) return { game_key: game.game_key, status: "NO_MATCH" };
+  return { game_key: game.game_key, status: "MATCHED", match_basis: basis, provider_game_id: id, icon_url: icon, grid_url: grid, hero_url: hero, cover_url: cover, cover_checked: wantsCover };
+}
+
+// a portrait cover (the provider's 600x900 grid family) for Favorite Games - asked only for favorites
+const COVER_DIMENSIONS = "600x900,342x482,660x930";
+async function resolveCover(fetchImpl, env, providerGameId) {
+  const data = await providerGet(fetchImpl, env, `/grids/game/${providerGameId}?dimensions=${COVER_DIMENSIONS}&${IMAGE_FILTERS}`);
+  return safeCdnUrl(Array.isArray(data) ? data[0]?.url : null);
 }
 
 const presentable = row => {
   if (row?.status !== "MATCHED") return null;
   const out = {};
-  for (const [field, key] of [["icon_url", "icon"], ["grid_url", "grid"], ["hero_url", "hero"]]) { const url = safeCdnUrl(row[field]); if (url) out[key] = url; }
+  for (const [field, key] of [["icon_url", "icon"], ["grid_url", "grid"], ["hero_url", "hero"], ["cover_url", "cover"]]) { const url = safeCdnUrl(row[field]); if (url) out[key] = url; }
   return Object.keys(out).length ? out : null;
 };
 
@@ -125,11 +134,16 @@ export async function handleGameArtwork({ request, env, fetchImpl = fetch, log =
     const byKey = new Map((Array.isArray(cached) ? cached : []).map(row => [row.game_key, row]));
     if (env.providerKey) {
       const fresh = [];
-      // connected games and crews first (few, prominent), then My Games
-      const order = g => (g.purposes?.includes("connected") ? 0 : g.purposes?.includes("crews") ? 1 : 2);
-      const missing = games.filter(g => !byKey.has(g.game_key)).sort((a, b) => order(a) - order(b)).slice(0, LIMITS.lookupsPerRequest);
+      // favorites, connected games and crews first (few, prominent), then My Games. A cached match that never looked for a cover gets only its cover.
+      const order = g => (g.purposes?.includes("favorites") ? 0 : g.purposes?.includes("connected") ? 1 : g.purposes?.includes("crews") ? 2 : 3);
+      const needsCover = g => { const row = byKey.get(g.game_key); return g.purposes?.includes("favorites") && row?.status === "MATCHED" && !row.cover_checked && Number.isSafeInteger(Number(row.provider_game_id)); };
+      const missing = games.filter(g => !byKey.has(g.game_key) || needsCover(g)).sort((a, b) => order(a) - order(b)).slice(0, LIMITS.lookupsPerRequest);
       for (const game of missing) {
-        try { const row = await resolveGame(fetchImpl, env, game); fresh.push(row); byKey.set(game.game_key, row); }
+        try {
+          const cached = byKey.get(game.game_key);
+          const row = cached && needsCover(game) ? { ...cached, cover_url: await resolveCover(fetchImpl, env, Number(cached.provider_game_id)), cover_checked: true } : await resolveGame(fetchImpl, env, game);
+          fresh.push(row); byKey.set(game.game_key, row);
+        }
         catch (error) { if (error instanceof ProviderStop) { log("game-artwork", `provider_stop_${error.message}`); break; } throw error; }
       }
       if (fresh.length) await serviceRpc(fetchImpl, env, "game_artwork_cache_put", { candidate_rows: fresh });

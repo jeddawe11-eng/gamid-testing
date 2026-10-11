@@ -179,7 +179,7 @@ html.is-public-wall .public-shell .replay-button{grid-area:2/1;justify-self:star
    draws the wide identity hero, About Me, My Games and the My Socials / My Duo / League panel in one grid. Nothing below applies to narrower screens, so the
    accepted mobile / tablet layout is untouched. The separate Discord section is not shown here: Discord lives in My Socials (.desk-only items). */
 .desk-only{display:none}
-.desk-hero[hidden],.desk-about[hidden],.desk-connected[hidden]{display:none}
+.desk-hero[hidden],.desk-about[hidden],.desk-connected[hidden],.desk-favorites[hidden]{display:none}
 @media(min-width:80rem){
 html.is-public-desktop .public-shell{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) 22rem;grid-template-areas:"hero hero side" "about games games" "replay replay replay";gap:1.25rem;align-items:start;align-content:start;justify-items:stretch;width:min(90rem,100%);margin:0 auto;padding:1.5rem max(1.5rem,env(safe-area-inset-right)) 0 max(1.5rem,env(safe-area-inset-left));box-sizing:border-box;background:transparent}
 html.is-public-desktop:not(.desk-has-side) .public-shell{grid-template-areas:"hero hero hero" "about games games" "replay replay replay"}
@@ -192,6 +192,13 @@ html.is-public-desktop.desk-has-connected:not(.desk-has-side) .public-shell{grid
 html.is-public-desktop.desk-has-connected:not(.desk-has-games) .public-shell{grid-template-areas:"hero hero side" "about about side" "connected connected side" "replay replay replay"}
 html.is-public-desktop.desk-has-connected:not(.desk-has-side):not(.desk-has-games) .public-shell{grid-template-areas:"hero hero hero" "about about about" "connected connected connected" "replay replay replay"}
 html.is-public-desktop .public-shell .desk-connected{grid-area:connected}
+/* Favorite Games: a full row directly below the hero (beside the sidebar when there is one), above About Me / My Games */
+html.is-public-desktop.desk-has-favorites .public-shell{grid-template-areas:"hero hero side" "favs favs side" "about games games" "replay replay replay"}
+html.is-public-desktop.desk-has-favorites:not(.desk-has-side) .public-shell{grid-template-areas:"hero hero hero" "favs favs favs" "about games games" "replay replay replay"}
+html.is-public-desktop.desk-has-favorites.desk-has-connected .public-shell{grid-template-rows:auto auto auto 1fr auto;grid-template-areas:"hero hero side" "favs favs side" "about games games" "connected games games" "replay replay replay"}
+html.is-public-desktop.desk-has-favorites.desk-has-connected:not(.desk-has-side) .public-shell{grid-template-areas:"hero hero hero" "favs favs favs" "about games games" "connected games games" "replay replay replay"}
+html.is-public-desktop .public-shell .desk-favorites{grid-area:favs}
+html.is-public-desktop [data-artwork-scope] .game-thumb{display:grid}
 html.is-public-desktop body{background:radial-gradient(circle at 12% 0,#27134e 0,transparent 32rem),#090811}
 html.is-public-desktop .experience-wrap{display:none}
 html.is-public-desktop.is-public-desktop-reveal .experience-wrap{display:block;position:fixed;inset:0;z-index:20;background:transparent}
@@ -292,3 +299,15 @@ button.desk-connected-card:hover,button.desk-connected-card:focus-visible{border
 .crew-card-face{display:grid;place-items:center;width:2rem;aspect-ratio:1;margin-right:-.45rem;border-radius:50%;overflow:hidden;border:2px solid #0b0a12;background:linear-gradient(145deg,#4d2eb1,#3bcbe7);font-size:.75rem;font-weight:900}
 .crew-card-face img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
 .crew-card-face.is-more{background:#1c1828;color:var(--muted);font-size:.68rem}
+/* FAVORITE GAMES (desktop): up to three large portrait covers (2:3, the provider's 600x900 family - never stretched), the name below; initials until a cover loads */
+.desk-favorites{position:relative;z-index:1;min-width:0;padding:1.1rem 1.25rem;border:1px solid rgba(255,255,255,.2);border-radius:1rem;background:rgba(10,8,16,.78)}
+.desk-favorites-list{display:grid;grid-template-columns:repeat(3,minmax(0,13.5rem));gap:1.1rem;margin:.75rem 0 0;padding:0;list-style:none}
+.desk-favorite{min-width:0}
+.desk-favorite-card{display:grid;gap:.55rem;width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:center}
+button.desk-favorite-card{cursor:pointer}
+button.desk-favorite-card:focus-visible{outline:2px solid var(--cyan);outline-offset:4px;border-radius:.9rem}
+.desk-favorite-cover{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:2/3;overflow:hidden;border:1px solid rgba(255,255,255,.14);border-radius:.9rem;background:linear-gradient(160deg,#3b2a73,#1f4d73);box-shadow:0 14px 34px rgba(0,0,0,.45);color:#fff;font:800 2.4rem/1 Inter,system-ui,sans-serif}
+.desk-favorite-cover::before{content:attr(data-initials)}
+.desk-favorite-cover .game-art{aspect-ratio:2/3}
+button.desk-favorite-card:hover .desk-favorite-cover{border-color:var(--cyan)}
+.desk-favorite-name{font-size:.9rem;font-weight:700;overflow-wrap:anywhere}

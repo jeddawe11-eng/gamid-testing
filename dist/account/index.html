@@ -140,17 +140,18 @@
           <p class="connections-lede">Link your gaming accounts to your GamID. Connected accounts stay private until you choose to show them.</p>
           <div id="connectionsList" class="connection-list" aria-live="polite"><p class="connections-empty">Loading connections…</p></div>
           <p id="connectionsMessage" class="connections-message" role="status" hidden></p>
-          <div id="myGamesSection" class="my-games" role="region" aria-label="My Games" hidden></div>
-<div id="gameDisplaySection" class="game-display" role="group" aria-label="Game display" hidden>
-<p class="eyebrow">GAME DISPLAY</p>
-<div id="gameDisplaySlot"></div>
-<p id="gameDisplayMessage" class="connections-message" role="status" hidden></p>
-</div>
           <div id="leagueSection" class="league-section" aria-label="League of Legends prototype">
             <div id="leagueCard" aria-live="polite"><p class="connections-empty">Loading League of Legends…</p></div>
             <p id="leagueMessage" class="connections-message" role="status" hidden></p>
           </div>
         </section>
+        <!-- My Games and Game Display are their own Profile Editor cards, beside Connections (not inside it) -->
+        <div id="myGamesSection" class="my-games" role="region" aria-label="My Games" hidden></div>
+<div id="gameDisplaySection" class="game-display" role="group" aria-label="Game display" hidden>
+<p class="eyebrow">GAME DISPLAY</p>
+<div id="gameDisplaySlot"></div>
+<p id="gameDisplayMessage" class="connections-message" role="status" hidden></p>
+</div>
         <p class="account-email">Signed in as <strong id="accountEmail"></strong></p>
         <form id="languageForm"><label>Preferred language<select name="language"><option value="en">English</option><option value="ar">العربية</option><option value="ms">Bahasa Melayu</option></select></label><button class="secondary">Save language</button></form>
         <button id="signOutButton" class="text-button danger">Sign out</button>

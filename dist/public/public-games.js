@@ -250,7 +250,7 @@ function detailNode({ element, game }) {
 }
 
 // The full library (search + pages) and Game Details, in one modal. api.getPublicMyGames(handle, {query, limit, offset}) -> the raw server object (or null).
-export function createGamesLibrary({ element, handle, api, mount, sourceLabels = {}, lockScroll = () => {}, schedule = (fn, ms) => setTimeout(fn, ms), cancel = id => clearTimeout(id), pageSize = PAGE_SIZE, libraryCount = 0 }) {
+export function createGamesLibrary({ element, handle, api, mount, sourceLabels = {}, lockScroll = () => {}, schedule = (fn, ms) => setTimeout(fn, ms), cancel = id => clearTimeout(id), pageSize = PAGE_SIZE, libraryCount = 0, onRowsRendered = () => {} }) {
   const root = element("div", "pg-modal");
   root.hidden = true;
   const backdrop = element("div", "pg-backdrop");
@@ -285,6 +285,7 @@ export function createGamesLibrary({ element, handle, api, mount, sourceLabels =
   const statusEl = element("p", "pg-status");
   statusEl.setAttribute("role", "status");
   const listEl = element("ul", "pg-list is-library");
+  listEl.setAttribute("data-artwork-scope", "library");   // the desktop shows its game tiles (the same artwork as the compact list)
   const moreButton = element("button", "pg-more");
   moreButton.type = "button";
   scroller.append(statusEl, listEl, moreButton);
@@ -326,6 +327,7 @@ export function createGamesLibrary({ element, handle, api, mount, sourceLabels =
     listEl.setAttribute("aria-busy", String(status === "loading"));
     listEl.dataset.stale = String(status === "loading" && games.length > 0);
     listEl.replaceChildren(...games.map(game => buildGameRow({ element, game, onOpen: game2 => showDetail(game2, "library") })));
+    onRowsRendered(listEl);
     const searching = query.trim() !== "";
     statusEl.textContent = status === "loading" && !games.length ? (searching ? "Searching…" : "Loading games…")
       : status === "empty" ? (searching ? "No matching games" : "No games to show.")

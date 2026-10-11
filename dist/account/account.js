@@ -1138,6 +1138,7 @@ async function loadConnections() {
   catch { discordCard = null; }
   await loadSteamGames();
   await loadManualGames();
+  await loadFavoriteGames();
   await loadGameProfiles();
   await loadGameDisplay();
   await loadPublicGamesSettings();
@@ -1226,6 +1227,11 @@ let steamGamesBusy = false;
 const gameListExpanded = new Set();
 // Games the owner added by hand (canonical game_key + the platforms they declared; always MANUAL / unverified) and the state of the one Add Game panel.
 let manualGames = [];
+// Favorite Games: at most FAVORITE_GAMES_MAX catalog game keys from the owner's own library, in the owner's order (set_my_favorite_games enforces it again)
+const FAVORITE_GAMES_MAX = 3;
+const FAVORITE_LIMIT_TEXT = "Maximum 3 favorite games. Remove one to add another.";
+let favoriteKeys = [];
+let favoritesBusy = false;
 let myGamesNotice = null;
 let myGamesView = null;
 let libraryKeys = new Set();
@@ -1366,8 +1372,38 @@ const MY_GAMES_NOTICES = {
 };
 
 function libraryItem(row) {
-  if (row.kind === "manual") return manualGameItem({ element, row, onEdit: () => editManualGame(row.gameKey, row.name) });
-  return gameItem(row.game, row.manual);
+  const item = row.kind === "manual" ? manualGameItem({ element, row, onEdit: () => editManualGame(row.gameKey, row.name) }) : gameItem(row.game, row.manual);
+  const key = rowGameKey(row);
+  if (key) item.append(favoriteToggle(key, row.kind === "manual" ? row.name : row.game.game_name || row.manual?.name || "this game"));
+  return item;
+}
+
+// The Favorite Games heart (manual and discovered games alike, by their catalog key): ♡ not a favorite, ❤️ favorite. Saved at once; a fourth heart changes nothing
+// and says why.
+function favoriteToggle(gameKey, name) {
+  const on = favoriteKeys.includes(gameKey);
+  const button = element("button", `favorite-toggle${on ? " is-on" : ""}`, on ? "❤️" : "♡");
+  button.type = "button";
+  button.setAttribute("aria-pressed", String(on));
+  button.setAttribute("aria-label", on ? `Remove ${name} from Favorite Games` : `Add ${name} to Favorite Games`);
+  button.disabled = favoritesBusy;
+  button.addEventListener("click", () => toggleFavorite(gameKey));
+  return button;
+}
+
+async function toggleFavorite(gameKey) {
+  if (favoritesBusy) return;
+  const on = favoriteKeys.includes(gameKey);
+  if (!on && favoriteKeys.length >= FAVORITE_GAMES_MAX) { myGamesNotice = { tone: "warn", text: FAVORITE_LIMIT_TEXT }; renderMyGames(); return; }
+  const next = on ? favoriteKeys.filter(key => key !== gameKey) : [...favoriteKeys, gameKey];
+  favoritesBusy = true; renderMyGames();
+  try { favoriteKeys = await api.setMyFavoriteGames(next); myGamesNotice = null; }
+  catch (error) { myGamesNotice = { tone: "warn", text: /FAVORITE_GAMES_LIMIT/.test(String(error?.code || error?.message)) ? FAVORITE_LIMIT_TEXT : "Couldn't save your Favorite Games right now. Please try again." }; await loadFavoriteGames(); }
+  favoritesBusy = false; renderMyGames();
+}
+
+async function loadFavoriteGames() {
+  try { favoriteKeys = await api.getMyFavoriteGames(); } catch { favoriteKeys = []; }
 }
 
 function editManualGame(gameKey, name) {
@@ -1382,7 +1418,7 @@ function afterManualChange(done) {
   myGamesView.addButton.focus?.();
   if (!done || done.mode === "closed") return;
   const alreadyListed = steamGames.some(game => game.recognized_game_key === done.gameKey);   // a provider discovered it: the owner's platforms merge into that row
-  loadManualGames().then(() => {
+  loadManualGames().then(loadFavoriteGames).then(() => {   // a game removed from My Games also leaves the favorites (server-side)
     const mode = done.mode === "removed" && alreadyListed ? "removedPlatforms" : done.mode === "added" && alreadyListed ? "addedToExisting" : done.mode;
     myGamesNotice = { tone: "ok", text: MY_GAMES_NOTICES[mode](done.name) };
     renderMyGames();

@@ -32,6 +32,8 @@ export function applyGameArtwork(root, data) {
   const place = (el, url, cls) => { if (!url || el.querySelector(".game-art")) return; el.append(image(doc, url, cls)); el.classList.add("has-art"); placed++; };
   for (const el of root.querySelectorAll("[data-game-key]")) place(el, pick(art(el.getAttribute("data-game-key")), ["icon", "grid"]), "game-art");
   for (const el of root.querySelectorAll("[data-artwork-row]")) place(el, pick(art(data.myGames?.[el.getAttribute("data-artwork-row")]), ["icon", "grid"]), "game-art");
+  // Favorite Games: a portrait cover only (never a landscape image squeezed into a portrait card)
+  for (const el of root.querySelectorAll("[data-game-cover]")) place(el, pick(art(el.getAttribute("data-game-cover")), ["cover"]), "game-art is-cover");
   for (const el of root.querySelectorAll("[data-game-bg]")) {
     const url = pick(art(el.getAttribute("data-game-bg")), ["hero", "grid"]);
     if (!url || el.querySelector(".game-art-bg")) continue;

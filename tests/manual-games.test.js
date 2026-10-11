@@ -459,7 +459,9 @@ test("the account page has ONE My Games region outside the connection cards and 
   const html = read("dist/account/index.html");
   assert.equal([...html.matchAll(/id="myGamesSection"/g)].length, 1);
   const connections = html.slice(html.indexOf('id="connectionsSection"'), html.indexOf("</section>", html.indexOf('id="connectionsSection"')));
-  assert.ok(connections.includes('id="myGamesSection"') && connections.includes('id="leagueSection"') && connections.includes('id="gameDisplaySection"'));
+  // Mazen 2026-10-11: My Games (and its Game Display) are their own Settings cards beside Connections, not inside it; League stays in Connections
+  assert.ok(connections.includes('id="leagueSection"') && !connections.includes('id="myGamesSection"') && !connections.includes('id="gameDisplaySection"'));
+  assert.ok(html.indexOf('id="myGamesSection"') > html.indexOf('id="connectionsSection"') && html.indexOf('id="gameDisplaySection"') > html.indexOf('id="myGamesSection"'));
   const account = read("dist/account/account.js");
   assert.equal([...account.matchAll(/createAddGamePanel\(/g)].length, 1, "one Add Game panel, one library");
   assert.doesNotMatch(account, /manualGamesLibrary|buildManualLibrary/i, "no second manual-games library");

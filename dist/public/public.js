@@ -1,5 +1,5 @@
-import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl, getPublicCrews } from "../account/supabase-client.js";
-import { createDesktopProfile, crewsEntry, connectedGamesSection, connectedGameItem, DESKTOP_QUERY } from "./public-desktop.js";
+import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl, getPublicCrews, getPublicFavoriteGames } from "../account/supabase-client.js";
+import { createDesktopProfile, crewsEntry, connectedGamesSection, connectedGameItem, favoriteGamesSection, DESKTOP_QUERY } from "./public-desktop.js";
 import { createProfilePanel } from "./profile-panel.js";
 import { createCrewsDirectory } from "./crews-directory.js";
 import { fetchGameArtwork, applyGameArtwork } from "./game-artwork.js";
@@ -149,7 +149,7 @@ async function render() {
   const shell = document.getElementById("publicShell");
   let hasSections = false;
   let hasDeskSide = false;   // the panel holds something the desktop sidebar shows (it hides the separate Discord and League cards and adds desk-only blocks)
-  let crewsDirectory = null, artworkRequest = null, deskConnected = null;   // the My Crews view, the one artwork request, Connected Games (desktop only)
+  let crewsDirectory = null, artworkRequest = null, deskConnected = null, deskFavorites = null;   // the My Crews view, the one artwork request, Connected Games (desktop only)
   let hasGames = false;
   let gamesLibrary = null;
   // The owner's PUBLISHED Wall (the published-Wall module), when there is one: once the Intro is over it replaces the profile body (the profile card, sections and My Games);
@@ -256,13 +256,13 @@ async function render() {
   function showDesktop(state) {
     const root = document.documentElement;
     if (state === "profile" || state === "transitioning") {
-      root.classList.add("is-public-desktop"); desktopView.show(); if (deskConnected) deskConnected.hidden = false;
-      artwork().then(data => { applyGameArtwork(gamesBlock, data); if (deskConnected) applyGameArtwork(deskConnected, data); });
+      root.classList.add("is-public-desktop"); desktopView.show(); if (deskConnected) deskConnected.hidden = false; if (deskFavorites) deskFavorites.hidden = false;
+      artwork().then(data => { applyGameArtwork(gamesBlock, data); if (deskConnected) applyGameArtwork(deskConnected, data); if (deskFavorites) applyGameArtwork(deskFavorites, data); });
       root.classList.toggle("is-public-desktop-reveal", state === "transitioning");
       experienceWrap.hidden = state === "profile";
     } else { hideDesktop(); experienceWrap.hidden = false; }
   }
-  function hideDesktop() { desktopView?.hide(); if (deskConnected) deskConnected.hidden = true; document.documentElement.classList.remove("is-public-desktop", "is-public-desktop-reveal"); }
+  function hideDesktop() { desktopView?.hide(); if (deskConnected) deskConnected.hidden = true; if (deskFavorites) deskFavorites.hidden = true; document.documentElement.classList.remove("is-public-desktop", "is-public-desktop-reveal"); }
   const artwork = () => (artworkRequest ||= fetchGameArtwork(SUPABASE_URL, identity.gamid_handle));
   frame.addEventListener("load", () => { frameReady = true; sendInitial(); });
   replayButton.addEventListener("click", layout.enterExperience);   // the Intro needs the full viewport again (registered first, so it runs before the config is sent)
@@ -334,12 +334,15 @@ async function render() {
       element: node, handle: identity.gamid_handle, api: { getPublicMyGames }, libraryCount: gamesPreview.libraryCount, sourceLabels: LEAGUE_SOURCE_LABELS,
       mount: modal => document.body.append(modal),
       lockScroll: locked => document.documentElement.classList.toggle("is-games-open", locked),
+      // View all games: the same cached artwork as the compact list (desktop only; the tiles are hidden below 1280 px)
+      onRowsRendered: list => { if (desktopActive()) artwork().then(data => applyGameArtwork(list, data)); },
     });
     renderGamesPreview({ element: node, container: gamesBlock, library: gamesPreview, onOpenGame: (game, opener) => gamesLibrary.openGame(game, opener), onViewAll: opener => gamesLibrary.openLibrary(opener) });
     hasGames = true;
   }
   // the published Wall is looked up alongside the Intro config (one anonymous call); its media and data load while the Intro plays
-  const extrasRequest = getPublicProfileExtras(identity.gamid_handle).catch(() => null);   // the desktop profile's Member Since / Banner / About Me (in parallel)
+  const extrasRequest = getPublicProfileExtras(identity.gamid_handle).catch(() => null);
+  const favoritesRequest = hasGames ? getPublicFavoriteGames(identity.gamid_handle).catch(() => []) : Promise.resolve([]);   // Favorite Games (only with public My Games)   // the desktop profile's Member Since / Banner / About Me (in parallel)
   const [built, published] = await Promise.all([buildConfig(identity), getPublicWall(identity.gamid_handle).catch(() => null)]);
   const extras = await extrasRequest;
   if (published?.document) {
@@ -383,6 +386,15 @@ async function render() {
       }
     }
     document.documentElement.classList.toggle("desk-has-connected", Boolean(deskConnected));
+    // Favorite Games, directly below the hero: a card opens the existing Game Details of that game (found in the preview, else by one library search)
+    const openFavorite = async (fav, opener) => {
+      let game = gamesPreview.games.find(g => g.name === fav.name && (g.year ?? null) === (fav.year ?? null));
+      if (!game) { try { game = normalizeLibrary(await getPublicMyGames(identity.gamid_handle, { query: fav.name, limit: 5, offset: 0 }), LEAGUE_SOURCE_LABELS)?.games.find(g => g.name === fav.name); } catch { game = null; } }
+      if (game) gamesLibrary.openGame(game, opener);
+    };
+    deskFavorites = hasGames ? favoriteGamesSection(await favoritesRequest, { doc: document, onOpen: openFavorite }) : null;
+    if (deskFavorites) desktopView.hero.after(deskFavorites);
+    document.documentElement.classList.toggle("desk-has-favorites", Boolean(deskFavorites));
     document.documentElement.classList.toggle("desk-has-games", hasGames);
     // the width crossed the desktop breakpoint: the next Intro uses the matching mode; when the profile is showing, switch it now (to mobile: the frame draws its accepted
     // profile again - no Intro replay; to desktop: the frame is hidden and the desktop profile shows)
