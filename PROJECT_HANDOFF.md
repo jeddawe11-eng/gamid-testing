@@ -3045,3 +3045,33 @@ Approved by Mazen, TESTING only. Product checkpoint `737360748eff1b15dca938bb6f6
 4. Optionally, as a visitor, `/@<handle>` still reveals the Wall or Classic Profile after the Intro.
 
 STOP for owner acceptance.
+
+## 45. ISS-0013: My Socials brand marks for TikTok, Twitch, Kick and Snapchat — 2026-10-11
+
+Authorized by Mazen, TESTING only. Product checkpoint `ec3fda41f035d519109dd257e157e6b2f6497767`. **Not yet deployed** (see Deployment).
+
+**Root cause.**
+- My Socials badges are text glyphs from the catalogue in `dist/account/socials.js` (`TT`, `TW`, `K`, `SC`, `IG`, `DC`, `▶`, `X`, `f`) on brand-coloured circles.
+- The Classic Profile visual review (§32; Truth `classic-profile-desktop` contract `desktop-social-marks`) gave only Discord and Instagram a desktop logo mark (a static CSS mask in `dist/public/public.css`).
+- YouTube (`▶`) and X read as recognisable from their glyphs; TikTok, Twitch, Kick and Snapchat fell back to their letters. It was a missing mapping, not asset loading, a fallback bug or CSS breakage.
+
+**Fix (CSS only).**
+- The same mask mechanism now covers TikTok and Twitch (simple-icons paths, CC0) and Kick (its blocky K) and Snapchat (the ghost), both drawn here.
+- Each mark uses the badge's existing text colour: white on TikTok / Twitch, black on Kick / Snapchat.
+- Unchanged: sizes (44 px), placement, link destinations, accessible names, the YouTube / X / Facebook glyphs, and the mobile text marks (the accepted contract keeps them below 1280 px).
+
+**Verification.**
+- `tests/my-socials-brand-marks.test.js` (4) and the extended visual-review test: 405 related tests pass; lint and typecheck pass.
+- Local real-browser harness (the real `public.css` and `socials.js`, synthetic markup):
+  - at 1440 px, Discord, Instagram, TikTok, Twitch (white), Kick and Snapchat (black) render as marks, while YouTube, X and Facebook keep their glyphs, all 44 px;
+  - in mobile mode every badge keeps its text mark;
+  - the four new shapes were checked visually and read as their brands.
+
+**Deployment: BLOCKED.** The CI gate's `tests/product-memory.test.js` fails on records committed by other sessions:
+- DEC-0005: `ACCEPTED -> ACCEPTED` and no `acceptance` field;
+- REV-0001: an `ACCEPTANCE RECONCILED` History line;
+- INDEX: the REV-0001 title does not match the record.
+
+These may only be fixed with Mazen's approval. Once fixed, deploy `ec3fda4`, then update Truth `desktop-social-marks` to name the four new marks (`classic-profile-desktop` stays ACCEPTED, with this extension pending Mazen's acceptance). Truth is unchanged until then because TESTING does not yet serve the fix.
+
+**Product Memory.** Not modified. ISS-0013 stays OPEN. After Mazen accepts: OPEN → AUTHORIZED → FIXED → VERIFIED, with this root cause and checkpoint.
