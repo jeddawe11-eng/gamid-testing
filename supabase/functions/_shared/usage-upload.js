@@ -17,10 +17,16 @@ export function uploadMetadata(text) {
 }
 // Classic Profile Banner (DEC-0005): avatars/<uid>/banner/<uuid>.jpg. Only a direct POST is accepted, of a JPEG that the injected trusted decoder (jpeg-js,
 // supplied by the Edge Function) fully decodes as exactly 1920x320 within bounded memory; the gateway then stores its OWN re-encoded baseline JPEG, so no
-// metadata, trailing data or other payload survives. Anything else is refused before any quota is reserved. Avatar paths never match and are unchanged.
+// metadata, trailing data or other payload survives. Anything else is refused before any quota is reserved.
 export const BANNER = Object.freeze({width:1920,height:320,quality:85,maxBytes:5*1024*1024});
 const BANNER_PATH=/^[0-9a-f-]{36}\/banner\/[0-9a-f-]{36}\.jpg$/;
 export const isBannerPath=(bucket,path)=>bucket==='avatars' && String(path).split('/')[1]==='banner';
+// Avatar (ISS-0007): avatars/<uid>/avatar-<uuid>.jpg, the square JPEG the Profile Editor's cropper exports. The same trusted path as the Banner: the declared
+// type and the real content must both be JPEG, the frame is read and bounded before decoding, the whole image must decode strictly, and the gateway stores its
+// OWN re-encoded baseline JPEG. Direct POST only (the resumable route refuses the avatars bucket). Existing Avatar objects are never touched.
+export const AVATAR = Object.freeze({minSide:16,maxSide:1024,quality:90,maxBytes:5*1024*1024});
+const AVATAR_PATH=/^[0-9a-f-]{36}\/avatar-[0-9a-f-]{36}\.jpg$/;
+export const isAvatarPath=(bucket,path)=>bucket==='avatars' && !isBannerPath(bucket,path);
 // The frame size of a baseline / progressive JPEG, read from its SOF segment (bounds-checked) before anything is decoded.
 export function jpegFrameSize(b) {
  if(b.length<4 || b[0]!==0xff || b[1]!==0xd8 || b[2]!==0xff) return null;
@@ -38,25 +44,32 @@ export function jpegFrameSize(b) {
  }
  return null;
 }
-// -> the bytes to store. Throws INVALID_BANNER_TYPE / INVALID_BANNER_SIZE / INVALID_BANNER / BANNER_DECODER_UNAVAILABLE.
-export function processBanner(bytes,mime,jpeg) {
- if(!jpeg || typeof jpeg.decode!=='function' || typeof jpeg.encode!=='function') throw Error('BANNER_DECODER_UNAVAILABLE');
- if(mime!=='image/jpeg') throw Error('INVALID_BANNER_TYPE');
- if(!(bytes instanceof Uint8Array) || bytes.length<4 || bytes.length>BANNER.maxBytes) throw Error('INVALID_BANNER');
+// The strict decode / re-encode both image kinds share: `fits` bounds the frame before anything is decoded; `kind` names the error codes (INVALID_<KIND>_TYPE,
+// INVALID_<KIND>_SIZE, INVALID_<KIND>, <KIND>_DECODER_UNAVAILABLE). -> the gateway's own JPEG bytes.
+function reencodeJpeg(bytes,mime,jpeg,{kind,maxBytes,quality,maxResolutionInMP,fits}) {
+ if(!jpeg || typeof jpeg.decode!=='function' || typeof jpeg.encode!=='function') throw Error(`${kind}_DECODER_UNAVAILABLE`);
+ if(mime!=='image/jpeg') throw Error(`INVALID_${kind}_TYPE`);
+ if(!(bytes instanceof Uint8Array) || bytes.length<4 || bytes.length>maxBytes) throw Error(`INVALID_${kind}`);
  const frame=jpegFrameSize(bytes);
- if(!frame) throw Error('INVALID_BANNER_TYPE');
- if(frame.width!==BANNER.width || frame.height!==BANNER.height) throw Error('INVALID_BANNER_SIZE');
- if(bytes[bytes.length-2]!==0xff || bytes[bytes.length-1]!==0xd9) throw Error('INVALID_BANNER');   // truncated (no end-of-image marker)
+ if(!frame) throw Error(`INVALID_${kind}_TYPE`);
+ if(!fits(frame)) throw Error(`INVALID_${kind}_SIZE`);
+ if(bytes[bytes.length-2]!==0xff || bytes[bytes.length-1]!==0xd9) throw Error(`INVALID_${kind}`);   // truncated (no end-of-image marker)
  let image;
- try { image=jpeg.decode(bytes,{useTArray:true,formatAsRGBA:true,tolerantDecoding:false,maxResolutionInMP:1,maxMemoryUsageInMB:32}); }
- catch { throw Error('INVALID_BANNER'); }
- if(!image || image.width!==BANNER.width || image.height!==BANNER.height || image.data?.length!==BANNER.width*BANNER.height*4) throw Error('INVALID_BANNER');
+ try { image=jpeg.decode(bytes,{useTArray:true,formatAsRGBA:true,tolerantDecoding:false,maxResolutionInMP,maxMemoryUsageInMB:32}); }
+ catch { throw Error(`INVALID_${kind}`); }
+ if(!image || image.width!==frame.width || image.height!==frame.height || image.data?.length!==frame.width*frame.height*4) throw Error(`INVALID_${kind}`);
  let out;
- try { out=jpeg.encode({data:image.data,width:image.width,height:image.height},BANNER.quality)?.data; }
- catch { throw Error('INVALID_BANNER'); }
- if(!out || out.length<4 || out[0]!==0xff || out[1]!==0xd8 || out.length>BANNER.maxBytes) throw Error('INVALID_BANNER');
+ try { out=jpeg.encode({data:image.data,width:image.width,height:image.height},quality)?.data; }
+ catch { throw Error(`INVALID_${kind}`); }
+ if(!out || out.length<4 || out[0]!==0xff || out[1]!==0xd8 || out.length>maxBytes) throw Error(`INVALID_${kind}`);
  return new Uint8Array(out);
 }
+// -> the bytes to store. Throws INVALID_BANNER_TYPE / INVALID_BANNER_SIZE / INVALID_BANNER / BANNER_DECODER_UNAVAILABLE.
+export const processBanner=(bytes,mime,jpeg)=>reencodeJpeg(bytes,mime,jpeg,{kind:'BANNER',maxBytes:BANNER.maxBytes,quality:BANNER.quality,maxResolutionInMP:1,
+ fits:f=>f.width===BANNER.width && f.height===BANNER.height});
+// -> the bytes to store: a square 16-1024 px JPEG. Throws INVALID_AVATAR_TYPE / INVALID_AVATAR_SIZE / INVALID_AVATAR / AVATAR_DECODER_UNAVAILABLE.
+export const processAvatar=(bytes,mime,jpeg)=>reencodeJpeg(bytes,mime,jpeg,{kind:'AVATAR',maxBytes:AVATAR.maxBytes,quality:AVATAR.quality,maxResolutionInMP:1.1,
+ fits:f=>f.width===f.height && f.width>=AVATAR.minSide && f.width<=AVATAR.maxSide});
 export async function boundedBody(request, max=USAGE_CHUNK_BYTES) {
  const reader=request.body?.getReader(); if(!reader) return new Uint8Array();
  const chunks=[]; let size=0;
@@ -137,13 +150,15 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
   }
   if(objectRoute) {
    const [,bucket,rawPath]=objectRoute; const path=decodeURIComponent(rawPath); const owner=validate(bucket,path);
-   const banner=isBannerPath(bucket,path);
+   const banner=isBannerPath(bucket,path),avatar=isAvatarPath(bucket,path);
    if(banner && !BANNER_PATH.test(path)) throw Error('INVALID_UPLOAD_PATH');
    if(request.method==='DELETE') {await rpc('authorize_usage_delete',{candidate_owner:owner,candidate_bucket:bucket,candidate_path:path});if(banner)await rpc('authorize_banner_delete',{candidate_owner:owner,candidate_path:path});await remove(bucket,path);await signal(owner);return respond({deleted:true});}
    if(request.method!=='POST' || !['avatars','wall-media'].includes(bucket)) return respond({error:'USE_RESUMABLE_UPLOAD'},400);
-   let bytes=await boundedBody(request,banner?BANNER.maxBytes:USAGE_CHUNK_BYTES); let mime=request.headers.get('content-type')?.split(';')[0];
-   // the stored Banner is the gateway's own re-encoded JPEG; its length is what gets reserved and checked on completion
+   if(avatar && !AVATAR_PATH.test(path)) throw Error('INVALID_UPLOAD_PATH');   // new Avatars only; deleting an older one (any name) is unchanged
+   let bytes=await boundedBody(request,banner?BANNER.maxBytes:avatar?AVATAR.maxBytes:USAGE_CHUNK_BYTES); let mime=request.headers.get('content-type')?.split(';')[0];
+   // the stored Banner / Avatar is the gateway's own re-encoded JPEG; its length is what gets reserved and checked on completion
    if(banner) {bytes=processBanner(bytes,mime,jpeg);mime='image/jpeg';}
+   if(avatar) {bytes=processAvatar(bytes,mime,jpeg);mime='image/jpeg';}
    const x=await rpc('reserve_usage_upload',{candidate_owner:owner,candidate_bucket:bucket,candidate_path:path,candidate_bytes:bytes.length,candidate_mime:mime});
    if(x.state==='COMPLETE') return respond({path});
    if(Date.now()-Date.parse(x.created_at)>24*60*60*1000)throw Error('UPLOAD_EXPIRED');
@@ -156,6 +171,7 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
   if(route==='tus' && request.method==='POST') {
    const md=uploadMetadata(request.headers.get('upload-metadata')); const owner=validate(md.bucketName,md.objectName||'');
    if(isBannerPath(md.bucketName,md.objectName||'')) throw Error('BANNER_REQUIRES_DIRECT_UPLOAD');
+   if(md.bucketName==='avatars') throw Error('AVATAR_REQUIRES_DIRECT_UPLOAD');   // only the direct route validates image content
    const length=Number(request.headers.get('upload-length')); if(!Number.isSafeInteger(length)||length<1) throw Error('INVALID_UPLOAD_LENGTH');
    // Edge proxies may represent Content-Length: 0 as an empty body stream.
    // Reject actual inline data, not the presence of that stream.
@@ -183,6 +199,7 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
    if(x.state==='COMPLETE' && request.method==='HEAD') return respond(null,200,{'Upload-Offset':String(x.expected_bytes),'Upload-Length':String(x.expected_bytes),'Tus-Resumable':'1.0.0'});
    if(x.state==='COMPLETE') return respond({error:'UPLOAD_COMPLETE'},409);
    if(request.method==='PATCH' && Date.now()-Date.parse(x.created_at)>24*60*60*1000)throw Error('UPLOAD_EXPIRED');
+   if(request.method==='PATCH' && x.bucket==='avatars') throw Error('AVATAR_REQUIRES_DIRECT_UPLOAD');   // a resumable Avatar upload can never be continued
    const remote=safeUpstream(x.upstream_url); const headers={...service,'Tus-Resumable':'1.0.0'}; let body;
    if(request.method==='PATCH') {
     const offset=Number(request.headers.get('upload-offset'));
@@ -204,7 +221,8 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
   const code=String(error.message);
   // Diagnostic codes only: never URLs, private paths, credentials or bodies.
   log(['INVALID_UPLOAD_LOCATION','UPLOAD_SIZE_MISMATCH','UPLOAD_NOT_OWNED','UPLOAD_CONFLICT','INVALID_UPLOAD_CREATION','ACCOUNT_STORAGE_QUOTA_EXCEEDED'].includes(code)?code:'UPLOAD_GATEWAY_FAILED');
-  const allowed=['INVALID_BANNER','INVALID_BANNER_TYPE','INVALID_BANNER_SIZE','BANNER_REQUIRES_DIRECT_UPLOAD','BANNER_IN_USE','BANNER_DECODER_UNAVAILABLE','ACCOUNT_STORAGE_QUOTA_EXCEEDED','INVALID_UPLOAD','INVALID_UPLOAD_PATH','INVALID_UPLOAD_BUCKET','INVALID_UPLOAD_LENGTH','INVALID_UPLOAD_METADATA','INVALID_UPLOAD_CREATION','UPLOAD_NOT_OWNED','UPLOAD_CONFLICT','UPLOAD_LENGTH_EXCEEDED','CHUNK_TOO_LARGE','OBJECT_ALREADY_EXISTS','UPLOAD_EXPIRED','INTRO_PROCESSING_IN_PROGRESS'];
+  const allowed=['INVALID_BANNER','INVALID_BANNER_TYPE','INVALID_BANNER_SIZE','BANNER_REQUIRES_DIRECT_UPLOAD','BANNER_IN_USE','BANNER_DECODER_UNAVAILABLE',
+   'INVALID_AVATAR','INVALID_AVATAR_TYPE','INVALID_AVATAR_SIZE','AVATAR_REQUIRES_DIRECT_UPLOAD','AVATAR_DECODER_UNAVAILABLE','ACCOUNT_STORAGE_QUOTA_EXCEEDED','INVALID_UPLOAD','INVALID_UPLOAD_PATH','INVALID_UPLOAD_BUCKET','INVALID_UPLOAD_LENGTH','INVALID_UPLOAD_METADATA','INVALID_UPLOAD_CREATION','UPLOAD_NOT_OWNED','UPLOAD_CONFLICT','UPLOAD_LENGTH_EXCEEDED','CHUNK_TOO_LARGE','OBJECT_ALREADY_EXISTS','UPLOAD_EXPIRED','INTRO_PROCESSING_IN_PROGRESS'];
   return respond({error:allowed.includes(code)?code:'UPLOAD_GATEWAY_FAILED'},code==='ACCOUNT_STORAGE_QUOTA_EXCEEDED'||code==='CHUNK_TOO_LARGE'?413:code==='UPLOAD_NOT_OWNED'?403:allowed.includes(code)?400:502);
  }
 }

@@ -65,6 +65,7 @@ export function createCrewsDirectory({ doc = globalThis.document, panel, handle,
   let loaded = false;
   const paint = () => {
     const grid = h("div", "crew-grid");
+    grid.setAttribute("data-count", String(Math.min(crews.length, 3)));   // CP-01: columns per desktop row (public.css)
     grid.append(...crews.map(crew => crewCard(h, crew, { ownerHandle: handle, pathname, loadAvatar })));
     return grid;
   };

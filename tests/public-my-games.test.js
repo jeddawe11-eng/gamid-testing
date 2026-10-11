@@ -528,6 +528,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261011160000_artwork_environment_wide.sql",   // artwork for every TESTING account (allowlist removed); public identity / My Games untouched
       "20261011180000_favorite_games.sql",   // Favorite Games (profiles.favorite_games + own RPCs + get_public_favorite_games) and artwork covers; public identity / My Games untouched
       "20261011200000_roles_favorites_crews.sql",   // Gaming Roles in 8 categories + Suggest a Role (admin review), Favorite Games 4, Crew header artwork; public identity / My Games untouched
+      "20261011220000_avatar_validated_attach.sql",   // ISS-0007: a new Avatar must be a gateway-validated JPEG; public identity / My Games untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

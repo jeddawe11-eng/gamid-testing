@@ -59,11 +59,11 @@ function fixture({quota=false,user=OWNER,worker=false,stored=null,remoteStatus=2
 }
 
 test('gateway measures ordinary upload bytes, keeps credentials private and recovers committed retries',async()=>{
- const f=fixture();const r=await f.run(`object/avatars/${OWNER}/avatar.webp`,'POST',{'Content-Type':'image/webp','Upload-Length':'1'},new Uint8Array(4));
+ const f=fixture();const r=await f.run(`object/wall-media/${OWNER}/picture.png`,'POST',{'Content-Type':'image/png','Upload-Length':'1'},new Uint8Array(4));
  assert.equal(r.status,200);assert.equal(f.x.expected_bytes,4);assert.equal(f.x.state,'COMPLETE');
  const reserve=f.calls.find(c=>c.url.endsWith('/reserve_usage_upload'));assert.equal(JSON.parse(reserve.body).candidate_bytes,4);
  const payload=await r.text();assert.doesNotMatch(payload,/private-service|private-upstream/);
- const before=f.calls.filter(c=>c.url.includes('/storage/v1/object/')).length;assert.equal((await f.run(`object/avatars/${OWNER}/avatar.webp`,'POST',{'Content-Type':'image/webp'},new Uint8Array(4))).status,200);assert.equal(f.calls.filter(c=>c.url.includes('/storage/v1/object/')).length,before);
+ const before=f.calls.filter(c=>c.url.includes('/storage/v1/object/')).length;assert.equal((await f.run(`object/wall-media/${OWNER}/picture.png`,'POST',{'Content-Type':'image/png'},new Uint8Array(4))).status,200);assert.equal(f.calls.filter(c=>c.url.includes('/storage/v1/object/')).length,before);
 });
 
 test('aggregate quota rejection happens before any ordinary or TUS Storage write',async()=>{
@@ -108,7 +108,7 @@ test('Edge internal request URLs return the public gateway route for subsequent 
 test('successful uploads tolerate real PostgREST 204 responses from void usage signals',async()=>{
  const f=fixture({voidStatus:204});assert.equal((await f.run('tus','POST',{'Upload-Length':'4','Upload-Metadata':metadata()})).status,201);
  assert.equal((await f.run(`tus/${ID}`,'PATCH',{'Upload-Offset':'0'},new Uint8Array(4))).status,204);
- assert.equal((await fixture({voidStatus:204}).run(`object/avatars/${OWNER}/avatar.webp`,'POST',{'Content-Type':'image/webp'},new Uint8Array(4))).status,200);
+ assert.equal((await fixture({voidStatus:204}).run(`object/wall-media/${OWNER}/picture.png`,'POST',{'Content-Type':'image/png'},new Uint8Array(4))).status,200);
 });
 
 test('uncertain upload failure keeps capacity charged; confirmed remote termination permits release; late requests cannot use expired reservations',async()=>{

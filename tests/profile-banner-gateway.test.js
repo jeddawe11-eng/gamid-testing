@@ -1,10 +1,10 @@
 // Classic Profile Banner in the usage-upload gateway (Phase 1B): only a direct POST of a JPEG that the trusted decoder (jpeg-js, the same pinned version the
 // Edge Function imports) fully decodes as exactly 1920x320 is accepted, and what is stored is the gateway's own re-encoded JPEG. Every refusal happens before
-// any quota is reserved or anything is written. Avatar uploads are untouched.
+// any quota is reserved or anything is written. Avatars (ISS-0007) use the same path: a square JPEG, re-encoded by the gateway.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import jpeg from 'jpeg-js';
-import {handleUsageUpload,processBanner,jpegFrameSize,isBannerPath,BANNER} from '../supabase/functions/_shared/usage-upload.js';
+import {handleUsageUpload,processBanner,processAvatar,jpegFrameSize,isBannerPath,isAvatarPath,BANNER,AVATAR} from '../supabase/functions/_shared/usage-upload.js';
 
 const BASE='https://upvtrczefcvigxdyuylw.supabase.co';
 const OWNER='11111111-1111-4111-8111-111111111111',OTHER='22222222-2222-4222-8222-222222222222',FILE='44444444-4444-4444-8444-444444444444';
@@ -103,11 +103,71 @@ test('an attached Banner cannot be deleted through the gateway; a detached one c
  assert.ok(!f.calls.some(c=>c.url.endsWith('/authorize_banner_delete')),'the Avatar delete path is unchanged');
 });
 
-test('Avatar uploads are unchanged: same bytes stored, same reservation, the decoder is never consulted', async () => {
- let consulted=false;const spy={decode:()=>{consulted=true;throw Error('no');},encode:()=>{consulted=true;throw Error('no');}};
- const f=fixture();const bytes=new Uint8Array([1,2,3,4]);
- const r=await f.run(`object/avatars/${OWNER}/avatar-${FILE}.webp`,'POST',{'Content-Type':'image/webp'},bytes,spy);
- assert.equal(r.status,200);assert.deepEqual(f.stored(),bytes);assert.equal(JSON.parse(f.calls.find(c=>c.url.endsWith('/reserve_usage_upload')).body).candidate_bytes,4);assert.equal(consulted,false);
+// ISS-0007: Avatars go through the same trusted decode / re-encode (a square 16-1024 px JPEG at <uid>/avatar-<uuid>.jpg); the earlier byte-for-byte path is gone.
+const avatarRoute=(owner=OWNER,name=`avatar-${FILE}.jpg`)=>`object/avatars/${owner}/${name}`;
+const AVATAR_JPEG=picture(512,512);
+test('ISS-0007: a valid square Avatar JPEG is fully decoded and stored as the gateway\'s own JPEG; the reservation is exactly the stored bytes; metadata never survives', async () => {
+ const f=fixture();const r=await f.run(avatarRoute(),'POST',{'Content-Type':'image/jpeg'},withExif(AVATAR_JPEG));
+ assert.equal(r.status,200);assert.equal(f.x.state,'COMPLETE');
+ const stored=f.stored();assert.notDeepEqual(stored,AVATAR_JPEG,'re-encoded, never the uploaded bytes');
+ assert.deepEqual(jpegFrameSize(stored),{width:512,height:512});assert.deepEqual([stored[0],stored[1],stored.at(-2),stored.at(-1)],[0xff,0xd8,0xff,0xd9]);
+ assert.ok(!contains(stored,'Exif')&&!contains(stored,'GPS')&&!contains(stored,'secret-camera-serial'));
+ const reserve=JSON.parse(f.calls.find(c=>c.url.endsWith('/reserve_usage_upload')).body);
+ assert.equal(reserve.candidate_bytes,stored.length);assert.equal(reserve.candidate_mime,'image/jpeg');assert.equal(reserve.candidate_bucket,'avatars');
+ assert.equal(f.calls.find(c=>c.url.includes('/storage/v1/object/')&&c.method==='POST').headers['Content-Type'],'image/jpeg','stored type = stored bytes');
+ assert.deepEqual(processAvatar(AVATAR_JPEG,'image/jpeg',jpeg),processAvatar(AVATAR_JPEG,'image/jpeg',jpeg),'deterministic, so a retried upload reserves the same length');
+ for(const side of [AVATAR.minSide,AVATAR.maxSide]) assert.deepEqual(jpegFrameSize(processAvatar(picture(side,side,80),'image/jpeg',jpeg)),{width:side,height:side});
+});
+
+test('ISS-0007: disguised, mismatched, unsupported, corrupted, non-square and oversized Avatars are refused before any reservation or write', async () => {
+ const png=new Uint8Array([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0,0,0,13,0x49,0x48,0x44,0x52,0,0,2,0,0,0,2,0,8,6,0,0,0]);
+ const webp=new TextEncoder().encode('RIFF\x24\0\0\0WEBPVP8 \x18\0\0\0');
+ const corrupt=AVATAR_JPEG.slice();for(let i=Math.floor(corrupt.length/2);i<Math.floor(corrupt.length/2)+64;i+=2){corrupt[i]=0xff;corrupt[i+1]=0x01;}
+ const cases=[
+  ['JPEG declared as WebP','image/webp',AVATAR_JPEG,400,'INVALID_AVATAR_TYPE'],
+  ['JPEG declared as PNG','image/png',AVATAR_JPEG,400,'INVALID_AVATAR_TYPE'],
+  ['no declared type',undefined,AVATAR_JPEG,400,'INVALID_AVATAR_TYPE'],
+  ['PNG bytes declared as JPEG','image/jpeg',png,400,'INVALID_AVATAR_TYPE'],
+  ['WebP bytes declared as JPEG','image/jpeg',webp,400,'INVALID_AVATAR_TYPE'],
+  ['HTML declared as JPEG','image/jpeg',new TextEncoder().encode('<html><script>alert(1)</script></html>'),400,'INVALID_AVATAR_TYPE'],
+  ['random bytes declared as JPEG','image/jpeg',new Uint8Array([1,2,3,4]),400,'INVALID_AVATAR_TYPE'],
+  ['not square (512x511)','image/jpeg',picture(512,511),400,'INVALID_AVATAR_SIZE'],
+  ['too small (8x8)','image/jpeg',picture(8,8),400,'INVALID_AVATAR_SIZE'],
+  ['too large (1040x1040)','image/jpeg',picture(1040,1040,40),400,'INVALID_AVATAR_SIZE'],
+  ['truncated in the scan','image/jpeg',AVATAR_JPEG.slice(0,Math.floor(AVATAR_JPEG.length/2)),400,'INVALID_AVATAR'],
+  ['corrupted scan with a valid end marker','image/jpeg',corrupt,400,'INVALID_AVATAR'],
+  ['empty','image/jpeg',new Uint8Array(0),400,'INVALID_AVATAR'],
+  ['over 5 MiB','image/jpeg',new Uint8Array(AVATAR.maxBytes+1),413,'CHUNK_TOO_LARGE'],
+ ];
+ for(const [label,mime,body,status,code] of cases){
+  const f=fixture();const r=await f.run(avatarRoute(),'POST',mime?{'Content-Type':mime}:{},body);
+  assert.equal(r.status,status,label);assert.equal(await errorOf(r),code,label);assert.equal(f.touched(),false,`${label}: nothing reserved or stored`);
+ }
+});
+
+test('ISS-0007: Avatar paths are strict, other owners are refused, and it fails closed without the decoder; deleting an older Avatar still works', async () => {
+ for(const name of [`avatar-${FILE}.webp`,`avatar-${FILE}.png`,`${FILE}.jpg`,`avatar-${FILE}.JPG`,`avatar-${FILE}.jpg.html`,`sub/avatar-${FILE}.jpg`]){
+  const f=fixture();const r=await f.run(avatarRoute(OWNER,name),'POST',{'Content-Type':'image/jpeg'},AVATAR_JPEG);
+  assert.equal(r.status,400,name);assert.equal(await errorOf(r),'INVALID_UPLOAD_PATH',name);assert.equal(f.touched(),false,name);
+ }
+ let f=fixture();let r=await f.run(avatarRoute(OTHER),'POST',{'Content-Type':'image/jpeg'},AVATAR_JPEG);assert.equal(r.status,403);assert.equal(f.touched(),false);
+ f=fixture({user:null});r=await f.run(avatarRoute(),'POST',{'Content-Type':'image/jpeg'},AVATAR_JPEG);assert.equal(r.status,401);assert.equal(f.touched(),false);
+ f=fixture();r=await f.run(avatarRoute(),'POST',{'Content-Type':'image/jpeg'},AVATAR_JPEG,null);
+ assert.equal(await errorOf(r),'AVATAR_DECODER_UNAVAILABLE');assert.equal(f.touched(),false,'no decoder: never stored unchecked');
+ f=fixture({inUse:true});r=await f.run(`object/avatars/${OWNER}/avatar-${FILE}.webp`,'DELETE');assert.equal(r.status,200,'an existing (older) Avatar can still be deleted');
+ assert.ok(!f.calls.some(c=>c.url.endsWith('/authorize_banner_delete')));
+});
+
+test('ISS-0007: the resumable (TUS) route refuses the avatars bucket - creating, and continuing an earlier receipt', async () => {
+ for(const name of [`${OWNER}/avatar-${FILE}.jpg`,`${OWNER}/avatar-${FILE}.webp`,`${OWNER}/${FILE}.bin`]){
+  const meta=[['bucketName','avatars'],['objectName',name],['contentType','image/jpeg']].map(([k,v])=>`${k} ${btoa(v)}`).join(',');
+  const f=fixture();const r=await f.run('tus','POST',{'Upload-Length':String(AVATAR_JPEG.length),'Upload-Metadata':meta});
+  assert.equal(r.status,400,name);assert.equal(await errorOf(r),'AVATAR_REQUIRES_DIRECT_UPLOAD',name);assert.equal(f.touched(),false,name);
+ }
+ const f=fixture();Object.assign(f.x,{bucket:'avatars',path:`${OWNER}/avatar-${FILE}.jpg`,expected_bytes:4,upstream_url:'https://upvtrczefcvigxdyuylw.storage.supabase.co/storage/v1/upload/resumable/x'});
+ const r=await f.run(`tus/${FILE}`,'PATCH',{'Upload-Offset':'0'},new Uint8Array(4));
+ assert.equal(r.status,400);assert.equal(await errorOf(r),'AVATAR_REQUIRES_DIRECT_UPLOAD');assert.ok(!f.calls.some(c=>c.url.includes('storage.supabase.co')),'nothing forwarded to Storage');
+ assert.equal(isAvatarPath('avatars',`${OWNER}/banner/${FILE}.jpg`),false);assert.equal(isAvatarPath('wall-media',`${OWNER}/avatar-${FILE}.jpg`),false);
 });
 
 test('the Edge Function imports the pinned decoder and passes it to the gateway', async () => {

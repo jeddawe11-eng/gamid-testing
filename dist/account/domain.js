@@ -168,6 +168,12 @@ export const errorMessage = reason => ({
   UPLOAD_GATEWAY_FAILED: "The upload service is not responding right now. Select Save Changes to try again in a moment.",
   CHUNK_TOO_LARGE: "That file could not be sent. Choose a smaller file.",
   AVATAR_UPLOAD_NETWORK_ERROR: "The avatar upload could not reach GamID. Check your connection, then select Save Changes again.",
+  INVALID_AVATAR: "That image could not be read. Choose another image.",
+  INVALID_AVATAR_TYPE: "That file is not a supported image. Choose a JPG, PNG, WebP, or AVIF image.",
+  INVALID_AVATAR_SIZE: "That image is too small or too large. Choose another image.",
+  INVALID_AVATAR_PATH: "The avatar could not be saved. Choose the image again.",
+  AVATAR_DECODER_UNAVAILABLE: "Avatars can't be saved right now. Try again in a moment.",
+  AVATAR_REQUIRES_DIRECT_UPLOAD: "The avatar could not be saved. Choose the image again.",
   AUTH_REQUIRED: "Your session expired. Sign in again before saving your Intro.",
 }[reason] || reason || "Something went wrong. Please try again.");
 

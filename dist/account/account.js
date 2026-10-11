@@ -1,7 +1,7 @@
 import { mountProfileEditor, sectionDraft, sectionChanged, createSectionSaveQueue } from "./profile-editor.js";
 import { createTransientMessage } from "./transient-message.js";
 import { INTRO_TRANSITIONS, authErrorMessage, authLanding, authTabFromSearch, debounceAsync, describeIntroProcessingFailure, errorMessage, hasIntroChanges, hasProfileChanges, normalizeHandle, searchWithoutAuth, validateHandle, validateIntroSource, validateProfileDraft } from "./domain.js";
-import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, createOwnedImageBlob, drawCropPreview, loadOrientedImage } from "./avatar-cropper.js";
+import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormalizedAvatar, createOwnedImageBlob, drawCropPreview, loadOrientedImage, normalizeAvatarFile } from "./avatar-cropper.js";
 import { PRESETS } from "../transition-engine.js";
 import * as api from "./supabase-client.js";
 import { createIntroSourceResolver } from "./intro-source.js";
@@ -370,15 +370,24 @@ function mountRoleSuggestion() {
   });
 }
 
-// Role Suggestions review: GamID administrators only (get_my_admin_status; every review RPC checks again on the server)
+// Role Suggestions review: GamID administrators only (get_my_admin_status; every review RPC checks again on the server). GR-01: it is the very end of the
+// Gaming Roles section, after Suggest a Role, and is built only for an administrator. Its actions are immediate and never part of the Gaming Roles draft.
 async function mountRoleReview() {
-  const section = document.getElementById("roleSuggestionsSection");
-  if (!section) return;
+  const panel = document.getElementById("rolesSectionPanel");
+  if (!panel || document.getElementById("roleSuggestionsSection")) return;
   let admin = false;
   try { admin = await api.getMyAdminStatus(); } catch { admin = false; }
-  section.hidden = !admin;
-  if (!admin) return;
-  const list = document.getElementById("roleSuggestionsList"), message = document.getElementById("roleSuggestionsMessage");
+  if (!admin || document.getElementById("roleSuggestionsSection")) return;
+  const section = document.createElement("div"); section.id = "roleSuggestionsSection"; section.className = "role-review"; section.setAttribute("aria-label", "Role Suggestions");
+  const title = document.createElement("h4"); title.className = "role-review-title"; title.textContent = "Role Suggestions";
+  const badge = document.createElement("small"); badge.textContent = " · Administrators only"; title.append(badge);
+  const lede = document.createElement("p"); lede.className = "connections-lede"; lede.textContent = "Gaming Role suggestions from players. Approve one into a category to add it to the catalog, or reject it.";
+  const list = document.createElement("div"); list.id = "roleSuggestionsList";
+  const message = document.createElement("p"); message.id = "roleSuggestionsMessage"; message.className = "connections-message"; message.setAttribute("role", "status"); message.hidden = true;
+  section.append(title, lede, list, message);
+  // the section lives inside the profile form: Enter in a review field must not submit (save) Gaming Roles
+  section.addEventListener("keydown", event => { if (event.key === "Enter" && event.target?.tagName === "INPUT") event.preventDefault(); });
+  panel.append(section);
   const categories = roleCategories || await api.getGamingRoleCategories().catch(() => []);
   const render = async () => {
     let rows = [];
@@ -2052,7 +2061,7 @@ onboardingForm.addEventListener("submit", async event => {
     await api.createSoloIdentity({ handle: values.handle, displayName: values.displayName, dateOfBirth: values.dateOfBirth, language: values.language });
     let avatarFailure = null;
     if (avatar) {
-      try { await api.uploadAvatar(avatar, api.userIdFromToken()); }
+      try { await api.uploadAvatar(await normalizeAvatarFile(avatar), api.userIdFromToken()); }
       catch (error) { avatarFailure = error; }
     }
     const created = await api.getIdentity(); await showIdentity(created);

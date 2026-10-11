@@ -270,7 +270,13 @@ button.desk-connected-card:hover,button.desk-connected-card:focus-visible{border
 /* the full-screen panels (profile-panel.js) reuse the My Games dialog; My Crews is a grid of large cards */
 .profile-panel-body{width:min(62rem,100%)}
 .profile-panel-content{padding:.25rem 1rem 1rem}
-.crew-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:1rem}
+/* CP-01: the My Crews panel fits its cards - one, two or three per row (never more), each at most 19rem, centred; four or more wrap; the panel shrinks to the grid */
+.crew-grid{--crew-cols:1;display:grid;grid-template-columns:repeat(var(--crew-cols),minmax(0,19rem));justify-content:center;gap:1rem}
+.crew-grid[data-count="2"]{--crew-cols:2}.crew-grid[data-count="3"]{--crew-cols:3}
+.profile-panel-body:has(.crew-grid){width:fit-content;max-width:min(62rem,100%);min-width:min(22rem,100%)}
+.crew-card{min-width:0}
+@media(max-width:59.99rem){.crew-grid[data-count="3"]{--crew-cols:2}}
+@media(max-width:39.99rem){.crew-grid{grid-template-columns:minmax(0,1fr)}.profile-panel-body:has(.crew-grid){width:100%;min-width:0}}
 .crew-card{position:relative;display:grid;align-content:end;gap:.75rem;aspect-ratio:16/9;padding:1rem;border:1px solid rgba(255,255,255,.16);border-radius:1rem;overflow:hidden;color:#fff;text-decoration:none;isolation:isolate}
 .crew-card:hover,.crew-card:focus-visible{border-color:var(--cyan);outline:none}
 .crew-card-bg{position:absolute;inset:0;z-index:-2;background:linear-gradient(135deg,#3b2a73,#1f4d73)}

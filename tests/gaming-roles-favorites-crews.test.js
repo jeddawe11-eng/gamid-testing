@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { handleGameArtwork, crewFrom } from "../supabase/functions/_shared/game-artwork.js";
 import { favoriteGamesSection, FAVORITE_GAMES_SHOWN } from "../dist/public/public-desktop.js";
+import { createCrewsDirectory } from "../dist/public/crews-directory.js";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
 const migration = read("supabase/migrations/20261011200000_roles_favorites_crews.sql");
@@ -179,5 +180,30 @@ test("Gaming Roles editor and badges: categories with counts, selected chips + C
   assert.match(preview, /els\.previewSecondaryRoles\.replaceChildren\(/);
   assert.doesNotMatch(preview, /secondaryRoles\|\|\[\]\)\.join\(/);
   assert.match(css, /#previewSecondaryRoles\{display:contents\}/);
-  assert.match(read("dist/account/profile-editor.js"), /\['#roleSuggestionsSection','role-suggestions','Role Suggestions'/);
+  // GR-01: no separate Role Suggestions card - the administrators' review is the last block inside Gaming Roles, built only for an administrator
+  assert.doesNotMatch(read("dist/account/profile-editor.js"), /roleSuggestionsSection|role-suggestions/);
+  assert.doesNotMatch(read("dist/account/index.html"), /roleSuggestionsSection/);
+  assert.match(account, /if \(!admin \|\| document\.getElementById\("roleSuggestionsSection"\)\) return;/);
+  assert.match(account, /section\.id = "roleSuggestionsSection"; section\.className = "role-review";/);
+  assert.match(account, /panel\.append\(section\);/);
+});
+
+test("CP-01 My Crews panel: one, two or three cards per row (never more), at most 19rem each and centred; four or more wrap; the panel fits its cards", async () => {
+  const el = tag => ({ tag, children: [], attrs: {}, className: "", textContent: "", style: {}, setAttribute(k, v) { this.attrs[k] = v; }, append(...n) { this.children.push(...n); }, addEventListener() {} });
+  const doc = { createElement: el };
+  const rows = n => Array.from({ length: n }, (_, i) => ({ crew_id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(i).padStart(12, "0")}`, crew_name: `Crew ${i}`, role: "MEMBER", game_key: "valorant", game_name: "Valorant", member_count: 2, members: [] }));
+  for (const [count, cols] of [[1, "1"], [2, "2"], [3, "3"], [4, "3"], [7, "3"]]) {
+    let grid = null;
+    const panel = { open: (label, content) => { grid = content; }, isOpen: () => false, body: {} };
+    await createCrewsDirectory({ doc, panel, handle: "black", section: rows(count), api: { getPublicCrews: async () => rows(count) } }).open();
+    assert.equal(grid.attrs["data-count"], cols, `${count} Crews`);
+    assert.equal(grid.children.length, count, `${count} cards, each a link to its Crew Wall`);
+  }
+  const css = read("dist/public/public.css");
+  assert.match(css, /\.crew-grid\{--crew-cols:1;display:grid;grid-template-columns:repeat\(var\(--crew-cols\),minmax\(0,19rem\)\);justify-content:center;gap:1rem\}/);
+  assert.match(css, /\.crew-grid\[data-count="2"\]\{--crew-cols:2\}\.crew-grid\[data-count="3"\]\{--crew-cols:3\}/);
+  assert.match(css, /\.profile-panel-body:has\(\.crew-grid\)\{width:fit-content;max-width:min\(62rem,100%\);min-width:min\(22rem,100%\)\}/);
+  assert.match(css, /@media\(max-width:59\.99rem\)\{\.crew-grid\[data-count="3"\]\{--crew-cols:2\}\}/);
+  assert.match(css, /@media\(max-width:39\.99rem\)\{\.crew-grid\{grid-template-columns:minmax\(0,1fr\)\}/);
+  assert.doesNotMatch(css, /auto-fill,minmax\(17rem,1fr\)/, "a single card is never stretched across the panel");
 });

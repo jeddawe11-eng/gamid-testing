@@ -1,5 +1,6 @@
 export const AVATAR_PREVIEW_SIZE = 320;
 export const AVATAR_MAX_OUTPUT = 512;
+export const AVATAR_MIN_OUTPUT = 16;   // the upload gateway's smallest accepted Avatar side (a tinier source is scaled up)
 export const AVATAR_MIN_SOURCE_CROP = 128;
 
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
@@ -56,7 +57,7 @@ export class AvatarCropState {
   }
 
   outputSize() {
-    return Math.max(1, Math.min(AVATAR_MAX_OUTPUT, Math.floor(this.sourceRect().size)));
+    return Math.max(AVATAR_MIN_OUTPUT, Math.min(AVATAR_MAX_OUTPUT, Math.floor(this.sourceRect().size)));
   }
 }
 
@@ -209,8 +210,17 @@ export async function createNormalizedAvatar(image, state) {
   canvas.width = outputSize;
   canvas.height = outputSize;
   canvas.getContext("2d", { alpha: false }).drawImage(image, x, y, size, size, 0, 0, outputSize, outputSize);
-  let blob = await canvasBlob(canvas, "image/webp", .9);
-  if (blob?.type !== "image/webp") blob = await canvasBlob(canvas, "image/jpeg", .92);
-  if (!blob) throw new Error("AVATAR_EXPORT_FAILED");
+  // JPEG: the upload gateway accepts only a square JPEG, which it fully decodes and re-encodes itself (ISS-0007)
+  const blob = await canvasBlob(canvas, "image/jpeg", .92);
+  if (blob?.type !== "image/jpeg") throw new Error("AVATAR_EXPORT_FAILED");
   return { blob, width: outputSize, height: outputSize };
+}
+
+// The onboarding Avatar (no crop step): the same centred square the cropper starts with, exported the same way.
+export async function normalizeAvatarFile(file, { loader = loadOrientedImage, releaser = releaseOrientedImage } = {}) {
+  const image = await loader(file);
+  try {
+    const width = image.width || image.naturalWidth, height = image.height || image.naturalHeight;
+    return (await createNormalizedAvatar(image, new AvatarCropState(width, height))).blob;
+  } finally { releaser(image); }
 }

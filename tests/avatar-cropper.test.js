@@ -32,10 +32,11 @@ test("small sources are not upscaled in the normalized output", () => {
   assert.equal(state.outputSize(), 96);
 });
 
-test("crop export architecture creates a square WebP-first Canvas derivative", async () => {
+test("crop export architecture creates a square JPEG Canvas derivative (the only type the upload gateway accepts, ISS-0007)", async () => {
   const source = await readFile(new URL("../dist/account/avatar-cropper.js", import.meta.url), "utf8");
   assert.match(source, /canvas\.width = outputSize;[\s\S]*canvas\.height = outputSize/);
-  assert.match(source, /canvasBlob\(canvas, "image\/webp", \.9\)/);
+  assert.match(source, /canvasBlob\(canvas, "image\/jpeg", \.92\)/);
+  assert.doesNotMatch(source, /image\/webp/);
   assert.match(source, /imageOrientation: "from-image"/);
 });
 

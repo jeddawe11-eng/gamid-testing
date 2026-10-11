@@ -172,11 +172,11 @@ test("avatar: a stored avatar the profile never took is removed only when the re
   assert.equal(deletes.length, 1);
 
   attachFails = true; profile = { avatar_media_reference: null };
-  await assert.rejects(api.uploadAvatar(new Blob([new Uint8Array(4)], { type: "image/png" }), uid));
+  await assert.rejects(api.uploadAvatar(new Blob([new Uint8Array(4)], { type: "image/jpeg" }), uid));
   assert.equal(deletes.length, 2, "attach failed: the stored, unused object is removed");
 
   offline = true;
-  await assert.rejects(api.uploadAvatar(new Blob([new Uint8Array(4)], { type: "image/png" }), uid, { attach: false }),
+  await assert.rejects(api.uploadAvatar(new Blob([new Uint8Array(4)], { type: "image/jpeg" }), uid, { attach: false }),
     error => error.code === "AVATAR_UPLOAD_NETWORK_ERROR" && !/Authentication/.test(error.message));
   const account = read("dist/account/account.js");
   assert.match(account, /if\(avatarPath&&owner===api\.userIdFromToken\(\)\)await api\.discardUnattachedAvatar\(avatarPath\);/, "the Profile Editor save cleans up the same way");

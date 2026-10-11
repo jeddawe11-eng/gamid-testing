@@ -55,11 +55,12 @@ async function verifyOwnerGateway(backend,fetchImpl,requireEnforcement,encodeInt
   }
   const [a,b]=users;const usage=async()=>{const r=await call('/rest/v1/rpc/get_my_usage',a.headers,{});check(r.ok,'SMOKE_OWNER_USAGE_RPC');return r.json();};
   check((await usage()).storage.used_bytes===0,'SMOKE_FIXTURE_NOT_EMPTY');
-  const path=`${a.id}/${randomUUID()}.webp`,route=`/functions/v1/usage-upload/object/avatars/${path}`;
-  const forbidden=await call(route,{...b.headers,'Content-Type':'image/webp'},new Uint8Array(4));check(forbidden.status===403,'SMOKE_CROSS_OWNER_UPLOAD');
-  const response=await call(route,{...a.headers,'Content-Type':'image/webp'},new Uint8Array(4));check(response.ok,'SMOKE_OWNER_UPLOAD');stored.push(['avatars',path]);
+  // ordinary (non-Avatar) image bytes: Avatars must be a validated JPEG (ISS-0007), so the accounting smoke uses wall-media
+  const path=`${a.id}/${randomUUID()}.png`,route=`/functions/v1/usage-upload/object/wall-media/${path}`;
+  const forbidden=await call(route,{...b.headers,'Content-Type':'image/png'},new Uint8Array(4));check(forbidden.status===403,'SMOKE_CROSS_OWNER_UPLOAD');
+  const response=await call(route,{...a.headers,'Content-Type':'image/png'},new Uint8Array(4));check(response.ok,'SMOKE_OWNER_UPLOAD');stored.push(['wall-media',path]);
   check((await usage()).storage.used_bytes===4,'SMOKE_OWNER_ACCOUNTING');
-  const retry=await call(route,{...a.headers,'Content-Type':'image/webp'},new Uint8Array(4));check(retry.ok&&(await usage()).storage.used_bytes===4,'SMOKE_OWNER_RETRY');
+  const retry=await call(route,{...a.headers,'Content-Type':'image/png'},new Uint8Array(4));check(retry.ok&&(await usage()).storage.used_bytes===4,'SMOKE_OWNER_RETRY');
   const sourcePath=`${a.id}/${randomUUID()}.mp4`,dir=await mkdtemp(join(tmpdir(),'gamid-owner-smoke-'));
   try{const filePath=join(dir,'fixture.mp4');await writeFile(filePath,'data');await uploadGatewayFile({backend:{url:base,headers:()=>a.headers},bucket:'intro-sources',path:sourcePath,filePath,mime:'video/mp4',fetchImpl});stored.push(['intro-sources',sourcePath]);}finally{await rm(dir,{recursive:true,force:true});}
   check((await usage()).storage.used_bytes===8,'SMOKE_OWNER_TUS_ACCOUNTING');
@@ -91,7 +92,7 @@ async function verifyOwnerGateway(backend,fetchImpl,requireEnforcement,encodeInt
   const enforced=(await usage()).storage.enforcement_active;check(!requireEnforcement||enforced,'SMOKE_ENFORCEMENT_OFF');
   if(enforced){
    const directPath=`${a.id}/${randomUUID()}.webp`;
-   const direct=await call(`/storage/v1/object/avatars/${directPath}`,{...a.headers,'Content-Type':'image/webp'},new Uint8Array(4));if(direct.ok)stored.push(['avatars',directPath]);check(!direct.ok,'SMOKE_DIRECT_STORAGE_BYPASS');
+   const direct=await call(`/storage/v1/object/avatars/${directPath}`,{...a.headers,'Content-Type':'image/png'},new Uint8Array(4));if(direct.ok)stored.push(['avatars',directPath]);check(!direct.ok,'SMOKE_DIRECT_STORAGE_BYPASS');
    const md=[['bucketName','intro-sources'],['objectName',`${a.id}/${randomUUID()}.mp4`],['contentType','video/mp4']].map(([k,v])=>`${k} ${Buffer.from(v).toString('base64')}`).join(',');
    const tus=await fetchImpl(base.replace('.supabase.co','.storage.supabase.co')+'/storage/v1/upload/resumable',{method:'POST',headers:{...a.headers,'Tus-Resumable':'1.0.0','Upload-Length':'4','Upload-Metadata':md,'x-upsert':'false'}});check(!tus.ok,'SMOKE_DIRECT_TUS_BYPASS');
   }

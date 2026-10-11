@@ -237,10 +237,10 @@ export async function updateLanguage(language) {
 }
 
 export async function uploadAvatar(file, userId, { attach = true } = {}) {
-  const extension = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/avif": "avif" })[file.type];
-  if (!extension) throw new ApiError("Choose a JPG, PNG, WebP, or AVIF image.", 400, "INVALID_FILE_TYPE");
+  // the Avatar is always the cropper's normalized JPEG (avatar-cropper.js); the gateway re-validates and re-encodes it (ISS-0007)
+  if (file.type !== "image/jpeg") throw new ApiError("Choose a JPG, PNG, WebP, or AVIF image.", 400, "INVALID_FILE_TYPE");
   if (file.size > 5 * 1024 * 1024) throw new ApiError("Avatar must be 5 MB or smaller.", 400, "FILE_TOO_LARGE");
-  const path = `${userId}/avatar-${crypto.randomUUID()}.${extension}`;
+  const path = `${userId}/avatar-${crypto.randomUUID()}.jpg`;
   try {
     await request(`/functions/v1/usage-upload/object/avatars/${path}`, {
       method: "POST",
