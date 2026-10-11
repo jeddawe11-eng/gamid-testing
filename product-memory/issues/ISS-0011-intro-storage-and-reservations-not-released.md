@@ -81,6 +81,12 @@ Used storage went from 67.25 MB to 37.86 MB (Intro from 30.12 MB to 0.73 MB). Re
 
 **Remaining for VERIFIED:** Mazen's targeted manual check, then his acceptance.
 
+## Manual follow-up — 2026-10-11
+
+Mazen explicitly requested this result be recorded. After the 50 MiB Intro limit was deployed on TESTING, the legacy unbound reservation of 116,291,584 bytes was cancelled via the existing `release_unbound` action (reserved 116.29 MB → 0; available 45.84 MB → 162.14 MB). The historical unreferenced Intro derivative `intro-d3.webm` (734,172 bytes) was removed through the authorized cleanup gateway; Intro usage fell from 0.73 MB to 0 MB and total stored usage from 37.86 MB to 37.13 MB. These are one-time cleanups, not proof of automatic cleanup.
+
+**Mazen's manual result: PASS for upload, FFmpeg processing and playback.** He confirmed that a new Intro uploaded, finished processing and played correctly on TESTING. The UI displayed the updated `max 50 MB` limit. **Still untested:** removing this newly uploaded Intro and observing whether its storage is reclaimed automatically without manual intervention. Keep ISS-0011 at `FIXED` rather than `VERIFIED` pending this lifecycle check and explicit final acceptance. Do not repeat the successful upload/playback test.
+
 ## History
 
 - 2026-10-11 OPEN — Found by the owner-authorized read-only investigation of Mazen's TESTING account.
