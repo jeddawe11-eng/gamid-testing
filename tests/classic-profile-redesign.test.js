@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { sniffImageType, checkBannerFile, checkBannerDimensions, coverScale, clampCrop, centeredCrop, zoomCrop, sourceRect, BANNER_OUTPUT, BANNER_SOURCE_MAX_BYTES, BANNER_ACCEPT, BANNER_SERVER_MESSAGES } from "../dist/account/banner-editor.js";
-import { normalizeLocation, validateAbout, ABOUT_LIMITS } from "../dist/account/about-editor.js";
+import { validateAbout, ABOUT_LIMITS } from "../dist/account/about-editor.js";
 
 const read = p => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 const bytes = (...parts) => new Uint8Array(parts.flatMap(p => typeof p === "string" ? [...p].map(c => c.charCodeAt(0)) : p));
@@ -46,15 +46,17 @@ test("Banner crop: always covers the 1920x320 frame, zoom 1-4 around the frame c
   }
 });
 
-test("About Me rules match the server's: Location text only, at most 5 + 5, switches only with a value", () => {
-  assert.deepEqual(normalizeLocation("  Riyadh,   Saudi Arabia "), { ok: true, value: "Riyadh, Saudi Arabia" });
-  assert.deepEqual(normalizeLocation("   "), { ok: true, value: null });
-  for (const bad of ["x".repeat(61), "https://a.b", "www.x.com", "<b>x</b>", "a\nb", "a{b}"]) assert.deepEqual(normalizeLocation(bad), { ok: false, code: "INVALID_ABOUT_LOCATION" }, bad);
-  assert.deepEqual(ABOUT_LIMITS, { location: 60, languages: 5, genres: 5 });
-  const catalogs = { languages: ["ar", "en", "fr", "es", "de", "it"].map(code => ({ code })), genres: ["rpg", "fps"].map(key => ({ key })) };
+test("About Me rules match the server's (consolidated update): Location = a catalog country (+ a city of it), languages at most 5, genres any, switches only with a value", () => {
+  assert.deepEqual(ABOUT_LIMITS, { languages: 5 });
+  const catalogs = { languages: ["ar", "en", "fr", "es", "de", "it"].map(code => ({ code })), genres: ["rpg", "fps", "mmo", "moba", "action", "racing", "sports"].map(key => ({ key })), countries: [{ code: "SA", name: "Saudi Arabia" }] };
   assert.equal(validateAbout({ languages: ["ar", "en", "fr", "es", "de", "it"] }, catalogs).code, "TOO_MANY_LANGUAGES");
-  assert.equal(validateAbout({ genres: ["mmo"] }, catalogs).code, "INVALID_GENRE");
-  assert.deepEqual(validateAbout({ location: "", languages: ["ar"], genres: [], showLocation: true, showLanguages: true, showGenres: true }, catalogs).value, { location: null, languages: ["ar"], genres: [], showLocation: false, showLanguages: true, showGenres: false });
+  assert.equal(validateAbout({ genres: ["dating"] }, catalogs).code, "INVALID_GENRE");
+  assert.equal(validateAbout({ genres: ["rpg", "fps", "mmo", "moba", "action", "racing", "sports"] }, catalogs).ok, true, "more than five genres are allowed");
+  assert.equal(validateAbout({ countryCode: "XX" }, catalogs).code, "INVALID_COUNTRY");
+  assert.equal(validateAbout({ cityId: 105343 }, catalogs).code, "INVALID_CITY", "a city needs its country");
+  assert.deepEqual(validateAbout({ languages: ["ar"], genres: [], showLocation: true, showLanguages: true, showGenres: true }, catalogs).value, { countryCode: null, cityId: null, keepLegacy: false, languages: ["ar"], genres: [], showLocation: false, showLanguages: true, showGenres: false });
+  assert.deepEqual(validateAbout({ legacy: "Jeddah Saudi Arabia", showLocation: true }, catalogs).value.keepLegacy, true, "an older typed Location is kept until replaced");
+  assert.deepEqual(validateAbout({ countryCode: "SA", cityId: 105343, legacy: "Jeddah Saudi Arabia", showLocation: true }, catalogs).value, { countryCode: "SA", cityId: 105343, keepLegacy: false, languages: [], genres: [], showLocation: true, showLanguages: false, showGenres: false });
 });
 
 test("Profile Editor: Banner and About Me are their own sections with Save Changes / Save All; nothing is saved before Save Changes", () => {

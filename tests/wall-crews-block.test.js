@@ -272,10 +272,11 @@ test("no automatic MY CREW: the public page appends nothing below the Wall - My 
   // DEC-0005 visual review (Mazen, 2026-10-10): the desktop Classic Profile - only WITHOUT a published Wall - shows a MY CREW card beneath My Duo in its sidebar.
   // It is the one crew use in the page: a .desk-only block inside the sections panel, which a published Wall hides (the Wall IS the profile body), so nothing is
   // ever appended below the Wall and the mobile / tablet panel never shows it.
-  assert.deepEqual(page.match(/crewSection\([^)]*\)/g), ["crewSection(sections?.crews, duoOptions)"], "the sections panel is the only place it is drawn");
+  // consolidated update (Mazen 2026-10-11): ONE My Crews entry that opens the consolidated view (crews-directory.js), whose cards open each existing Crew Wall
+  assert.deepEqual(page.match(/crewsEntry\([^)]*\)/g), ["crewsEntry(sections?.crews, { onOpen: opener => openCrews?.(opener)"], "the sections panel is the only place it is drawn");
   assert.match(page, /sectionsPanel\.hidden = true; gamesBlock\.hidden = true;   \/\/ the Wall IS the profile body/, "a published Wall hides the panel that holds it");
   assert.match(read("dist/public/public-desktop.js"), /h\("section", "public-section public-duo public-crew desk-only"\)/);
-  assert.deepEqual(css.match(/[^{}]*public-crew[^{}]*\{/g).map(s => s.trim()), ["html.is-public-desktop .public-crew.desk-only{"], "shown only by the desktop Classic Profile");
+  assert.deepEqual(css.match(/[^{}]*public-crew[^{}]*\{/g).map(s => s.trim()), ["html.is-public-desktop .public-crew.desk-only{", ".public-crew-card{"], "shown only by the desktop Classic Profile (the entry's own rule styles an element inside that desk-only block)");
 });
 
 // ---------- 10. My Duo unchanged ----------

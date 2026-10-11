@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { formatMemberSince } from "../dist/account/about-editor.js";
-import { createDesktopProfile, crewSection } from "../dist/public/public-desktop.js";
+import { createDesktopProfile, crewsEntry } from "../dist/public/public-desktop.js";
 import { gameTile, buildGameRow } from "../dist/public/public-games.js";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
@@ -130,37 +130,42 @@ test("games counter: the same stat, now one link to My Games - smooth scroll (in
   assert.match(read("dist/public/public-desktop.js"), /prefers-reduced-motion: reduce/);
 });
 
-// ---------------------------------------------------------------------------------------------------------------- MY CREW (desktop sidebar)
+// ---------------------------------------------------------------------------------------------------------------- MY CREWS (desktop sidebar entry; consolidated update)
 const CREW = (id, name, extra = {}) => ({ crew_id: id, crew_name: name, game_key: "league-of-legends", game_name: "League of Legends", role: "MEMBER", member_count: 4, ...extra });
 const LOL = "11111111-2222-4333-8444-555555555555", VAL = "99999999-2222-4333-8444-555555555555";
 
-test("MY CREW: every crew the server lists (its own order, no invented primary Crew), each one link to that existing Crew Wall, desktop only", () => {
-  const block = crewSection([CREW(LOL, "Night Owls"), CREW(VAL, "Spike Rushers", { game_name: "VALORANT", role: "OWNER", member_count: 1 })], { ownerHandle: "gamer", pathname: "/@gamer", doc });
+test("MY CREWS: ONE fixed entry for every listed Crew (count + games), opening the consolidated view - not one card per Crew; desktop only", () => {
+  const opened = [];
+  const block = crewsEntry([CREW(LOL, "Night Owls"), CREW(VAL, "Spike Rushers", { game_name: "VALORANT", role: "OWNER", member_count: 1 })], { onOpen: opener => opened.push(opener), doc });
   assert.equal(block.className, "public-section public-duo public-crew desk-only");
-  assert.equal(block.children[0].textContent, "MY CREW");
+  assert.equal(block.children[0].textContent, "MY CREWS");
   const cards = block.byClass("public-crew-card");
-  assert.deepEqual(cards.map(card => card.href), [`/crew/?c=${LOL}&from=gamer`, `/crew/?c=${VAL}&from=gamer`]);
-  assert.deepEqual(cards.map(card => card.getAttribute("aria-label")), ["My Crew: Night Owls, League of Legends · 4 members. Open the Crew Wall", "My Crew: Spike Rushers, VALORANT · 1 member. Open the Crew Wall"]);
-  assert.deepEqual(cards.map(card => card.first("public-crew-avatar").textContent), ["N", "S"], "no Crew image exists in the public section: the initial");
-  assert.ok(cards.every(card => card.first("public-duo-names") && card.first("public-duo-chevron")), "the My Duo card's structure (same look, long names wrap)");
-  assert.equal(crewSection([CREW(LOL, "Night Owls")], { ownerHandle: "gamer", pathname: "/public/index.html", doc }).first("public-crew-card").href, `/crew/?c=${LOL}&from=gamer`, "the temporary route too");
+  assert.equal(cards.length, 1, "one entry, whatever the number of Crews");
+  assert.equal(cards[0].tag, "button");
+  assert.equal(cards[0].getAttribute("aria-label"), "My Crews: 2 Crews (League of Legends · VALORANT). Open My Crews");
+  assert.equal(cards[0].getAttribute("aria-haspopup"), "dialog");
+  assert.deepEqual([cards[0].first("public-crew-avatar").textContent, cards[0].first("public-duo-names").children[0].textContent], ["2", "2 Crews"]);
+  cards[0].dispatch("click");
+  assert.deepEqual(opened, [cards[0]]);
+  assert.equal(crewsEntry([CREW(LOL, "Night Owls")], { onOpen() {}, doc }).first("public-duo-names").children[0].textContent, "1 Crew");
 });
 
-test("MY CREW: nothing at all without a valid crew - malformed rows are never drawn", () => {
-  for (const section of [undefined, null, [], [CREW("not-a-uuid", "X")], [CREW(LOL, "")], [CREW(LOL, "<b>x</b>")], [CREW(LOL, "Owls", { role: "INVITED" })]]) assert.equal(crewSection(section, { ownerHandle: "gamer", doc }), null, JSON.stringify(section));
+test("MY CREWS: nothing without a valid Crew (malformed rows are never drawn) or without a view to open", () => {
+  for (const section of [undefined, null, [], [CREW("not-a-uuid", "X")], [CREW(LOL, "")], [CREW(LOL, "<b>x</b>")], [CREW(LOL, "Owls", { role: "INVITED" })]]) assert.equal(crewsEntry(section, { onOpen() {}, doc }), null, JSON.stringify(section));
+  assert.equal(crewsEntry([CREW(LOL, "Night Owls")], { doc }), null);
 });
 
-test("MY CREW sits beneath My Duo inside the sections panel; a panel with only My Crew shows on the desktop profile only", () => {
+test("MY CREWS sits beneath My Duo inside the sections panel; the desktop sidebar shows only what it holds there (no empty panel)", () => {
   const page = read("dist/public/public.js");
   const sections = page.slice(page.indexOf("export function renderPublicSections"), page.indexOf("async function buildConfig"));
   assert.ok(sections.indexOf("if (duo) blocks.push(duo);") < sections.indexOf("if (crew) blocks.push(crew);"));
   assert.ok(sections.indexOf("if (crew) blocks.push(crew);") < sections.indexOf("const discord = sections?.discord;"));
   assert.match(sections, /return blocks\.length - \(crew \? 1 : 0\);/, "it is not counted as a section the mobile panel shows");
-  assert.match(page, /if \(!hasSections && hasDeskSide\) sectionsPanel\.hidden = !desktopActive\(\) \|\| event\.data\.state !== "profile";/);
-  assert.match(page, /if \(!hasSections && hasDeskSide\) sectionsPanel\.hidden = !desktopActive\(\);/, "and again when the width crosses the breakpoint");
-  assert.match(page, /classList\.toggle\("desk-has-side", hasSections \|\| hasDeskSide\)/);
+  assert.match(page, /if \(desktopActive\(\)\) sectionsPanel\.hidden = !hasDeskSide \|\| event\.data\.state !== "profile";/);
+  assert.match(page, /sectionsPanel\.hidden = desktopActive\(\) \? !hasDeskSide : !hasSections;/, "and again when the width crosses the breakpoint");
+  assert.match(page, /hasDeskSide = \[\.\.\.sectionsPanel\.children\]\.some\(block => !block\.matches\("\.public-section-discord, \.public-section-league"\)\);/);
+  assert.match(page, /classList\.toggle\("desk-has-side", hasDeskSide\)/);
 });
-
 // ---------------------------------------------------------------------------------------------------------------- game tiles, socials, checkboxes
 test("game tiles: the title's initials in a tone chosen from the title - never an image; decoration only, no text added to the row", () => {
   const tile = gameTile(element, "League of Legends");
@@ -172,12 +177,12 @@ test("game tiles: the title's initials in a tone chosen from the title - never a
   assert.ok(/^[0-5]$/.test(gameTile(element, "Marvel Rivals").getAttribute("data-tone")));
   const row = buildGameRow({ element, game: { name: "Cyberpunk 2077", year: 2020, sources: [] }, onOpen() {} });
   assert.deepEqual(row.first("pg-row").children.map(child => child.className), ["game-thumb", "pg-copy", "pg-chevron"], "thumbnail, title / year / source, chevron (Game Details is a real destination)");
+  assert.equal(row.first("game-thumb").getAttribute("data-artwork-row"), "Cyberpunk 2077|2020", "the artwork slot is keyed by title + year");
   const css = read("dist/public/public.css");
   assert.match(css, /\.game-thumb\{width:56px;aspect-ratio:1/);
-  assert.match(css, /\.public-game-tile\{width:50px;aspect-ratio:1/);
-  assert.match(css, /\.game-thumb,\.public-game-tile\{display:none;/, "hidden unless the desktop Classic Profile shows it");
+  assert.match(css, /\.game-thumb\{display:none;/, "hidden unless the desktop Classic Profile shows it");
   assert.match(css, /html\.is-public-desktop \.public-games \.game-thumb\{display:grid\}/);
-  assert.doesNotMatch(read("dist/public/public-games.js") + read("dist/public/public.js"), /steamcdn|steamstatic|ddragon|igdb|rawg|<img[^>]*game/i, "no artwork source is fetched");
+  assert.doesNotMatch(read("dist/public/public-games.js") + read("dist/public/public.js"), /steamcdn|steamstatic|steamgriddb|ddragon|igdb|rawg|<img[^>]*game/i, "no artwork source is fetched by the page itself (only through GamID's game-artwork function)");
 });
 
 test("My Socials: recognizable Discord and Instagram marks on the desktop profile only - static, local, the link keeps its accessible name", () => {
@@ -195,6 +200,7 @@ test("About Me checkboxes: one compact native box (the global input rule no long
   assert.match(css, /\.about-chip input\[type=checkbox\]\{flex:0 0 auto;display:inline-block;width:1rem;height:1rem;min-height:0;margin:0;padding:0;/);
   assert.match(css, /\.about-chip span\{min-width:0;overflow-wrap:anywhere\}/);
   const editor = read("dist/account/about-editor.js");
-  assert.match(editor, /if \(box\.checked && next\.size < max\) next\.add/, "still at most 5");
+  assert.match(editor, /if \(box\.checked && \(max === null \|\| next\.size < max\)\) next\.add/, "languages still at most 5; genres unlimited (max null)");
+  assert.match(editor, /renderChips\(genresGroup, catalogs\.genres, "key", "genres", null\);/);
   assert.match(editor, /if \(focused !== null\) \[\.\.\.group\.querySelectorAll\("input"\)\]\.find\(box => box\.value === focused\)\?\.focus\(\);/, "keyboard focus stays on the chip that was toggled (the chips are rebuilt)");
 });

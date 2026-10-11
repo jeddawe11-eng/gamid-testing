@@ -70,3 +70,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.profile-banner]
 verify_jwt = false
+[functions.game-artwork]
+verify_jwt = false

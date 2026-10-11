@@ -186,7 +186,9 @@ export function buildGameRow({ element, game, onOpen }) {
   copy.append(title, badges);
   const chevron = element("span", "pg-chevron", "›");
   chevron.setAttribute("aria-hidden", "true");
-  button.append(gameTile(element, game.name), copy, chevron);
+  const tile = gameTile(element, game.name);
+  tile.setAttribute("data-artwork-row", `${game.name}|${game.year ?? ""}`);   // the desktop artwork slot (game-artwork.js); initials stay underneath
+  button.append(tile, copy, chevron);
   button.addEventListener("click", () => onOpen(game, button));
   item.append(button);
   return item;

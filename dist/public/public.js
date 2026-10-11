@@ -1,11 +1,13 @@
-import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl } from "../account/supabase-client.js";
-import { createDesktopProfile, crewSection, DESKTOP_QUERY } from "./public-desktop.js";
+import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl, getPublicCrews } from "../account/supabase-client.js";
+import { createDesktopProfile, crewsEntry, connectedGamesSection, connectedGameItem, DESKTOP_QUERY } from "./public-desktop.js";
+import { createProfilePanel } from "./profile-panel.js";
+import { createCrewsDirectory } from "./crews-directory.js";
+import { fetchGameArtwork, applyGameArtwork } from "./game-artwork.js";
 import { attachDiscordCard } from "./discord-card.js";
 import { renderPublicSocials, socialIcon } from "../account/socials.js";
 import { createIntroSourceResolver } from "../account/intro-source.js";
 import { createFlowLayout } from "../flow-layout.js";
 import { normalizeLibrary, renderGamesPreview, createGamesLibrary } from "./public-games.js";
-import { gameTile } from "./public-games.js";
 import { preparePublicWall, createPublicWallView } from "./public-wall.js";
 import { backHandle, crewIdFromSearch } from "./identity-link.js";
 import { createVisitorNav } from "./visitor-nav.js";
@@ -33,6 +35,7 @@ export function prependPublicSocials(panel, socialLinks) {
 const LEAGUE_APEX_TIERS = new Set(["MASTER", "GRANDMASTER", "CHALLENGER"]);
 const LEAGUE_SOURCE_LABELS = { OPGG_TEMPORARY: "OP.GG" };
 const node = (tag, className, text) => { const el = document.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
+let openCrews = null;   // set by render(): opens the consolidated My Crews view (crews-directory.js)
 const titleCase = value => `${String(value).charAt(0)}${String(value).slice(1).toLowerCase()}`;
 
 function leagueRankLine(league) {
@@ -47,8 +50,9 @@ export function renderPublicSections(panel, sections, duoOptions = null) {
   // My Duo (public-duo.js) leads: it is the GamID's own identity relationship, not an external account
   const duo = duoOptions ? duoSection(sections?.duo, duoOptions) : null;
   if (duo) blocks.push(duo);
-  // My Crew (public-desktop.js) beneath it - desktop Classic Profile only (.desk-only), so it is not counted as a section the mobile panel shows
-  const crew = duoOptions ? crewSection(sections?.crews, duoOptions) : null;
+  // My Crews (public-desktop.js) beneath it - one entry that opens the consolidated view; desktop Classic Profile only (.desk-only), so it is not counted as a
+  // section the mobile panel shows
+  const crew = duoOptions ? crewsEntry(sections?.crews, { onOpen: opener => openCrews?.(opener) }) : null;
   if (crew) blocks.push(crew);
   const discord = sections?.discord;
   if (discord && (discord.display_name || discord.username)) {
@@ -70,9 +74,8 @@ export function renderPublicSections(panel, sections, duoOptions = null) {
   }
   const league = sections?.league;
   if (league && league.game_name) {
+    // on the desktop Classic Profile this card is not shown in the sidebar: the account appears in Connected Games (leagueConnectedItem) instead
     const block = node("section", "public-section public-section-league");
-    // the game's tile beside the card on the desktop Classic Profile (.desk-only): the initials fallback - no approved League artwork source exists (public-games.js)
-    block.append(gameTile(node, "League of Legends", "public-game-tile desk-only"));
     block.append(node("p", "public-section-label", "LEAGUE OF LEGENDS"), node("strong", "", `${league.game_name}#${league.tag_line} · ${league.platform_id}`));
     // The rank / stat values are their own privacy scope ("Show ranks & stats on my GamID"): while that is OFF the server sends no rank_state at all, so there is
     // nothing to show and NO rank line is drawn (not even "no ranked rank reported" - that would also be a statement about the stats).
@@ -85,6 +88,19 @@ export function renderPublicSections(panel, sections, duoOptions = null) {
   }
   panel.replaceChildren(...blocks);
   return blocks.length - (crew ? 1 : 0);
+}
+
+// The League account as a Connected Games item (desktop): exactly the facts the sidebar card shows - identity, the rank line only while stats are public,
+// PROTOTYPE / UNVERIFIED and its data source.
+function leagueConnectedItem(league) {
+  if (!league || !league.game_name) return null;
+  const when = league.updated_at ? new Date(league.updated_at) : null;
+  const source = LEAGUE_SOURCE_LABELS[league.data_source] || "a third-party source";
+  return {
+    gameKey: "league_of_legends", gameName: "League of Legends", identity: `${league.game_name}#${league.tag_line} · ${league.platform_id}`,
+    lines: [league.rank_state ? leagueRankLine(league) : null, `Data: ${source}${when && !Number.isNaN(when.getTime()) ? ` · Updated ${when.toLocaleDateString()}` : ""}`],
+    chip: "PROTOTYPE / UNVERIFIED",
+  };
 }
 
 async function buildConfig(identity) {
@@ -132,7 +148,8 @@ async function render() {
   const gamesBlock = document.getElementById("publicGames");
   const shell = document.getElementById("publicShell");
   let hasSections = false;
-  let hasDeskSide = false;   // the panel holds a desktop-only block (My Crew): with nothing else in it, it shows on the desktop profile only
+  let hasDeskSide = false;   // the panel holds something the desktop sidebar shows (it hides the separate Discord and League cards and adds desk-only blocks)
+  let crewsDirectory = null, artworkRequest = null, deskConnected = null;   // the My Crews view, the one artwork request, Connected Games (desktop only)
   let hasGames = false;
   let gamesLibrary = null;
   // The owner's PUBLISHED Wall (the published-Wall module), when there is one: once the Intro is over it replaces the profile body (the profile card, sections and My Games);
@@ -208,7 +225,7 @@ async function render() {
       requestMeasure();
       replayButton.hidden = !hasIntro || event.data.state !== "profile";
       sectionsPanel.hidden = !hasSections || event.data.state !== "profile";
-      if (!hasSections && hasDeskSide) sectionsPanel.hidden = !desktopActive() || event.data.state !== "profile";
+      if (desktopActive()) sectionsPanel.hidden = !hasDeskSide || event.data.state !== "profile";   // the desktop sidebar shows what it holds on desktop
       gamesBlock.hidden = !hasGames || event.data.state !== "profile";
       if (event.data.state !== "profile") gamesLibrary?.close();
       layout.setProfileShowing(event.data.state === "profile");
@@ -239,12 +256,14 @@ async function render() {
   function showDesktop(state) {
     const root = document.documentElement;
     if (state === "profile" || state === "transitioning") {
-      root.classList.add("is-public-desktop"); desktopView.show();
+      root.classList.add("is-public-desktop"); desktopView.show(); if (deskConnected) deskConnected.hidden = false;
+      artwork().then(data => { applyGameArtwork(gamesBlock, data); if (deskConnected) applyGameArtwork(deskConnected, data); });
       root.classList.toggle("is-public-desktop-reveal", state === "transitioning");
       experienceWrap.hidden = state === "profile";
     } else { hideDesktop(); experienceWrap.hidden = false; }
   }
-  function hideDesktop() { desktopView?.hide(); document.documentElement.classList.remove("is-public-desktop", "is-public-desktop-reveal"); }
+  function hideDesktop() { desktopView?.hide(); if (deskConnected) deskConnected.hidden = true; document.documentElement.classList.remove("is-public-desktop", "is-public-desktop-reveal"); }
+  const artwork = () => (artworkRequest ||= fetchGameArtwork(SUPABASE_URL, identity.gamid_handle));
   frame.addEventListener("load", () => { frameReady = true; sendInitial(); });
   replayButton.addEventListener("click", layout.enterExperience);   // the Intro needs the full viewport again (registered first, so it runs before the config is sent)
   replayButton.addEventListener("click", sendReplay);
@@ -284,7 +303,7 @@ async function render() {
   const socialLinks = await getPublicSocialLinks(identity.gamid_handle).catch(() => []);
   hasSections = renderPublicSections(sectionsPanel, identity.public_sections, { ownerHandle: identity.gamid_handle, pathname: location.pathname, loadAvatar: loadPublicAvatar }) > 0;
   hasSections = prependPublicSocials(sectionsPanel, socialLinks) || hasSections;
-  hasDeskSide = Boolean(sectionsPanel.querySelector(".public-crew"));
+
   // Discord Profile Card: asked for only when My Socials shows a Discord personal profile; the server decides whether there is a card (else the link stays)
   const discordLink = sectionsPanel.querySelector('.public-socials a.public-social[href^="https://discord.com/users/"]');
   if (discordLink) getPublicDiscordCard(identity.gamid_handle).then(card => { if (card) attachDiscordCard(discordLink, card, document); }, () => {});
@@ -307,6 +326,8 @@ async function render() {
   }
   // My Games: the server sends the section only when the owner switched it ON (and there is at least one game): the first six games + the true count. The full
   // library, its search and Game Details load through the same public function, page by page, only when a visitor asks for them.
+  // what the panel shows on the desktop Classic Profile: everything but the separate Discord and League cards (Discord lives in My Socials, League in Connected Games)
+  hasDeskSide = [...sectionsPanel.children].some(block => !block.matches(".public-section-discord, .public-section-league"));
   const gamesPreview = normalizeLibrary(identity.public_sections?.my_games, LEAGUE_SOURCE_LABELS);
   if (gamesPreview && gamesPreview.libraryCount > 0 && gamesPreview.games.length > 0) {
     gamesLibrary = createGamesLibrary({
@@ -333,7 +354,35 @@ async function render() {
   if (!wall) {
     desktopView = createDesktopProfile({ doc: document, profile: built, extras, gamesCount: hasGames ? gamesPreview.libraryCount : 0, bannerUrl: publicBannerUrl(identity.gamid_handle) });
     sectionsPanel.before(desktopView.hero, desktopView.about);
-    document.documentElement.classList.toggle("desk-has-side", hasSections || hasDeskSide);
+    document.documentElement.classList.toggle("desk-has-side", hasDeskSide);
+    // the consolidated My Crews view (read-only) and Connected Games - both desktop only; artwork is asked for once, only when the desktop profile shows
+    const panel = createProfilePanel({ doc: document, lockScroll: locked => document.documentElement.classList.toggle("is-games-open", locked) });
+    openCrews = opener => crewsDirectory?.open(opener);
+    crewsDirectory = createCrewsDirectory({ doc: document, panel, handle: identity.gamid_handle, pathname: location.pathname, section: identity.public_sections?.crews,
+      api: { getPublicCrews }, loadAvatar: loadPublicAvatar, onRendered: root => artwork().then(data => applyGameArtwork(root, data)) });
+    const leagueItem = leagueConnectedItem(identity.public_sections?.league);
+    const drawConnected = items => {
+      const next = connectedGamesSection(items, { doc: document, onViewAll: (all, opener) => {
+        const list = node("ul", "desk-connected-list is-all"); list.append(...all.map(item => connectedGameItem(node, item)));
+        panel.open(`CONNECTED GAMES · ${all.length}`, list, opener); artwork().then(data => applyGameArtwork(list, data));
+      } });
+      if (!next) return;
+      if (deskConnected) { next.hidden = deskConnected.hidden; deskConnected.replaceWith(next); } else desktopView.about.after(next);
+      deskConnected = next;
+      if (artworkRequest) artworkRequest.then(data => applyGameArtwork(next, data));
+    };
+    if (leagueItem) {
+      // an existing destination only: the League row's Game Details in My Games (when My Games shows League); otherwise the item is not a button
+      const withGame = game => (game ? { ...leagueItem, onOpen: opener => gamesLibrary.openGame(game, opener) } : leagueItem);
+      const inPreview = hasGames ? gamesPreview.games.find(game => game.name === "League of Legends") : null;
+      drawConnected([withGame(inPreview)]);
+      if (hasGames && !inPreview && gamesPreview.libraryCount > gamesPreview.games.length) {
+        getPublicMyGames(identity.gamid_handle, { query: "League of Legends", limit: 5, offset: 0 })
+          .then(page => normalizeLibrary(page, LEAGUE_SOURCE_LABELS)?.games.find(game => game.name === "League of Legends"))
+          .then(game => { if (game) drawConnected([withGame(game)]); }, () => {});
+      }
+    }
+    document.documentElement.classList.toggle("desk-has-connected", Boolean(deskConnected));
     document.documentElement.classList.toggle("desk-has-games", hasGames);
     // the width crossed the desktop breakpoint: the next Intro uses the matching mode; when the profile is showing, switch it now (to mobile: the frame draws its accepted
     // profile again - no Intro replay; to desktop: the frame is hidden and the desktop profile shows)
@@ -341,7 +390,7 @@ async function render() {
       if (!config) return;
       config = { ...config, hostReveal: desktopActive() };
       if (lastState !== "profile") return;
-      if (!hasSections && hasDeskSide) sectionsPanel.hidden = !desktopActive();
+      sectionsPanel.hidden = desktopActive() ? !hasDeskSide : !hasSections;
       if (desktopActive()) showDesktop("profile");
       else { hideDesktop(); experienceWrap.hidden = false; frame.contentWindow?.postMessage({ type: "gamid-intro-preview", config: { ...config, hostReveal: false, videoUrl: "" } }, location.origin); }
     });

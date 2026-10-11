@@ -45,7 +45,7 @@ let socialsLoaded = false, socialsCount = 0;
 // Banner + About Me (DEC-0005): each is its own section, saved by its Save Changes / Save All Changes; until its saved state has loaded nothing can be saved.
 const bannerEditor = createBannerEditor(document, { api, userId: () => api.userIdFromToken(), onChange: () => refreshEditorSaves() });
 document.getElementById("bannerSlot").append(bannerEditor.element);
-const aboutEditor = createAboutEditor(document, { onChange: () => refreshEditorSaves() });
+const aboutEditor = createAboutEditor(document, { onChange: () => refreshEditorSaves(), searchCities: (country, query) => api.searchLocationCities(country, query) });
 document.getElementById("aboutSlot").append(aboutEditor.element);
 let bannerLoaded = false, aboutLoaded = false, bannerFailed = false, aboutFailed = false;
 // Save All Changes (end of the editor): saves every section that has something to save, through each section's own save path

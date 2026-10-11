@@ -9,6 +9,7 @@ import { wallState, renderCrewWallBox, crewWallHrefFor } from "./crew-wall-panel
 export const CREW_ERRORS = Object.freeze({
   CREW_ALREADY_IN_GAME: "You already belong to a Crew for this game. Leave it (or delete yours) first.",
   CREW_FULL: "This Crew is full.",
+  CREW_LIMIT_REACHED: "You can be in up to 10 Crews (the ones you own and the ones you joined). Leave one first.",
   CREW_OWNER_ONLY: "Only the Crew's owner can do that.",
   CREW_SELF: "You're already the owner of this Crew.",
   CREW_ALREADY_INVITED_OR_MEMBER: "They're already invited or a member.",

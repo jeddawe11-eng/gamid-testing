@@ -498,9 +498,15 @@ export async function loadMyBanner(path) {
   return URL.createObjectURL(blob);
 }
 export async function getMyAbout() { return (await rpc("get_my_about"))?.[0] ?? null; }
-export async function setMyAbout({ location, languages, genres, showLocation, showLanguages, showGenres }) {
-  return (await rpc("set_my_about", { candidate_location: location ?? null, candidate_languages: languages ?? [], candidate_genres: genres ?? [], candidate_show_location: Boolean(showLocation), candidate_show_languages: Boolean(showLanguages), candidate_show_genres: Boolean(showGenres) }))?.[0] ?? null;
+// Location is structured: a catalog country (ISO code) and, optionally, a city of THAT country (GeoNames id). keepLegacy keeps an older free-text Location
+// untouched while no country is chosen (it is never converted silently).
+export async function setMyAbout({ countryCode, cityId, keepLegacy, languages, genres, showLocation, showLanguages, showGenres }) {
+  return (await rpc("set_my_about", { candidate_country: countryCode ?? null, candidate_city: cityId ?? null, candidate_keep_legacy: Boolean(keepLegacy), candidate_languages: languages ?? [], candidate_genres: genres ?? [], candidate_show_location: Boolean(showLocation), candidate_show_languages: Boolean(showLanguages), candidate_show_genres: Boolean(showGenres) }))?.[0] ?? null;
 }
+// owner city search inside one country (at most 12, most populous first)
+export async function searchLocationCities(countryCode, query) { return (await rpc("search_location_cities", { candidate_country: countryCode, candidate_query: query ?? "" })) || []; }
+// the consolidated My Crews view of a PUBLISHED GamID (anonymous): the Crews its public section lists, member counts and up to six PUBLIC members
+export async function getPublicCrews(handle) { return (await rpc("get_public_crews", { candidate_handle: handle }, { anonymous: true })) || []; }
 
 export async function getMyConnections() {
   return (await rpc("get_my_connections")) || [];

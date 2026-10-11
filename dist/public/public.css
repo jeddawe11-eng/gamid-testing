@@ -179,12 +179,19 @@ html.is-public-wall .public-shell .replay-button{grid-area:2/1;justify-self:star
    draws the wide identity hero, About Me, My Games and the My Socials / My Duo / League panel in one grid. Nothing below applies to narrower screens, so the
    accepted mobile / tablet layout is untouched. The separate Discord section is not shown here: Discord lives in My Socials (.desk-only items). */
 .desk-only{display:none}
-.desk-hero[hidden],.desk-about[hidden]{display:none}
+.desk-hero[hidden],.desk-about[hidden],.desk-connected[hidden]{display:none}
 @media(min-width:80rem){
 html.is-public-desktop .public-shell{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) 22rem;grid-template-areas:"hero hero side" "about games games" "replay replay replay";gap:1.25rem;align-items:start;align-content:start;justify-items:stretch;width:min(90rem,100%);margin:0 auto;padding:1.5rem max(1.5rem,env(safe-area-inset-right)) 0 max(1.5rem,env(safe-area-inset-left));box-sizing:border-box;background:transparent}
 html.is-public-desktop:not(.desk-has-side) .public-shell{grid-template-areas:"hero hero hero" "about games games" "replay replay replay"}
 html.is-public-desktop:not(.desk-has-games) .public-shell{grid-template-areas:"hero hero side" "about about side" "replay replay replay"}
 html.is-public-desktop:not(.desk-has-side):not(.desk-has-games) .public-shell{grid-template-areas:"hero hero hero" "about about about" "replay replay replay"}
+/* Connected Games sits under About Me (between About Me and My Games in reading order); the last flexible row takes My Games' extra height, so the two cards in
+   the left column stay together */
+html.is-public-desktop.desk-has-connected .public-shell{grid-template-rows:auto auto 1fr auto;grid-template-areas:"hero hero side" "about games games" "connected games games" "replay replay replay"}
+html.is-public-desktop.desk-has-connected:not(.desk-has-side) .public-shell{grid-template-areas:"hero hero hero" "about games games" "connected games games" "replay replay replay"}
+html.is-public-desktop.desk-has-connected:not(.desk-has-games) .public-shell{grid-template-areas:"hero hero side" "about about side" "connected connected side" "replay replay replay"}
+html.is-public-desktop.desk-has-connected:not(.desk-has-side):not(.desk-has-games) .public-shell{grid-template-areas:"hero hero hero" "about about about" "connected connected connected" "replay replay replay"}
+html.is-public-desktop .public-shell .desk-connected{grid-area:connected}
 html.is-public-desktop body{background:radial-gradient(circle at 12% 0,#27134e 0,transparent 32rem),#090811}
 html.is-public-desktop .experience-wrap{display:none}
 html.is-public-desktop.is-public-desktop-reveal .experience-wrap{display:block;position:fixed;inset:0;z-index:20;background:transparent}
@@ -199,9 +206,7 @@ html.is-public-desktop .public-socials-block.desk-only{display:grid}
 html.is-public-desktop .public-socials .public-social-account.desk-only{display:inline-flex}
 html.is-public-desktop .public-crew.desk-only{display:grid}
 html.is-public-desktop .public-games .game-thumb{display:grid}
-html.is-public-desktop .public-section-league{position:relative;padding-left:3.9rem}
-html.is-public-desktop .public-section-league>.public-game-tile.desk-only{display:grid;position:absolute;left:0;top:0}
-html.is-public-desktop .public-section+.public-section-league>.public-game-tile.desk-only{top:.6rem}
+html.is-public-desktop .public-section-league{display:none}
 /* My Socials marks (desktop only - the mobile badges keep their accepted text marks): Discord = the simple-icons "discord" path (CC0); Instagram = the camera glyph
    drawn here from a rounded square, a ring and a dot. Static white masks on the platform colours already used; the link keeps its accessible name. */
 html.is-public-desktop .social-icon[data-platform=discord],html.is-public-desktop .social-icon[data-platform=instagram]{position:relative;font-size:0}
@@ -243,13 +248,47 @@ html.is-public-desktop .social-icon[data-platform=instagram]{--social-mark:url("
 .desk-stat:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-color:rgba(98,231,255,.55)}
 .public-games:focus{outline:none}
 /* game tiles: the initials fallback (public-games.js gameTile; the initials are its data-initials, drawn here, so they add no text to the row) - no approved
-   artwork source exists yet. 56 px square in My Games, 50 px beside League. */
-.game-thumb,.public-game-tile{display:none;flex:none;place-items:center;border-radius:.7rem;border:1px solid rgba(255,255,255,.12);color:#fff;font:800 1.05rem/1 Inter,system-ui,sans-serif;letter-spacing:.02em;background:linear-gradient(145deg,#3b2a73,#1f4d73)}
-.game-thumb::before,.public-game-tile::before{content:attr(data-initials)}
+   artwork source is approved yet; the provisional TESTING evaluation (game-artwork.js) lays an image over them only when the server matched one reliably. */
+.game-thumb{display:none;flex:none;position:relative;overflow:hidden;place-items:center;border-radius:.7rem;border:1px solid rgba(255,255,255,.12);color:#fff;font:800 1.05rem/1 Inter,system-ui,sans-serif;letter-spacing:.02em;background:linear-gradient(145deg,#3b2a73,#1f4d73)}
+.game-thumb::before{content:attr(data-initials)}
 .game-thumb{width:56px;aspect-ratio:1;margin-right:.25rem}
-.public-game-tile{width:50px;aspect-ratio:1;font-size:.95rem}
-.game-thumb[data-tone="1"],.public-game-tile[data-tone="1"]{background:linear-gradient(145deg,#6b2559,#3a1f7a)}
-.game-thumb[data-tone="2"],.public-game-tile[data-tone="2"]{background:linear-gradient(145deg,#1d5b63,#1f3b73)}
-.game-thumb[data-tone="3"],.public-game-tile[data-tone="3"]{background:linear-gradient(145deg,#6a4a1c,#5a2140)}
-.game-thumb[data-tone="4"],.public-game-tile[data-tone="4"]{background:linear-gradient(145deg,#2c5a2f,#1d4a5c)}
-.game-thumb[data-tone="5"],.public-game-tile[data-tone="5"]{background:linear-gradient(145deg,#4a2a7a,#7a2a4a)}
+.game-thumb[data-tone="1"]{background:linear-gradient(145deg,#6b2559,#3a1f7a)}
+.game-thumb[data-tone="2"]{background:linear-gradient(145deg,#1d5b63,#1f3b73)}
+.game-thumb[data-tone="3"]{background:linear-gradient(145deg,#6a4a1c,#5a2140)}
+.game-thumb[data-tone="4"]{background:linear-gradient(145deg,#2c5a2f,#1d4a5c)}
+.game-thumb[data-tone="5"]{background:linear-gradient(145deg,#4a2a7a,#7a2a4a)}
+.game-art{position:absolute;inset:0;width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#11101a}
+.game-art-bg{position:absolute;inset:0;background-position:center;background-size:cover;background-repeat:no-repeat}
+/* CONNECTED GAMES (desktop): the GamID's linked game ACCOUNTS - not its library */
+.desk-connected{position:relative;z-index:1;min-width:0;padding:1.1rem 1.25rem;border:1px solid rgba(255,255,255,.2);border-radius:1rem;background:rgba(10,8,16,.78)}
+.desk-connected-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.desk-connected-list{display:grid;gap:.5rem;margin:.6rem 0 0;padding:0;list-style:none}
+.desk-connected-card{display:flex;align-items:center;gap:.8rem;width:100%;min-width:0;padding:.6rem .7rem;border:1px solid rgba(255,255,255,.12);border-radius:.85rem;background:rgba(255,255,255,.03);color:inherit;font:inherit;text-align:left}
+button.desk-connected-card{cursor:pointer}
+button.desk-connected-card:hover,button.desk-connected-card:focus-visible{border-color:var(--cyan);outline:none}
+.desk-connected-card .game-thumb{display:grid;margin:0}
+.desk-connected-copy{display:grid;gap:.18rem;min-width:0;flex:1}
+.desk-connected-game{color:var(--muted);font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.desk-connected-identity{font-size:.92rem;overflow-wrap:anywhere}
+.desk-connected-copy .public-chip{justify-self:start}
+.desk-connected-all{margin-top:.6rem}
+.public-crew-card{width:100%;font:inherit;text-align:left;cursor:pointer}
+/* the full-screen panels (profile-panel.js) reuse the My Games dialog; My Crews is a grid of large cards */
+.profile-panel-body{width:min(62rem,100%)}
+.profile-panel-content{padding:.25rem 1rem 1rem}
+.crew-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:1rem}
+.crew-card{position:relative;display:grid;align-content:end;gap:.75rem;aspect-ratio:16/9;padding:1rem;border:1px solid rgba(255,255,255,.16);border-radius:1rem;overflow:hidden;color:#fff;text-decoration:none;isolation:isolate}
+.crew-card:hover,.crew-card:focus-visible{border-color:var(--cyan);outline:none}
+.crew-card-bg{position:absolute;inset:0;z-index:-2;background:linear-gradient(135deg,#3b2a73,#1f4d73)}
+.crew-card-bg[data-tone="1"]{background:linear-gradient(135deg,#6b2559,#3a1f7a)}.crew-card-bg[data-tone="2"]{background:linear-gradient(135deg,#1d5b63,#1f3b73)}
+.crew-card-bg[data-tone="3"]{background:linear-gradient(135deg,#6a4a1c,#5a2140)}.crew-card-bg[data-tone="4"]{background:linear-gradient(135deg,#2c5a2f,#1d4a5c)}.crew-card-bg[data-tone="5"]{background:linear-gradient(135deg,#4a2a7a,#7a2a4a)}
+.crew-card-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(8,7,14,.15) 0%,rgba(8,7,14,.88) 78%)}
+.crew-card-body{display:flex;align-items:center;gap:.75rem;min-width:0}
+.crew-card .game-thumb{display:grid;margin:0;width:48px;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.crew-card-text{display:grid;gap:.12rem;min-width:0}
+.crew-card-name{font-size:1.15rem;line-height:1.2;overflow-wrap:anywhere}
+.crew-card-game,.crew-card-count{color:#d9d4e6;font-size:.78rem}
+.crew-card-members{display:flex;align-items:center}
+.crew-card-face{display:grid;place-items:center;width:2rem;aspect-ratio:1;margin-right:-.45rem;border-radius:50%;overflow:hidden;border:2px solid #0b0a12;background:linear-gradient(145deg,#4d2eb1,#3bcbe7);font-size:.75rem;font-weight:900}
+.crew-card-face img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.crew-card-face.is-more{background:#1c1828;color:var(--muted);font-size:.68rem}

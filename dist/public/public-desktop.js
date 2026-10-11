@@ -3,10 +3,12 @@
 // My Duo / League / Steam panel and My Games. The Intro frame then plays the Intro only (hostReveal, exactly like the published-Wall path) and its transition
 // reveals this profile; below 1280px nothing here is shown and the accepted mobile layout is untouched. Only real data is drawn: no invented statistics.
 // Built with createElement / textContent only.
-import { normalizeCrews, crewWallHref, RELATIONSHIP_LABELS } from "./identity-link.js";
+import { normalizeCrews, crewWallHref } from "./identity-link.js";
 import { formatMemberSince } from "../account/about-editor.js";
 
 export const DESKTOP_QUERY = "(min-width: 80rem)";
+export const PUBLIC_GENRES_SHOWN = 5;
+export const CONNECTED_GAMES_SHOWN = 3;
 
 const node = (doc, tag, className, text) => { const el = doc.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
 
@@ -71,7 +73,7 @@ export function createDesktopProfile({ doc = globalThis.document, profile, extra
   const languages = Array.isArray(extras?.about_languages) ? extras.about_languages.filter(x => typeof x?.label === "string") : [];
   const genres = Array.isArray(extras?.about_genres) ? extras.about_genres.filter(x => typeof x?.label === "string") : [];
   if (languages.length) fact("Languages", chips(languages));
-  if (genres.length) fact("Favorite Genres", chips(genres));
+  if (genres.length) fact("Favorite Genres", chips(genres.slice(0, PUBLIC_GENRES_SHOWN)));   // every selected genre stays stored; the profile shows five
   about.append(facts);
   const hasAbout = facts.childElementCount > 0;
 
@@ -82,25 +84,70 @@ export function createDesktopProfile({ doc = globalThis.document, profile, extra
   };
 }
 
-// MY CREW on the desktop sidebar, beneath My Duo: the server's public 'crews' section (get_public_identity: this PUBLIC GamID's ACTIVE memberships in Crews whose
-// Crew Wall is PUBLISHED - automatic, there is no primary Crew), all of them in the server's order, each opening that existing Crew Wall (/crew/?c=<id>&from=<handle>).
-// It looks like the My Duo card. The public section carries no Crew image, so each card shows the Crew's initial. Desktop only (.desk-only): mobile is unchanged.
-export function crewSection(section, { ownerHandle = "", pathname = "/", doc = globalThis.document } = {}) {
-  const crews = normalizeCrews(section).map(crew => ({ ...crew, href: crewWallHref(crew.id, { pathname, from: ownerHandle }) })).filter(crew => crew.href);
-  if (!crews.length || !doc) return null;
+// MY CREWS on the desktop sidebar, beneath My Duo: ONE fixed-size entry for every Crew the server's public 'crews' section lists (get_public_identity: this PUBLIC
+// GamID's ACTIVE memberships in Crews whose Crew Wall is PUBLISHED, in the server's order - there is no primary Crew). It shows the count and the games, and
+// opens the consolidated My Crews view (crews-directory.js), whose cards open each existing Crew Wall. It looks like the My Duo card. Desktop only (.desk-only):
+// the mobile panel is unchanged.
+export function crewsEntry(section, { onOpen = null, doc = globalThis.document } = {}) {
+  const crews = normalizeCrews(section).filter(crew => crewWallHref(crew.id));
+  if (!crews.length || !doc || typeof onOpen !== "function") return null;
   const h = (tag, className, text) => node(doc, tag, className, text);
   const block = h("section", "public-section public-duo public-crew desk-only");
-  block.setAttribute("aria-label", "My Crew");
-  block.append(h("p", "public-section-label", RELATIONSHIP_LABELS.crews));
-  for (const crew of crews) {
-    const link = h("a", "public-duo-card public-crew-card");
-    link.href = crew.href;
-    const detail = [crew.gameName, crew.members ? `${crew.members} ${crew.members === 1 ? "member" : "members"}` : ""].filter(Boolean).join(" · ");
-    link.setAttribute("aria-label", `My Crew: ${crew.name}, ${detail}. Open the Crew Wall`);
-    const names = h("span", "public-duo-names");
-    names.append(h("strong", "", crew.name), h("span", "public-section-sub", detail));
-    link.append(h("span", "public-duo-avatar public-crew-avatar", crew.name.charAt(0).toUpperCase() || "C"), names, h("span", "public-duo-chevron", "›"));
-    block.append(link);
-  }
+  block.setAttribute("aria-label", "My Crews");
+  block.append(h("p", "public-section-label", "MY CREWS"));
+  const button = h("button", "public-duo-card public-crew-card");
+  button.type = "button";
+  const count = `${crews.length} ${crews.length === 1 ? "Crew" : "Crews"}`;
+  const games = [...new Set(crews.map(crew => crew.gameName))].join(" · ");
+  button.setAttribute("aria-label", `My Crews: ${count} (${games}). Open My Crews`);
+  button.setAttribute("aria-haspopup", "dialog");
+  const names = h("span", "public-duo-names");
+  names.append(h("strong", "", count), h("span", "public-section-sub public-crew-games", games));
+  button.append(h("span", "public-duo-avatar public-crew-avatar", String(crews.length)), names, h("span", "public-duo-chevron", "›"));
+  button.addEventListener("click", () => onOpen(button));
+  block.append(button);
   return block;
+}
+
+// CONNECTED GAMES (desktop main column, between About Me and My Games): the game ACCOUNTS this GamID linked - today only the League prototype - never its game
+// library (that is My Games). Each item is drawn only from what the server sent for this visitor; an item opens only an existing destination (League: the same
+// Game Details My Games opens). A few show directly; View all lists them all. items: [{ gameKey, gameName, identity, lines: [text], chip, onOpen? }]
+export function connectedGamesSection(items, { doc = globalThis.document, onViewAll = null } = {}) {
+  const list = (Array.isArray(items) ? items : []).filter(item => item && typeof item.gameName === "string" && typeof item.identity === "string");
+  if (!list.length || !doc) return null;
+  const h = (tag, className, text) => node(doc, tag, className, text);
+  const section = h("section", "desk-connected"); section.id = "desktopConnected"; section.setAttribute("aria-label", "Connected Games"); section.hidden = true;
+  const head = h("div", "desk-connected-head");
+  head.append(h("p", "public-section-label", "CONNECTED GAMES"), h("span", "pg-count", String(list.length)));
+  const ul = h("ul", "desk-connected-list");
+  for (const item of list.slice(0, CONNECTED_GAMES_SHOWN)) ul.append(connectedGameItem(h, item));
+  section.append(head, ul);
+  if (list.length > CONNECTED_GAMES_SHOWN && typeof onViewAll === "function") {
+    const more = h("button", "pg-viewall desk-connected-all", `View all ${list.length} connected games`); more.type = "button";
+    more.addEventListener("click", () => onViewAll(list, more));
+    section.append(more);
+  }
+  return section;
+}
+export function connectedGameItem(h, item) {
+  const li = h("li", "desk-connected-item");
+  const card = h(typeof item.onOpen === "function" ? "button" : "div", "desk-connected-card");
+  if (card.tagName === "BUTTON" || typeof item.onOpen === "function") { card.type = "button"; card.addEventListener("click", () => item.onOpen(card)); card.setAttribute("aria-label", `${item.gameName}: ${item.identity}. Open game details`); }
+  const tile = h("span", "game-thumb connected-thumb");
+  tile.setAttribute("aria-hidden", "true"); tile.setAttribute("data-initials", initialsOf(item.gameName));
+  if (item.gameKey) tile.setAttribute("data-game-key", item.gameKey);
+  const copy = h("span", "desk-connected-copy");
+  copy.append(h("span", "desk-connected-game", item.gameName), h("strong", "desk-connected-identity", item.identity));
+  for (const line of item.lines || []) if (line) copy.append(h("span", "public-section-sub", line));
+  if (item.chip) copy.append(h("span", "public-chip is-caution", item.chip));
+  card.append(tile, copy);
+  if (typeof item.onOpen === "function") card.append(h("span", "pg-chevron", "›"));
+  li.append(card);
+  return li;
+}
+const MINOR = new Set(["a", "an", "and", "of", "the", "to"]);
+export function initialsOf(name) {
+  const words = String(name ?? "").split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const main = words.filter(word => !MINOR.has(word.toLowerCase()));
+  return (main.length ? main : words).slice(0, 2).map(word => [...word][0]).join("").toUpperCase() || "?";
 }
