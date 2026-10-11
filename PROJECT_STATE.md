@@ -61,7 +61,7 @@ Snapshot from 2026-10-11; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `72896d6`** (run `38145293680`, PROJECT_HANDOFF.md §42).
+- **TESTING serves `af2af0d`** (run `38147127030`, PROJECT_HANDOFF.md §43; Intro source limit 50 MiB on top of §42).
   - Static site: workflow run `38145293680` from ref `feature/play-together-notifications` (its head was exactly `72896d6`); the Account HTML stamp reads `72896d6`. Source: `PROJECT_HANDOFF.md` §42.
   - Edge Functions: usage-upload v9 (§42; Intro lifecycle / reservation release, on top of §38 Avatar validation), public-media v2 (§30, §38) and profile-banner (§30), game-artwork (§33-§37; STEAMGRIDDB_API_KEY set; every TESTING account; Crew route §37).
   - Intro worker: correction checkpoint 3f72eb2 deployed with image-only update, F2 smoke and dedicated READY verification; exact build/image/execution in `docs/INTRO-DURATION-TOLERANCE.md`. Accepted F2 derivative policy remains unchanged.
@@ -97,7 +97,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 **Current stop point:** product `4b56646` (ISS-0011 Intro storage lifecycle fix) is deployed to TESTING as head `72896d6` (run `38145293680`, full validation passed; migration `20261011240000`; `usage-upload` v9) and is PENDING Mazen's targeted manual check (§42). Documentation runs through `PROJECT_HANDOFF.md` §42.
 - **ISS-0011:** FIXED, not VERIFIED. The three authorized failed Intro sources (29.38 MB) are deleted. Held for Mazen's decision: the removed 0.73 MB derivative, which is excluded from automatic cleanup by the cutoff. The 116.29 MB reservation releases by the 26-hour rule after 2026-10-12 12:41 UTC.
-- **Intro source limit 50 MiB (Mazen's decision, §43):** implemented and tested at `5214d9b` (migration `20261011260000`; Truth `intro-identity.introSourceMaxBytes` = 52428800). **Not yet applied or deployed:** the CI gate fails on three Product Memory records from other sessions (DEC-0003, ISS-0013, REV-0005), which may only be fixed with Mazen's approval. Next: fix those records, apply the migration, deploy, then Mazen's manual check. ISS-0012 stays OPEN until then; its record update also needs his memory-save approval. No task is authorized beyond what Mazen next asks for.
+- **Intro source limit 50 MiB (Mazen's decision, §43):** implemented at `5214d9b`, migration `20261011260000` applied, deployed to TESTING as `af2af0d` (run `38147127030`, full validation passed); Truth `intro-identity.introSourceMaxBytes` = 52428800. PENDING Mazen's manual acceptance. The ISS-0012 record update awaits his memory-save approval.
 - **Accepted 2026-10-11:** ISS-0009 is VERIFIED and Truth `visitor-media-access` is ACCEPTED (Mazen, including the accepted residual possibility of unknown historical signed URLs; §30, §38–§40).
 - **Manual passes recorded, capability still pending:**
   - CP-01 (REV-0002) and GR-01 (REV-0003).

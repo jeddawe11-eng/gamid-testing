@@ -2990,3 +2990,12 @@ Mazen's approved product decision, TESTING only. The maximum single Intro upload
 - Product Memory may not be modified without Mazen's explicit approval, so they are untouched.
 - To avoid an inconsistent TESTING state (an editor saying 150 MB over a 50 MiB backend), the migration is **not applied** and the frontend is **not deployed**. TESTING still serves `72896d6`, where Storage already refuses Intros over 50 MiB at the upload start with "larger than the current upload limit".
 - **Next:** Mazen approves a minimal fix of those three records, or their author fixes them. Then apply migration `20261011260000`, deploy this commit through the workflow, and verify.
+
+**Deployment (2026-10-11, after Mazen approved the three record fixes).**
+- The records were fixed exactly as proposed, with content and evidence preserved:
+  - DEC-0003: its manual PASS text moved verbatim from History into a "Manual test results" section;
+  - ISS-0013 and REV-0005: "Mazen screenshot" moved from `sources` into the body ("kept outside the repository").
+- Product Memory validation: 28 records pass.
+- Migration `20261011260000` applied and history repaired. Live values: `intro-sources` = 52428800, the CHECK at 1..52428800, the queue RPC bound 52428800; all other buckets unchanged.
+- Frontend: workflow run [38147127030](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38147127030), full validation passed, stamp `v=af2af0d`. The served `/account/` shows "MP4, MOV, or WebM · max 50 MB.", and `domain.js` / `supabase-client.js` carry the 50 MiB constant and "Intro video must be 50 MB or smaller.".
+- PENDING Mazen's manual acceptance.
