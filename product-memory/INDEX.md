@@ -78,8 +78,8 @@ Rules:
 | DIS | Discussions | discussions/ | DIS-0003 |
 | DEC | Decisions | decisions/ | DEC-0005 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
-| ISS | Issues | issues/ | ISS-0012 |
-| REV | Reviews | reviews/ | REV-0004 |
+| ISS | Issues | issues/ | ISS-0013 |
+| REV | Reviews | reviews/ | REV-0005 |
 
 ## Register
 
@@ -112,3 +112,5 @@ Rules:
 | REV-0002 | CP-01 My Crews panel sizing - Mazen manual acceptance | COMPLETED | [REV-0002-cp01-my-crews-panel-sizing-acceptance.md](reviews/REV-0002-cp01-my-crews-panel-sizing-acceptance.md) |
 | REV-0003 | GR-01 Role Suggestions review inside Gaming Roles - Mazen manual acceptance | COMPLETED | [REV-0003-gr01-role-suggestions-placement-acceptance.md](reviews/REV-0003-gr01-role-suggestions-placement-acceptance.md) |
 | REV-0004 | YOUR GAMID Editor - Mazen desktop manual acceptance (16 tests) | COMPLETED | [REV-0004-your-gamid-editor-desktop-acceptance.md](reviews/REV-0004-your-gamid-editor-desktop-acceptance.md) |
+| ISS-0013 | Some My Socials icons show initials instead of logos | OPEN | [ISS-0013-my-socials-partial-brand-icons.md](issues/ISS-0013-my-socials-partial-brand-icons.md) |
+| REV-0005 | My Socials visitor links acceptance | COMPLETED | [REV-0005-my-socials-visitor-links-acceptance.md](reviews/REV-0005-my-socials-visitor-links-acceptance.md) |
