@@ -61,7 +61,7 @@ Snapshot from 2026-10-11; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `7373607`** (run `38147127030` -> `38148668016`, PROJECT_HANDOFF.md §44: ISS-0010 editor Intro Preview fix, on top of the §43 Intro limit 50 MiB).
+- **TESTING serves `7373607`** (run `38148668016`, PROJECT_HANDOFF.md §44: ISS-0010 editor Intro Preview fix, on top of the §43 Intro limit 50 MiB).
   - Static site: workflow run `38145293680` from ref `feature/play-together-notifications` (its head was exactly `72896d6`); the Account HTML stamp reads `72896d6`. Source: `PROJECT_HANDOFF.md` §42.
   - Edge Functions: usage-upload v9 (§42; Intro lifecycle / reservation release, on top of §38 Avatar validation), public-media v2 (§30, §38) and profile-banner (§30), game-artwork (§33-§37; STEAMGRIDDB_API_KEY set; every TESTING account; Crew route §37).
   - Intro worker: correction checkpoint 3f72eb2 deployed with image-only update, F2 smoke and dedicated READY verification; exact build/image/execution in `docs/INTRO-DURATION-TOLERANCE.md`. Accepted F2 derivative policy remains unchanged.
