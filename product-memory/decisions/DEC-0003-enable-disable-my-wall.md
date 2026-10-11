@@ -40,3 +40,4 @@ Reusing the published snapshot keeps the Wall exactly as it was, and the change 
 - 2026-10-09 APPROVED — Mazen specified the feature, its texts and the public-profile rules.
 - 2026-10-09 AUTHORIZED — Mazen explicitly authorized the implementation on TESTING.
 - 2026-10-09 IMPLEMENTED — Implemented at 85146e6 and deployed to TESTING (run 37894870969); migration 20261009170000 applied. The existing published Walls (@black, @zshot) were verified unchanged and enabled. Acceptance pending.
+- 2026-10-11 MANUAL PASS — Mazen confirmed that he tested the Enable / Disable My Wall control on TESTING and it works. User-reported PASS, no repeated test. Exact visitor scenarios were not individually specified; no independent verification claimed.
