@@ -78,6 +78,28 @@ after 26 hours (past the upstream 24-hour expiry). Upload operations stop using
 unresolved receipts after 24 hours. Confirmed retained bytes remain charged until
 actual deletion. The UI shows reserved versus used bytes distinctly.
 
+**Lifecycle update (ISS-0011, 2026-10-11, `4b56646`; migration `20261011240000`, `usage-upload` v9).**
+
+*Reservations*
+- If Storage refuses to start a resumable upload, nothing was stored and nothing can continue it. The gateway then releases that attempt's own reservation at once, through `usage_upload_action` `release_unbound`. That action only releases an ACTIVE receipt that was never bound and has no object; a started (bound) or stored receipt is never released this way.
+- Storage's 413 is returned as `UPLOAD_TOO_LARGE`, any other refusal as `RESUMABLE_CREATE_FAILED`.
+- Owner reconciliation also releases an ACTIVE receipt that was never bound and has no object once it is 15 minutes old (`private.storage_lifecycle_policy.unbound_receipt_grace`). Like every release, it first completes the receipt if its object exists, and releases it only when the object is confirmed absent.
+- A started (bound) upload keeps the 26-hour rule above.
+
+*Intro files*
+- The same reconciliation also deletes the owner's due Intro files through `authorize_usage_delete`, and records them with `worker_confirm_intro_cleanup`:
+  - a removed Intro's derivative;
+  - a used source;
+  - a failed source, after its 1-hour retention.
+- The active Intro, and the source of a pending or processing Intro, are never deleted.
+- The editor requests this reconciliation after removing an Intro and before uploading a new one.
+
+*Historical items*
+- Everything automatic acts only on what became due after `automatic_since` (2026-10-11 13:55:56 UTC). Older items keep their previous treatment until a separate decision.
+
+*Effective upload limit*
+- On TESTING the effective upload limit is Supabase's project-wide 50 MiB file size limit, below the 150 MiB `intro-sources` bucket limit (ISS-0012).
+
 Service-created objects have no normal Storage owner_id. A private COMPLETE
 receipt supplies narrowly scoped owner read/delete/RPC validation alongside the
 accepted legacy owner_id rules. Restrictive INSERT/UPDATE policies prevent clients

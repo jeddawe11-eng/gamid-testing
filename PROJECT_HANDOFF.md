@@ -2880,3 +2880,79 @@ Documentation and Product Memory only (Mazen). No code, deployment, migration or
   - The record keeps the editor preview (the Profile Editor host) separate from the public visitor Intro on `/@<handle>`, which was not reported as wrong.
   - Unconfirmed code lead: the public page passes `publicMode` / `hostReveal` to the Intro frame, while the editor preview appears to pass neither. The frame then shows its own built-in card, whose `DRAFT · PRIVATE` chip is static markup.
   - No fix until Mazen authorizes one.
+
+## 42. ISS-0011 Intro storage lifecycle fix, three authorized deletions, ISS-0012 limit confirmed — 2026-10-11
+
+Owner-authorized (Mazen), TESTING only.
+- Product checkpoint `4b56646e782eefadcc173b64e8aa59f0fab37cd9`.
+- TESTING head `72896d6f5b08dc4b9ea96cd2c7b3e35f2277dbe4`. The extra commit is only an ISS-0007 record fix, explained below.
+- Frontend: workflow run [38145293680](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38145293680), full validation passed, stamp `v=72896d6`.
+- An earlier dispatch (run 38145182985) failed its commit check: another agent had pushed `06cec50` to this branch, so the branch head was not the expected SHA. My commit was rebased onto it.
+- **ISS-0007 record:** that `06cec50` commit added a History line that is not a status transition, which fails Product Memory validation and so the CI gate. I removed only that line (`72896d6`); its evidence stays in the record body, word for word.
+
+**Status.**
+
+| Item | Status |
+|---|---|
+| ISS-0011 fix | IMPLEMENTED, TESTED, DEPLOYED; PENDING MANUAL ACCEPTANCE (ISS-0011 FIXED, not VERIFIED) |
+| ISS-0012 | Confirmed by evidence; mitigated in the app only; OPEN for Mazen's decision |
+
+**Deployment.**
+- Migration `20261011240000_intro_storage_lifecycle`:
+  - rehearsed in a rolled-back transaction (0 worker candidates, 0 owner candidates, client grants none) and applied, cutoff 2026-10-11 13:55:56 UTC; history repaired;
+  - applying it changed no file, receipt or job.
+- `usage-upload` v9: its downloaded deployed source is byte-identical to the repo, and an unauthenticated cleanup call returns 401.
+
+**What changed.** The details are in ISS-0011 and `docs/global-usage-center.md`.
+- Policy (`private.storage_lifecycle_policy`): failed-source retention 1 h, unbound-receipt grace 15 min, and automation only for items due since the cutoff.
+- Failed jobs make their source eligible after the retention.
+- The worker and owner cleanup skip anything due before the cutoff, the active Intro, and pending / processing sources.
+- New service-only `usage_intro_cleanup_candidates`.
+- `usage_upload_action` `release_unbound`.
+- Gateway:
+  - a refused upload start releases its own reservation and returns `UPLOAD_TOO_LARGE` (413) or `RESUMABLE_CREATE_FAILED`;
+  - owner cleanup deletes the owner's due Intro files through `authorize_usage_delete` and records them.
+- Editor: cleanup after Intro removal and before an Intro upload, plus two new messages.
+
+**Authorized deletions.**
+- The account was verified as the sole TESTING administrator, with live numbers matching Mazen's report.
+- Each file was checked before deletion: owner, FAILED, not active, no other or live job, no ACTIVE receipt, exact size.
+- Each was deleted through the gateway's DELETE route with worker credentials (`authorize_usage_delete` protections) and recorded with `worker_confirm_intro_cleanup`:
+
+| Job | Size | Result |
+|---|---:|---|
+| `06824201-9c33-4643-a13c-2bb33a38ecd8` | 5,952,891 bytes | deleted, 13:47 UTC |
+| `9c7ef884-9ab8-4e84-84a5-e0a7451ede10` | 5,952,891 bytes | deleted, 13:47 UTC |
+| `80b489e3-259e-45ee-a46f-7aca2583d88d` | 17,483,880 bytes | deleted, 13:47 UTC |
+
+- Usage: used 67.25 → 37.86 MB (Intro 30.12 → 0.73 MB); reserved 116.29 MB, unchanged.
+
+**Not touched, as instructed.**
+- The removed derivative (`0937bebb`, 734,172 bytes). It became eligible at 10:42, before the cutoff, so no automatic path selects it. It needs Mazen's decision.
+- The 116.29 MB reservation (`e3c47109`, unbound, no file). It was created before the cutoff, so it keeps the 26-hour rule and releases after 2026-10-12 12:41 UTC, the next time Usage opens or an Intro save runs.
+
+**ISS-0012.** Upload starts were requested from Storage with declared sizes only: no data was sent, any upload that started was terminated, and no object was left (verified).
+- 116,291,584 and 52,428,801 bytes: 413.
+- 52,428,800 and 50,000,000 bytes: 201.
+- So the effective limit is exactly 50 MiB, Supabase's project-wide limit, while the editor, the bucket and Truth allow 150 MiB.
+- The approved limit was not lowered and no infrastructure setting was changed.
+- Needed (Mazen): raise the project-wide limit (a separate infrastructure authorization), or formally lower the Intro limit.
+
+**Tests.**
+- New `tests/intro-storage-lifecycle.test.js` (8).
+- Updated `tests/usage-upload.test.js` (cleanup response shape) and the pinned migration list.
+- Related files: 108 (1,451 pass, 1 existing opt-in skip); lint and typecheck pass.
+- Mandatory CI passed.
+- Not run live: an owner upload or removal, which needs Mazen's sign-in.
+
+**Truth.**
+- `intro-identity`: new `failedIntroSourceRetentionSeconds` 3600 and contract `intro-storage-lifecycle`; checkpoint `4b56646`.
+- `global-usage`: new `unboundReservationGraceSeconds` 900; checkpoint `4b56646`.
+- Both stay PENDING_ACCEPTANCE; the 150 MiB limit is unchanged.
+
+**Minimum manual check (Mazen).** On `/account/`, upload an Intro **under 50 MB**, then use Remove Intro and Save. Expected:
+- Usage's Intro value drops to that Intro's size, then to about 0.73 MB (the held old derivative) once it is removed;
+- with the 116.29 MB reservation still held before 12:41 UTC tomorrow, an Intro over about 45 MB may still be refused for storage;
+- optionally, an Intro over 50 MB is refused at once with "larger than the current upload limit", and Reserved does not grow.
+
+REV-0004's 16 desktop passes and ISS-0010 are unaffected. STOP for owner acceptance.

@@ -78,7 +78,7 @@ Rules:
 | DIS | Discussions | discussions/ | DIS-0003 |
 | DEC | Decisions | decisions/ | DEC-0005 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
-| ISS | Issues | issues/ | ISS-0010 |
+| ISS | Issues | issues/ | ISS-0012 |
 | REV | Reviews | reviews/ | REV-0004 |
 
 ## Register
@@ -102,6 +102,8 @@ Rules:
 | ISS-0008 | Nine apparently unreferenced Avatar objects on TESTING | OPEN | [ISS-0008-unreferenced-avatar-objects.md](issues/ISS-0008-unreferenced-avatar-objects.md) |
 | ISS-0009 | HIGH - anonymous visitors can mint long-lived signed Storage URLs that outlive PRIVATE / detach / unpublish | VERIFIED | [ISS-0009-anonymous-signed-urls-outlive-visibility.md](issues/ISS-0009-anonymous-signed-urls-outlive-visibility.md) |
 | ISS-0010 | Intro Preview Skip shows an older-looking DRAFT · PRIVATE profile instead of the current Wall / Classic Profile | OPEN | [ISS-0010-intro-skip-shows-old-draft-preview.md](issues/ISS-0010-intro-skip-shows-old-draft-preview.md) |
+| ISS-0011 | Failed and removed Intro files and abandoned upload reservations were not released | FIXED | [ISS-0011-intro-storage-and-reservations-not-released.md](issues/ISS-0011-intro-storage-and-reservations-not-released.md) |
+| ISS-0012 | Intro sources over 50 MiB cannot be uploaded although the editor, the bucket and Truth allow 150 MiB | OPEN | [ISS-0012-intro-upload-limit-mismatch.md](issues/ISS-0012-intro-upload-limit-mismatch.md) |
 
 | DIS-0001 | Existing platform picker and Other link in Wall | CONCLUDED | [DIS-0001-existing-platform-picker-and-other-link.md](discussions/DIS-0001-existing-platform-picker-and-other-link.md) |
 | DIS-0002 | GamID full-list navigation and next-chat continuity | CONCLUDED | [DIS-0002-gamid-full-list-continuity.md](discussions/DIS-0002-gamid-full-list-continuity.md) |
