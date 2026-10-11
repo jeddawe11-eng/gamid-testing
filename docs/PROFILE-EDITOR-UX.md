@@ -82,3 +82,9 @@ Final lifecycle continuation: `dist/account/account.js`, `dist/account/transient
 8. Check the global notification bell/log and My Duo/My Crew notification destination, plus existing Crew/Duo actions. Existing public GamID/Wall presentation should remain unchanged.
 
 No Production, main merge, Monitor, database migration, worker deployment or real user test mutation in this task.
+## Desktop manual acceptance (2026-10-11)
+
+- Mazen ran 16 desktop manual tests on TESTING (`a1d2eeb`) and all PASSED. He explicitly accepted the tested desktop functionality (Product Memory REV-0004).
+- Test 11 (pending Avatar draft preservation) passed, but its visual preview was not conclusively verified.
+- **Android Chrome real-device acceptance is still outstanding** (checklist item 1 above), so the capability remains PENDING_ACCEPTANCE in GamID Truth.
+- An Intro Preview Skip destination problem seen during test 15 is tracked separately as ISS-0010 (OPEN, needs investigation).

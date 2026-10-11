@@ -2866,3 +2866,17 @@ Documentation only (Mazen). No code, deployment, JWT rotation or Production acce
   - Owners can sign their own files.
 - **Product Memory:** ISS-0009 moves FIXED → VERIFIED, with `acceptance` recorded and the residuals kept in the record.
 - **GamID Truth:** `visitor-media-access` moves PENDING_ACCEPTANCE → ACCEPTED (the capability is exactly this remediation); its checkpoint stays `660d911`. No contract or limit changed.
+
+## 41. YOUR GAMID Editor desktop acceptance; Intro Preview Skip issue recorded — 2026-10-11
+
+Documentation and Product Memory only (Mazen). No code, deployment, migration or Production access; product checkpoint unchanged (`a1d2eeb`).
+- **Desktop acceptance:**
+  - Mazen reported PASS for all 16 desktop manual tests of the YOUR GAMID Editor on TESTING and explicitly accepted the tested desktop functionality (Product Memory REV-0004). The tests cover independent saves, Save All Changes, drafts across collapse and navigation, Display Name validation, the ⋯ menu and Language, the Sign Out warning, feedback timing, the Avatar and Intro drafts, the visibility draft, Game Display persistence and feedback cleanup after re-sign-in.
+  - Test 11 (pending Avatar draft) passed, but its visual preview was not conclusively verified.
+  - The agent repeated none of the tests.
+- **Android Chrome real-device acceptance is still outstanding** (`docs/PROFILE-EDITOR-UX.md`). Truth `your-gamid-editor` therefore stays PENDING_ACCEPTANCE; only its `record` now points to the desktop acceptance. ISS-0007 stays FIXED.
+- **ISS-0010 (OPEN, kind BUG, needs investigation; authorization NONE):**
+  - In the editor's Intro Preview, Skip leads to an older-looking Classic Profile card marked `DRAFT · PRIVATE` instead of the current Wall (when published and enabled) or Classic Profile. The same question applies to a natural end.
+  - The record keeps the editor preview (the Profile Editor host) separate from the public visitor Intro on `/@<handle>`, which was not reported as wrong.
+  - Unconfirmed code lead: the public page passes `publicMode` / `hostReveal` to the Intro frame, while the editor preview appears to pass neither. The frame then shows its own built-in card, whose `DRAFT · PRIVATE` chip is static markup.
+  - No fix until Mazen authorizes one.

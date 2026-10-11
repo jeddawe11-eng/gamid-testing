@@ -59,7 +59,7 @@
         { "id": "profile-account-menu", "rule": "There is no Account Settings section: Language (applied as soon as it is chosen) and Sign Out are in the editor's ⋯ menu, which holds no save button." },
         { "id": "profile-feedback-lifecycle", "rule": "Profile transient feedback receives five seconds of actual visibility, reset by each new message. Progress and actionable errors remain persistent. A field validation error stays inline on its field until the field is valid; its notification below Save Changes is transient (five visible seconds) and clears at once when the field becomes valid. Replaced feedback controllers are disposed; owner lifecycle cleanup and stale-save guards prevent former-owner feedback from affecting the current editor." }
       ],
-      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23 and §38 (ISS-0007); original Slice 3A: §3"
+      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23, §38 (ISS-0007) and §41; desktop manual acceptance by Mazen 2026-10-11 (16 tests, Product Memory REV-0004) - Android Chrome acceptance still outstanding, so the capability stays PENDING_ACCEPTANCE; original Slice 3A: §3"
     },
     {
       "id": "my-socials",

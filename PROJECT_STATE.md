@@ -95,13 +95,14 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Current stop point:** product `a1d2eeb` is deployed to TESTING and technically verified (§38); documentation runs through `PROJECT_HANDOFF.md` §40. No task is authorized beyond what Mazen next asks for.
+**Current stop point:** product `a1d2eeb` is deployed to TESTING and technically verified (§38); documentation runs through `PROJECT_HANDOFF.md` §41. No task is authorized beyond what Mazen next asks for.
 - **Accepted 2026-10-11:** ISS-0009 is VERIFIED and Truth `visitor-media-access` is ACCEPTED (Mazen, including the accepted residual possibility of unknown historical signed URLs; §30, §38–§40).
 - **Manual passes recorded, capability still pending:**
   - CP-01 (REV-0002) and GR-01 (REV-0003).
   - ISS-0007: Mazen's Avatar save passed; the issue stays FIXED until his explicit security acceptance (§38–§39).
+  - YOUR GAMID Editor (`your-gamid-editor`): Mazen passed all 16 desktop tests and accepted the tested desktop functionality (REV-0004, §41). **Android Chrome real-device acceptance is still outstanding**, so the capability stays PENDING_ACCEPTANCE.
 - **Awaiting Mazen's acceptance:** every capability Truth marks PENDING_ACCEPTANCE (17 today), notably:
-  - Profile Editor: `your-gamid-editor`, `my-socials` (`docs/PROFILE-EDITOR-UX.md`; handoff §20, §22–§24);
+  - Profile Editor: `your-gamid-editor` (Android Chrome still to test; desktop accepted), `my-socials` (`docs/PROFILE-EDITOR-UX.md`; handoff §20, §22–§24);
   - Wall: `wall-visibility-toggle` (Mazen to test Enable / Disable My Wall and the Discord personal profile in the Wall and the Classic Profile; §24–§25);
   - Classic Profile: `profile-banner`, `about-me`, `classic-profile-desktop`, `favorite-games`, `my-crews-view`, `gaming-roles-categories`, `game-artwork-provisional` (§31–§38);
   - Other: `global-usage`, `landing-page`, `intro-identity` and the rest listed in Truth.
@@ -110,9 +111,10 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
   - The Discord Profile Card (ACCEPTED, §27) still needs a privacy policy for the Discord application.
   - @black's free-text Location is kept until he picks a country.
   - The TESTING administrator assignment (@black's owner account) is provisional and remains Mazen's decision (§37–§38).
+  - **ISS-0010 (OPEN):** in the editor's Intro Preview, Skip shows an older-looking `DRAFT · PRIVATE` profile instead of the current Wall / Classic Profile; it needs investigation, and no fix is authorized (§41).
 - **Product Memory:**
   - DEC-0001 to DEC-0003 and DEC-0005 are IMPLEMENTED; DEC-0004 is ACCEPTED.
-  - ISS-0001..ISS-0005 and ISS-0007 are FIXED, not VERIFIED; ISS-0006 and ISS-0008 are OPEN; ISS-0009 is VERIFIED.
+  - ISS-0001..ISS-0005 and ISS-0007 are FIXED, not VERIFIED; ISS-0006, ISS-0008 and ISS-0010 are OPEN; ISS-0009 is VERIFIED.
   - The Register in `product-memory/INDEX.md` owns these statuses.
 
 **Product Memory V1** (governance, structure, templates and validation) is committed on the working tip and awaits Mazen's acceptance. Saved records and their statuses are listed only in the Register of [`product-memory/INDEX.md`](product-memory/INDEX.md); rules are in `AGENTS.md` → Product Memory.
