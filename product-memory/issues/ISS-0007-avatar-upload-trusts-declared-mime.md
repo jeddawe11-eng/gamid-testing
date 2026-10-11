@@ -36,6 +36,7 @@ FIXED on TESTING, checkpoint `a1d2eeb` (PROJECT_HANDOFF.md §38). Not VERIFIED: 
 - **Browser:** the cropper and onboarding export a square JPEG (at least 16 px); JPG, PNG, WebP and AVIF can still be chosen.
 - **Tests:** gateway refusals, valid images, limits, ownership, TUS refusal, decoder-missing, Banner unchanged; PGlite attach / profile-save rules; browser export. The outdated "Avatar bytes stored unchanged" test was replaced. Mandatory CI passed (run 38128281601).
 - **Manual test (Mazen, 2026-10-11, TESTING):** a new Avatar saved through the Profile Editor and remained after a refresh, so the real browser path (cropper JPEG -> gateway decode / re-encode -> validated attach) works end to end. This is a successful functional test, not a complete security verification. The refusal cases are covered by automated tests and the deployed-source comparison; no adversarial upload was sent to TESTING.
+- **Additional manual UI negative test (Mazen, 2026-10-11, TESTING): PASS.** Mazen selected a text file disguised as `fake-avatar.jpg` in the Avatar picker. The editor displayed “That image could not be opened. Choose another image.”, left Save Changes disabled, and continued showing “Avatar saved” for the existing Avatar. Screenshot supplied by Mazen. This confirms client-side invalid-image rejection only; it does **not** constitute a direct adversarial gateway upload or prove server-side refusal. No repeat of this UI test is needed.
 - **Still open for VERIFIED:** Mazen's explicit security acceptance (and, if he wants it, a live adversarial upload check with a test persona).
 
 ## History
@@ -43,3 +44,4 @@ FIXED on TESTING, checkpoint `a1d2eeb` (PROJECT_HANDOFF.md §38). Not VERIFIED: 
 - 2026-10-10 OPEN — Mazen asked for it to be recorded in the Phase 1B task, without fixing it in that phase.
 - 2026-10-11 AUTHORIZED — Mazen authorized the fix (both routes) and adding the resumable-route evidence, in "GAMID — COMBINED SECURITY REMEDIATION + UX FIXES".
 - 2026-10-11 FIXED — Gateway v8, migration 20261011220000 and frontend a1d2eeb deployed on TESTING (run 38128281601). Not VERIFIED: Mazen's acceptance is pending.
+- 2026-10-11 MANUAL UI NEGATIVE TEST PASS — Mazen's fake-JPEG selection was rejected by the browser editor; existing Avatar remained saved. Evidence is UI-only; status stays FIXED and security acceptance remains pending.
