@@ -261,15 +261,15 @@
       "name": "About Me (Location, Languages, Favorite Genres, Member Since)",
       "status": "PENDING_ACCEPTANCE",
       "surfaces": ["/account/", "/@<handle>"],
-      "limits": { "aboutLanguagesMax": 5, "aboutGenresPublicShown": 5, "locationCities": 34156, "locationCountries": 252 },
+      "limits": { "aboutLanguagesMax": 5, "locationCities": 34156, "locationCountries": 252 },
       "contracts": [
         { "id": "about-me-privacy", "rule": "Location, Languages and Favorite Genres are optional and each has its own Show on my GamID switch, OFF by default; a switch is available only while its value is set and turns OFF when the value is cleared. Only switched-on values of a PUBLIC GamID are ever sent to visitors. Member Since is the date the GamID was registered (entities.created_at as a UTC calendar date, shown as day, full month name and year, e.g. 10 October 2026, the same for every visitor's time zone) and is always shown on the public profile; it cannot be edited." },
         { "id": "about-me-display", "rule": "About Me appears on the desktop Classic Profile (1280px and wider); the mobile layout does not show it." },
         { "id": "about-me-location", "rule": "Location is chosen, never typed or geolocated: a country from the catalog (stored as its ISO 3166-1 code), then optionally a city of THAT country (stored as its GeoNames id), each searchable in English or Arabic. Visitors see it formatted (City, Country) only while its switch is ON. The catalog is GeoNames (CC BY 4.0, attribution shown in the editor): the 252 countries and the 34,156 cities with at least 15,000 inhabitants. A Location typed before this change is kept unchanged and still shown until its owner chooses a country (the editor offers a suggestion only when the text matches exactly one place); nothing is converted automatically." },
-        { "id": "about-me-genres", "rule": "Favorite Genres has no maximum: any number of active catalog genres can be selected and all of them are stored; the public desktop profile shows at most five. Languages keep their maximum of five." }
+        { "id": "about-me-genres", "rule": "Favorite Genres has no maximum: any number of active catalog genres can be selected and all of them are stored. While its switch is ON the public desktop profile shows every selected genre, in the owner's order, wrapping across rows inside About Me (no truncation, +N or ellipsis); while it is OFF no genre is sent. Languages keep their maximum of five." }
       ],
-      "checkpoint": "0ccf1c721b9e844ce88ba69c6010cc2ab392c706",
-      "record": "PROJECT_HANDOFF.md §31-§33; migrations 20261010160000_profile_about_me.sql, 20261010180000_member_since_date.sql, 20261011100000_classic_profile_consolidated.sql; docs/LOCATION-DATA.md; Product Memory DEC-0005"
+      "checkpoint": "70f8940817aec80f07aee2fc95bad58fbe66f297",
+      "record": "PROJECT_HANDOFF.md §31-§34; migrations 20261010160000_profile_about_me.sql, 20261010180000_member_since_date.sql, 20261011100000_classic_profile_consolidated.sql; docs/LOCATION-DATA.md; Product Memory DEC-0005"
     },
     {
       "id": "classic-profile-desktop",
@@ -310,11 +310,11 @@
       "surfaces": ["/@<handle>"],
       "limits": { "artworkLookupsPerRequest": 6, "artworkCacheDays": 7, "artworkRequestsPerClientPerMinute": 30 },
       "contracts": [
-        { "id": "artwork-evaluation-only", "rule": "SteamGridDB is approved for provisional technical evaluation on TESTING only. Its commercial artwork rights are NOT confirmed: no public or commercial rollout without Mazen's separate approval. It is active only while the server secret STEAMGRIDDB_API_KEY is set and the artwork settings switch is ON; switching it off hides every image at once and loses no user data (only a metadata cache of provider ids and image URLs is kept, 7 days; no image is stored or re-served)." },
+        { "id": "artwork-evaluation-only", "rule": "SteamGridDB is approved for provisional technical evaluation on TESTING only. Its Terms of Use allow only personal, non-commercial use and forbid distributing any part of the service without its explicit written permission, so until that permission exists provider artwork is shown ONLY on the evaluation allowlist (the GM-TEST personas); every other public profile, real users included, keeps its initials tiles. No public or commercial rollout without that written permission and Mazen's approval. It is active only while the server secret STEAMGRIDDB_API_KEY is set (it is, since 2026-10-11) and the artwork settings switch is ON; switching it off hides every image at once and loses no user data (only a metadata cache of provider ids and image URLs is kept, 7 days; no image is stored or re-served)." },
         { "id": "artwork-matching", "rule": "Only games the visitor can already see get artwork (public My Games, a public League account, the public crews section). A game is matched by its catalog Steam app id, or else only when exactly one provider title equals the catalog title and the release years agree; anything else keeps the initials tile. Images are static and non-NSFW, load from the provider CDN with no referrer, and the provider key never reaches the browser." }
       ],
-      "checkpoint": "0ccf1c721b9e844ce88ba69c6010cc2ab392c706",
-      "record": "PROJECT_HANDOFF.md §33; docs/GAME-ARTWORK-STEAMGRIDDB.md; supabase/functions/game-artwork"
+      "checkpoint": "70f8940817aec80f07aee2fc95bad58fbe66f297",
+      "record": "PROJECT_HANDOFF.md §33-§34; docs/GAME-ARTWORK-STEAMGRIDDB.md; supabase/functions/game-artwork; migration 20261011140000_artwork_evaluation_allowlist.sql"
     },
     {
       "id": "notifications",

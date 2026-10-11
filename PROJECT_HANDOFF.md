@@ -2590,3 +2590,58 @@ Authorized: "GamID — Classic Profile Desktop Consolidated Update" (TESTING onl
 - The deferred signed-URL closure review (§30 residuals) is still open and was not touched; no key was rotated.
 
 STOP for owner acceptance.
+
+## 34. Classic Profile — SteamGridDB artwork live evaluation + all public Favorite Genres — 2026-10-11
+
+Authorized: "GamID — Classic Profile: Game Artwork + Favorite Genres" (TESTING only).
+- Product checkpoint: `70f8940817aec80f07aee2fc95bad58fbe66f297`.
+- Frontend run: [38107998065](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38107998065). TESTING serves `70f8940`; changed files verified.
+- Migration `20261011140000_artwork_evaluation_allowlist`: rehearsed, applied, history repaired.
+- `game-artwork` redeployed.
+- Truth: `about-me` (genres contract) and `game-artwork-provisional` (terms + allowlist), both PENDING_ACCEPTANCE.
+
+**Provider terms.** Full findings and the permission request draft are in docs/GAME-ARTWORK-STEAMGRIDDB.md.
+- The official API reference (OpenAPI v2.10.0) states Bearer auth only: no rate limit, cache, licence or API terms.
+- The Terms of Use restrict use to personal, non-commercial use, forbid automated use, and forbid distributing any part of the service without explicit written permission.
+- Mazen chose (2026-10-11) a live evaluation on the test personas only.
+- So migration `20261011140000` adds `evaluation_handles` (`gm_test_01`, `gm_test_02`): `game_artwork_targets` is enabled only for those. @black and @zshot receive `enabled:false` and no artwork.
+- **Public activation stays BLOCKED until SteamGridDB grants written permission.**
+
+**Configuration.** The function reports `configured:true` (it sees the new secret; its value was never read or printed). Kill switch ON.
+
+**Code changes.**
+- `game-artwork`: a malformed 200 (not JSON, or not `{ success: true, data }`) is a provider fault — stop and cache nothing — instead of a cached NO_MATCH. Icons are requested as PNG.
+- **Favorite Genres** (owner decision): `public-desktop.js` draws every public genre in the owner's order. The `.desk-chips` flex-wrap wraps them inside About Me; no `slice`, +N or ellipsis. The editor hint no longer mentions five. Mobile is untouched.
+
+**Live SteamGridDB evaluation (GM-TEST-01; 16 games, 3 Crews), 13/13 checks.**
+- Resolved in 3 requests (6 lookups each at most).
+- **15 matched** (12 by Steam id; Fortnite, League of Legends and Valorant by exact title + year); **1 fallback** (Minecraft, no unique title + year match).
+- **33/33 images loaded** in a real browser.
+- A visual check of every image: all correct. *Doom* shows "DOOM I+II" because Steam app 2280 is now the combined product.
+- My Games: 6/6 preview rows with artwork, and Game Details still opens.
+- My Crews: 3/3 backgrounds.
+- Connected Games: none on the test persona (no fabricated account).
+- Cache hit with no provider call (0.4 s).
+- Allowlist: @black gets nothing.
+- Kill switch OFF / ON.
+- Request limit: 429 at the 27th request in a minute.
+- GM-TEST-01 restored exactly. The 16 metadata cache rows are kept (evaluation results, not user data).
+
+**Favorite Genres live, 11/11.**
+- Editor: 12 genres saved and kept after refresh in the owner's order; the hint reads "12 selected · …".
+- Visitor views with 0, 1, 5, 9 and 12 genres (12 at 1280, 1440 and 1920): every one shown in order, inside a visible About Me card, with no +N or ellipsis, no overlap with My Games / Connected Games, and no horizontal scroll.
+- Visibility OFF: nothing on the page or in the anonymous response.
+- **@black, read-only visit, About Me card only:** all 9 of his genres shown in his order, wrapping over 3 lines.
+- GM-TEST-01 restored.
+
+**Automated.**
+- Suite 1,830 (1,829 pass, 1 skip); lint, typecheck and build pass.
+- `tests/classic-profile-consolidated.test.js` 20 tests, including genres at 0/1/5/9/12, the allowlist in PGlite, and malformed provider responses.
+- Fixtures: desktop 15/15 (12 long genres wrap inside About Me at 1280 and 1920; all 7 shown in order); mobile 390 / 768 / 1279 pixel-identical to the `568b530` baseline; editor 2/2.
+
+**Open.**
+- Written permission from SteamGridDB (draft in the doc) before any display on real profiles or a public / commercial release.
+- Connected Games artwork on a real linked account is verified only by fixture; it is outside the allowlist.
+- The signed-URL closure review (§30 residuals) is still open.
+
+STOP for owner acceptance.
