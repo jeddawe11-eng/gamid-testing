@@ -35,7 +35,8 @@ FIXED on TESTING, checkpoint `a1d2eeb` (PROJECT_HANDOFF.md §38). Not VERIFIED: 
 - **Migration `20261011220000_avatar_validated_attach`** (rehearsed, applied after the gateway, history repaired): a new Avatar reference must be such a validated `image/jpeg` object owned by the caller and stored since the validating gateway went live (2026-10-11 09:23:17 UTC); the Avatar a GamID already shows is kept. No stored object was modified, re-encoded or deleted.
 - **Browser:** the cropper and onboarding export a square JPEG (at least 16 px); JPG, PNG, WebP and AVIF can still be chosen.
 - **Tests:** gateway refusals, valid images, limits, ownership, TUS refusal, decoder-missing, Banner unchanged; PGlite attach / profile-save rules; browser export. The outdated "Avatar bytes stored unchanged" test was replaced. Mandatory CI passed (run 38128281601).
-- **Not done live:** an authenticated Avatar upload on TESTING, which needs a persona sign-in; Mazen's own upload is the remaining check.
+- **Manual test (Mazen, 2026-10-11, TESTING):** a new Avatar saved through the Profile Editor and remained after a refresh, so the real browser path (cropper JPEG -> gateway decode / re-encode -> validated attach) works end to end. This is a successful functional test, not a complete security verification. The refusal cases are covered by automated tests and the deployed-source comparison; no adversarial upload was sent to TESTING.
+- **Still open for VERIFIED:** Mazen's explicit security acceptance (and, if he wants it, a live adversarial upload check with a test persona).
 
 ## History
 

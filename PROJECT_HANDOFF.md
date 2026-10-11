@@ -2830,3 +2830,27 @@ Owner-authorized combined task (Mazen), TESTING only. Product checkpoint `a1d2ee
 - Targeted runs pass, then the mandatory CI. No screenshots.
 
 STOP for owner acceptance.
+
+## 39. ISS-0009 known synthetic URL closed; acceptance outcomes recorded — 2026-10-11
+
+Documentation and test-data task (Mazen), TESTING only. No code, deployment or Truth change; product checkpoint unchanged (`a1d2eeb`).
+
+**Synthetic object deleted (Mazen-authorized).**
+- The object: `wall-video/4dea1112-567f-4f01-8f0f-a3187fd6f29c/184d21cc-1acd-4e72-ade4-69f4c83d59fe.webm` (105,320 bytes, `video/webm`, created 2026-10-05). It is the GM-TEST-01 Wall video behind the known 365-day pre-fix test URL (§30).
+- Identified before deletion:
+  - the folder is GM-TEST-01's owner uid, and the single COMPLETE usage receipt is GM-TEST-01's;
+  - it was GM-TEST-01's only object;
+  - no reference in a Wall draft, publication, Crew Wall card or derived object;
+  - the Monitor's `open-assets` pilot only opens the Assets panel and names no asset.
+- Deleted through the Storage API (CLI `storage rm`, exit 0). Verified gone: no GM-TEST-01 objects remain, and an anonymous direct read returns 400.
+- The known URL itself was never retained (its scratch file was deleted in Phase 1D), so it could not be requested again. It is invalid because Storage honours a signed URL only while its object exists, as observed on TESTING in Phase 1B (400 after deletion).
+  - A same-object lease check, run under a temporary synthetic publication, did not produce evidence: the lease request was malformed by PowerShell argument quoting and returned 404 before the deletion.
+  - GM-TEST-01 was restored (DRAFT, 0 publications).
+- GM-TEST-01 compared with the snapshot taken before: visibility DRAFT, no Avatar, Wall draft revision 1 (md5 `1b12bc34…`), 0 publications and 41 receipts are unchanged; objects went from 1 to 0. Its `wall_assets` row 20694c6e remains, pointing to the missing file (not removed: only the object was authorized).
+- **Remaining ISS-0009 risk:** unknown long URLs a visitor may have minted before 2026-10-10 for then-public objects. They cannot be listed or revoked without rotating the JWT secret, which was not done. ISS-0009 stays FIXED until Mazen accepts this residual.
+
+**Acceptance recorded.**
+- ISS-0007: Mazen's manual test passed (a new Avatar saved and remained after refresh). Recorded as functional evidence; the issue stays FIXED, not VERIFIED.
+- CP-01: REV-0002 (PASS, one Crew).
+- GR-01: REV-0003 (PASS).
+- Truth statuses are unchanged: `my-crews-view` and `gaming-roles-categories` remain PENDING_ACCEPTANCE as whole capabilities.

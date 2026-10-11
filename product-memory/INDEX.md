@@ -79,7 +79,7 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0005 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0009 |
-| REV | Reviews | reviews/ | REV-0001 |
+| REV | Reviews | reviews/ | REV-0003 |
 
 ## Register
 
@@ -106,3 +106,5 @@ Rules:
 | DIS-0002 | GamID full-list navigation and next-chat continuity | CONCLUDED | [DIS-0002-gamid-full-list-continuity.md](discussions/DIS-0002-gamid-full-list-continuity.md) |
 | DIS-0003 | Profile Editor visual and social settings notes | CONCLUDED | [DIS-0003-profile-editor-visual-social-notes.md](discussions/DIS-0003-profile-editor-visual-social-notes.md) |
 | REV-0001 | Mazen manual acceptance checklist items 1 through 6 | COMPLETED | [REV-0001-manual-acceptance-checklist.md](reviews/REV-0001-manual-acceptance-checklist.md) |
+| REV-0002 | CP-01 My Crews panel sizing - Mazen manual acceptance | COMPLETED | [REV-0002-cp01-my-crews-panel-sizing-acceptance.md](reviews/REV-0002-cp01-my-crews-panel-sizing-acceptance.md) |
+| REV-0003 | GR-01 Role Suggestions review inside Gaming Roles - Mazen manual acceptance | COMPLETED | [REV-0003-gr01-role-suggestions-placement-acceptance.md](reviews/REV-0003-gr01-role-suggestions-placement-acceptance.md) |

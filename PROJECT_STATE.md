@@ -112,7 +112,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 8. Current test data
 
-- **GM-TEST-01** has one Wall asset, uploaded for the Assets pilot: `pink_red_crown_loop.webm`. It is in Assets only; it is not placed on the saved Wall, which is not published.
+- **GM-TEST-01** has no stored objects since 2026-10-11: its synthetic Wall video (`pink_red_crown_loop.webm`, uploaded for the Assets pilot) was deleted with Mazen's authorization to close the known pre-fix signed URL (ISS-0009; `PROJECT_HANDOFF.md` §39). Its Assets entry (`wall_assets` 20694c6e) remains and points to the missing file. The saved Wall is unchanged and not published; the Monitor's open-assets pilot needs only the Assets panel, not an asset.
   - The acceptance run added it to the stage and undid that before any save, so the saved draft is unchanged.
 - **@black and @zshot** were not used for this pilot and remain protected.
 - **No credentials or secrets** are stored here or anywhere in either repository. Persona secrets live outside the repositories; see `../gamid-monitor/docs/PERSONAS.md`.

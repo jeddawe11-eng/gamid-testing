@@ -3,7 +3,7 @@ id: ISS-0009
 title: HIGH - anonymous visitors can mint long-lived signed Storage URLs that outlive PRIVATE / detach / unpublish
 status: FIXED
 created: 2026-10-10
-updated: 2026-10-10
+updated: 2026-10-11
 scope: Storage read access for visitors - Classic Profile Banner, public Avatar, Intro media, published Wall media (all CONFIRMED, all fixed on TESTING)
 summary: HIGH severity. Any anonymous storage SELECT policy also let visitors mint signed URLs of any length that kept working after access should have ended. Confirmed live for Banner, Avatar, Intro and Wall; fixed on TESTING in Phase 1D - only owners can sign, visitors get server-issued leases or server-delivered bytes.
 related: [DEC-0005, ISS-0007, ISS-0008]
@@ -51,8 +51,20 @@ Verified live after the fix:
 - `profile-banner` passes every case;
 - regression suites and fixtures pass.
 
+**Closure assessment (2026-10-11, PROJECT_HANDOFF.md §38-§39; GM-TEST-01 synthetic fixtures only, restored; no real user's file read, signed or changed):**
+- Live configuration re-read: the signing ban policy, no public bucket, and no client grant on the lease / Banner / counter RPCs. The deployed `public-media` source is byte-identical to the repo (Intro 120 s, Wall video 21,600 s).
+- Rolled-back RLS simulation: anonymous and non-owner callers see 0 objects for `sign` / `sign_many`, and the public objects for direct reads.
+- Live through the Storage API:
+  - anonymous signing (365 d, 60 s, batch) refused on an Avatar and a Wall video;
+  - direct reads served while public, refused at once after detach, PRIVATE, disable and unpublish;
+  - leases refused in the same cases;
+  - a lease asked for 365 d is exactly 21,600 s;
+  - a lease issued earlier keeps serving until it expires (the accepted F4 behaviour).
+- S3-compatible access needs a user session JWT and is checked under the same RLS on each request, so it is not an equivalent long-lived bypass. This is by analysis; it was not tested live, because that needs a signed-in account.
+- **The known synthetic URL is closed (Mazen-authorized deletion, 2026-10-11).** Its object, GM-TEST-01's synthetic Wall video `wall-video/<GM-TEST-01>/184d21cc-1acd-4e72-ade4-69f4c83d59fe.webm` (105,320 bytes), was positively identified: GM-TEST-01's folder and COMPLETE receipt, no draft / publication / Crew Wall / derived reference, and not needed by the Monitor pilot. It was deleted through the Storage API and verified gone (direct read 400). The URL itself was never retained, so it could not be requested after the deletion. It is invalid because a signed URL is honoured only while its object exists (observed on TESTING in Phase 1B: 400 after deletion). GM-TEST-01 is otherwise unchanged; its Assets entry `wall_assets` 20694c6e now points to a missing file.
+
 **Residual:**
-- (a) URLs minted **before** the fix stay valid until they expire or the object is deleted. They cannot be listed or revoked; the only global option is rotating the project's JWT signing secret, which also ends every session (Mazen's decision). On TESTING, one such test URL remains: for GM-TEST-01's kept Wall test video, which is synthetic.
+- (a) Any **unknown** URL minted **before** the fix for a then-public object stays valid until it expires or the object is deleted. Such URLs cannot be listed or revoked; the only global option is rotating the project's JWT signing secret, which also ends every session (Mazen's decision; not done). URLs made by the normal pre-fix page were short (Intro ≤ 120 s, Wall video ≤ 6 h) and have expired. There is no evidence either way of deliberately minted long URLs. The one known test URL is closed (above).
 - (b) Leases already issued are bounded: up to 120 s for an Intro, up to 6 h for a Wall video (the accepted F4 behaviour; shortening it is a product decision).
 - (c) The protection relies on Supabase setting `storage.operation()`. If that ever stops, signing would open again silently, so a periodic live check is recommended.
 - (d) Owners can still sign their own files.
