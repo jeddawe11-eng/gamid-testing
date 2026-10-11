@@ -12,14 +12,14 @@ kind: BUG
 authorization: NONE
 truth_refs: [my-socials]
 checkpoints: []
-sources: [Mazen screenshot]
+sources: []
 ---
 
 ## Description
 On the visitor-facing SOCIALS row, TikTok (TT), Twitch (TW), Kick (K) and Snapchat (SC) show letters instead of official platform logos. Discord, Instagram, YouTube and X appear recognizable. Only some icons are affected. Mazen reports he previously addressed this issue; inspect existing icon implementation before fixing.
 
 ## Evidence
-Mazen supplied a screenshot and confirmed the links themselves work (REV-0005 PASS).
+Mazen supplied a screenshot (kept outside the repository) and confirmed the links themselves work (REV-0005 PASS).
 
 ## Resolution
 Unresolved. Root cause not verified. No fix authorized.

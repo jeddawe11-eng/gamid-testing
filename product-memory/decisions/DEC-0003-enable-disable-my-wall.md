@@ -3,7 +3,7 @@ id: DEC-0003
 title: Enable / Disable My Wall without unpublishing
 status: IMPLEMENTED
 created: 2026-10-09
-updated: 2026-10-09
+updated: 2026-10-11
 scope: Profile Editor My Wall section, public profile resolution, Wall publication
 summary: The owner can hide a published Wall so visitors see the Classic Profile, and show the same Wall again, independent of the GamID's Publish / Unpublish.
 related: [DEC-0001, DEC-0002]
@@ -35,9 +35,12 @@ Reusing the published snapshot keeps the Wall exactly as it was, and the change 
 - A browser-only switch on the public page — rejected: not authoritative, so visitors in other sessions would still get the Wall.
 - A flag on the GamID (entities) — rejected: it would couple Wall visibility to the identity's own Publish / Unpublish.
 
+## Manual test results
+
+- 2026-10-11 MANUAL PASS: Mazen confirmed that he tested the Enable / Disable My Wall control on TESTING and it works. User-reported PASS, no repeated test. Exact visitor scenarios were not individually specified; no independent verification claimed.
+
 ## History
 
 - 2026-10-09 APPROVED — Mazen specified the feature, its texts and the public-profile rules.
 - 2026-10-09 AUTHORIZED — Mazen explicitly authorized the implementation on TESTING.
 - 2026-10-09 IMPLEMENTED — Implemented at 85146e6 and deployed to TESTING (run 37894870969); migration 20261009170000 applied. The existing published Walls (@black, @zshot) were verified unchanged and enabled. Acceptance pending.
-- 2026-10-11 MANUAL PASS — Mazen confirmed that he tested the Enable / Disable My Wall control on TESTING and it works. User-reported PASS, no repeated test. Exact visitor scenarios were not individually specified; no independent verification claimed.

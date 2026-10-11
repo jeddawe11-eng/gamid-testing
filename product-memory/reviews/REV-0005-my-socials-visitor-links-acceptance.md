@@ -13,14 +13,14 @@ outcome: PASS
 reviewer: Mazen
 truth_refs: [my-socials]
 checkpoints: []
-sources: [Mazen screenshot]
+sources: []
 ---
 
 ## Subject
 My Socials links on public profile.
 
 ## Method
-Mazen tested and reported working links and supplied screenshot.
+Mazen tested and reported working links and supplied screenshot (kept outside the repository).
 
 ## Results
 PASS: links display and work for visitor. Some icons have incorrect branding, tracked separately as ISS-0013. No independent retest.
