@@ -2956,3 +2956,37 @@ Owner-authorized (Mazen), TESTING only.
 - optionally, an Intro over 50 MB is refused at once with "larger than the current upload limit", and Reserved does not grow.
 
 REV-0004's 16 desktop passes and ISS-0010 are unaffected. STOP for owner acceptance.
+
+## 43. Intro source upload limit 150 MiB -> 50 MiB — 2026-10-11
+
+Mazen's approved product decision, TESTING only. The maximum single Intro upload is now 50 MiB (52,428,800 bytes), matching the effective Supabase project-wide upload limit confirmed in ISS-0012. Product checkpoint `5214d9b6add2629684e9c134f1e637598b90dd97`.
+
+**Changed (one value at every Intro enforcement point).**
+- Migration `20261011260000_intro_source_limit_50mib`: the `intro-sources` bucket `file_size_limit`, the `intro_processing_jobs_source_size_bytes_check` CHECK and the `queue_my_intro_impl` bound. Its RPC body is the live definition with only the constant changed.
+- Editor: `INTRO_SOURCE_MAX_BYTES`, the two "Intro video must be 50 MB or smaller." messages, and the help text "max 50 MB".
+- Truth: `intro-identity.introSourceMaxBytes` = 52428800, with its checkpoint updated.
+- Docs: `docs/global-usage-center.md` and the worker READMEs.
+
+**Unchanged.**
+- The 200 MB account quota, and the Wall / Avatar / Banner and all other bucket limits (verified in the rehearsal).
+- The Intro duration (0.5-30 s, inclusive 31 s tolerance), formats, processing, deletion and the ISS-0011 reservation lifecycle.
+- The Intro worker's own `MAX_SOURCE_BYTES` stays a defensive 150 MiB processing ceiling. Changing it would need a worker image rebuild and redeploy; the stricter limits before it mean the worker never receives more than 50 MiB.
+- Historical migrations and records are not rewritten.
+
+**Verification.**
+- Rehearsal on TESTING (rolled back):
+  - only `intro-sources` changed (157286400 -> 52428800); the CHECK is validated with 0 violating rows (largest existing source 50,550,323 bytes);
+  - the RPC carries 52428800 with no trace of 157286400, and its grants are unchanged.
+- The live integration test (`tests/integration/intro-source-limit-db.sql`) was **not** run: it creates a disposable auth user inside its transaction. Its numbers are updated.
+- Tests:
+  - `tests/intro-source-limit.test.js` 9/9: exactly 52,428,800 bytes accepted, 52,428,801 refused, 116,291,584 and 150 MiB refused, durations unchanged, the RPC differs from the previous definition only in the constant;
+  - 114 related files: 1,499 pass, 1 skip (after pinning the new migration in `tests/public-my-games.test.js`);
+  - lint and typecheck pass.
+
+**Deployment: BLOCKED (not applied, not deployed).**
+- The CI gate runs the full suite, and `tests/product-memory.test.js` currently fails on three Product Memory records committed to this branch by other sessions:
+  - DEC-0003: a History line that is not a status transition (`MANUAL PASS`);
+  - ISS-0013 and REV-0005: `sources` lists `"Mazen screenshot"`, which is not a repository file.
+- Product Memory may not be modified without Mazen's explicit approval, so they are untouched.
+- To avoid an inconsistent TESTING state (an editor saying 150 MB over a 50 MiB backend), the migration is **not applied** and the frontend is **not deployed**. TESTING still serves `72896d6`, where Storage already refuses Intros over 50 MiB at the upload start with "larger than the current upload limit".
+- **Next:** Mazen approves a minimal fix of those three records, or their author fixes them. Then apply migration `20261011260000`, deploy this commit through the workflow, and verify.

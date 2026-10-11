@@ -104,10 +104,10 @@
       "name": "Intro identity (owner Intro video upload, processing, Full Preview)",
       "status": "PENDING_ACCEPTANCE",
       "surfaces": ["/account/"],
-      "limits": { "introSourceMaxBytes": 157286400, "introMaxSeconds": 30, "introTechnicalMaxSeconds": 31, "failedIntroSourceRetentionSeconds": 3600 },
-      "checkpoint": "4b56646e782eefadcc173b64e8aa59f0fab37cd9",
+      "limits": { "introSourceMaxBytes": 52428800, "introMaxSeconds": 30, "introTechnicalMaxSeconds": 31, "failedIntroSourceRetentionSeconds": 3600 },
+      "checkpoint": "5214d9b6add2629684e9c134f1e637598b90dd97",
       "contracts": [{ "id": "intro-storage-lifecycle", "rule": "Removing an Intro releases its stored file without waiting for another Intro: the owner's cleanup (after the removal, before a new Intro upload and when Usage opens) deletes that owner's due Intro files. A failed Intro's source is kept for 1 hour, then becomes due. A file that was already due before 2026-10-11 13:55:56 UTC is not cleaned automatically. The active Intro and the source of a pending or processing Intro are never deleted." }, { "id": "intro-duration-tolerance", "rule": "The user-facing Intro maximum remains 30 seconds. Source metadata and processing/activation permit an inclusive technical tolerance up to 31.0 seconds; values over 31.0 seconds are rejected. The existing 0.5-second minimum remains." }, { "id": "intro-derivative-d3", "rule": "New Intro sources produce opaque VP9/WebM CRF 40 playback derivatives, downscaled only within a 1920-pixel long edge and 1080-pixel short edge, preserving display aspect/orientation, frame rate and timing; existing Opus audio behavior, derivative 15 MiB ceiling and source-retention policy remain. Existing READY derivatives are unchanged." }],
-      "record": "docs/INTRO-DURATION-TOLERANCE.md; PROJECT_HANDOFF.md §18 and §42 (Intro storage lifecycle, ISS-0011); PROJECT_HANDOFF.md §3 + §7 (Slice 3C; formal acceptance deliberately deferred by Mazen; Split Reveal fix accepted at d7466f99); F2 derivative optimization separately ACCEPTED: §10–11 + docs/INTRO-DERIVATIVE-F2.md (Mazen, 2026-10-07)"
+      "record": "docs/INTRO-DURATION-TOLERANCE.md; PROJECT_HANDOFF.md §18, §42 (Intro storage lifecycle, ISS-0011) and §43 (Intro source limit 50 MiB = 52,428,800 bytes, Mazen 2026-10-11; migration 20261011260000); PROJECT_HANDOFF.md §3 + §7 (Slice 3C; formal acceptance deliberately deferred by Mazen; Split Reveal fix accepted at d7466f99); F2 derivative optimization separately ACCEPTED: §10–11 + docs/INTRO-DERIVATIVE-F2.md (Mazen, 2026-10-07)"
     },
     {
       "id": "intro-derivative-f2",
