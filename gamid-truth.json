@@ -410,7 +410,7 @@
     {
       "id": "profile-banner",
       "name": "Classic Profile Banner (Profile Editor upload / crop / replace / remove; shown on the desktop Classic Profile)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/account/",
         "/@<handle>"
@@ -433,12 +433,12 @@
         }
       ],
       "checkpoint": "4948f6ccc88b4cb54f5aec23e40932798df19e74",
-      "record": "PROJECT_HANDOFF.md §28-§31; Product Memory DEC-0005"
+      "record": "PROJECT_HANDOFF.md §28-§31; Product Memory DEC-0005; Mazen explicitly confirmed full manual acceptance of this capability independently on TESTING 2026-10-11 (after acceptance of Classic Profile Desktop)"
     },
     {
       "id": "about-me",
       "name": "About Me (Location, Languages, Favorite Genres, Member Since)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/account/",
         "/@<handle>"
@@ -467,7 +467,7 @@
         }
       ],
       "checkpoint": "70f8940817aec80f07aee2fc95bad58fbe66f297",
-      "record": "PROJECT_HANDOFF.md §31-§34; migrations 20261010160000_profile_about_me.sql, 20261010180000_member_since_date.sql, 20261011100000_classic_profile_consolidated.sql; docs/LOCATION-DATA.md; Product Memory DEC-0005"
+      "record": "PROJECT_HANDOFF.md §31-§34; migrations 20261010160000_profile_about_me.sql, 20261010180000_member_since_date.sql, 20261011100000_classic_profile_consolidated.sql; docs/LOCATION-DATA.md; Product Memory DEC-0005; Mazen explicitly confirmed full manual acceptance of this capability independently on TESTING 2026-10-11 (after acceptance of Classic Profile Desktop)"
     },
     {
       "id": "classic-profile-desktop",
