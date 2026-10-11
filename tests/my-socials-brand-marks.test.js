@@ -20,7 +20,7 @@ test("ISS-0013: every one of the six platforms has a desktop mark, and the mark 
 });
 
 test("ISS-0013: marks use each badge's existing text colour - white on TikTok / Twitch, black on Kick's green and Snapchat's yellow", () => {
-  assert.match(block, /html\.is-public-desktop \.social-icon\[data-platform=kick\]::before,html\.is-public-desktop \.social-icon\[data-platform=snapchat\]::before,html\.is-public-desktop \.social-icon\[data-platform=spotify\]::before\{background:#000\}/);
+  assert.match(block, /html\.is-public-desktop \.social-icon\[data-platform=kick\]::before,html\.is-public-desktop \.social-icon\[data-platform=snapchat\]::before\{background:#000\}/);
   assert.match(css, /\.public-social \.social-icon\[data-platform=kick\]\{background:#53fc18;color:#000\}/);
   assert.match(css, /\.public-social \.social-icon\[data-platform=snapchat\]\{background:#fffc00;color:#000\}/);
   assert.match(css, /\.public-social \.social-icon\[data-platform=tiktok\]\{background:#000;box-shadow:inset 0 0 0 2px #25f4ee\}/);
@@ -43,20 +43,28 @@ test("ISS-0013: the badge markup, link labels, sizes and the mobile text marks a
   assert.match(css, /\.public-social \.social-icon\{display:inline-grid;place-items:center;width:2\.75rem;aspect-ratio:1;border-radius:50%;/);
 });
 
-// Spotify, SoundCloud and Vimeo (added to My Socials 2026-10-12): the same desktop mechanism, with desktop-only badge colours so the shared / mobile badges are untouched
+// Spotify, SoundCloud and Vimeo (added to My Socials 2026-10-12): brand colours and marks at EVERY width (Mazen 2026-10-12: the mobile badges show the logos too),
+// on the same static mask mechanism; the desktop result is unchanged
 const AUDIO_VIDEO = ["spotify", "soundcloud", "vimeo"];
-test("My Socials: Spotify, SoundCloud and Vimeo have desktop marks and desktop-only brand colours; nothing outside the desktop scope names them", () => {
+const allWidthStart = css.indexOf("/* Spotify (its three arcs)"), vimeoMark = css.indexOf(".public-social .social-icon[data-platform=vimeo]{--social-mark:");
+const allWidth = css.slice(allWidthStart, css.indexOf("\n", vimeoMark));
+test("My Socials: Spotify, SoundCloud and Vimeo show their brand colour and mark on mobile and desktop alike (no desktop-only rule)", () => {
+  assert.ok(allWidth.length > 0 && css.indexOf("/* Spotify (its three arcs)") < css.indexOf("/* My Socials marks"), "one all-width block after the shared badge colours");
   for (const p of AUDIO_VIDEO) {
-    assert.match(block, new RegExp(`html\\.is-public-desktop \\.social-icon\\[data-platform=${p}\\]\\{--social-mark:url\\("data:image/svg\\+xml,%3Csvg xmlns='http://www\\.w3\\.org/2000/svg' viewBox='0 0 24 24'%3E`), p);
-    assert.ok(block.split("{position:relative;font-size:0}")[0].includes(`html.is-public-desktop .social-icon[data-platform=${p}]`), `${p}: the glyph is hidden on desktop`);
-    assert.ok(block.split("{content:\"\";position:absolute;inset:24%;background:#fff;")[0].includes(`html.is-public-desktop .social-icon[data-platform=${p}]::before`), `${p}: drawn by the shared mask rule`);
+    assert.match(allWidth, new RegExp(`^\\.public-social \\.social-icon\\[data-platform=${p}\\]\\{--social-mark:url\\("data:image/svg\\+xml,%3Csvg xmlns='http://www\\.w3\\.org/2000/svg' viewBox='0 0 24 24'%3E`, "m"), p);
+    assert.ok(allWidth.split("{position:relative;font-size:0}")[0].includes(`.public-social .social-icon[data-platform=${p}]`), `${p}: the text glyph is hidden at every width`);
+    assert.ok(allWidth.split("{content:\"\";position:absolute;inset:24%;background:#fff;")[0].includes(`.public-social .social-icon[data-platform=${p}]::before`), `${p}: drawn by the mask rule`);
   }
-  assert.match(block, /html\.is-public-desktop \.public-social \.social-icon\[data-platform=spotify\]\{background:#1db954;color:#000\}/);
-  assert.match(block, /html\.is-public-desktop \.public-social \.social-icon\[data-platform=soundcloud\]\{background:#ff5500\}/);
-  assert.match(block, /html\.is-public-desktop \.public-social \.social-icon\[data-platform=vimeo\]\{background:#1ab7ea\}/);
-  // isolation: every selector in public.css that names one of the three is desktop-scoped
+  assert.match(allWidth, /^\.public-social \.social-icon\[data-platform=spotify\]\{background:#1db954;color:#000\}$/m);
+  assert.match(allWidth, /^\.public-social \.social-icon\[data-platform=spotify\]::before\{background:#000\}$/m, "black arcs on Spotify green");
+  assert.match(allWidth, /^\.public-social \.social-icon\[data-platform=soundcloud\]\{background:#ff5500\}$/m);
+  assert.match(allWidth, /^\.public-social \.social-icon\[data-platform=vimeo\]\{background:#1ab7ea\}$/m);
+  assert.doesNotMatch(allWidth, /animation|keyframes|transition|filter|is-public-desktop|@media|https?:\/\/(?!www\.w3\.org)/, "static, local, not width-scoped");
+  // nothing else in public.css names them, so no rule re-hides or recolours them on either layout
   const selectors = css.replace(/\/\*[\s\S]*?\*\//g, "").split(/[{}]/).filter((_, i) => i % 2 === 0).flatMap(s => s.split(","));
-  for (const p of AUDIO_VIDEO) for (const s of selectors.filter(s => s.includes(`data-platform=${p}]`))) assert.match(s.trim(), /^html\.is-public-desktop /, s);
+  for (const p of AUDIO_VIDEO) for (const s of selectors.filter(s => s.includes(`data-platform=${p}]`))) assert.match(s.trim(), new RegExp(`^\\.public-social \\.social-icon\\[data-platform=${p}\\](::before)?$`), s);
+  // the other platforms' accepted mobile text marks stay (only the desktop block draws theirs)
+  for (const p of MARKED) assert.doesNotMatch(allWidth, new RegExp(`data-platform=${p}\\]`), `${p} unchanged on mobile`);
   const editor = read("dist/account/account.css");
   for (const rule of [".social-icon[data-platform=spotify]{background:#1db954;color:#000}", ".social-icon[data-platform=soundcloud]{background:#ff5500}", ".social-icon[data-platform=vimeo]{background:#1ab7ea}"]) assert.ok(editor.includes(rule), rule);
   assert.ok(editor.indexOf(".social-icon[data-platform=vimeo]") < editor.indexOf("/* Steam Connection Foundation:"), "editor colours sit with the other My Socials badges");
