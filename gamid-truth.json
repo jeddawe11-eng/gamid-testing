@@ -305,16 +305,16 @@
     },
     {
       "id": "game-artwork-provisional",
-      "name": "Game artwork - provisional TESTING evaluation of SteamGridDB",
+      "name": "Game artwork from SteamGridDB on TESTING (all accounts; provisional)",
       "status": "PENDING_ACCEPTANCE",
       "surfaces": ["/@<handle>"],
       "limits": { "artworkLookupsPerRequest": 6, "artworkCacheDays": 7, "artworkRequestsPerClientPerMinute": 30 },
       "contracts": [
-        { "id": "artwork-evaluation-only", "rule": "SteamGridDB is approved for provisional technical evaluation on TESTING only. Its Terms of Use allow only personal, non-commercial use and forbid distributing any part of the service without its explicit written permission, so until that permission exists provider artwork is shown ONLY on the evaluation allowlist (the GM-TEST personas); every other public profile, real users included, keeps its initials tiles. No public or commercial rollout without that written permission and Mazen's approval. It is active only while the server secret STEAMGRIDDB_API_KEY is set (it is, since 2026-10-11) and the artwork settings switch is ON; switching it off hides every image at once and loses no user data (only a metadata cache of provider ids and image URLs is kept, 7 days; no image is stored or re-served)." },
+        { "id": "artwork-testing-scope", "rule": "On TESTING, game artwork from SteamGridDB is enabled for every account the same way (no per-account restriction; Mazen's product-owner decision 2026-10-11). It is active only while the server secret STEAMGRIDDB_API_KEY is set and the TESTING-wide artwork switch is ON; switching it off hides every image at once and loses no user data (only a metadata cache of provider ids and image URLs is kept, 7 days; no image is stored or re-served). SteamGridDB's Terms of Use allow personal, non-commercial use and require its explicit written permission for distribution; that permission has not been obtained, so no Production / public / commercial release." },
         { "id": "artwork-matching", "rule": "Only games the visitor can already see get artwork (public My Games, a public League account, the public crews section). A game is matched by its catalog Steam app id, or else only when exactly one provider title equals the catalog title and the release years agree; anything else keeps the initials tile. Images are static and non-NSFW, load from the provider CDN with no referrer, and the provider key never reaches the browser." }
       ],
-      "checkpoint": "70f8940817aec80f07aee2fc95bad58fbe66f297",
-      "record": "PROJECT_HANDOFF.md §33-§34; docs/GAME-ARTWORK-STEAMGRIDDB.md; supabase/functions/game-artwork; migration 20261011140000_artwork_evaluation_allowlist.sql"
+      "checkpoint": "e2bfb5102d578c4167f0114eb7be122d485ab09a",
+      "record": "PROJECT_HANDOFF.md §33-§35; docs/GAME-ARTWORK-STEAMGRIDDB.md; supabase/functions/game-artwork; migration 20261011160000_artwork_environment_wide.sql"
     },
     {
       "id": "notifications",

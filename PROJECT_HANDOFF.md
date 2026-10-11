@@ -2645,3 +2645,27 @@ Authorized: "GamID — Classic Profile: Game Artwork + Favorite Genres" (TESTING
 - The signed-URL closure review (§30 residuals) is still open.
 
 STOP for owner acceptance.
+
+## 35. Game artwork for every TESTING account — 2026-10-11
+
+Owner directive (Mazen): artwork for ALL TESTING accounts, @black included; no per-account restriction.
+- Product checkpoint: `e2bfb5102d578c4167f0114eb7be122d485ab09a`.
+- Frontend run: [38109333605](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38109333605); stamp `e2bfb51` (no frontend file changed).
+- Migration `20261011160000_artwork_environment_wide`: rehearsed (black / zshot / gm_test_01 all `enabled:true`, column gone), applied, history repaired.
+
+**Change.**
+- `game_artwork_targets` is gated only by the TESTING-wide `private.game_artwork_settings.enabled` (the kill switch). `evaluation_handles` is dropped, and no account is hardcoded.
+- Unchanged: matching (exact Steam id, strict title + year), cache, rate limits, CDN checks, the server-side key, and the fallbacks.
+
+**Verified.**
+- Suite 1,830 (1,829 pass, 1 skip); build passes.
+- Live, function responses only (counts):
+  - @black: 9 games with artwork, including League (Connected Games).
+  - @zshot: 28 after 4 requests (6 lookups per request).
+  - No non-CDN URL; no key, Bearer or API path in any response.
+- No frontend change, so desktop / mobile behaviour, Favorite Genres, My Crews and Connected Games are unchanged.
+- No screenshots were taken (owner instruction); visual review is Mazen's.
+
+**Open.** SteamGridDB's written permission for distribution / commercial use is still not obtained (draft request in docs/GAME-ARTWORK-STEAMGRIDDB.md). There is no Production / public release. The signed-URL closure review is still open.
+
+STOP for owner review.

@@ -1,8 +1,8 @@
 # Game artwork: SteamGridDB evaluation (TESTING only)
 
-**Status (2026-10-11):**
-- **Live and working, on the GM-TEST evaluation personas only.**
-- **Public activation: BLOCKED** until SteamGridDB grants written permission. Every other public profile, real users included, keeps the initials tiles.
+**Status (2026-10-11, updated):**
+- **Enabled for every TESTING account the same way.** This is Mazen's product-owner decision: migration `20261011160000` removed the per-account allowlist, and the TESTING-wide `enabled` switch (the kill switch) is the only gate.
+- **SteamGridDB's written permission for distribution / commercial use is still outstanding.** So there is no Production, public or commercial release; see the permission request below.
 - This is not a commercial licence.
 
 ## What the provider allows (reviewed 2026-10-11)
@@ -29,7 +29,7 @@
 **Assessment** (not legal advice):
 - **Allowed with the owner's personal key:** a small, owner-run technical evaluation through the official API, shown only on dedicated test personas. Mazen chose this interpretation on 2026-10-11.
 - **Needs written permission:** showing the artwork on GamID's public profiles, including real users on TESTING, and any public or commercial launch. That is distribution in connection with a product.
-- Until then the evaluation allowlist (below) stays in place.
+- The evaluation allowlist that applied this was removed on 2026-10-11 by Mazen's decision (migration `20261011160000`). The written-permission requirement itself remains open.
 
 ## Permission request (draft for Mazen to send)
 
@@ -56,7 +56,7 @@
 | Control | Current state / how |
 |---|---|
 | Key | `STEAMGRIDDB_API_KEY` is set (2026-10-11, by Mazen) as a Supabase Edge Function secret. It is never committed and never reaches a browser. The function reports only `configured: true/false`. |
-| Evaluation allowlist | `private.game_artwork_settings.evaluation_handles` = `gm_test_01, gm_test_02` (migration `20261011140000`). Other handles get `enabled:false` and no artwork. Set it to `null` **only** after written permission and Mazen's approval. |
+| Scope | Every TESTING account (no per-account list; migration `20261011160000` dropped `evaluation_handles`). |
 | Kill switch | `update private.game_artwork_settings set enabled = false;` hides everything at once (verified live). |
 | Removal | Delete `private.game_artwork_cache` and remove the function. No user data depends on it. |
 
