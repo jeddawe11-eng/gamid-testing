@@ -59,7 +59,7 @@ test("help text and messages say 50 MB everywhere a person can see the Intro lim
 
 test("SERVER side: one additive migration lowers the bucket limit, the RPC bound and the table CHECK to exactly 52428800 (earlier migrations untouched)", () => {
   const all = readdirSync(new URL("../supabase/migrations/", import.meta.url)).sort();
-  assert.equal(all.at(-1), migrationName, "the newest migration");
+  assert.ok(all.includes(migrationName), "the migration exists (later, unrelated migrations are checked below never to touch the Intro limit)");
   assert.match(migration, /update storage\.buckets set file_size_limit = 52428800 where id = 'intro-sources';/);
   assert.match(migration, /drop constraint intro_processing_jobs_source_size_bytes_check;/);
   assert.match(migration, /add constraint intro_processing_jobs_source_size_bytes_check check \(source_size_bytes >= 1 and source_size_bytes <= 52428800\)/);
@@ -89,7 +89,7 @@ test("WORKER: its own defensive 150 MiB processing ceiling, derivative ceiling, 
 
 test("no other migration redefines the Intro source limit after this one, and the Usage gateway never changes bucket caps", () => {
   const later = readdirSync(new URL("../supabase/migrations/", import.meta.url)).filter(name => name > migrationName);
-  assert.deepEqual(later, []);
+  for (const name of later) assert.doesNotMatch(stripSql(read(`supabase/migrations/${name}`)), /intro-sources|intro_processing_jobs|queue_my_intro|source_size_bytes|52428800|157286400/i, `${name} leaves the Intro source limit alone`);
   const usage = stripSql(read("supabase/migrations/20261004170252_global_usage_gateway.sql"));
   assert.doesNotMatch(usage, /alter\s+table\s+storage\.buckets|update\s+storage\.buckets|52428800|157286400/i, "Usage reuses bucket limits and extends ownership only");
 });

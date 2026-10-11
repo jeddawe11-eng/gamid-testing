@@ -531,6 +531,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261011220000_avatar_validated_attach.sql",   // ISS-0007: a new Avatar must be a gateway-validated JPEG; public identity / My Games untouched
       "20261011240000_intro_storage_lifecycle.sql",   // ISS-0011: Intro / reservation lifecycle policy; public identity / My Games untouched
       "20261011260000_intro_source_limit_50mib.sql",   // Intro source limit 50 MiB (Mazen 2026-10-11); public identity / My Games untouched
+      "20261012100000_my_socials_spotify_soundcloud_vimeo.sql",   // My Socials catalog gains Spotify / SoundCloud / Vimeo (three rows); public identity / My Games untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

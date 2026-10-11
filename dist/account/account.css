@@ -410,6 +410,9 @@ a.duo-handle:hover,a.duo-handle:focus-visible{text-decoration:underline}
 .social-icon[data-platform=snapchat]{background:#fffc00;color:#000}
 .social-icon[data-platform=discord]{background:#5865f2}
 .social-icon[data-platform=facebook]{background:#1877f2;font-size:1.05rem}
+.social-icon[data-platform=spotify]{background:#1db954;color:#000}
+.social-icon[data-platform=soundcloud]{background:#ff5500}
+.social-icon[data-platform=vimeo]{background:#1ab7ea}
 [data-profile-editor] .save-all-bar{display:grid;gap:.5rem;margin:1.4rem 0 .6rem;padding-top:1rem;border-top:1px solid var(--line)}
 [data-profile-editor] .save-all-bar .primary{min-height:48px;width:100%;margin:0}
 @media(min-width:760px){[data-profile-editor] .save-all-bar .primary{width:auto;justify-self:end;min-width:16rem}}

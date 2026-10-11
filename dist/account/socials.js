@@ -16,6 +16,10 @@ const ACCOUNTS = [
   ["snapchat", ["profile"], "SC", "https://www.snapchat.com/add/yourname"],
   ["discord", ["profile", "invite"], "DC", "https://discord.com/users/123456789012345678"],
   ["facebook", ["page"], "f", "https://www.facebook.com/yourpage"],
+  // the owner's own artist / profile only (the Wall adapters' account kinds) - never a track, playlist, album, episode, show or video
+  ["spotify", ["artist"], "SP", "https://open.spotify.com/artist/yourartistid"],
+  ["soundcloud", ["profile"], "☁", "https://soundcloud.com/yourname"],
+  ["vimeo", ["profile"], "V", "https://vimeo.com/yourname"],
 ];
 // label and account kinds come from the Wall adapters; a platform or kind the engine does not know fails loudly here (and in tests), never silently
 export const SOCIAL_PLATFORMS = Object.freeze(ACCOUNTS.map(([key, kinds, glyph, example]) => {

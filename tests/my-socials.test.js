@@ -13,6 +13,7 @@ const socialsSource = read("dist/account/socials.js");
 const initial = read("supabase/migrations/20261009120000_my_socials.sql");
 const wallDiscord = read("supabase/migrations/20261009150000_wall_discord_profile.sql");
 const engine = read("supabase/migrations/20261009151000_my_socials_link_engine.sql");
+const audioVideo = read("supabase/migrations/20261012100000_my_socials_spotify_soundcloud_vimeo.sql");
 const DISCORD_USER = "https://discord.com/users/374102653111762948";
 const DANGEROUS = [
   "javascript:alert(1)", "JaVaScRiPt:alert(1)", "data:text/html,<script>alert(1)</script>", "vbscript:msgbox(1)", "file:///etc/passwd",
@@ -31,9 +32,15 @@ test("one engine: My Socials keeps no URL patterns of its own; every platform an
     for (const kind of platform.kinds) assert.ok(specs.has(`${platform.key}/${kind}/${provider.kinds[kind].id}`), `${platform.key}/${kind} is in private.wall_embed_specs with the adapter's id rule`);
   }
   // the server's account-kind list is exactly the browser's
-  const sql = Object.fromEntries([...engine.matchAll(/\('([a-z]+)', array\[([^\]]+)\]\)/g)].map(m => [m[1], m[2].split(",").map(s => s.trim().replace(/'/g, "")).sort()]));
+  const kinds = list => list.split(",").map(s => s.trim().replace(/'/g, "")).sort();
+  const sql = Object.fromEntries([
+    ...[...engine.matchAll(/\('([a-z]+)', array\[([^\]]+)\]\)/g)].map(m => [m[1], kinds(m[2])]),
+    ...[...audioVideo.matchAll(/\('([a-z]+)', '[^']+', \d+, true, array\[([^\]]+)\]\)/g)].map(m => [m[1], kinds(m[2])]),
+  ]);
   assert.deepEqual(sql, Object.fromEntries(SOCIAL_PLATFORMS.map(p => [p.key, [...p.kinds].sort()])));
-  assert.equal(SOCIAL_MAX, 9);
+  assert.equal(SOCIAL_MAX, 12);
+  assert.deepEqual(SOCIAL_PLATFORMS.slice(-3).map(p => [p.key, p.label, p.kinds]), [["spotify", "Spotify", ["artist"]], ["soundcloud", "SoundCloud", ["profile"]], ["vimeo", "Vimeo", ["profile"]]]);
+  assert.equal(socialPlatform("steam"), null, "Steam stays in Connections");
   assert.equal(socialPlatform("other"), null, "no Other");
   for (const gone of ["threads", "reddit", "linkedin"]) assert.equal(socialPlatform(gone), null, `${gone} is not a Wall platform`);
   assert.match(engine, /delete from public\.social_platform_catalog where platform_key in \('threads', 'reddit', 'linkedin'\);/);
@@ -75,7 +82,37 @@ test("validation through the engine: account pages only, the chosen platform's o
   assert.equal(validateSocialLinks([{ platform: "other", url: "https://example.com" }]).code, "INVALID_SOCIAL_PLATFORM");
   assert.equal(validateSocialLinks([{ platform: "x", url: "x.com/a" }, { platform: "x", url: "x.com/b" }]).code, "DUPLICATE_SOCIAL_PLATFORM");
   assert.equal(validateSocialLinks([{ platform: "x", url: "  " }]).code, "EMPTY_SOCIAL_URL");
-  assert.equal(validateSocialLinks(new Array(10).fill({ platform: "x", url: "x.com/a" })).code, "TOO_MANY_SOCIAL_LINKS");
+  assert.equal(validateSocialLinks(new Array(13).fill({ platform: "x", url: "x.com/a" })).code, "TOO_MANY_SOCIAL_LINKS");
+});
+
+test("Spotify, SoundCloud and Vimeo: the owner's own artist / profile through the Wall adapters; tracks, playlists, albums, episodes, shows and videos are refused", () => {
+  const ok = validateSocialLinks([
+    { platform: "spotify", url: "https://open.spotify.com/artist/0OdUWJ0sBjDrqHygGUXeCF?si=abc" },
+    { platform: "soundcloud", url: "soundcloud.com/forss" },
+    { platform: "vimeo", url: "https://vimeo.com/staffpicks" },
+  ]);
+  assert.equal(ok.ok, true);
+  assert.deepEqual(ok.links.map(l => [l.platform, l.kind, l.id, socialUrl(l.platform, l.kind, l.id)]), [
+    ["spotify", "artist", "0OdUWJ0sBjDrqHygGUXeCF", "https://open.spotify.com/artist/0OdUWJ0sBjDrqHygGUXeCF"],
+    ["soundcloud", "profile", "forss", "https://soundcloud.com/forss"],
+    ["vimeo", "profile", "staffpicks", "https://vimeo.com/staffpicks"],
+  ]);
+  for (const [platform, url] of [
+    ["spotify", "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC"], ["spotify", "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"],
+    ["spotify", "https://open.spotify.com/album/1DFixLWuPkv3KT3TnV35m3"], ["spotify", "https://open.spotify.com/episode/512ojhOuo1ktJprKbVcKyQ"],
+    ["spotify", "https://open.spotify.com/show/5CfCWKI5pZ28U0uOzXkDHe"], ["soundcloud", "https://soundcloud.com/forss/flickermood"],
+    ["vimeo", "https://vimeo.com/76979871"],
+  ]) assert.notEqual(parseSocialLink(platform, url).ok, true, url);
+  assert.equal(parseSocialLink("spotify", "https://soundcloud.com/forss").code, "INVALID_SOCIAL_URL", "a link must belong to its platform");
+  assert.equal(socialUrl("spotify", "artist", "0OdUWJ0sBjDrqHygGUXeCF"), "https://open.spotify.com/artist/0OdUWJ0sBjDrqHygGUXeCF");
+  const box = new Node("div");
+  assert.equal(renderPublicSocials(box, [
+    { platform_key: "spotify", label: "Spotify", kind: "artist", account_id: "0OdUWJ0sBjDrqHygGUXeCF" },
+    { platform_key: "soundcloud", label: "SoundCloud", kind: "profile", account_id: "forss" },
+    { platform_key: "vimeo", label: "Vimeo", kind: "profile", account_id: "staffpicks" },
+    { platform_key: "vimeo", label: "Vimeo", kind: "video", account_id: "76979871" },   // not an account kind: never drawn
+  ], doc), 3);
+  assert.deepEqual(box.children.map(a => [a.children[0].dataset.platform, a.href]), [["spotify", "https://open.spotify.com/artist/0OdUWJ0sBjDrqHygGUXeCF"], ["soundcloud", "https://soundcloud.com/forss"], ["vimeo", "https://vimeo.com/staffpicks"]]);
 });
 
 class Node {
@@ -124,7 +161,8 @@ async function fixture({ links = [] } = {}) {
   for (const [entity, platform, url, order] of links) await db.query("insert into public.identity_social_links values ($1, $2, $3, $4, now())", [entity, platform, url, order]);
   await db.exec(wallDiscord);
   await db.exec(engine);
-  const as = async uid => db.exec(uid ? `set role authenticated; set request.jwt.claim.sub = '${uid}';` : "set role anon; set request.jwt.claim.sub = '';");
+  await db.exec(audioVideo);
+  const as =async uid => db.exec(uid ? `set role authenticated; set request.jwt.claim.sub = '${uid}';` : "set role anon; set request.jwt.claim.sub = '';");
   const admin = () => db.exec("reset role;");
   const set = async items => (await db.query("select * from public.set_my_social_links($1::jsonb)", [JSON.stringify(items)])).rows;
   const mine = async () => (await db.query("select * from public.get_my_social_links()")).rows;
@@ -151,6 +189,8 @@ test("migration: the Wall server rules gain the Discord profile kind (Walls with
   assert.deepEqual(spec.map(s => [s.kind, s.id_pattern, s.inline]), [["invite", "^[A-Za-z0-9-]{2,32}$", false], ["profile", "^[0-9]{17,20}$", false]]);
   await f.as(A);
   assert.deepEqual((await f.set([L("discord", "profile", "374102653111762948"), L("twitch", "channel", "espada")])).map(r => [r.platform_key, r.kind, r.account_id, r.sort_order]), [["discord", "profile", "374102653111762948", 0], ["twitch", "channel", "espada", 1]]);
+  await f.set([L("twitch", "channel", "espada_live"), L("discord", "invite", "abc123"), L("spotify", "artist", "0OdUWJ0sBjDrqHygGUXeCF"), L("soundcloud", "profile", "forss"), L("vimeo", "profile", "staffpicks")]);
+  assert.deepEqual((await f.mine()).map(r => `${r.platform_key}/${r.kind}/${r.account_id}`).slice(2), ["spotify/artist/0OdUWJ0sBjDrqHygGUXeCF", "soundcloud/profile/forss", "vimeo/profile/staffpicks"], "the three new accounts save and load");
   await f.set([L("twitch", "channel", "espada_live"), L("discord", "invite", "abc123")]);
   assert.deepEqual((await f.mine()).map(r => `${r.platform_key}/${r.kind}/${r.account_id}`), ["twitch/channel/espada_live", "discord/invite/abc123"]);
   // a refused list changes nothing
@@ -167,7 +207,10 @@ test("migration: content kinds, foreign kinds, bad ids, Other and removed platfo
   for (const id of ["javascript:alert(1)", "abc", "1234", "<script>", "374102653111762948'; drop table x;--"]) await assert.rejects(f.set([L("discord", "profile", id)]), e => code(e) === "INVALID_SOCIAL_URL", id);
   for (const platform of ["other", "threads", "reddit", "linkedin"]) await assert.rejects(f.set([L(platform, "profile", "espada")]), e => code(e) === "INVALID_SOCIAL_PLATFORM", platform);
   await assert.rejects(f.set([L("x", "profile", "a"), L("x", "profile", "b")]), e => code(e) === "DUPLICATE_SOCIAL_PLATFORM");
-  await assert.rejects(f.set(new Array(10).fill(L("x", "profile", "a"))), e => code(e) === "TOO_MANY_SOCIAL_LINKS");
+  await assert.rejects(f.set(new Array(13).fill(L("x", "profile", "a"))), e => code(e) === "TOO_MANY_SOCIAL_LINKS");
+  for (const [platform, kind, id] of [["spotify", "track", "4uLU6hMCjMI75M1A2tKUQC"], ["spotify", "playlist", "37i9dQZF1DXcBWIGoYBM5M"], ["soundcloud", "track", "forss/flickermood"], ["vimeo", "video", "76979871"]]) await assert.rejects(f.set([L(platform, kind, id)]), e => code(e) === "NOT_A_SOCIAL_ACCOUNT", `${platform}/${kind}`);
+  for (const [platform, kind, id] of [["spotify", "artist", "short"], ["soundcloud", "profile", "Bad Name"], ["vimeo", "profile", "a"]]) await assert.rejects(f.set([L(platform, kind, id)]), e => code(e) === "INVALID_SOCIAL_URL", `${platform}/${id}`);
+  await assert.rejects(f.set([L("steam", "profile", "76561197960287930")]), e => code(e) === "INVALID_SOCIAL_PLATFORM", "Steam stays in Connections");
   await assert.rejects(f.db.query("select * from public.set_my_social_links($1::jsonb)", [JSON.stringify([{ platform: "x", url: "https://x.com/a" }])]), e => code(e) === "INVALID_SOCIAL_LINKS", "the old URL shape is not accepted");
 });
 
