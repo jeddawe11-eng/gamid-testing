@@ -23,6 +23,8 @@ Conversation memory is helpful context, but it is **not** an authoritative proje
 
 **Acceptance reconciliation (Mazen, 2026-10-11):** Global Usage Center and Classic Profile Desktop were both fully manually tested and explicitly accepted by Mazen. GamID Truth marks `global-usage` and `classic-profile-desktop` ACCEPTED (commit `1af13bd`). Intro identity with current D3 is also ACCEPTED; D2 remains future work. Older PENDING_ACCEPTANCE/PARTIAL PASS statements below are historical and superseded for these capabilities.
 
+**My Socials acceptance reconciliation (Mazen, 2026-10-11):** The full `my-socials` capability is ACCEPTED in GamID Truth, with public visitor links PASS in REV-0005. The separately tracked icon-branding issue ISS-0013 remains OPEN; older pending-acceptance mentions below are superseded for `my-socials`.
+
 ## 2. Environment and safety
 
 - **TESTING** is the working environment. Truth: `environment: TESTING`, `production: NOT_RELEASED`.
