@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-11",
+  "updated": "2026-10-12",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -96,14 +96,14 @@
         "/@<handle>"
       ],
       "limits": {
-        "socialPlatforms": 9,
+        "socialPlatforms": 12,
         "socialLinksPerPlatform": 1,
         "socialUrlMaxChars": 200
       },
       "contracts": [
         {
           "id": "socials-own-named-platforms",
-          "rule": "My Socials holds the owner's own accounts on named Wall platforms (Instagram, TikTok, YouTube, Twitch, Kick, X, Snapchat, Discord, Facebook), at most one link each, added, edited and removed as a draft and saved by the section's Save Changes or Save All Changes. Only account kinds are accepted (a profile, channel, page, Discord personal profile or server invite), never a post or a video. There is no Other option; the Wall keeps its own Other link."
+          "rule": "My Socials holds the owner's own accounts on named Wall platforms (Instagram, TikTok, YouTube, Twitch, Kick, X, Snapchat, Discord, Facebook, Spotify, SoundCloud, Vimeo), at most one link each, added, edited and removed as a draft and saved by the section's Save Changes or Save All Changes. Only account kinds are accepted (a profile, channel, page, Discord personal profile or server invite, Spotify artist, SoundCloud profile, Vimeo profile), never a post, track, playlist, album, episode, show or video. There is no Other option; the Wall keeps its own Other link; Steam stays in Connections. Spotify, SoundCloud and Vimeo were added on 2026-10-12 (9e6e765) and await Mazen's acceptance; the other nine platforms stay accepted."
         },
         {
           "id": "socials-shared-link-engine",
@@ -118,8 +118,8 @@
           "rule": "Saved links of a published (PUBLIC) GamID appear as labelled icon links leading the public profile panel, also when the owner has no Wall, opening in a new tab without referrer. An unpublished GamID shows none. When a published Wall replaces the profile body, the links are not shown."
         }
       ],
-      "checkpoint": "67042938426f7c234c175483c6882c709b09046d",
-      "record": "PROJECT_HANDOFF.md §23 and §24; docs/PROFILE-EDITOR-UX.md; migrations supabase/migrations/20261009120000_my_socials.sql, 20261009151000_my_socials_link_engine.sql; Mazen explicitly confirmed full My Socials feature acceptance on TESTING 2026-10-11; public visitor links PASS recorded in Product Memory REV-0005; separate icon branding issue ISS-0013 remains OPEN"
+      "checkpoint": "9e6e765a6ccabe7fdd9a6687990678d1125365eb",
+      "record": "PROJECT_HANDOFF.md §23 and §24; docs/PROFILE-EDITOR-UX.md; migrations supabase/migrations/20261009120000_my_socials.sql, 20261009151000_my_socials_link_engine.sql, 20261012100000_my_socials_spotify_soundcloud_vimeo.sql (Spotify / SoundCloud / Vimeo, PROJECT_HANDOFF.md §47); Mazen explicitly confirmed full My Socials feature acceptance on TESTING 2026-10-11; public visitor links PASS recorded in Product Memory REV-0005; separate icon branding issue ISS-0013 remains OPEN"
     },
     {
       "id": "gaming-roles-education-work",
@@ -502,7 +502,7 @@
         },
         {
           "id": "desktop-social-marks",
-          "rule": "On the desktop layout the Discord, Instagram, TikTok, Twitch, Kick and Snapchat icons in My Socials show their recognisable marks (static, local, no animation; each in the badge's existing text colour); YouTube, X and Facebook keep their glyphs; size, colours, placement, links and accessible names are unchanged, and the mobile icons keep their text marks. The TikTok, Twitch, Kick and Snapchat marks were added on 2026-10-11 (ISS-0013, 514e462) and accepted by Mazen on 2026-10-11."
+          "rule": "On the desktop layout the Discord, Instagram, TikTok, Twitch, Kick, Snapchat, Spotify, SoundCloud and Vimeo icons in My Socials show their recognisable marks (static, local, no animation; each in the badge's text colour); YouTube, X and Facebook keep their glyphs; size, placement, links and accessible names are unchanged, and the mobile icons keep their text marks. The TikTok, Twitch, Kick and Snapchat marks were added on 2026-10-11 (ISS-0013, 514e462) and accepted by Mazen on 2026-10-11. Spotify (green), SoundCloud (orange) and Vimeo (blue) brand colours and marks are desktop-only (on mobile they show the plain badge with a text mark); added on 2026-10-12 (9e6e765), awaiting Mazen's acceptance."
         },
         {
           "id": "desktop-preserves",

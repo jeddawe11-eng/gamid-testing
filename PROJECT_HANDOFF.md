@@ -3116,3 +3116,35 @@ TESTING only. Product checkpoint `5529d17df626b524c08514f321ee1499af87ff3c`. Wor
 2. Scroll to the bottom with the mouse wheel or trackpad, and with the keyboard (End / Page Down).
 3. With an Intro: after it ends and after Replay Intro, scrolling still works.
 4. On a phone, touch scrolling still works.
+
+## 47. My Socials: Spotify, SoundCloud and Vimeo — 2026-10-12
+
+TESTING only. Product checkpoint `9e6e765a6ccabe7fdd9a6687990678d1125365eb`. Workflow run [38165131715](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38165131715): full validation passed; TESTING serves `9e6e765`. Migration `20261012100000_my_socials_spotify_soundcloud_vimeo.sql` APPLIED (rehearsed in a rolled-back transaction first, then `migration repair`).
+
+**Scope (Mazen's task).** Add Spotify, SoundCloud and Vimeo to My Socials on the existing architecture: the user's own account only, never a track or video. Steam stays in Connections; no Other; Wall and Discord Profile Card unchanged; no mobile / tablet change.
+
+**Change.**
+- `dist/account/socials.js`: three ACCOUNTS entries on the Wall adapters' own account kinds: Spotify `artist`, SoundCloud `profile`, Vimeo `profile`. Detection, id rules and rebuilt addresses come from the Wall adapters. `SOCIAL_MAX` follows the list (12).
+- Migration: three `social_platform_catalog` rows (sort 110 / 120 / 130) plus the same Wall-engine kind guard as `20261009151000`. The server rules (`private.wall_embed_specs`) already held these kinds. The RPCs, policies and existing links are unchanged, and the per-account maximum follows the active catalog.
+- `dist/public/public.css` (desktop only, `html.is-public-desktop`): Spotify green with black arcs, SoundCloud orange with a white cloud and bars, and Vimeo blue with a white "v" (the simple-icons path, CC0). They sit in the existing marks block. The shared and mobile badge rules are untouched, so on mobile the three show the plain badge with their text mark.
+- `dist/account/account.css`: editor badge colours.
+
+**Verification.**
+- **Tests:** full suite 1867 run, 0 failures; lint and typecheck pass.
+  - New tests cover catalog parity with the new migration, account URLs accepted and content URLs (track, playlist, album, episode, show, video) refused, server refusals, and the desktop-only scoping.
+  - Two migration-pin tests (`intro-source-limit`, `public-my-games`) now accept this later, unrelated migration and still check that it does not touch their contracts.
+- **TESTING database:** 12 active catalog rows; the 9 saved links are unchanged.
+  - On the synthetic `gm_test_01` fixture, in a rolled-back transaction, `set_my_social_links` saved Spotify artist, SoundCloud profile and Vimeo profile.
+  - It refused a Spotify track and a Vimeo video (`NOT_A_SOCIAL_ACCOUNT`), and Steam (`INVALID_SOCIAL_PLATFORM`).
+- **Live `/@black`,** visitor only, with temporary badges in the test browser (no data changed):
+  - at 1440 px the three badges show their brand colour and mark;
+  - at 375 px the existing icons are unchanged, the new ones are plain, and there is no horizontal overflow.
+- No account on TESTING has these links yet.
+
+**Truth:** `my-socials` now lists 12 platforms (limit 12, checkpoint `9e6e765`, contract `socials-own-named-platforms`), and `desktop-social-marks` covers the three new marks. Both note that the addition awaits Mazen's acceptance. **Product Memory:** not modified.
+
+**Manual check (Mazen).**
+1. Profile Editor → My Socials: add a Spotify artist, SoundCloud profile and Vimeo profile URL; Save; reload. They stay.
+2. Try a Spotify track or playlist, a SoundCloud track and a Vimeo video. Each is refused.
+3. Desktop `/@<handle>`: the three icons show the Spotify, SoundCloud and Vimeo marks and open the right pages in a new tab.
+4. Phone: the existing icons look as before.
