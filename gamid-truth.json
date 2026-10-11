@@ -103,7 +103,7 @@
       "contracts": [
         {
           "id": "socials-own-named-platforms",
-          "rule": "My Socials holds the owner's own accounts on named Wall platforms (Instagram, TikTok, YouTube, Twitch, Kick, X, Snapchat, Discord, Facebook, Spotify, SoundCloud, Vimeo), at most one link each, added, edited and removed as a draft and saved by the section's Save Changes or Save All Changes. Only account kinds are accepted (a profile, channel, page, Discord personal profile or server invite, Spotify artist, SoundCloud profile, Vimeo profile), never a post, track, playlist, album, episode, show or video. There is no Other option; the Wall keeps its own Other link; Steam stays in Connections. Spotify, SoundCloud and Vimeo were added on 2026-10-12 (9e6e765) and await Mazen's acceptance; the other nine platforms stay accepted."
+          "rule": "My Socials holds the owner's own accounts on named Wall platforms (Instagram, TikTok, YouTube, Twitch, Kick, X, Snapchat, Discord, Facebook, Spotify, SoundCloud, Vimeo), at most one link each, added, edited and removed as a draft and saved by the section's Save Changes or Save All Changes. Only account kinds are accepted (a profile, channel, page, Discord personal profile or server invite, Spotify artist, SoundCloud profile, Vimeo profile), never a post, track, playlist, album, episode, show or video. There is no Other option; the Wall keeps its own Other link; Steam stays in Connections. Spotify, SoundCloud and Vimeo were added on 2026-10-12 (9e6e765) and accepted by Mazen on 2026-10-12 (REV-0006)."
         },
         {
           "id": "socials-shared-link-engine",
@@ -115,11 +115,11 @@
         },
         {
           "id": "socials-public-display",
-          "rule": "Saved links of a published (PUBLIC) GamID appear as labelled icon links leading the public profile panel, also when the owner has no Wall, opening in a new tab without referrer. An unpublished GamID shows none. When a published Wall replaces the profile body, the links are not shown."
+          "rule": "Saved links of a published (PUBLIC) GamID appear as labelled icon links leading the public profile panel, also when the owner has no Wall, opening in a new tab without referrer. An unpublished GamID shows none. When a published Wall replaces the profile body, the links are not shown. The Spotify (green), SoundCloud (orange) and Vimeo (blue) icons show their recognisable logos at every width, mobile included (static local marks, 2026-10-12, bc70717, awaiting Mazen's acceptance); the other icons keep their accepted mobile text marks."
         }
       ],
-      "checkpoint": "9e6e765a6ccabe7fdd9a6687990678d1125365eb",
-      "record": "PROJECT_HANDOFF.md §23 and §24; docs/PROFILE-EDITOR-UX.md; migrations supabase/migrations/20261009120000_my_socials.sql, 20261009151000_my_socials_link_engine.sql, 20261012100000_my_socials_spotify_soundcloud_vimeo.sql (Spotify / SoundCloud / Vimeo, PROJECT_HANDOFF.md §47); Mazen explicitly confirmed full My Socials feature acceptance on TESTING 2026-10-11; public visitor links PASS recorded in Product Memory REV-0005; separate icon branding issue ISS-0013 remains OPEN"
+      "checkpoint": "bc70717c3be5f10179e73649c6bd45fb7aa3e1d0",
+      "record": "PROJECT_HANDOFF.md §23 and §24; docs/PROFILE-EDITOR-UX.md; migrations supabase/migrations/20261009120000_my_socials.sql, 20261009151000_my_socials_link_engine.sql, 20261012100000_my_socials_spotify_soundcloud_vimeo.sql (Spotify / SoundCloud / Vimeo, PROJECT_HANDOFF.md §47, accepted by Mazen 2026-10-12 in Product Memory REV-0006; their mobile logos §48); Mazen explicitly confirmed full My Socials feature acceptance on TESTING 2026-10-11; public visitor links PASS recorded in Product Memory REV-0005; separate icon branding issue ISS-0013 remains OPEN"
     },
     {
       "id": "gaming-roles-education-work",
@@ -186,6 +186,10 @@
       "checkpoint": "5214d9b6add2629684e9c134f1e637598b90dd97",
       "contracts": [
         {
+          "id": "intro-source-limit",
+          "rule": "The maximum single Intro source upload is 50 MiB (52,428,800 bytes), the same value at the editor guard and its messages, the intro-sources bucket, the queue RPC and the processing-job CHECK (5214d9b, migration 20261011260000); 52,428,801 bytes and more are refused. Accepted by Mazen on 2026-10-12 as the final authoritative limit (Product Memory ISS-0012 VERIFIED)."
+        },
+        {
           "id": "intro-storage-lifecycle",
           "rule": "Removing an Intro releases its stored file without waiting for another Intro: the owner's cleanup (after the removal, before a new Intro upload and when Usage opens) deletes that owner's due Intro files. A failed Intro's source is kept for 1 hour, then becomes due. A file that was already due before 2026-10-11 13:55:56 UTC is not cleaned automatically. The active Intro and the source of a pending or processing Intro are never deleted."
         },
@@ -198,7 +202,7 @@
           "rule": "New Intro sources produce opaque VP9/WebM CRF 40 playback derivatives, downscaled only within a 1920-pixel long edge and 1080-pixel short edge, preserving display aspect/orientation, frame rate and timing; existing Opus audio behavior, derivative 15 MiB ceiling and source-retention policy remain. Existing READY derivatives are unchanged."
         }
       ],
-      "record": "docs/INTRO-DURATION-TOLERANCE.md; PROJECT_HANDOFF.md §18, §42 (Intro storage lifecycle, ISS-0011) and §43 (Intro source limit 50 MiB = 52,428,800 bytes, Mazen 2026-10-11; migration 20261011260000); PROJECT_HANDOFF.md §3 + §7 (Slice 3C; historical acceptance deferral superseded by Mazen's 2026-10-11 acceptance of the currently deployed Intro identity with D3; Split Reveal fix accepted at d7466f99); F2 derivative optimization separately ACCEPTED: §10–11 + docs/INTRO-DERIVATIVE-F2.md (Mazen, 2026-10-07)",
+      "record": "docs/INTRO-DURATION-TOLERANCE.md; PROJECT_HANDOFF.md §18, §42 (Intro storage lifecycle, ISS-0011) and §43 and §48 (Intro source limit 50 MiB = 52,428,800 bytes, Mazen's decision 2026-10-11, final acceptance 2026-10-12; migration 20261011260000); PROJECT_HANDOFF.md §3 + §7 (Slice 3C; historical acceptance deferral superseded by Mazen's 2026-10-11 acceptance of the currently deployed Intro identity with D3; Split Reveal fix accepted at d7466f99); F2 derivative optimization separately ACCEPTED: §10–11 + docs/INTRO-DERIVATIVE-F2.md (Mazen, 2026-10-07)",
       "notes": "Mazen explicitly accepted the currently deployed Intro identity on TESTING on 2026-10-11, including the current D3 derivative and the verified Intro removal/storage cleanup (ISS-0011). A higher-quality D2 alternative discussed/tested historically is future work, not part of this acceptance; no D2 implementation or rollout is authorized."
     },
     {
@@ -502,7 +506,7 @@
         },
         {
           "id": "desktop-social-marks",
-          "rule": "On the desktop layout the Discord, Instagram, TikTok, Twitch, Kick, Snapchat, Spotify, SoundCloud and Vimeo icons in My Socials show their recognisable marks (static, local, no animation; each in the badge's text colour); YouTube, X and Facebook keep their glyphs; size, placement, links and accessible names are unchanged, and the mobile icons keep their text marks. The TikTok, Twitch, Kick and Snapchat marks were added on 2026-10-11 (ISS-0013, 514e462) and accepted by Mazen on 2026-10-11. Spotify (green), SoundCloud (orange) and Vimeo (blue) brand colours and marks are desktop-only (on mobile they show the plain badge with a text mark); added on 2026-10-12 (9e6e765), awaiting Mazen's acceptance."
+          "rule": "On the desktop layout the Discord, Instagram, TikTok, Twitch, Kick, Snapchat, Spotify, SoundCloud and Vimeo icons in My Socials show their recognisable marks (static, local, no animation; each in the badge's text colour); YouTube, X and Facebook keep their glyphs; size, placement, links and accessible names are unchanged, and the other mobile icons keep their text marks. The TikTok, Twitch, Kick and Snapchat marks were added on 2026-10-11 (ISS-0013, 514e462) and accepted by Mazen on 2026-10-11. The Spotify (green), SoundCloud (orange) and Vimeo (blue) brand colours and marks were added on 2026-10-12 (9e6e765) and accepted by Mazen on 2026-10-12 (REV-0006); they now show at every width (my-socials, socials-public-display)."
         },
         {
           "id": "desktop-preserves",

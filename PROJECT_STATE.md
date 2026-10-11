@@ -23,7 +23,7 @@ Conversation memory is helpful context, but it is **not** an authoritative proje
 
 **Acceptance reconciliation (Mazen, 2026-10-11):** Global Usage Center and Classic Profile Desktop were both fully manually tested and explicitly accepted by Mazen. GamID Truth marks `global-usage` and `classic-profile-desktop` ACCEPTED (commit `1af13bd`). Intro identity with current D3 is also ACCEPTED; D2 remains future work. Older PENDING_ACCEPTANCE/PARTIAL PASS statements below are historical and superseded for these capabilities.
 
-**My Socials acceptance reconciliation (Mazen, 2026-10-11):** The full `my-socials` capability is ACCEPTED in GamID Truth, with public visitor links PASS in REV-0005. The separately tracked icon-branding issue ISS-0013 remains OPEN; older pending-acceptance mentions below are superseded for `my-socials`.
+**My Socials acceptance reconciliation (Mazen, 2026-10-11):** The full `my-socials` capability is ACCEPTED in GamID Truth, with public visitor links PASS in REV-0005. The separately tracked icon-branding issue ISS-0013 was later VERIFIED (2026-10-11); older pending-acceptance mentions below are superseded for `my-socials`.
 
 **Profile Banner and About Me acceptance (Mazen, 2026-10-11):** Both `profile-banner` and `about-me` were separately confirmed fully accepted by Mazen on TESTING. Truth marks each ACCEPTED; Product Memory DEC-0005 records both confirmations. Historical PENDING_ACCEPTANCE notes below are superseded for these capabilities.
 
@@ -67,7 +67,7 @@ Snapshot from 2026-10-11; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `9e6e765`** (run `38165131715`, PROJECT_HANDOFF.md §47: My Socials Spotify / SoundCloud / Vimeo, on top of §46 desktop scroll fix, §45 ISS-0013, §44 ISS-0010 and §43 Intro limit 50 MiB).
+- **TESTING serves `bc70717`** (run `38166266548`, PROJECT_HANDOFF.md §48: Spotify / SoundCloud / Vimeo logos on mobile, on top of §47 My Socials Spotify / SoundCloud / Vimeo, §46 desktop scroll fix, §45 ISS-0013, §44 ISS-0010 and §43 Intro limit 50 MiB).
   - Static site: workflow run `38145293680` from ref `feature/play-together-notifications` (its head was exactly `72896d6`); the Account HTML stamp reads `72896d6`. Source: `PROJECT_HANDOFF.md` §42.
   - Edge Functions: usage-upload v9 (§42; Intro lifecycle / reservation release, on top of §38 Avatar validation), public-media v2 (§30, §38) and profile-banner (§30), game-artwork (§33-§37; STEAMGRIDDB_API_KEY set; every TESTING account; Crew route §37).
   - Intro worker: correction checkpoint 3f72eb2 deployed with image-only update, F2 smoke and dedicated READY verification; exact build/image/execution in `docs/INTRO-DURATION-TOLERANCE.md`. Accepted F2 derivative policy remains unchanged.
@@ -103,21 +103,21 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 **Current stop point:** product `4b56646` (ISS-0011 Intro storage lifecycle fix) was deployed to TESTING as head `72896d6` (run `38145293680`, full validation passed; migration `20261011240000`; `usage-upload` v9) and is PENDING Mazen's targeted manual check (§42). Documentation runs through `PROJECT_HANDOFF.md` §42.
 - **ISS-0011:** FIXED, not VERIFIED. The three authorized failed Intro sources (29.38 MB) are deleted. Held for Mazen's decision: the removed 0.73 MB derivative, which is excluded from automatic cleanup by the cutoff. The 116.29 MB reservation releases by the 26-hour rule after 2026-10-12 12:41 UTC.
-- **Intro source limit 50 MiB (Mazen's decision, §43):** implemented at `5214d9b`, migration `20261011260000` applied, deployed to TESTING as `af2af0d` (run `38147127030`, full validation passed); Truth `intro-identity.introSourceMaxBytes` = 52428800. PENDING Mazen's manual acceptance. The ISS-0012 record update awaits his memory-save approval.
+- **Intro source limit 50 MiB (Mazen's decision, §43):** implemented at `5214d9b`, migration `20261011260000` applied, deployed to TESTING as `af2af0d` (run `38147127030`, full validation passed); Truth `intro-identity.introSourceMaxBytes` = 52428800 (contract `intro-source-limit`). **Accepted by Mazen 2026-10-12 as the final limit** (§48); ISS-0012 VERIFIED. This acceptance covers the limit only.
 - **ISS-0010 (editor Intro Preview returns to the editor, §44):** deployed at `7373607` (run `38148668016`); Truth `your-gamid-editor` contract `intro-preview-returns-to-editor`. PENDING Mazen's manual check. The ISS-0010 record update awaits his save approval.
 - **ISS-0013 (My Socials marks for TikTok, Twitch, Kick, Snapchat on desktop, §45):** deployed as `514e462` (fix `ec3fda4`), **accepted by Mazen 2026-10-11**; ISS-0013 VERIFIED; Truth `desktop-social-marks` final (`classic-profile-desktop` ACCEPTED).
 - **Public profile scroll bug (desktop, §46):** fixed and deployed at `5529d17`, **accepted by Mazen 2026-10-11**; recorded as ISS-0014 (VERIFIED).
-- **My Socials: Spotify, SoundCloud and Vimeo (§47):** own artist / profile accounts only; deployed at `9e6e765` (run `38165131715`; migration `20261012100000`); Truth `my-socials` lists 12 platforms. PENDING Mazen's manual acceptance (checklist in §47).
+- **My Socials: Spotify, SoundCloud and Vimeo (§47):** own artist / profile accounts only; deployed at `9e6e765` (run `38165131715`; migration `20261012100000`); Truth `my-socials` lists 12 platforms. **Accepted by Mazen 2026-10-12** (REV-0006, §48). Their logos on mobile too: `bc70717` (run `38166266548`, §48), PENDING Mazen's acceptance.
 - **Accepted 2026-10-11:** ISS-0009 is VERIFIED and Truth `visitor-media-access` is ACCEPTED (Mazen, including the accepted residual possibility of unknown historical signed URLs; §30, §38–§40).
 - **Manual passes recorded, capability still pending:**
   - CP-01 (REV-0002) and GR-01 (REV-0003).
   - ISS-0007: Mazen's Avatar save passed; the issue stays FIXED until his explicit security acceptance (§38–§39).
   - YOUR GAMID Editor (`your-gamid-editor`): Mazen passed all 16 desktop tests and accepted the tested desktop functionality (REV-0004, §41). **Android Chrome real-device acceptance is still outstanding**, so the capability stays PENDING_ACCEPTANCE.
-- **Awaiting Mazen's acceptance:** every capability Truth marks PENDING_ACCEPTANCE (17 today), notably:
-  - Profile Editor: `your-gamid-editor` (Android Chrome still to test; desktop accepted), `my-socials` (`docs/PROFILE-EDITOR-UX.md`; handoff §20, §22–§24);
+- **Awaiting Mazen's acceptance:** every capability Truth marks PENDING_ACCEPTANCE (11 today), notably:
+  - Profile Editor: `your-gamid-editor` (Android Chrome still to test; desktop accepted; `docs/PROFILE-EDITOR-UX.md`; handoff §20, §22–§24);
   - Wall: `wall-visibility-toggle` (Mazen to test Enable / Disable My Wall and the Discord personal profile in the Wall and the Classic Profile; §24–§25);
-  - Classic Profile: `profile-banner`, `about-me`, `classic-profile-desktop`, `favorite-games`, `my-crews-view`, `gaming-roles-categories`, `game-artwork-provisional` (§31–§38);
-  - Other: `global-usage`, `landing-page`, `intro-identity` and the rest listed in Truth.
+  - Classic Profile: `public-gamid-profile`, `favorite-games`, `my-crews-view`, `gaming-roles-categories`, `game-artwork-provisional` (§31–§38);
+  - Other: `steam-my-games`, `league-prototype`, `game-catalog-manual-games`, `landing-page` (the full list is in Truth).
 - **Open conditions:**
   - SteamGridDB's written permission for distribution / commercial use is still outstanding, so artwork stays TESTING-only, with no Production / public release (§33–§35; `docs/GAME-ARTWORK-STEAMGRIDDB.md`).
   - The Discord Profile Card (ACCEPTED, §27) still needs a privacy policy for the Discord application.
@@ -126,7 +126,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
   - **ISS-0010 (OPEN):** in the editor's Intro Preview, Skip shows an older-looking `DRAFT · PRIVATE` profile instead of the current Wall / Classic Profile; it needs investigation, and no fix is authorized (§41).
 - **Product Memory:**
   - DEC-0001 to DEC-0003 and DEC-0005 are IMPLEMENTED; DEC-0004 is ACCEPTED.
-  - ISS-0001..ISS-0005 and ISS-0007 are FIXED, not VERIFIED; ISS-0006, ISS-0008 and ISS-0012 are OPEN; ISS-0009, ISS-0010, ISS-0011, ISS-0013 and ISS-0014 are VERIFIED.
+  - ISS-0001..ISS-0005 and ISS-0007 are FIXED, not VERIFIED; ISS-0006 and ISS-0008 are OPEN; ISS-0009, ISS-0010, ISS-0011, ISS-0012, ISS-0013 and ISS-0014 are VERIFIED.
   - The Register in `product-memory/INDEX.md` owns these statuses.
 
 **Product Memory V1** (governance, structure, templates and validation) is committed on the working tip and awaits Mazen's acceptance. Saved records and their statuses are listed only in the Register of [`product-memory/INDEX.md`](product-memory/INDEX.md); rules are in `AGENTS.md` → Product Memory.

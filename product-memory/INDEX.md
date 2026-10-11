@@ -79,7 +79,7 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0005 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0005 |
+| REV | Reviews | reviews/ | REV-0006 |
 
 ## Register
 
@@ -103,7 +103,7 @@ Rules:
 | ISS-0009 | HIGH - anonymous visitors can mint long-lived signed Storage URLs that outlive PRIVATE / detach / unpublish | VERIFIED | [ISS-0009-anonymous-signed-urls-outlive-visibility.md](issues/ISS-0009-anonymous-signed-urls-outlive-visibility.md) |
 | ISS-0010 | Intro Preview Skip shows an older-looking DRAFT · PRIVATE profile instead of the current Wall / Classic Profile | VERIFIED | [ISS-0010-intro-skip-shows-old-draft-preview.md](issues/ISS-0010-intro-skip-shows-old-draft-preview.md) |
 | ISS-0011 | Failed and removed Intro files and abandoned upload reservations were not released | VERIFIED | [ISS-0011-intro-storage-and-reservations-not-released.md](issues/ISS-0011-intro-storage-and-reservations-not-released.md) |
-| ISS-0012 | Intro sources over 50 MiB cannot be uploaded although the editor, the bucket and Truth allow 150 MiB | OPEN | [ISS-0012-intro-upload-limit-mismatch.md](issues/ISS-0012-intro-upload-limit-mismatch.md) |
+| ISS-0012 | Intro sources over 50 MiB cannot be uploaded although the editor, the bucket and Truth allow 150 MiB | VERIFIED | [ISS-0012-intro-upload-limit-mismatch.md](issues/ISS-0012-intro-upload-limit-mismatch.md) |
 
 | DIS-0001 | Existing platform picker and Other link in Wall | CONCLUDED | [DIS-0001-existing-platform-picker-and-other-link.md](discussions/DIS-0001-existing-platform-picker-and-other-link.md) |
 | DIS-0002 | GamID full-list navigation and next-chat continuity | CONCLUDED | [DIS-0002-gamid-full-list-continuity.md](discussions/DIS-0002-gamid-full-list-continuity.md) |
@@ -115,3 +115,4 @@ Rules:
 | ISS-0013 | Some My Socials icons show initials instead of logos | VERIFIED | [ISS-0013-my-socials-partial-brand-icons.md](issues/ISS-0013-my-socials-partial-brand-icons.md) |
 | ISS-0014 | Desktop Classic Profile could not be scrolled by the user | VERIFIED | [ISS-0014-desktop-classic-profile-cannot-scroll.md](issues/ISS-0014-desktop-classic-profile-cannot-scroll.md) |
 | REV-0005 | My Socials visitor links acceptance | COMPLETED | [REV-0005-my-socials-visitor-links-acceptance.md](reviews/REV-0005-my-socials-visitor-links-acceptance.md) |
+| REV-0006 | My Socials Spotify, SoundCloud and Vimeo - Mazen acceptance | COMPLETED | [REV-0006-my-socials-spotify-soundcloud-vimeo-acceptance.md](reviews/REV-0006-my-socials-spotify-soundcloud-vimeo-acceptance.md) |

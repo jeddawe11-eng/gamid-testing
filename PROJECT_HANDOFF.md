@@ -3148,3 +3148,31 @@ TESTING only. Product checkpoint `9e6e765a6ccabe7fdd9a6687990678d1125365eb`. Wor
 2. Try a Spotify track or playlist, a SoundCloud track and a Vimeo video. Each is refused.
 3. Desktop `/@<handle>`: the three icons show the Spotify, SoundCloud and Vimeo marks and open the right pages in a new tab.
 4. Phone: the existing icons look as before.
+
+## 48. Final acceptances (My Socials expansion, Intro 50 MiB) + Spotify / SoundCloud / Vimeo logos on mobile — 2026-10-12
+
+Mazen's explicit task "GAMID — Final Acceptance + Mobile My Socials Icons", TESTING only.
+
+**A. My Socials expansion: ACCEPTED (Mazen 2026-10-12).** Spotify artist, SoundCloud profile and Vimeo profile, as deployed at `9e6e765` (§47; run 38165131715; migration `20261012100000`; 12 platforms).
+- Recorded in Product Memory REV-0006 (new; none covered this scope: REV-0005 is the 2026-10-11 visitor-links acceptance).
+- Truth `my-socials`: contract `socials-own-named-platforms` now says accepted. Status ACCEPTED, as before.
+- Truth `desktop-social-marks`: the three desktop marks are accepted.
+- Not reimplemented, migrated or redeployed.
+
+**B. Intro source limit 50 MiB: ACCEPTED as final (Mazen 2026-10-12).** 52,428,800 bytes, as implemented at `5214d9b` (migration `20261011260000`) and deployed as `af2af0d` (§43).
+- ISS-0012: OPEN → AUTHORIZED → FIXED → VERIFIED. The 150 MiB versus 50 MiB mismatch is resolved by Mazen's decision to standardize on 50 MiB.
+- Truth `intro-identity`: new contract `intro-source-limit` records the limit and its acceptance. `introSourceMaxBytes` stays 52428800, and the status stays ACCEPTED.
+- This covers the limit decision only; no other Intro issue changed.
+- The limit, the migration and the Intro deployment are unchanged.
+
+**C. Spotify / SoundCloud / Vimeo logos on mobile.** Product checkpoint `bc70717c3be5f10179e73649c6bd45fb7aa3e1d0`. Workflow run [38166266548](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38166266548): full validation passed; TESTING serves `bc70717`.
+- `dist/public/public.css`: the three platforms' brand colours and marks move out of the desktop-only marks block into one all-width block after the shared badge colours. The values and the static mask mechanism are the same, so the desktop rendering is identical. Spotify shows black arcs on #1db954, SoundCloud a white cloud and bars on #ff5500, and Vimeo a white "v" on #1ab7ea.
+- Unchanged: the other nine platforms (their accepted mobile text marks and desktop marks), the editor, the Wall and the Discord Profile Card.
+- Tests: `tests/my-socials-brand-marks.test.js` checks that the three are drawn at every width and that no other rule names them. Full suite 1867 run, 0 failures, 1 skipped; lint and typecheck pass.
+- Live check of `/@black`, visitor only. The account now holds real Spotify, SoundCloud and Vimeo links, added by its owner.
+  - **375 px:** the three badges show their logo in brand colour, 44 × 44 px, nothing clipped, no horizontal overflow. Their links open `open.spotify.com/artist/…`, `soundcloud.com/…` and `vimeo.com/…` in a new tab with `noopener noreferrer nofollow`.
+  - **768 px:** same; 12 icons, none clipped.
+  - **1440 px:** all 12 badges are as before; the three new ones match their desktop look from before.
+- Not performed: an editor save and reload, and a real-device test.
+
+**Manual check (Mazen).** On a phone, open `/@black`. The Spotify, SoundCloud and Vimeo icons show their logos and open the right pages. The other icons look as before.
