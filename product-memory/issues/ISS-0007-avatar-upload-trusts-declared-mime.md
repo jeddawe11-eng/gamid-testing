@@ -44,4 +44,3 @@ FIXED on TESTING, checkpoint `a1d2eeb` (PROJECT_HANDOFF.md §38). Not VERIFIED: 
 - 2026-10-10 OPEN — Mazen asked for it to be recorded in the Phase 1B task, without fixing it in that phase.
 - 2026-10-11 AUTHORIZED — Mazen authorized the fix (both routes) and adding the resumable-route evidence, in "GAMID — COMBINED SECURITY REMEDIATION + UX FIXES".
 - 2026-10-11 FIXED — Gateway v8, migration 20261011220000 and frontend a1d2eeb deployed on TESTING (run 38128281601). Not VERIFIED: Mazen's acceptance is pending.
-- 2026-10-11 MANUAL UI NEGATIVE TEST PASS — Mazen's fake-JPEG selection was rejected by the browser editor; existing Avatar remained saved. Evidence is UI-only; status stays FIXED and security acceptance remains pending.
