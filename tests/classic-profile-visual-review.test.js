@@ -185,11 +185,12 @@ test("game tiles: the title's initials in a tone chosen from the title - never a
   assert.doesNotMatch(read("dist/public/public-games.js") + read("dist/public/public.js"), /steamcdn|steamstatic|steamgriddb|ddragon|igdb|rawg|<img[^>]*game/i, "no artwork source is fetched by the page itself (only through GamID's game-artwork function)");
 });
 
-test("My Socials: recognizable Discord and Instagram marks on the desktop profile only - static, local, the link keeps its accessible name", () => {
+test("My Socials: recognizable Discord, Instagram and (ISS-0013) TikTok, Twitch, Kick and Snapchat marks on the desktop profile only - static, local, the link keeps its accessible name", () => {
   const css = read("dist/public/public.css");
   const marks = css.slice(css.indexOf("/* My Socials marks"), css.indexOf("}\n.desk-hero{"));
   assert.match(marks, /html\.is-public-desktop \.social-icon\[data-platform=discord\]\{--social-mark:url\("data:image\/svg\+xml,/);
   assert.match(marks, /html\.is-public-desktop \.social-icon\[data-platform=instagram\]\{--social-mark:url\("data:image\/svg\+xml,/);
+  for (const p of ["tiktok", "twitch", "kick", "snapchat"]) assert.match(marks, new RegExp(`html\\.is-public-desktop \\.social-icon\\[data-platform=${p}\\]\\{--social-mark:url\\("data:image\\/svg\\+xml,`), p);   // ISS-0013 (tests/my-socials-brand-marks.test.js)
   assert.match(marks, /simple-icons "discord" path \(CC0\)/, "the source and license are recorded");
   assert.doesNotMatch(marks, /animation|keyframes|transition|filter|box-shadow|https?:\/\/(?!www\.w3\.org)/, "static: no animation or glow, nothing remote");
   assert.match(read("dist/account/socials.js"), /\["discord", \["profile", "invite"\], "DC",/, "the mobile badge keeps its accepted text mark");
