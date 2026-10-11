@@ -63,7 +63,7 @@ node worker/intro-worker.mjs encode INPUT OUTPUT
 
 Recommended initial container allocation is 2 vCPU, 1 GiB RAM (2 GiB gives
 safer concurrency/headroom), and at least 512 MiB ephemeral `/tmp` storage.
-Source uploads are capped at 150 MiB (157,286,400 bytes) and a displayed 30 seconds (inclusive internal metadata tolerance up to 31 seconds); derivatives are capped at
+Source uploads are capped at 50 MiB (52,428,800 bytes; Mazen 2026-10-11, enforced by the editor, the intro-sources bucket, the queue RPC and the table CHECK - the worker's own MAX_SOURCE_BYTES stays a defensive 150 MiB ceiling until its image is next rebuilt) and a displayed 30 seconds (inclusive internal metadata tolerance up to 31 seconds); derivatives are capped at
 15 MiB. Run with concurrency 1 and scale by starting more isolated tasks.
 
 ## Google Cloud Run approval and hosting status

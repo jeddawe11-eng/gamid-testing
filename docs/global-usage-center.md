@@ -98,7 +98,7 @@ actual deletion. The UI shows reserved versus used bytes distinctly.
 - Everything automatic acts only on what became due after `automatic_since` (2026-10-11 13:55:56 UTC). Older items keep their previous treatment until a separate decision.
 
 *Effective upload limit*
-- On TESTING the effective upload limit is Supabase's project-wide 50 MiB file size limit, below the 150 MiB `intro-sources` bucket limit (ISS-0012).
+- On TESTING the effective upload limit is Supabase's project-wide 50 MiB file size limit (ISS-0012). Since Mazen's decision of 2026-10-11 (migration `20261011260000`) the Intro source limit is the same 50 MiB (52,428,800 bytes) everywhere: editor, `intro-sources` bucket, queue RPC and table CHECK. The 200 MB account quota and every other media limit are unchanged.
 
 Service-created objects have no normal Storage owner_id. A private COMPLETE
 receipt supplies narrowly scoped owner read/delete/RPC validation alongside the

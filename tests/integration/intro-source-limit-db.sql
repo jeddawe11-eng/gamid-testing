@@ -1,4 +1,4 @@
--- Intro source upload limit (150 MiB = 157,286,400 bytes) - live database behavior test (GamID TESTING only).
+-- Intro source upload limit (50 MiB = 52,428,800 bytes) - live database behavior test (GamID TESTING only).
 --
 -- Run manually:  supabase db query --linked -f tests/integration/intro-source-limit-db.sql
 -- (Requires migration 20260921100000 to be applied. To validate the migration BEFORE applying it, run the migration's content and this file's
@@ -29,11 +29,11 @@ begin
   select b.file_size_limit into lim from storage.buckets b where b.id = 'intro-sources';
   select b.file_size_limit, null into lim_media, mimes from storage.buckets b where b.id = 'intro-media';
   select array_to_string(b.allowed_mime_types, ',') into mimes from storage.buckets b where b.id = 'intro-sources';
-  res := res || jsonb_build_object('step', 'BUCKET: intro-sources accepts objects up to exactly 157286400 bytes (150 MiB); the mime allow-list is unchanged', 'pass', lim = 157286400 and mimes = 'video/mp4,video/quicktime,video/webm', 'got', lim);
+  res := res || jsonb_build_object('step', 'BUCKET: intro-sources accepts objects up to exactly 52428800 bytes (50 MiB); the mime allow-list is unchanged', 'pass', lim = 52428800 and mimes = 'video/mp4,video/quicktime,video/webm', 'got', lim);
   res := res || jsonb_build_object('step', 'BUCKET: the derivative bucket intro-media is unchanged (15728640 bytes, webm only)', 'pass', lim_media = 15728640);
 
   select pg_get_constraintdef(c.oid) into def from pg_constraint c where c.conrelid = 'public.intro_processing_jobs'::regclass and c.conname = 'intro_processing_jobs_source_size_bytes_check';
-  res := res || jsonb_build_object('step', 'TABLE CHECK: source_size_bytes is limited to 1..157286400', 'pass', def like '%157286400%' and def not like '%104857600%', 'got', def);
+  res := res || jsonb_build_object('step', 'TABLE CHECK: source_size_bytes is limited to 1..52428800', 'pass', def like '%52428800%' and def not like '%52428800%', 'got', def);
   select pg_get_constraintdef(c.oid) into def from pg_constraint c where c.conrelid = 'public.intro_processing_jobs'::regclass and c.conname = 'intro_processing_jobs_output_size_bytes_check';
   res := res || jsonb_build_object('step', 'TABLE CHECK: the derivative size ceiling is unchanged (15728640)', 'pass', def like '%<= 15728640)%', 'got', def);
   select pg_get_constraintdef(c.oid) into def from pg_constraint c where c.conrelid = 'public.intro_processing_jobs'::regclass and c.conname = 'intro_processing_jobs_source_duration_ms_check';
@@ -47,10 +47,10 @@ begin
   -- RPC boundary (probes stop at an error: no job, no storage object)
   perform set_config('request.jwt.claims', json_build_object('sub', ua, 'role', 'authenticated')::text, true);
   set local role authenticated;
-  begin perform 1 from public.queue_my_intro(job, path, 'fade', 'video/mp4', 157286401::bigint, 20000); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
-  res := res || jsonb_build_object('step', 'RPC: 157286401 bytes (one byte over the new limit) is refused with INTRO_SOURCE_TOO_LARGE', 'pass', got = 'INTRO_SOURCE_TOO_LARGE', 'got', got);
-  begin perform 1 from public.queue_my_intro(job, path, 'fade', 'video/mp4', 157286400::bigint, 20000); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
-  res := res || jsonb_build_object('step', 'RPC: exactly 157286400 bytes passes the size check (it then stops because no such upload exists)', 'pass', got = 'INTRO_SOURCE_NOT_FOUND', 'got', got);
+  begin perform 1 from public.queue_my_intro(job, path, 'fade', 'video/mp4', 52428801::bigint, 20000); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
+  res := res || jsonb_build_object('step', 'RPC: 52428801 bytes (one byte over the new limit) is refused with INTRO_SOURCE_TOO_LARGE', 'pass', got = 'INTRO_SOURCE_TOO_LARGE', 'got', got);
+  begin perform 1 from public.queue_my_intro(job, path, 'fade', 'video/mp4', 52428800::bigint, 20000); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
+  res := res || jsonb_build_object('step', 'RPC: exactly 52428800 bytes passes the size check (it then stops because no such upload exists)', 'pass', got = 'INTRO_SOURCE_NOT_FOUND', 'got', got);
   begin perform 1 from public.queue_my_intro(job, path, 'fade', 'video/mp4', 104857601::bigint, 20000); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
   res := res || jsonb_build_object('step', 'RPC: 104857601 bytes (over the OLD limit) is now accepted by the size check', 'pass', got = 'INTRO_SOURCE_NOT_FOUND', 'got', got);
   begin perform 1 from public.queue_my_intro(job, path, 'fade', 'video/mp4', 0::bigint, 20000); got := 'NO_ERROR'; exception when others then got := sqlerrm; end;
@@ -94,13 +94,13 @@ begin
   -- the insert fails on the CHECK before any trigger can fire)
   begin
     insert into public.intro_processing_jobs (job_id, profile_id, owner_user_id, requested_transition, source_path, source_mime, source_size_bytes, source_duration_ms)
-    select gen_random_uuid(), p.profile_id, ua, 'fade', ua::text || '/x/source.mp4', 'video/mp4', 157286401, 20000 from public.profiles p join public.entity_memberships m on m.entity_id = p.entity_id where m.user_id = ua limit 1;
+    select gen_random_uuid(), p.profile_id, ua, 'fade', ua::text || '/x/source.mp4', 'video/mp4', 52428801, 20000 from public.profiles p join public.entity_memberships m on m.entity_id = p.entity_id where m.user_id = ua limit 1;
     got := 'NO_ERROR';
   exception when check_violation then got := 'CHECK_VIOLATION'; when others then got := sqlerrm; end;
-  res := res || jsonb_build_object('step', 'TABLE CHECK: a row with 157286401 source bytes cannot be inserted by any path', 'pass', got = 'CHECK_VIOLATION', 'got', got);
+  res := res || jsonb_build_object('step', 'TABLE CHECK: a row with 52428801 source bytes cannot be inserted by any path', 'pass', got = 'CHECK_VIOLATION', 'got', got);
 
   select count(*) into jobs_after from public.intro_processing_jobs;
-  res := res || jsonb_build_object('step', 'only one synthetic processing row exists inside this always-rolled-back transaction', 'pass', jobs_before + 1 = jobs_after and not exists (select 1 from public.intro_processing_jobs j where j.source_size_bytes > 157286400));
+  res := res || jsonb_build_object('step', 'only one synthetic processing row exists inside this always-rolled-back transaction', 'pass', jobs_before + 1 = jobs_after and not exists (select 1 from public.intro_processing_jobs j where j.source_size_bytes > 52428800));
 
   res := res || jsonb_build_object('step', 'SUMMARY', 'pass', not exists (select 1 from jsonb_array_elements(res) e where (e->>'pass') is distinct from 'true'), 'total', jsonb_array_length(res));
   raise exception 'TEST_RESULTS:%', res::text;

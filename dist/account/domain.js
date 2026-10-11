@@ -4,8 +4,9 @@ export const HANDLE_MIN = 3;
 export const HANDLE_MAX = 24;
 export const BIO_MAX = 160;
 export const PROFILE_CONTEXT_MAX = 120;
-// Unit convention (unchanged): the limit is counted in 1024*1024-byte units (MiB) and shown to people as "MB", like the 5 MB avatar limit. 150 MiB = 157,286,400 bytes.
-export const INTRO_SOURCE_MAX_BYTES = 150 * 1024 * 1024;
+// Unit convention (unchanged): the limit is counted in 1024*1024-byte units (MiB) and shown to people as "MB", like the 5 MB avatar limit. 50 MiB = 52,428,800 bytes
+// (Mazen 2026-10-11, ISS-0012: the effective TESTING upload limit; the bucket, the queue RPC and the table CHECK carry the same number).
+export const INTRO_SOURCE_MAX_BYTES = 50 * 1024 * 1024;
 // Displayed maximum remains 30 seconds; metadata/container tolerance is inclusive to 31 seconds.
 export const INTRO_MAX_DURATION_MS = 31_000;
 export const INTRO_TRANSITIONS = Object.freeze(["fade", "blur", "shrink", "slide", "split"]);
@@ -155,7 +156,7 @@ export const errorMessage = reason => ({
   INSTITUTION_TOO_LONG: `Keep institution to ${PROFILE_CONTEXT_MAX} characters or fewer.`,
   FIELD_OF_STUDY_TOO_LONG: `Keep field of study to ${PROFILE_CONTEXT_MAX} characters or fewer.`,
   INVALID_INTRO_TYPE: "Choose an MP4, MOV, or WebM video.",
-  INTRO_SOURCE_TOO_LARGE: "Intro video must be 150 MB or smaller.",
+  INTRO_SOURCE_TOO_LARGE: "Intro video must be 50 MB or smaller.",
   INTRO_DURATION_INVALID: "Intro video must be between 0.5 and 30 seconds.",
   INTRO_PROCESSING_IN_PROGRESS: "Your previous Intro is still processing.",
   INVALID_INTRO_TRANSITION: "Choose an available Intro transition.",
