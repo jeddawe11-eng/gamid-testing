@@ -303,7 +303,7 @@
         { "id": "view-all-games-artwork", "rule": "On the desktop, the View all games list shows the same cached game artwork tiles as the compact My Games list (lazy-loaded; initials when none)." }
       ],
       "checkpoint": "6ab062e024926c6c5a3d2bea63265d1147b9935a",
-      "record": "PROJECT_HANDOFF.md §36; migration 20261011180000_favorite_games.sql (applied on TESTING); frontend deployment to TESTING pending (its workflow runs the test suite, which the owner asked not to run)"
+      "record": "PROJECT_HANDOFF.md §36; migration 20261011180000_favorite_games.sql (applied on TESTING); deployed to TESTING by workflow run 38113520035 (stamp 6ab062e)"
     },    {
       "id": "my-crews-view",
       "name": "My Crews view on the public Classic Profile and the 10-Crew limit",

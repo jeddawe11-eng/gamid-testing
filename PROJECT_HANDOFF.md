@@ -2697,3 +2697,5 @@ Owner directive (Mazen): implement and deploy to TESTING **without running any t
 **Tests were not run, as instructed by the owner.** Two pinned assertions were updated to the new structure (`manual-games.test.js` My Games outside Connections; `public-my-games.test.js` migration list) but not executed.
 
 STOP for owner review.
+
+**Deployment (2026-10-11, owner-authorized).** Mazen authorized running the mandatory CI gate once. Workflow run [38113520035](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38113520035) from a temporary ref at exactly `6ab062e` (`feature/deploy-6ab062e`, deleted afterwards): the complete project validation (lint, typecheck, full test suite) passed on its first run; deployment and smoke checks succeeded. TESTING serves `6ab062e`. No other test, browser journey or screenshot was run.
