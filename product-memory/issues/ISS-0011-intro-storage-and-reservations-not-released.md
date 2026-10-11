@@ -1,7 +1,7 @@
 ---
 id: ISS-0011
 title: Failed and removed Intro files and abandoned upload reservations were not released
-status: FIXED
+status: VERIFIED
 created: 2026-10-11
 updated: 2026-10-11
 scope: Intro storage lifecycle (Intro worker cleanup, remove_my_intro, failed jobs) and the usage-upload gateway's upload reservations
@@ -9,6 +9,7 @@ summary: Failed Intro sources were never cleaned, a removed Intro's file waited 
 related: [ISS-0012, ISS-0001, ISS-0010, REV-0004]
 save_approval: Mazen 2026-10-11
 kind: BUG
+acceptance: Mazen 2026-10-11 accepted TESTING manual removal and refreshed Usage result (Intro 7 MB to 0 MB; Wall Media 36.5 MB and Avatar/Banner 0.7 MB unchanged)
 authorization: Mazen 2026-10-11, explicit task "GAMID — ISS-0011 / ISS-0012: Permanent Intro Storage Fix + Authorized Cleanup" (TESTING only)
 truth_refs: [intro-identity, global-usage, your-gamid-editor]
 checkpoints: [4b56646e782eefadcc173b64e8aa59f0fab37cd9, 72896d6f5b08dc4b9ea96cd2c7b3e35f2277dbe4]
@@ -79,16 +80,17 @@ Used storage went from 67.25 MB to 37.86 MB (Intro from 30.12 MB to 0.73 MB). Re
 - 108 related test files;
 - CI.
 
-**Remaining for VERIFIED:** Mazen's targeted manual check, then his acceptance.
+**VERIFIED 2026-10-11:** Mazen completed the targeted removal test and explicitly accepted the result; see acceptance follow-up below.
 
 ## Manual follow-up — 2026-10-11
 
 Mazen explicitly requested this result be recorded. After the 50 MiB Intro limit was deployed on TESTING, the legacy unbound reservation of 116,291,584 bytes was cancelled via the existing `release_unbound` action (reserved 116.29 MB → 0; available 45.84 MB → 162.14 MB). The historical unreferenced Intro derivative `intro-d3.webm` (734,172 bytes) was removed through the authorized cleanup gateway; Intro usage fell from 0.73 MB to 0 MB and total stored usage from 37.86 MB to 37.13 MB. These are one-time cleanups, not proof of automatic cleanup.
 
-**Mazen's manual result: PASS for upload, FFmpeg processing and playback.** He confirmed that a new Intro uploaded, finished processing and played correctly on TESTING. The UI displayed the updated `max 50 MB` limit. **Still untested:** removing this newly uploaded Intro and observing whether its storage is reclaimed automatically without manual intervention. Keep ISS-0011 at `FIXED` rather than `VERIFIED` pending this lifecycle check and explicit final acceptance. Do not repeat the successful upload/playback test.
+**Mazen's manual result: PASS for upload, FFmpeg processing and playback.** He confirmed that a new Intro uploaded, finished processing and played correctly on TESTING. The UI displayed the updated `max 50 MB` limit. **Subsequently verified:** Mazen removed the new Intro, saw `Saved successfully` and `No intro yet`, and refreshed Global Usage: Intro decreased from 7 MB to 0 MB, while Wall Media stayed 36.5 MB and Avatar & Banner stayed 0.7 MB. No manual cleanup was performed during this test. Mazen explicitly accepted the result on 2026-10-11. The screenshots and confirmation establish the owner-visible automatic storage reclamation result; no separate raw Storage object inspection was performed.
 
 ## History
 
 - 2026-10-11 OPEN — Found by the owner-authorized read-only investigation of Mazen's TESTING account.
 - 2026-10-11 AUTHORIZED — Mazen authorized the permanent fix and the deletion of the three failed sources.
-- 2026-10-11 FIXED — Migration 20261011240000, usage-upload v9 and frontend 72896d6 deployed on TESTING (run 38145293680); three failed sources deleted under the authorization. Not VERIFIED: Mazen's acceptance is pending.
+- 2026-10-11 FIXED — Migration 20261011240000, usage-upload v9 and frontend 72896d6 deployed on TESTING (run 38145293680); three failed sources deleted under the authorization.
+- 2026-10-11 VERIFIED — Mazen removed the new Intro and refreshed Global Usage (7 MB → 0 MB), confirmed other media unchanged, and explicitly accepted the manual result.
