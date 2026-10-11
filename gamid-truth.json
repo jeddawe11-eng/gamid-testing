@@ -502,7 +502,7 @@
         },
         {
           "id": "desktop-social-marks",
-          "rule": "On the desktop layout the Discord, Instagram, TikTok, Twitch, Kick and Snapchat icons in My Socials show their recognisable marks (static, local, no animation; each in the badge's existing text colour); YouTube, X and Facebook keep their glyphs; size, colours, placement, links and accessible names are unchanged, and the mobile icons keep their text marks. The TikTok, Twitch, Kick and Snapchat marks were added on 2026-10-11 (ISS-0013, 514e462); that extension is pending Mazen's manual acceptance."
+          "rule": "On the desktop layout the Discord, Instagram, TikTok, Twitch, Kick and Snapchat icons in My Socials show their recognisable marks (static, local, no animation; each in the badge's existing text colour); YouTube, X and Facebook keep their glyphs; size, colours, placement, links and accessible names are unchanged, and the mobile icons keep their text marks. The TikTok, Twitch, Kick and Snapchat marks were added on 2026-10-11 (ISS-0013, 514e462) and accepted by Mazen on 2026-10-11."
         },
         {
           "id": "desktop-preserves",

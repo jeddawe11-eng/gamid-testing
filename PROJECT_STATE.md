@@ -105,8 +105,8 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 - **ISS-0011:** FIXED, not VERIFIED. The three authorized failed Intro sources (29.38 MB) are deleted. Held for Mazen's decision: the removed 0.73 MB derivative, which is excluded from automatic cleanup by the cutoff. The 116.29 MB reservation releases by the 26-hour rule after 2026-10-12 12:41 UTC.
 - **Intro source limit 50 MiB (Mazen's decision, §43):** implemented at `5214d9b`, migration `20261011260000` applied, deployed to TESTING as `af2af0d` (run `38147127030`, full validation passed); Truth `intro-identity.introSourceMaxBytes` = 52428800. PENDING Mazen's manual acceptance. The ISS-0012 record update awaits his memory-save approval.
 - **ISS-0010 (editor Intro Preview returns to the editor, §44):** deployed at `7373607` (run `38148668016`); Truth `your-gamid-editor` contract `intro-preview-returns-to-editor`. PENDING Mazen's manual check. The ISS-0010 record update awaits his save approval.
-- **ISS-0013 (My Socials marks for TikTok, Twitch, Kick, Snapchat on desktop, §45):** deployed to TESTING as `514e462` (run `38152454496`, full validation passed; fix `ec3fda4`), live-verified at 1440 px and 375 px; Truth `desktop-social-marks` reconciled (`classic-profile-desktop` still ACCEPTED, extension pending). PENDING Mazen's manual acceptance; ISS-0013 stays OPEN until then.
-- **Public profile scroll bug (desktop, §46):** fixed and deployed at `5529d17`; live-verified (wheel / End reach the bottom; the Intro lifecycle keeps its lock). PENDING Mazen's manual check.
+- **ISS-0013 (My Socials marks for TikTok, Twitch, Kick, Snapchat on desktop, §45):** deployed as `514e462` (fix `ec3fda4`), **accepted by Mazen 2026-10-11**; ISS-0013 VERIFIED; Truth `desktop-social-marks` final (`classic-profile-desktop` ACCEPTED).
+- **Public profile scroll bug (desktop, §46):** fixed and deployed at `5529d17`, **accepted by Mazen 2026-10-11**; recorded as ISS-0014 (VERIFIED).
 - **Accepted 2026-10-11:** ISS-0009 is VERIFIED and Truth `visitor-media-access` is ACCEPTED (Mazen, including the accepted residual possibility of unknown historical signed URLs; §30, §38–§40).
 - **Manual passes recorded, capability still pending:**
   - CP-01 (REV-0002) and GR-01 (REV-0003).
@@ -125,7 +125,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
   - **ISS-0010 (OPEN):** in the editor's Intro Preview, Skip shows an older-looking `DRAFT · PRIVATE` profile instead of the current Wall / Classic Profile; it needs investigation, and no fix is authorized (§41).
 - **Product Memory:**
   - DEC-0001 to DEC-0003 and DEC-0005 are IMPLEMENTED; DEC-0004 is ACCEPTED.
-  - ISS-0001..ISS-0005, ISS-0007 and ISS-0011 are FIXED, not VERIFIED; ISS-0006, ISS-0008, ISS-0010 and ISS-0012 are OPEN; ISS-0009 is VERIFIED.
+  - ISS-0001..ISS-0005 and ISS-0007 are FIXED, not VERIFIED; ISS-0006, ISS-0008 and ISS-0012 are OPEN; ISS-0009, ISS-0010, ISS-0011, ISS-0013 and ISS-0014 are VERIFIED.
   - The Register in `product-memory/INDEX.md` owns these statuses.
 
 **Product Memory V1** (governance, structure, templates and validation) is committed on the working tip and awaits Mazen's acceptance. Saved records and their statuses are listed only in the Register of [`product-memory/INDEX.md`](product-memory/INDEX.md); rules are in `AGENTS.md` → Product Memory.
