@@ -2467,3 +2467,126 @@ Authorized: "Classic Profile Visual Review: Approved Changes" (TESTING only), st
 - The deferred signed-URL closure review (§30 residuals) is still open and is **not** closed by this task; no key was rotated.
 
 STOP for visual acceptance.
+
+## 33. Classic Profile desktop consolidated update — 2026-10-11
+
+Authorized: "GamID — Classic Profile Desktop Consolidated Update" (TESTING only).
+- Product checkpoint: `0ccf1c721b9e844ce88ba69c6010cc2ab392c706`.
+- Frontend run: [38105792369](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38105792369). TESTING serves `0ccf1c7`; 13 changed files verified byte-for-byte.
+- Migration `20261011100000_classic_profile_consolidated`: rehearsed 10/10 in an aborted transaction, applied, history repaired.
+- GeoNames catalog loaded: 252 countries, 34,156 cities.
+- Edge Function `game-artwork` deployed (verify_jwt off).
+- Truth:
+  - `about-me` and `classic-profile-desktop` updated;
+  - new `my-crews-view` and `game-artwork-provisional`;
+  - all PENDING_ACCEPTANCE.
+
+**Decisions taken with Mazen at the start (2026-10-11):**
+- **Location data:** GeoNames cities15000 + countryInfo (CC BY 4.0; download approved).
+- **SteamGridDB:** build it, off until Mazen sets the key.
+- **Crew limit:** 10 ACTIVE memberships, owned + joined.
+- **My Crews:** a full-screen panel with PUBLIC member avatars.
+- **@black's legacy Location** ("Jeddah Saudi Arabia", the only one on TESTING) is left untouched; no data of @black / @zshot was changed.
+
+**Audit before implementation:**
+- Crews: TESTING has 1 Crew and 2 ACTIVE memberships (largest per GamID: 1), no INVITED rows. The schema already allows one ACTIVE Crew per game. The ten-Crew limit therefore conflicts with no existing record.
+- Linked game accounts: League only (3 profiles); `game_profiles` is empty.
+- Catalog ids: Steam app ids for 7,559 of 27,182 games, plus IGDB / Wikidata / Epic. 45 of the 82 Steam-discovered games map to the catalog.
+- No Crew directory route existed.
+
+**Changes.**
+1. **Favorite Genres.**
+   - Server: the five-genre check and the `profiles_about_genres_check` (≤5) are gone (a defensive ceiling of 64 remains). Values are still catalog-validated with no duplicates; Languages stay ≤5.
+   - Editor: no genre is ever disabled; the hint reads "N selected … Your public profile shows five."
+   - Public desktop: shows at most five (`PUBLIC_GENRES_SHOWN`). The server returns all of them.
+   - Play Together matching is untouched (it never used genres).
+2. **Location.**
+   - Catalog tables `location_countries` / `location_cities`, loaded through `private.import_location_batch` from `scripts/location/geonames-import.mjs` (docs/LOCATION-DATA.md: source, hashes, licence, limits).
+   - `profiles.about_country_code` (ISO) and `about_city_id` (GeoNames id, composite foreign key to its country).
+   - Editor (`about-editor.js` + `location.js`): two accessible comboboxes (ARIA 1.2 pattern, keyboard / mouse / touch).
+     - Country search in English or Arabic (Arabic names from the browser's `Intl.DisplayNames`).
+     - City search on the server, limited to the chosen country: `search_location_cities`, authenticated, 12 most populous.
+     - "Clear location" and the GeoNames attribution.
+   - Public: formatted "City, Country" only while the switch is ON.
+   - Legacy text: kept in `about_location`, still shown, never converted.
+     - `get_my_about` offers `location_suggestion` only for an unambiguous match (longest country name; exactly one city).
+     - Choosing a place (or the suggestion) replaces it on Save Changes. No GPS.
+3. **Connected Games** (`connectedGamesSection`, desktop main column under About Me, left of My Games).
+   - Content: the League account's identity, rank line (only while stats are public), PROTOTYPE / UNVERIFIED and its data source.
+   - Destination: it opens the same League Game Details My Games opens, only when My Games lists League (looked up in the preview, otherwise one library search after the Intro starts). Otherwise it is not a button.
+   - View all after 3 opens a full-screen list.
+   - The League card is hidden from the desktop sidebar only; mobile keeps it.
+   - No new game integration.
+4. **My Crews.**
+   - The sidebar holds one fixed entry (`crewsEntry`): "MY CREWS", count and games. It opens a read-only full-screen view (`crews-directory.js` on `profile-panel.js`, the My Games dialog styles: role=dialog, Escape, focus return, Tab trap).
+   - The view has large cards per Crew from the anonymous `get_public_crews(handle)`:
+     - the same Crews and order as the public section;
+     - each card holds a game background, game icon, name, game, member count and up to 5 PUBLIC member avatars; non-public members are counted, never shown;
+     - each card links to the existing Crew Wall.
+   - A failed read keeps the section's Crews.
+   - **Limit:** `private.crew_policy.max_memberships_per_identity = 10`, checked with a per-GamID advisory lock in `create_crew_impl` and `respond_to_crew_invite_impl` (CREW_LIMIT_REACHED; bodies otherwise identical).
+5. **Artwork (provisional SteamGridDB evaluation).** See docs/GAME-ARTWORK-STEAMGRIDDB.md.
+   - `game-artwork` Edge Function plus service-only `game_artwork_targets` / `_cache_get` / `_cache_put`.
+   - Exact Steam-id match, or exactly one same-title + same-year search result; otherwise NO_MATCH.
+   - Static, non-NSFW images; provider-CDN URLs only (also a database CHECK).
+   - Metadata-only cache (7 days); 6 lookups per request with a 4 s timeout; stops on timeout / 429 / 401 / 5xx; 30 requests per minute per client.
+   - Kill switch: `private.game_artwork_settings.enabled`.
+   - The page lays images over the initials tiles (no referrer); a Crew card gets a background layer over its gradient. Desktop only.
+   - **The secret `STEAMGRIDDB_API_KEY` is not set**, so on TESTING the function returns `configured:false` and no provider request is made.
+6. **Visitor vs owner.** The public modules create no inputs, switches or save actions (tested). The live public page shows none for visitors. Owner editing stays in the Profile Editor.
+
+**Validation.**
+- **Automated:** suite 1,829 (1,828 pass, 1 skip); lint, typecheck and build pass.
+  - New: `tests/classic-profile-consolidated.test.js` (19), including:
+    - PGlite runs of the migration: genres, Location and legacy suggestions, the ten-Crew limit, `get_public_crews` privacy, artwork RPC grants and CDN check;
+    - the Edge Function against a mocked provider: Steam-id and title+year matches, similar title, wrong year, ambiguous, no images, timeout / 429 / 503 / 401, no key, disabled, rate limit, bad handle, foreign origin, duplicate titles;
+    - page artwork placement and failure, the My Crews view and Connected Games;
+    - search normalization and the GeoNames parser;
+    - no editing controls in public modules.
+  - Updated: the About rules test, the visual-review tests (one My Crews entry), the crew guard (`wall-crews-block`), and the pinned migration list.
+- **Fixtures** (local; desktop also against the deployed files): `public-desktop-browser.mjs` 15/15.
+  - Desktop 1280 / 1440 / 1920 with mocked artwork: images only on reliable matches; Connected Games placement and its Game Details; the My Crews view (links, counts, background layer covering the card, Escape / focus); genres capped at five; no editing controls.
+  - Long content, privacy, Crew-only and breakpoint-crossing scenarios.
+  - Artwork failure (503): initials everywhere, no errors.
+  - Published Wall.
+  - Mobile 390 / 768 / 1279 **pixel-identical to `568b530`**, with no artwork request.
+- **Editor fixture:** `profile-editor-browser.mjs` 2/2 (1280, 390):
+  - legacy note and suggestion;
+  - Arabic country search;
+  - a city of that country only;
+  - six genres, none disabled;
+  - compact checkboxes, Space keeps focus;
+  - the new `set_my_about` payload.
+- **Live on TESTING, 37/37** (GM-TEST-01 / GM-TEST-02, real UI):
+  - Owner:
+    - a real Avatar and Banner;
+    - the legacy text shown with its suggestion;
+    - Saudi Arabia found by its Arabic name, Jeddah by "jed" and by "جدة" (live catalog);
+    - 8 genres persisted after refresh;
+    - the legacy text replaced only by the owner's choice.
+  - Crew limit: 10 created and the 11th refused (CREW_LIMIT_REACHED); all removed afterwards.
+  - Visitor at 1280 / 1440 / 1920:
+    - Location "Jeddah, Saudi Arabia", 5 of 8 genres;
+    - one "2 Crews" entry; the My Crews view with two cards, counts and the owner's Avatar; Escape / focus; a card opens its Crew Wall;
+    - no artwork and no provider request (not configured);
+    - no editing control.
+  - Visitor at 390 / 768 / 1279: unchanged, no artwork request.
+  - **@black, read-only visit, DOM checks only, no screenshot:** League in Connected Games (identity and PROTOTYPE / UNVERIFIED), absent from the sidebar, opening its Game Details. @zshot has a published Wall, so Connected Games is not applicable.
+  - Privacy (Location OFF).
+  - Intro from the real worker (27 s), then Replay.
+  - A published Wall still replaces everything.
+  - @black's data unchanged.
+- **Restored exactly:**
+  - Both personas: DRAFT; no Avatar, Banner, About Me, Location, socials, manual games, Duo, Crews, Intro or Wall rows; notifications at 6 each; Wall draft unchanged; My Games private.
+  - GM-TEST-01: 1 object, 105,320 bytes. GM-TEST-02: 0 objects, 0 bytes.
+
+**Open / blocked.**
+- **SteamGridDB is not yet evaluated live.** It needs Mazen to create a personal key and set `STEAMGRIDDB_API_KEY`; coverage and mismatch measurements on real data follow then. Licensing questions are in docs/GAME-ARTWORK-STEAMGRIDDB.md: the terms describe personal, non-commercial use, and artists' and publishers' rights are unconfirmed. No rollout beyond TESTING evaluation.
+- @black's free-text Location stays as is until Mazen picks a country in the editor (the suggestion "Jeddah, Saudi Arabia" is offered).
+- Location limits:
+  - only cities of 15,000+ inhabitants;
+  - same-named cities in one country are told apart only by population order;
+  - `name_ar` can be a Persian or Urdu spelling (search hint only).
+- The deferred signed-URL closure review (§30 residuals) is still open and was not touched; no key was rotated.
+
+STOP for owner acceptance.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-10",
+  "updated": "2026-10-11",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -261,13 +261,15 @@
       "name": "About Me (Location, Languages, Favorite Genres, Member Since)",
       "status": "PENDING_ACCEPTANCE",
       "surfaces": ["/account/", "/@<handle>"],
-      "limits": { "aboutLocationMaxChars": 60, "aboutLanguagesMax": 5, "aboutGenresMax": 5 },
+      "limits": { "aboutLanguagesMax": 5, "aboutGenresPublicShown": 5, "locationCities": 34156, "locationCountries": 252 },
       "contracts": [
-        { "id": "about-me-privacy", "rule": "Location (typed city / country, never geolocated), Languages and Favorite Genres are optional and each has its own Show on my GamID switch, OFF by default; a switch is available only while its value is set and turns OFF when the value is cleared. Only switched-on values of a PUBLIC GamID are ever sent to visitors. Member Since is the date the GamID was registered (entities.created_at as a UTC calendar date, shown as day, full month name and year, e.g. 10 October 2026, the same for every visitor's time zone) and is always shown on the public profile; it cannot be edited." },
-        { "id": "about-me-display", "rule": "About Me appears on the desktop Classic Profile (1280px and wider); the mobile layout does not show it." }
+        { "id": "about-me-privacy", "rule": "Location, Languages and Favorite Genres are optional and each has its own Show on my GamID switch, OFF by default; a switch is available only while its value is set and turns OFF when the value is cleared. Only switched-on values of a PUBLIC GamID are ever sent to visitors. Member Since is the date the GamID was registered (entities.created_at as a UTC calendar date, shown as day, full month name and year, e.g. 10 October 2026, the same for every visitor's time zone) and is always shown on the public profile; it cannot be edited." },
+        { "id": "about-me-display", "rule": "About Me appears on the desktop Classic Profile (1280px and wider); the mobile layout does not show it." },
+        { "id": "about-me-location", "rule": "Location is chosen, never typed or geolocated: a country from the catalog (stored as its ISO 3166-1 code), then optionally a city of THAT country (stored as its GeoNames id), each searchable in English or Arabic. Visitors see it formatted (City, Country) only while its switch is ON. The catalog is GeoNames (CC BY 4.0, attribution shown in the editor): the 252 countries and the 34,156 cities with at least 15,000 inhabitants. A Location typed before this change is kept unchanged and still shown until its owner chooses a country (the editor offers a suggestion only when the text matches exactly one place); nothing is converted automatically." },
+        { "id": "about-me-genres", "rule": "Favorite Genres has no maximum: any number of active catalog genres can be selected and all of them are stored; the public desktop profile shows at most five. Languages keep their maximum of five." }
       ],
-      "checkpoint": "568b5300c3849b2d0b07948989dda014355d4d9d",
-      "record": "PROJECT_HANDOFF.md §31-§32; migrations supabase/migrations/20261010160000_profile_about_me.sql and 20261010180000_member_since_date.sql; Product Memory DEC-0005"
+      "checkpoint": "0ccf1c721b9e844ce88ba69c6010cc2ab392c706",
+      "record": "PROJECT_HANDOFF.md §31-§33; migrations 20261010160000_profile_about_me.sql, 20261010180000_member_since_date.sql, 20261011100000_classic_profile_consolidated.sql; docs/LOCATION-DATA.md; Product Memory DEC-0005"
     },
     {
       "id": "classic-profile-desktop",
@@ -276,16 +278,43 @@
       "surfaces": ["/@<handle>"],
       "limits": { "desktopBreakpointPx": 1280 },
       "contracts": [
-        { "id": "desktop-layout", "rule": "At 1280px and wider, when no published and enabled Wall replaces the profile, the Classic Profile shows a wide hero (Banner, Avatar, display name, @handle, roles, education / work, bio and the real game count only when My Games is public), About Me, My Games, and the My Socials / My Duo / MY CREW / League / Steam panel. Only real GamID data is shown: no friends, achievements, game covers, search or messaging." },
+        { "id": "desktop-layout", "rule": "At 1280px and wider, when no published and enabled Wall replaces the profile, the Classic Profile shows a wide hero (Banner, Avatar, display name, @handle, roles, education / work, bio and the real game count only when My Games is public), About Me, My Games, Connected Games, and the My Socials / My Duo / My Crews / Steam panel. Only real GamID data is shown: no friends, achievements, game covers, search or messaging." },
         { "id": "desktop-game-count", "rule": "The hero's game count is the authoritative public My Games count and is a link to the My Games section on the same page (smooth scroll, instant with reduced motion; keyboard reachable, visible focus; focus moves to My Games)." },
-        { "id": "desktop-my-crew", "rule": "On the desktop layout only, MY CREW sits beneath My Duo in the sidebar: one card, in the My Duo card's style, for every Crew the server's public crews section lists for this GamID (ACTIVE membership, Crew Wall PUBLISHED; the server's order; there is no primary Crew), each opening that existing Crew Wall. No Crew image exists: a card shows the Crew's initial. No listed Crew, no MY CREW. A published, enabled Wall still replaces all of it; mobile is unchanged." },
-        { "id": "desktop-game-tiles", "rule": "On the desktop layout a My Games row shows a 56px tile and the League card a 50px tile beside the game. No approved game-artwork source exists, so a tile shows the title's initials on a neutral colour (never a fetched, matched or guessed image)." },
+        { "id": "desktop-my-crew", "rule": "On the desktop layout only, MY CREWS sits beneath My Duo in the sidebar as ONE fixed-size entry in the My Duo card's style, with the number of Crews and their games, for the Crews the server's public crews section lists for this GamID (ACTIVE membership, Crew Wall PUBLISHED; the server's order; there is no primary Crew). It opens the consolidated My Crews view (capability my-crews-view). No listed Crew, no entry. A published, enabled Wall still replaces all of it; mobile is unchanged." },
+        { "id": "desktop-connected-games", "rule": "On the desktop layout the GamID's linked game ACCOUNTS (today only the League prototype: identity, the rank line only while stats are public, PROTOTYPE / UNVERIFIED and its data source) appear in Connected Games, in the main column between About Me and My Games, and no longer in the sidebar; mobile keeps its League card. A few show directly and View all lists all of them. An item opens only an existing destination (League: the Game Details My Games opens for it). Connected Games is never the game library (My Games)." },
+        { "id": "desktop-game-tiles", "rule": "On the desktop layout a My Games row and a Connected Games item show a 56px game tile, and a My Crews card a game icon and background. A tile shows the title's initials on a neutral colour; an image is laid over it only when the provisional artwork evaluation (capability game-artwork-provisional) returns a reliable match - never a guessed image." },
         { "id": "desktop-social-marks", "rule": "On the desktop layout the Discord and Instagram icons in My Socials show their recognisable marks (static, local, no animation); size, colours, placement, links and accessible names are unchanged, and the mobile icons keep their text marks." },
         { "id": "desktop-preserves", "rule": "The Intro still plays first (full screen) and its transition reveals the desktop profile; Replay Intro, Skip and Back work as before; a published, enabled Wall still replaces the Classic Profile. Below 1280px the accepted mobile / tablet layout is unchanged, and crossing the width switches between the two without replaying the Intro." },
         { "id": "desktop-discord", "rule": "On the desktop layout the separate Discord section is not shown: a connected Discord appears inside My Socials (its Discord Profile Card when there is a matching Discord link, otherwise its name with CONNECTED). On mobile the separate Discord section is unchanged." }
       ],
-      "checkpoint": "568b5300c3849b2d0b07948989dda014355d4d9d",
-      "record": "PROJECT_HANDOFF.md §31-§32; Product Memory DEC-0005"
+      "checkpoint": "0ccf1c721b9e844ce88ba69c6010cc2ab392c706",
+      "record": "PROJECT_HANDOFF.md §31-§33; Product Memory DEC-0005"
+    },
+    {
+      "id": "my-crews-view",
+      "name": "My Crews view on the public Classic Profile and the 10-Crew limit",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/@<handle>", "/account/"],
+      "limits": { "crewMembershipsPerIdentity": 10, "crewMembersShownPerCard": 5 },
+      "contracts": [
+        { "id": "my-crews-view-content", "rule": "The desktop My Crews entry opens a read-only full-screen view with one large card per Crew of the public crews section (same Crews and order): the game's artwork as its background when the provisional artwork evaluation has a reliable match (otherwise a gradient), the game's icon or initials, the Crew's name, its member count and up to five PUBLIC members' avatars (a non-public member is counted, never shown). Each card opens that existing Crew Wall; there is no second Crew Wall." },
+        { "id": "crew-membership-limit", "rule": "A GamID can hold at most 10 ACTIVE Crew memberships, the Crews it owns and the ones it joined together (still one ACTIVE Crew per game). The server refuses creating or accepting an eleventh (CREW_LIMIT_REACHED); pending invites do not count and declining is always possible. Existing memberships are never removed or hidden by the limit." }
+      ],
+      "checkpoint": "0ccf1c721b9e844ce88ba69c6010cc2ab392c706",
+      "record": "PROJECT_HANDOFF.md §33; migration 20261011100000_classic_profile_consolidated.sql"
+    },
+    {
+      "id": "game-artwork-provisional",
+      "name": "Game artwork - provisional TESTING evaluation of SteamGridDB",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/@<handle>"],
+      "limits": { "artworkLookupsPerRequest": 6, "artworkCacheDays": 7, "artworkRequestsPerClientPerMinute": 30 },
+      "contracts": [
+        { "id": "artwork-evaluation-only", "rule": "SteamGridDB is approved for provisional technical evaluation on TESTING only. Its commercial artwork rights are NOT confirmed: no public or commercial rollout without Mazen's separate approval. It is active only while the server secret STEAMGRIDDB_API_KEY is set and the artwork settings switch is ON; switching it off hides every image at once and loses no user data (only a metadata cache of provider ids and image URLs is kept, 7 days; no image is stored or re-served)." },
+        { "id": "artwork-matching", "rule": "Only games the visitor can already see get artwork (public My Games, a public League account, the public crews section). A game is matched by its catalog Steam app id, or else only when exactly one provider title equals the catalog title and the release years agree; anything else keeps the initials tile. Images are static and non-NSFW, load from the provider CDN with no referrer, and the provider key never reaches the browser." }
+      ],
+      "checkpoint": "0ccf1c721b9e844ce88ba69c6010cc2ab392c706",
+      "record": "PROJECT_HANDOFF.md §33; docs/GAME-ARTWORK-STEAMGRIDDB.md; supabase/functions/game-artwork"
     },
     {
       "id": "notifications",
