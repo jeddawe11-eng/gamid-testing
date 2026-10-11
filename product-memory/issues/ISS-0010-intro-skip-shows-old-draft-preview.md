@@ -10,6 +10,7 @@ related: [REV-0004, DEC-0003, DEC-0005]
 save_approval: Mazen 2026-10-11
 kind: BUG
 authorization: Mazen 2026-10-11 approved editor-preview-only fix
+acceptance: Mazen 2026-10-11 confirmed Skip returns to editor on TESTING and accepted reported results including automated natural-end coverage at checkpoint 7373607
 truth_refs: [your-gamid-editor, intro-identity, classic-profile-desktop, wall-visibility-toggle, public-wall-publishing]
 checkpoints: [a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7, 737360748eff1b15dca938bb6f6fff2ae999660f]
 sources: [dist/account/intro-preview.html, dist/account/intro-preview.js, dist/account/account.js, dist/public/public.js]
@@ -49,8 +50,9 @@ Implemented and deployed to TESTING at `7373607` (CI run `38148668016`). The edi
 
 ## History
 
+- 2026-10-11 OPEN — Mazen reported it during the desktop editor acceptance (REV-0004); recorded for investigation, root cause not confirmed.
+
 - 2026-10-11 AUTHORIZED — Mazen approved editor-preview-only return to editor for Skip and natural completion.
 - 2026-10-11 FIXED — Commit 7373607 deployed to TESTING; regression and browser tests passed.
 - 2026-10-11 VERIFIED — Mazen confirmed Skip returned to the editor and explicitly accepted the reported results, including the tested natural-completion behavior.
 
-- 2026-10-11 OPEN — Mazen reported it during the desktop editor acceptance (REV-0004); recorded for investigation, root cause not confirmed.
