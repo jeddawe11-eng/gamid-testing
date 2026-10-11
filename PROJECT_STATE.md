@@ -67,7 +67,7 @@ Snapshot from 2026-10-11; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `7373607`** (run `38148668016`, PROJECT_HANDOFF.md §44: ISS-0010 editor Intro Preview fix, on top of the §43 Intro limit 50 MiB).
+- **TESTING serves `514e462`** (run `38152454496`, PROJECT_HANDOFF.md §45: ISS-0013 My Socials marks, on top of §44 ISS-0010 and §43 Intro limit 50 MiB).
   - Static site: workflow run `38145293680` from ref `feature/play-together-notifications` (its head was exactly `72896d6`); the Account HTML stamp reads `72896d6`. Source: `PROJECT_HANDOFF.md` §42.
   - Edge Functions: usage-upload v9 (§42; Intro lifecycle / reservation release, on top of §38 Avatar validation), public-media v2 (§30, §38) and profile-banner (§30), game-artwork (§33-§37; STEAMGRIDDB_API_KEY set; every TESTING account; Crew route §37).
   - Intro worker: correction checkpoint 3f72eb2 deployed with image-only update, F2 smoke and dedicated READY verification; exact build/image/execution in `docs/INTRO-DURATION-TOLERANCE.md`. Accepted F2 derivative policy remains unchanged.
@@ -105,7 +105,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 - **ISS-0011:** FIXED, not VERIFIED. The three authorized failed Intro sources (29.38 MB) are deleted. Held for Mazen's decision: the removed 0.73 MB derivative, which is excluded from automatic cleanup by the cutoff. The 116.29 MB reservation releases by the 26-hour rule after 2026-10-12 12:41 UTC.
 - **Intro source limit 50 MiB (Mazen's decision, §43):** implemented at `5214d9b`, migration `20261011260000` applied, deployed to TESTING as `af2af0d` (run `38147127030`, full validation passed); Truth `intro-identity.introSourceMaxBytes` = 52428800. PENDING Mazen's manual acceptance. The ISS-0012 record update awaits his memory-save approval.
 - **ISS-0010 (editor Intro Preview returns to the editor, §44):** deployed at `7373607` (run `38148668016`); Truth `your-gamid-editor` contract `intro-preview-returns-to-editor`. PENDING Mazen's manual check. The ISS-0010 record update awaits his save approval.
-- **ISS-0013 (My Socials marks for TikTok, Twitch, Kick, Snapchat on desktop, §45):** implemented and tested at `ec3fda4`. **Not deployed:** the CI gate fails on other sessions' Product Memory records (DEC-0005, REV-0001, INDEX), which need Mazen's approval to fix. Then deploy, update Truth `desktop-social-marks`, and Mazen's check.
+- **ISS-0013 (My Socials marks for TikTok, Twitch, Kick, Snapchat on desktop, §45):** deployed to TESTING as `514e462` (run `38152454496`, full validation passed; fix `ec3fda4`), live-verified at 1440 px and 375 px; Truth `desktop-social-marks` reconciled (`classic-profile-desktop` still ACCEPTED, extension pending). PENDING Mazen's manual acceptance; ISS-0013 stays OPEN until then.
 - **Accepted 2026-10-11:** ISS-0009 is VERIFIED and Truth `visitor-media-access` is ACCEPTED (Mazen, including the accepted residual possibility of unknown historical signed URLs; §30, §38–§40).
 - **Manual passes recorded, capability still pending:**
   - CP-01 (REV-0002) and GR-01 (REV-0003).

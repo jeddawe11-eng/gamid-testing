@@ -502,7 +502,7 @@
         },
         {
           "id": "desktop-social-marks",
-          "rule": "On the desktop layout the Discord and Instagram icons in My Socials show their recognisable marks (static, local, no animation); size, colours, placement, links and accessible names are unchanged, and the mobile icons keep their text marks."
+          "rule": "On the desktop layout the Discord, Instagram, TikTok, Twitch, Kick and Snapchat icons in My Socials show their recognisable marks (static, local, no animation; each in the badge's existing text colour); YouTube, X and Facebook keep their glyphs; size, colours, placement, links and accessible names are unchanged, and the mobile icons keep their text marks. The TikTok, Twitch, Kick and Snapchat marks were added on 2026-10-11 (ISS-0013, 514e462); that extension is pending Mazen's manual acceptance."
         },
         {
           "id": "desktop-preserves",
@@ -513,8 +513,8 @@
           "rule": "On the desktop layout the separate Discord section is not shown: a connected Discord appears inside My Socials (its Discord Profile Card when there is a matching Discord link, otherwise its name with CONNECTED). On mobile the separate Discord section is unchanged."
         }
       ],
-      "checkpoint": "506bfa7a150c02234101e099ebc1538e73e35f3c",
-      "record": "PROJECT_HANDOFF.md §31-§33, §37; Product Memory DEC-0005; Mazen explicitly confirmed full manual testing and final acceptance on TESTING 2026-10-11"
+      "checkpoint": "ec3fda41f035d519109dd257e157e6b2f6497767",
+      "record": "PROJECT_HANDOFF.md §31-§33, §37, §45; Product Memory DEC-0005; Mazen explicitly confirmed full manual testing and final acceptance on TESTING 2026-10-11"
     },
     {
       "id": "favorite-games",

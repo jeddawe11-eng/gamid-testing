@@ -3075,3 +3075,11 @@ Authorized by Mazen, TESTING only. Product checkpoint `ec3fda41f035d519109dd257e
 These may only be fixed with Mazen's approval. Once fixed, deploy `ec3fda4`, then update Truth `desktop-social-marks` to name the four new marks (`classic-profile-desktop` stays ACCEPTED, with this extension pending Mazen's acceptance). Truth is unchanged until then because TESTING does not yet serve the fix.
 
 **Product Memory.** Not modified. ISS-0013 stays OPEN. After Mazen accepts: OPEN → AUTHORIZED → FIXED → VERIFIED, with this root cause and checkpoint.
+
+**Deployment (2026-10-11, after the Product Memory corrections in `514e462`).**
+- Workflow run [38152454496](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38152454496): full validation passed; stamp `v=514e462`, a tree containing `ec3fda4`. The served `public/public.css` is byte-identical to the repo.
+- Live `/@black`, visitor view:
+  - **1440 px:** TikTok, Twitch (white) and Kick, Snapchat (black) render as logo marks; Discord and Instagram keep theirs; YouTube `▶` and X are unchanged; all 44 px. Every link keeps its host, `target=_blank`, `rel=noopener noreferrer nofollow` and accessible label.
+  - **375 px:** every badge keeps its text mark (44 px), with no horizontal overflow.
+- Truth: `classic-profile-desktop` (still ACCEPTED) contract `desktop-social-marks` now names the four new marks, with the extension pending Mazen's manual acceptance; checkpoint `ec3fda4`. `my-socials` is unchanged (ACCEPTED).
+- Product Memory: not modified. ISS-0013 stays OPEN until Mazen accepts.
