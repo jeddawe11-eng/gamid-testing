@@ -3,7 +3,7 @@ id: REV-0001
 title: Mazen manual acceptance checklist items 1 through 6
 status: COMPLETED
 created: 2026-10-09
-updated: 2026-10-09
+updated: 2026-10-11
 scope: Profile Editor manual review, Intro Android, Global Usage, Public GamID Profile, Steam My Games, League of Legends
 summary: Mazen reported PASS for all six pictured manual checklist entries; this is user-reported acceptance evidence, not an automated test run.
 related: [DIS-0003]
@@ -42,3 +42,5 @@ Reconcile each scoped PASS with the authoritative acceptance requirements and ev
 ## History
 
 - 2026-10-09 COMPLETED — Mazen explicitly confirmed PASS for checklist items 1 through 6; saved as manual review evidence.
+
+- 2026-10-11 ACCEPTANCE RECONCILED — Mazen explicitly confirmed that his Global Usage Center testing covered the full feature, including the previously listed outstanding acceptance scenarios, and approved final acceptance. Truth `global-usage` is ACCEPTED (commit `1af13bd`). This is owner-reported manual acceptance; no new test execution or independent verification is claimed. The other five review items retain their own separate scope and status.
