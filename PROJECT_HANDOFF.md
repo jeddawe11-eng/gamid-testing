@@ -2699,3 +2699,58 @@ Owner directive (Mazen): implement and deploy to TESTING **without running any t
 STOP for owner review.
 
 **Deployment (2026-10-11, owner-authorized).** Mazen authorized running the mandatory CI gate once. Workflow run [38113520035](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38113520035) from a temporary ref at exactly `6ab062e` (`feature/deploy-6ab062e`, deleted afterwards): the complete project validation (lint, typecheck, full test suite) passed on its first run; deployment and smoke checks succeeded. TESTING serves `6ab062e`. No other test, browser journey or screenshot was run.
+
+## 37. Two-column Classic Profile, Gaming Roles in 8 categories + Suggest a Role, 4 Favorite Games, Crew header game logo — 2026-10-11
+
+Owner-authorized implementation (Mazen), TESTING only. All new work is PENDING_ACCEPTANCE.
+- Product checkpoint: `506bfa7a150c02234101e099ebc1538e73e35f3c` (implementation `66e431a` + CSS placement fix `506bfa7`), branch `feature/play-together-notifications`.
+- Migration `20261011200000_roles_favorites_crews`: rehearsed in a rolled-back transaction (8 categories, 71 roles, 0 uncategorized, the 9 existing role selections kept, 1 administrator, 3 notification types), then applied on TESTING; history repaired.
+- Edge Function `game-artwork`: deployed (new Crew route answers 200).
+- Frontend: workflow run [38125086921](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38125086921), source = branch head `506bfa7`, complete project validation passed; `/account/` stamp `v=506bfa7`. The first run ([38124924973](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38124924973), `66e431a`) failed one CSS-scope guard (`steam-connection.test.js`: the new role styles sat inside the Steam-scoped block); fixed by moving them before it.
+
+**Changes.**
+- **Desktop Classic Profile (`public.js`, `public.css`):** two independent columns, `minmax(0,1.75fr) minmax(19rem,1fr)`. LEFT `.desk-col-left`: hero, Favorite Games, My Games. RIGHT `.desk-col-right`: About Me, the My Socials / My Duo / My Crews panel, Connected Games. Each column is its own grid (`align-content:start`), so there are no shared row heights. Below 1280px `restoreMobileOrder()` returns the panel and My Games to the accepted mobile order; the columns are `display:none` there.
+- **Gaming Roles (migration):**
+  - `gaming_role_categories` (8 rows, read through `get_gaming_role_categories()`, anon + authenticated).
+  - `gaming_role_catalog.category_key`; 71 roles in the approved order (sort 101..809).
+  - The 12 original keys are kept; 8 are relabelled (e.g. `coach` = Gaming Coach, `developer` = Game Developer). No selection is touched, and there is no second catalog.
+  - The owner's instruction says 77 roles; the list it contains has 71, and exactly those are implemented.
+- **Editor (`account.js`, `account.css`):**
+  - each category is an expandable group (title, description, "N roles · M selected");
+  - checkboxes across categories;
+  - one Primary Role, moved when it is deselected;
+  - a Selected roles area with removable chips and Clear All;
+  - existing Save / dirty state / Live Preview paths unchanged.
+- **Badges:** the desktop hero already used individual badges; the profile frame (`intro-preview.js`) now renders each secondary role as its own `.preview-role` chip instead of one joined text.
+- **Suggest a Role:**
+  - `suggest_gaming_role` (authenticated): whitespace normalised, 3–40 characters, letters required, no links / markup (`INVALID_ROLE_NAME`);
+  - exact / near catalog duplicates are refused (`ROLE_ALREADY_EXISTS`; compares compact names and a core with the Gaming / Game / Esports prefix and plural removed);
+  - so are the same user's pending repeat (`ROLE_SUGGESTION_DUPLICATE`) and more than 5 in 24 h (`ROLE_SUGGESTION_RATE_LIMIT`);
+  - each suggestion is stored PENDING in `gaming_role_suggestions` (RLS, no table grants);
+  - administrators are notified via `private.notify` (`role.suggestion_submitted`);
+  - the owner sees a confirmation and their recent suggestions (`get_my_role_suggestions`).
+- **Admin review:**
+  - administrators are `private.gamid_admins` / `private.is_gamid_admin()`, seeded with the owner account of @black as the TESTING administrator;
+  - `get_my_admin_status`, `list_role_suggestions` and `review_role_suggestion` raise `ADMIN_ONLY` for anyone else;
+  - a hidden-by-default Role Suggestions card (`#roleSuggestionsSection`) is shown only when the server says admin;
+  - Approve takes a category plus an optional final name (duplicate-checked), creates a stable slug key, and resolves same-name pending suggestions;
+  - Reject closes the suggestion;
+  - submitters are notified (`role.suggestion_approved` / `role.suggestion_rejected`; destinations `account.gaming_roles`, `account.role_suggestions`).
+- **Favorite Games: 4.**
+  - `profiles_favorite_games_check` ≤ 4 and `set_my_favorite_games_impl` limit 4.
+  - Editor: "Maximum 4 favorite games. Remove one to add another."; the error check also reads the message, since `code` is the SQLSTATE.
+  - Public: four covers in one row (`FAVORITE_GAMES_SHOWN = 4`).
+- **Crew header logo:**
+  - `public.game_artwork_crew_targets(crew)` (service_role only): the game of a Crew whose Crew Wall is PUBLISHED.
+  - The function route `/game-artwork/crew/<uuid>`.
+  - `crew-wall.js` adds `span.crew-title-logo` (initials, artwork laid over).
+  - `crew.js` makes one `fetchCrewArtwork` request per page load.
+- **My Crews cards:** the existing rich cards (`crews-directory.js`: artwork background, game icon, name, game, count, public avatars, opening the Crew Wall) are unchanged and meet the request.
+- **Settings:** Connections, My Games and Game Display remain independent cards (§36). Education & Work is unchanged.
+
+**Tests.**
+- New `tests/gaming-roles-favorites-crews.test.js` (7 tests, PGlite + source): catalog, suggestions, admin-only review, favorites 4, Crew route, two columns, editor / badges.
+- Pinned lists updated in `notifications.test.js` (destinations) and `public-my-games.test.js` (migration list).
+- The related test files were run locally, then the mandatory CI. No browser journey, no screenshots.
+
+STOP for owner acceptance.
