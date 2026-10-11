@@ -5,6 +5,7 @@ import { AVATAR_PREVIEW_SIZE, AvatarCropState, AvatarDecodeSession, createNormal
 import { PRESETS } from "../transition-engine.js";
 import * as api from "./supabase-client.js";
 import { createIntroSourceResolver } from "./intro-source.js";
+import { createEditorPreviewEnd } from "./intro-preview-host.js";
 import { authenticatedReturnPath } from "./testing-auth-handoff.js";
 import { createOwnedUploadBlob } from "./resumable-upload.js";
 import { renderUploadError } from "../app/upload-feedback.js";
@@ -2173,7 +2174,7 @@ function sendPreviewConfig() {
 }
 
 document.getElementById("previewIntroButton").addEventListener("click", async () => {
-  stopIntroPreview();
+  stopIntroPreview(); previewEnd.reset();
   const current = previewRequest;
   const local = pendingIntroSource?.url;
   document.getElementById("introPreviewDialog").showModal();
@@ -2183,16 +2184,17 @@ document.getElementById("previewIntroButton").addEventListener("click", async ()
     const source = local ? null : await introSource.resolve();
     if (current !== previewRequest || !document.getElementById("introPreviewDialog").open) return;
     activeIntroUrl = source?.url || null;
-    pendingPreviewConfig = { ...currentPreviewConfig(), sourceExpiresAt: source?.expiresAt };
+    pendingPreviewConfig = { ...currentPreviewConfig(), hostReveal: true, sourceExpiresAt: source?.expiresAt };   // ISS-0010: the frame never shows its own profile card here
     if (!pendingPreviewConfig.videoUrl) { document.getElementById("introPreviewDialog").close(); setMessage("The current Intro could not be previewed."); return; }
     previewConfigDelivered = false; sendPreviewConfig();
   } catch {
     if (current === previewRequest) { stopIntroPreview(); document.getElementById("introPreviewDialog").close(); setMessage("The current Intro could not be previewed."); }
   }
 });
-document.getElementById("closeIntroPreview").addEventListener("click", () => {
-  stopIntroPreview(); document.getElementById("introPreviewDialog").close();
-});
+// Return to editor - the button, and (ISS-0010) the end of the previewed Intro: Skip Intro or its natural completion
+function closeIntroPreviewDialog() { stopIntroPreview(); document.getElementById("introPreviewDialog").close(); }
+const previewEnd = createEditorPreviewEnd(() => { if (document.getElementById("introPreviewDialog").open) closeIntroPreviewDialog(); });
+document.getElementById("closeIntroPreview").addEventListener("click", closeIntroPreviewDialog);
 document.getElementById("introPreviewDialog").addEventListener("close", stopIntroPreview);
 document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "visible" && document.getElementById("introPreviewDialog").open && !pendingIntroSource?.url && !(await introSource.isCurrent())) { stopIntroPreview(); introSource.invalidate(); }
@@ -2202,6 +2204,7 @@ window.addEventListener("message", event => {
   if (event.origin !== location.origin) return;
   if (event.data?.type === "gamid-intro-preview-ready") sendPreviewConfig();
   if (event.data?.type === "gamid-intro-preview-error") setMessage("The selected Intro could not be previewed.");
+  if (event.data?.type === "gamid-intro-preview-state" && event.source === document.getElementById("introPreviewFrame").contentWindow) previewEnd.state(event.data.state);
 });
 
 document.getElementById("profileAvatarInput").addEventListener("change", event => {

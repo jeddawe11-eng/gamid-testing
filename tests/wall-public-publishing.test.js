@@ -161,7 +161,11 @@ test("V2b no flash: with a published Wall the Intro frame is asked for hostRevea
   const frameCss = read("dist/account/intro-preview.css");
   assert.match(frameCss, /html\.host-reveal,html\.host-reveal body,html\.host-reveal \.experience\{background:transparent\}\nhtml\.host-reveal \.profile\{visibility:hidden\}/);
   assert.equal([...frameCss.matchAll(/host-reveal/g)].length, 4, "every rule is scoped to host-reveal: owner previews and GamIDs without a Wall are unchanged");
-  assert.doesNotMatch(read("dist/account/account.js"), /hostReveal/, "the owner's own Intro preview never asks for it");
+  // ISS-0010 (Mazen 2026-10-11): the owner's editor preview now asks for it too - only for its own preview config - so its Skip / natural end return to the editor
+  // and the frame's old profile card is never shown there
+  const owner = read("dist/account/account.js");
+  assert.equal([...owner.matchAll(/hostReveal/g)].length, 1, "exactly one request, in the preview config");
+  assert.match(owner, /pendingPreviewConfig = \{ \.\.\.currentPreviewConfig\(\), hostReveal: true, sourceExpiresAt: source\?\.expiresAt \};/);
 });
 
 test("V3 one renderer: the visitor Wall is painted by the same Preview pipeline (paintDocument in VIEW mode, players, posters, details, video pool)", () => {
