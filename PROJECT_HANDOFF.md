@@ -2754,3 +2754,79 @@ Owner-authorized implementation (Mazen), TESTING only. All new work is PENDING_A
 - The related test files were run locally, then the mandatory CI. No browser journey, no screenshots.
 
 STOP for owner acceptance.
+
+## 38. ISS-0007 Avatar validation, ISS-0009 closure assessment, CP-01 My Crews sizing, GR-01 Role Suggestions placement — 2026-10-11
+
+Owner-authorized combined task (Mazen), TESTING only. Product checkpoint `a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7` on `feature/play-together-notifications`.
+- Frontend: workflow run [38128281601](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38128281601); complete project validation passed on its first run; `/account/` stamp `v=a1d2eeb`. The removed card, the JPEG-only cropper and the new Crew grid rule were confirmed in the served files.
+- Edge Function `usage-upload` v8; its downloaded deployed source is byte-identical to the repo. An unauthenticated Avatar POST returns 401.
+- Migration `20261011220000_avatar_validated_attach`:
+  - rehearsed in a rolled-back transaction: the 3 attached Avatars stay attached and publicly readable, 0 earlier objects are attachable, the helper has no client grant, and the existing grants are kept;
+  - applied after the gateway deploy (cutoff `validated_since` = 2026-10-11 09:23:17 UTC); history repaired.
+- Deployment order: gateway → migration → frontend. Between the gateway and the frontend deploy (a few minutes), the old page's WebP Avatar uploads would have been refused.
+
+**ISS-0007 (FIXED, not VERIFIED).**
+- **Gateway:**
+  - `usage-upload.js` shares one strict JPEG decode / re-encode (`reencodeJpeg`) between Banner (unchanged behaviour and codes) and Avatar (`processAvatar`).
+  - An Avatar must be a direct POST to `<uid>/avatar-<uuid>.jpg` of a JPEG (declared and real) with a square 16–1024 px frame, read before decoding. It must decode in jpeg-js strict mode (≤ 1.1 MP, 32 MB) with an end-of-image marker.
+  - The gateway stores its own re-encoded JPEG (quality 90) as `image/jpeg`, and the reserved size is the stored size.
+  - Every refusal comes before any reservation or write.
+  - Deleting an older Avatar (any name) is unchanged.
+- **Resumable route:** TUS creation into `avatars` and PATCH on an `avatars` receipt are refused with `AVATAR_REQUIRES_DIRECT_UPLOAD`. There were 0 such receipts on TESTING. Other buckets are unchanged.
+- **Reference rule:**
+  - `private.avatar_attachable(owner, path)` (no client grant): `<owner>/avatar-<uuid>.jpg`, `image/jpeg`, owned by the caller (owner_id or a COMPLETE receipt), stored at or after the cutoff.
+  - `attach_avatar_impl` (which previously didn't check that the object existed) and `update_my_identity_profile_impl` (the live definition with only its Avatar check replaced) require that rule for a new reference. The current reference may be kept.
+  - No stored object, policy or quota changed.
+- **Browser:**
+  - `createNormalizedAvatar` exports JPEG (.92) only; `AVATAR_MIN_OUTPUT = 16`.
+  - Onboarding passes the chosen file through `normalizeAvatarFile`: the cropper's centred square.
+  - `uploadAvatar` sends only `image/jpeg` to a `.jpg` path.
+  - New gateway codes have messages in `domain.js`.
+- **Also:** `worker/usage-smoke.mjs` moved its byte-accounting probe from `avatars` to `wall-media` (4 raw bytes are no longer a valid Avatar).
+- **Not done live:** an authenticated Avatar upload; it needs a persona sign-in, which the agent does not perform. Mazen's own Avatar change is the remaining check.
+
+**ISS-0009 (still FIXED, not VERIFIED; residual risk for Mazen's decision).**
+- **Configuration, read live:** migrations `20261010140000` / `141000` applied; the restrictive "only owners can sign storage objects" policy; no public bucket; the lease, Banner and counter RPCs have no client grant. `public-media` v2 and its shared module were downloaded and are byte-identical to the repo: Intro 120 s, Wall video 21,600 s.
+- **Rolled-back RLS simulation (counts only):** anonymous and signed-in non-owner callers see the public objects for direct reads (3 Avatars, 3 Intros, 1 Wall video) and 0 for `storage.object.sign` / `sign_many`.
+- **Live probe through the real Storage API and `public-media`.**
+  - Fixtures: GM-TEST-01 only, temporarily PUBLIC, with a synthetic 64 px Avatar and a synthetic Wall publication of its existing synthetic video. Anonymous requests used only the publishable key; no URL or token was printed.
+  - Results:
+    - Avatar: direct read 206; sign 365 d → 400 and 60 s → 400; `sign_many` returned no URL; lease 404.
+    - Wall video: direct read 206; sign 365 d → 400; `sign_many` returned no URL; lease 200 at exactly 21,600 s (token exp − iat 21,600) although 365 d was asked.
+    - Intro lease for a non-public path: 404.
+    - Detached Avatar: read 400. PRIVATE: Avatar read 400, Wall read 400, lease 404. Disabled: Wall read 400, lease 404, while the lease issued earlier still answered 206 (the accepted F4 behaviour). Unpublished: Wall read 400, lease 404.
+  - Restored: GM-TEST-01 DRAFT, no Avatar, 0 publications, 1 object (105,320 bytes); the synthetic Avatar object was removed. No real user's file was read, signed or changed.
+- **S3-compatible access:** reached only with a user session JWT as the session token (the site's key is `sb_publishable_`, not a JWT). Its requests run under the same RLS with the caller's role, checked on each request, and the session expires within about an hour. It is not an equivalent long-lived bypass by analysis. Not tested live, because that needs a signed-in account; any S3 access keys are project-level secrets, not a visitor path.
+- **Historical URLs:**
+  - The known pre-fix synthetic test URL (365 days, minted 2026-10-10) is **not expired** (until about 2027-10-10); its object, GM-TEST-01's synthetic Wall video, still exists. Deleting that synthetic object (Mazen's authorization required) would end it without rotation.
+  - URLs made by the normal pre-fix page were short (Intro ≤ 120 s, Wall video ≤ 6 h) and have expired. Any long URL a visitor deliberately minted before 2026-10-10 for a then-public object cannot be listed or revoked without rotating the JWT secret (not done; Mazen's decision). No evidence either way is available.
+
+**CP-01.**
+- `.crew-grid` tracks are `repeat(var(--crew-cols), minmax(0,19rem))`, centred. `crews-directory.js` sets `data-count = min(Crews, 3)`.
+- The panel uses `.profile-panel-body:has(.crew-grid)` `width: fit-content` (min 22rem), so the shared Connected Games panel is unchanged.
+- At most 2 columns below 960 px; 1 full-width column below 640 px.
+- Measured on a synthetic fixture page (real CSS and modules, no TESTING data), with every card keeping 16:9 and nothing overflowing or clipped:
+
+| Viewport | Crews | Panel | Cards per row × rows | Card |
+|---|---|---|---|---|
+| 1440 px | 1 | 352 px | 1 × 1 | 304×171 |
+| 1440 px | 2 | 658 px | 2 × 1 | 304×171 |
+| 1440 px | 3 | 978 px | 3 × 1 | 304×171 |
+| 1440 px | 4 | 978 px | 3 × 2 | 304×171 |
+| 1440 px | 7 | 978 px | 3 × 3 | 304×171 |
+| 900 px | 3–4 | 658 px | 2 × 2 | 304×171 |
+| 660 px | 2–3 | 612 px | 2 per row | 281×158 |
+| 375 px | any | full width | 1 per row | 343×193 |
+
+**GR-01.**
+- The top-level `#roleSuggestionsSection` card (`index.html`) and its Profile Editor entry are removed.
+- `mountRoleReview` builds the same review (id kept, so the `account.role_suggestions` notification still opens it) as the last block of `#rolesSectionPanel`, after Suggest a Role and the section's Save, and only when `get_my_admin_status` is true.
+- Enter in its fields no longer submits the profile form.
+- Its controls have no `name`, so the Gaming Roles draft and dirty state are unaffected. Server authorization is unchanged (`ADMIN_ONLY`); administrators are still only @black's owner account. No suggestion was approved or rejected.
+
+**Tests.**
+- New: `tests/avatar-upload-validation.test.js` (4), plus 4 Avatar tests in `profile-banner-gateway.test.js`, which replace the byte-for-byte test, and a CP-01 test in `gaming-roles-favorites-crews.test.js`.
+- Updated: GR-01 assertions, the pinned migration list, generic gateway accounting tests (→ `wall-media`), the cropper JPEG test and the upload-feedback fixtures.
+- Targeted runs pass, then the mandatory CI. No screenshots.
+
+STOP for owner acceptance.

@@ -98,7 +98,7 @@ Rules:
 | ISS-0004 | Intro upload messages reference the removed SAVE GAMID button | FIXED | [ISS-0004-intro-messages-reference-save-gamid.md](issues/ISS-0004-intro-messages-reference-save-gamid.md) |
 | ISS-0005 | Replacement Intro processing failure may be hidden | FIXED | [ISS-0005-replacement-intro-failure-hidden.md](issues/ISS-0005-replacement-intro-failure-hidden.md) |
 | ISS-0006 | Avatar offline pre-save error mislabels authentication service | OPEN | [ISS-0006-avatar-offline-auth-message.md](issues/ISS-0006-avatar-offline-auth-message.md) |
-| ISS-0007 | Avatar upload validation trusts the client-declared MIME type | OPEN | [ISS-0007-avatar-upload-trusts-declared-mime.md](issues/ISS-0007-avatar-upload-trusts-declared-mime.md) |
+| ISS-0007 | Avatar upload validation trusts the client-declared MIME type | FIXED | [ISS-0007-avatar-upload-trusts-declared-mime.md](issues/ISS-0007-avatar-upload-trusts-declared-mime.md) |
 | ISS-0008 | Nine apparently unreferenced Avatar objects on TESTING | OPEN | [ISS-0008-unreferenced-avatar-objects.md](issues/ISS-0008-unreferenced-avatar-objects.md) |
 | ISS-0009 | HIGH - anonymous visitors can mint long-lived signed Storage URLs that outlive PRIVATE / detach / unpublish | FIXED | [ISS-0009-anonymous-signed-urls-outlive-visibility.md](issues/ISS-0009-anonymous-signed-urls-outlive-visibility.md) |
 

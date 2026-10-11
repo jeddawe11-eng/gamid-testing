@@ -50,14 +50,16 @@
       "name": "YOUR GAMID identity editor",
       "status": "PENDING_ACCEPTANCE",
       "surfaces": ["/account/"],
-      "checkpoint": "9e11076bb1ea19eb09e911030ad1dcc6cdd09150",
+      "checkpoint": "a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7",
+      "limits": { "avatarMinSidePx": 16, "avatarMaxSidePx": 1024 },
       "contracts": [
+        { "id": "avatar-upload-validation", "rule": "ISS-0007: an Avatar is stored only as the upload gateway's own re-encoded JPEG. The editor (crop step) and onboarding export the chosen picture as a square JPEG (at least 16 px; JPG, PNG, WebP and AVIF can still be chosen); the gateway accepts it only as a direct upload of a square 16-1024 px JPEG that fully decodes, within the existing 5 MB limit and storage quota, and refuses anything else (disguised, mismatched, corrupted, unsupported, wrong size) with a clear error before any quota is reserved. Resumable uploads into the Avatar bucket are refused. A new Avatar must be such a validated object; the Avatar a GamID already shows is kept, and stored Avatars are never modified." },
         { "id": "profile-independent-sections", "rule": "Owner editor sections expand independently. Editable profile and visibility drafts persist only through their own Save Changes action; saving one section preserves other drafts. Existing relationship, lookup, navigation and publishing actions retain their explicit workflow boundaries." },
         { "id": "profile-save-all", "rule": "Save All Changes, at the end of the editor, saves every section that has something to save, each once and through that section's own save path; unchanged sections are not sent and a running Save All cannot be started again. Section Save Changes remains. If any section fails, no overall success is shown: the failed sections are named, their drafts are kept and the first is opened, while sections that saved stay saved. Workflow actions (My Games entries, League lookup, relationships) keep their own buttons." },
         { "id": "profile-account-menu", "rule": "There is no Account Settings section: Language (applied as soon as it is chosen) and Sign Out are in the editor's ⋯ menu, which holds no save button." },
         { "id": "profile-feedback-lifecycle", "rule": "Profile transient feedback receives five seconds of actual visibility, reset by each new message. Progress and actionable errors remain persistent. A field validation error stays inline on its field until the field is valid; its notification below Save Changes is transient (five visible seconds) and clears at once when the field becomes valid. Replaced feedback controllers are disposed; owner lifecycle cleanup and stale-save guards prevent former-owner feedback from affecting the current editor." }
       ],
-      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20 and §23; original Slice 3A: §3"
+      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23 and §38 (ISS-0007); original Slice 3A: §3"
     },
     {
       "id": "my-socials",
@@ -92,10 +94,10 @@
         { "id": "gaming-role-selector", "rule": "In the Profile Editor each category shows its title, description, role count and selected count and expands / collapses; roles are checkboxes, any number across categories. Exactly one selected role is the Primary Role (it moves to another selected role when it is deselected). The selected roles show as removable chips with Clear All. Save, unsaved-changes state and the Live Preview behave as before." },
         { "id": "gaming-role-badges", "rule": "On the Classic Profile the roles show as individual badges, the Primary Role emphasised, wrapping onto further lines; they are never combined into one badge." },
         { "id": "suggest-a-role", "rule": "Can't find your role? Suggest a Role: a signed-in owner submits a name (whitespace normalised, 3-40 characters, letters required, no links or markup). The server refuses a name that already exists in the catalog exactly or nearly (case, spacing, punctuation, a Gaming / Game / Esports prefix, plural), the same user's pending suggestion of the same name, and more than 5 suggestions in 24 hours. A suggestion is stored with its user, name, time and status PENDING, and the owner sees a confirmation and their recent suggestions. A suggestion is never a role until an administrator approves it." },
-        { "id": "role-suggestion-review", "rule": "Administrators are a server-side list (private.gamid_admins; on TESTING the owner account of @black); no client flag is trusted. They are notified of each suggestion through GamID Notifications (role.suggestion_submitted) and review pending suggestions in an admin-only Role Suggestions card in the Profile Editor: Approve assigns one of the eight categories and an optional final name (refused if it would duplicate a role) and makes the role selectable in the catalog at once, resolving other pending suggestions of the same name; Reject closes it. The submitter is notified of the decision (role.suggestion_approved / role.suggestion_rejected)." }
+        { "id": "role-suggestion-review", "rule": "Administrators are a server-side list (private.gamid_admins; on TESTING the owner account of @black); no client flag is trusted. They are notified of each suggestion through GamID Notifications (role.suggestion_submitted) and review pending suggestions in an admin-only Role Suggestions block at the very end of the Profile Editor's Gaming Roles section, after Suggest a Role (built only when the server says the account is an administrator; there is no separate Role Suggestions card; its actions are immediate and never part of the Gaming Roles draft or its Save): Approve assigns one of the eight categories and an optional final name (refused if it would duplicate a role) and makes the role selectable in the catalog at once, resolving other pending suggestions of the same name; Reject closes it. The submitter is notified of the decision (role.suggestion_approved / role.suggestion_rejected)." }
       ],
-      "checkpoint": "506bfa7a150c02234101e099ebc1538e73e35f3c",
-      "record": "PROJECT_HANDOFF.md §37; migration 20261011200000_roles_favorites_crews.sql (applied on TESTING)"
+      "checkpoint": "a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7",
+      "record": "PROJECT_HANDOFF.md §37, §38; migration 20261011200000_roles_favorites_crews.sql (applied on TESTING)"
     },
     {
       "id": "intro-identity",
@@ -329,11 +331,12 @@
       "limits": { "crewMembershipsPerIdentity": 10, "crewMembersShownPerCard": 5 },
       "contracts": [
         { "id": "my-crews-view-content", "rule": "The desktop My Crews entry opens a read-only full-screen view with one large card per Crew of the public crews section (same Crews and order): the game's artwork as its background when the provisional artwork evaluation has a reliable match (otherwise a gradient), the game's icon or initials, the Crew's name, its member count and up to five PUBLIC members' avatars (a non-public member is counted, never shown). Each card opens that existing Crew Wall; there is no second Crew Wall." },
+        { "id": "my-crews-view-sizing", "rule": "The My Crews view fits its cards: one Crew gives a compact panel for one card, two side by side, three in one row; four or more wrap onto further rows. At most three cards per row and each card at most 19rem wide (its 16:9 proportions kept, never stretched to fill empty space), centred. Below 960px at most two per row; on phones one full-width card per row; never any horizontal overflow." },
         { "id": "crew-wall-header-logo", "rule": "The existing Crew Wall header shows its game's logo / icon tile (one request per page load, for every game, through the game-artwork function's Crew route and only for a Crew whose Crew Wall is published; the game's initials when there is no reliable match)." },
         { "id": "crew-membership-limit", "rule": "A GamID can hold at most 10 ACTIVE Crew memberships, the Crews it owns and the ones it joined together (still one ACTIVE Crew per game). The server refuses creating or accepting an eleventh (CREW_LIMIT_REACHED); pending invites do not count and declining is always possible. Existing memberships are never removed or hidden by the limit." }
       ],
-      "checkpoint": "506bfa7a150c02234101e099ebc1538e73e35f3c",
-      "record": "PROJECT_HANDOFF.md §33, §37; migrations 20261011100000_classic_profile_consolidated.sql and 20261011200000_roles_favorites_crews.sql"
+      "checkpoint": "a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7",
+      "record": "PROJECT_HANDOFF.md §33, §37, §38; migrations 20261011100000_classic_profile_consolidated.sql and 20261011200000_roles_favorites_crews.sql"
     },
     {
       "id": "game-artwork-provisional",
