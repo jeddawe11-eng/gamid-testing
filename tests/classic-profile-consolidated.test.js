@@ -15,6 +15,7 @@ import { parseCity, parseCountries, batchSql } from "../scripts/location/geoname
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
 const migration = read("supabase/migrations/20261011100000_classic_profile_consolidated.sql");
 const allowlist = read("supabase/migrations/20261011140000_artwork_evaluation_allowlist.sql");
+const environmentWide = read("supabase/migrations/20261011160000_artwork_environment_wide.sql");
 
 // ---------------------------------------------------------------------------------------------------------------- PGlite fixture
 const A = "11111111-1111-4111-8111-111111111111", B = "22222222-2222-4222-8222-222222222222", EA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", EB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -73,6 +74,7 @@ async function fixture() {
 
   await db.exec(migration);
   await db.exec(allowlist);
+  await db.exec(environmentWide);
   await db.exec(`grant execute on function public.create_crew(text, text), public.respond_to_crew_invite(uuid, boolean), private.create_crew_impl(text, text), private.respond_to_crew_invite_impl(uuid, boolean) to authenticated;
     select private.import_location_batch('${JSON.stringify({ countries: [{ code: "SA", name: "Saudi Arabia", geoname_id: "102358" }, { code: "PG", name: "Papua New Guinea" }, { code: "GN", name: "Guinea" }, { code: "US", name: "United States" }],
       cities: [{ id: 105343, country: "SA", name: "Jeddah", name_ar: "جدة", search: "jeddah|جده|jiddah", population: 2867446 }, { id: 108410, country: "SA", name: "Riyadh", name_ar: "الرياض", search: "riyadh|الرياض", population: 4205961 },
@@ -185,8 +187,9 @@ test("artwork RPCs: service role only; targets follow the visitor's own visibili
     await assert.rejects(f.call(null, `select ${fn}`), /permission denied/, fn);
     await assert.rejects(f.call(A, `select ${fn}`), /permission denied/, fn);
   }
-  assert.deepEqual((await f.service("select public.game_artwork_targets('alpha') v"))[0].v, { enabled: false, games: [] }, "outside the evaluation allowlist (only the GM-TEST personas): nothing");
-  await f.db.exec("update private.game_artwork_settings set evaluation_handles = array['alpha', 'bravo']");
+  // environment-wide (20261011160000): no per-account list - every public TESTING account resolves the same way
+  assert.equal((await f.db.query("select count(*)::int n from information_schema.columns where table_schema = 'private' and table_name = 'game_artwork_settings' and column_name = 'evaluation_handles'")).rows[0].n, 0, "no account allowlist");
+  assert.doesNotMatch(environmentWide.replace(/--.*$/gm, ""), /gm_test|'black'|'zshot'/, "no hardcoded account");
   const t = (await f.service("select public.game_artwork_targets('alpha') v"))[0].v;
   assert.equal(t.enabled, true);
   assert.deepEqual(t.games.map(g => [g.game_key, g.purposes, g.steam_appid]).sort(), [["league_of_legends", ["connected"], null], ["rocket_league", ["my_games"], 252950]]);

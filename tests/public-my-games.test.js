@@ -525,6 +525,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261010180000_member_since_date.sql",   // DEC-0005 visual review: About Me RPCs + extras gain member_since_date; public identity / My Games untouched
       "20261011100000_classic_profile_consolidated.sql",   // consolidated update: location catalog, About Me RPCs, Crew limit, get_public_crews, artwork cache; public identity / My Games untouched
       "20261011140000_artwork_evaluation_allowlist.sql",   // artwork evaluation limited to the GM-TEST personas; public identity / My Games untouched
+      "20261011160000_artwork_environment_wide.sql",   // artwork for every TESTING account (allowlist removed); public identity / My Games untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );
