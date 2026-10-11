@@ -472,7 +472,7 @@
     {
       "id": "classic-profile-desktop",
       "name": "Desktop Classic Profile layout (1280px and wider)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/@<handle>"
       ],
@@ -514,7 +514,7 @@
         }
       ],
       "checkpoint": "506bfa7a150c02234101e099ebc1538e73e35f3c",
-      "record": "PROJECT_HANDOFF.md §31-§33, §37; Product Memory DEC-0005"
+      "record": "PROJECT_HANDOFF.md §31-§33, §37; Product Memory DEC-0005; Mazen explicitly confirmed full manual testing and final acceptance on TESTING 2026-10-11"
     },
     {
       "id": "favorite-games",
@@ -718,7 +718,7 @@
     {
       "id": "global-usage",
       "name": "Global Usage (storage usage beside Notifications, quota-enforced upload gateway)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/account/",
         "/wall-editor/",
@@ -733,7 +733,7 @@
         "unboundReservationGraceSeconds": 900
       },
       "checkpoint": "4b56646e782eefadcc173b64e8aa59f0fab37cd9",
-      "record": "docs/global-usage-center.md; limits confirmed on TESTING 2026-10-05; reservation release for refused / never-started uploads (ISS-0011): PROJECT_HANDOFF.md §42",
+      "record": "docs/global-usage-center.md; limits confirmed on TESTING 2026-10-05; reservation release for refused / never-started uploads (ISS-0011): PROJECT_HANDOFF.md §42; Mazen explicitly confirmed full manual testing and final acceptance on TESTING 2026-10-11",
       "notes": "200 MB = 200,000,000 bytes. Images share the 60 Wall assets (no separate image limit). Wall layers have no numeric cap (unchanged). Usage shows dynamic image/video capacity wording."
     },
     {
