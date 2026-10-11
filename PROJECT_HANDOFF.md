@@ -2669,3 +2669,31 @@ Owner directive (Mazen): artwork for ALL TESTING accounts, @black included; no p
 **Open.** SteamGridDB's written permission for distribution / commercial use is still not obtained (draft request in docs/GAME-ARTWORK-STEAMGRIDDB.md). There is no Production / public release. The signed-URL closure review is still open.
 
 STOP for owner review.
+
+## 36. Favorite Games + My Games / Connections Settings separation + View All artwork — 2026-10-11
+
+Owner directive (Mazen): implement and deploy to TESTING **without running any test**.
+- Product checkpoint: `6ab062e024926c6c5a3d2bea63265d1147b9935a`.
+- Migration `20261011180000_favorite_games`: applied on TESTING, history repaired.
+- Edge Function `game-artwork`: deployed.
+- **Frontend deployment to TESTING: NOT performed.** The TESTING workflow (`deploy-cloudflare-testing.yml`) runs `npm run build`, which includes the full test suite. Running it would contradict the owner's no-test instruction, and skipping it would bypass a required gate. So TESTING still serves `e2bfb51` until Mazen authorizes that workflow, or runs it himself.
+- Truth: new `favorite-games` PENDING_ACCEPTANCE.
+
+**Changes.**
+- **Settings:** `#myGamesSection` and `#gameDisplaySection` moved out of the Connections card. They are now independent Profile Editor cards right after Connections; League stays in Connections. No function changed.
+- **Favorites (backend):**
+  - `profiles.favorite_games text[]` (≤3).
+  - `get_my_favorite_games` / `set_my_favorite_games`: owner only, own library keys only, no duplicates, `FAVORITE_GAMES_LIMIT`.
+  - Delete triggers on `entity_game_platforms` / `discovered_games` prune favorites that left My Games.
+  - Anonymous `get_public_favorite_games(handle)`: PUBLIC GamID with public My Games, in order.
+- **Favorites (editor):** a heart (♡ / ❤️, `aria-pressed`) on every library row with a catalog key, saved at once. A fourth heart shows "Maximum 3 favorite games. Remove one to add another." in the My Games status line.
+- **Favorites (public):** `favoriteGamesSection` (desktop) — a `favs` grid row below the hero (beside the sidebar) with up to 3 portrait covers (2:3) and names below. It is hidden with no favorites, and a card opens Game Details (preview, else one library search). The mobile profile is unchanged.
+- **Artwork:**
+  - The cache gains `cover_url` / `cover_checked`.
+  - Favorites join `game_artwork_targets` (purpose `favorites`, resolved first).
+  - The function fetches a portrait grid (600x900 family) only for favorites, and only the cover for an already-cached match. The page fills `[data-game-cover]` with a cover only.
+- **View All Games:** the library list has `data-artwork-scope` and an `onRowsRendered` hook. On desktop its rows show the same cached tiles (lazy images, no new provider).
+
+**Tests were not run, as instructed by the owner.** Two pinned assertions were updated to the new structure (`manual-games.test.js` My Games outside Connections; `public-my-games.test.js` migration list) but not executed.
+
+STOP for owner review.

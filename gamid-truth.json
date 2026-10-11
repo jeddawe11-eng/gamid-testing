@@ -291,6 +291,20 @@
       "record": "PROJECT_HANDOFF.md §31-§33; Product Memory DEC-0005"
     },
     {
+      "id": "favorite-games",
+      "name": "Favorite Games (My Games hearts) on the Classic Profile, separate My Games / Connections Settings cards, artwork in View All Games",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": ["/account/", "/@<handle>"],
+      "limits": { "favoriteGamesMax": 3 },
+      "contracts": [
+        { "id": "favorite-games-selection", "rule": "In the Profile Editor's My Games card each game with a catalog identity (added by the owner or discovered by a connected account) has a heart (♡ / ❤️); a click saves at once. At most 3 favorites, enforced by the server (set_my_favorite_games: own library only, no duplicates); a fourth heart changes nothing and shows 'Maximum 3 favorite games. Remove one to add another.' A game that leaves My Games leaves the favorites. No new game records." },
+        { "id": "favorite-games-public", "rule": "On the desktop Classic Profile (1280px and wider), directly below the profile header and above About Me / My Games, the favorites appear in the owner's order as up to three large portrait covers (2:3, the artwork resolver's portrait cover; initials when none) with the game's name below, in one row; with no favorites the section is absent. Visitors see them only while My Games is public, can open the existing Game Details, and cannot change them." },
+        { "id": "settings-games-connections", "rule": "My Games (with its Game Display settings) and Connections are independent Profile Editor cards at the same level; League stays inside Connections. Their existing functions, search, platforms, discovery and connections are unchanged." },
+        { "id": "view-all-games-artwork", "rule": "On the desktop, the View all games list shows the same cached game artwork tiles as the compact My Games list (lazy-loaded; initials when none)." }
+      ],
+      "checkpoint": "6ab062e024926c6c5a3d2bea63265d1147b9935a",
+      "record": "PROJECT_HANDOFF.md §36; migration 20261011180000_favorite_games.sql (applied on TESTING); frontend deployment to TESTING pending (its workflow runs the test suite, which the owner asked not to run)"
+    },    {
       "id": "my-crews-view",
       "name": "My Crews view on the public Classic Profile and the 10-Crew limit",
       "status": "PENDING_ACCEPTANCE",
