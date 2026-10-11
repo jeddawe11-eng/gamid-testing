@@ -18,6 +18,9 @@ body{margin:0;min-width:320px;min-height:100svh;background:radial-gradient(circl
 .experience-wrap iframe{display:block;width:100%;height:100%;border:0}
 html.is-public-live:not(.is-public-flow){overflow:hidden}
 html.is-public-flow{scrollbar-gutter:stable}
+/* the desktop Classic Profile is drawn by the page itself (the Intro frame is hidden, so it reports no height and "flow" never starts): like the published Wall,
+   the page scrolls once that profile shows; during the Intro and its reveal transition the overlay keeps the lock (Replay Intro removes is-public-desktop) */
+html.is-public-live.is-public-desktop:not(.is-public-desktop-reveal){overflow-x:hidden;overflow-y:auto;scrollbar-gutter:stable}
 .is-public-live .site-head{display:none}
 .is-public-live .public-shell{display:block;min-height:0;padding:0}
 .public-shell[data-mode="flow"]{display:grid;grid-template-columns:minmax(0,1fr);align-content:start;justify-items:stretch;align-items:start;place-items:stretch;background:#090811}
