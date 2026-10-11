@@ -90,7 +90,7 @@
     {
       "id": "my-socials",
       "name": "My Socials (the owner's own social accounts, shown as icons on the public GamID)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/account/",
         "/@<handle>"
@@ -119,7 +119,7 @@
         }
       ],
       "checkpoint": "67042938426f7c234c175483c6882c709b09046d",
-      "record": "PROJECT_HANDOFF.md §23 and §24; docs/PROFILE-EDITOR-UX.md; migrations supabase/migrations/20261009120000_my_socials.sql, 20261009151000_my_socials_link_engine.sql"
+      "record": "PROJECT_HANDOFF.md §23 and §24; docs/PROFILE-EDITOR-UX.md; migrations supabase/migrations/20261009120000_my_socials.sql, 20261009151000_my_socials_link_engine.sql; Mazen explicitly confirmed full My Socials feature acceptance on TESTING 2026-10-11; public visitor links PASS recorded in Product Memory REV-0005; separate icon branding issue ISS-0013 remains OPEN"
     },
     {
       "id": "gaming-roles-education-work",
