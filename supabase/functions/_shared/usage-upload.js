@@ -146,7 +146,21 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
     }
     cleaned++;
    }
-   if(cleaned) await signal(uid); return respond({cleaned});
+   // ISS-0011: the owner's own Intro files that are due (a removed Intro's derivative, a failed source after its retention, a used source) are deleted here
+   // too, so they no longer wait for the worker's next run, which only a new Intro starts. Same protections as every gateway delete.
+   let intro=0;
+   for(const j of (await rpc('usage_intro_cleanup_candidates',{candidate_owner:uid}))||[]) {
+    let sourceDeleted=false,derivativeDeleted=false;
+    for(const [bucket,path] of [['intro-sources',j.source_path],['intro-media',j.derivative_path]]) {
+     if(!path) continue;
+     if(typeof path!=='string'||path.split('/')[0]!==uid||path.includes('..')) throw Error('UPLOAD_NOT_OWNED');
+     await rpc('authorize_usage_delete',{candidate_owner:uid,candidate_bucket:bucket,candidate_path:path}); await remove(bucket,path);
+     if(bucket==='intro-sources') sourceDeleted=true; else derivativeDeleted=true;
+    }
+    await rpc('worker_confirm_intro_cleanup',{candidate_job_id:j.job_id,candidate_source_deleted:sourceDeleted,candidate_derivative_deleted:derivativeDeleted});
+    intro++;
+   }
+   if(cleaned||intro) await signal(uid); return respond({cleaned,intro});
   }
   if(objectRoute) {
    const [,bucket,rawPath]=objectRoute; const path=decodeURIComponent(rawPath); const owner=validate(bucket,path);
@@ -182,7 +196,13 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
    if(!upstream && x.state!=='COMPLETE') {
     const metadata=[['bucketName',md.bucketName],['objectName',md.objectName],['contentType',md.contentType],['cacheControl','3600']].map(([k,v])=>`${k} ${btoa(v)}`).join(',');
     const created=await fetchImpl(TUS,{method:'POST',headers:{...service,'Tus-Resumable':'1.0.0','Upload-Length':String(length),'Upload-Metadata':metadata,'x-upsert':'false'}});
-    if(!created.ok) return respond({error:'RESUMABLE_CREATE_FAILED'},502);
+    if(!created.ok) {
+     // ISS-0011: Storage refused to start this upload, so no byte was stored and nothing can continue it. Release this attempt's own reservation
+     // (the database releases it only while it is still unbound and has no object; a bound or stored receipt is never touched here).
+     try{await action(x.upload_id,owner,'release_unbound');await signal(owner);}catch{/* kept for the owner reconciliation */}
+     // ISS-0012: 413 = larger than Storage's effective upload limit (the project-wide file size limit), which can be below the bucket limit
+     return created.status===413?respond({error:'UPLOAD_TOO_LARGE'},413):respond({error:'RESUMABLE_CREATE_FAILED'},502);
+    }
     upstream=safeUpstream(created.headers.get('location')); await action(x.upload_id,owner,'bind',upstream);
    }
    // Edge's internal request URL can omit /functions/v1. Return the fixed
@@ -221,7 +241,7 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
   const code=String(error.message);
   // Diagnostic codes only: never URLs, private paths, credentials or bodies.
   log(['INVALID_UPLOAD_LOCATION','UPLOAD_SIZE_MISMATCH','UPLOAD_NOT_OWNED','UPLOAD_CONFLICT','INVALID_UPLOAD_CREATION','ACCOUNT_STORAGE_QUOTA_EXCEEDED'].includes(code)?code:'UPLOAD_GATEWAY_FAILED');
-  const allowed=['INVALID_BANNER','INVALID_BANNER_TYPE','INVALID_BANNER_SIZE','BANNER_REQUIRES_DIRECT_UPLOAD','BANNER_IN_USE','BANNER_DECODER_UNAVAILABLE',
+  const allowed=['UPLOAD_TOO_LARGE','INVALID_BANNER','INVALID_BANNER_TYPE','INVALID_BANNER_SIZE','BANNER_REQUIRES_DIRECT_UPLOAD','BANNER_IN_USE','BANNER_DECODER_UNAVAILABLE',
    'INVALID_AVATAR','INVALID_AVATAR_TYPE','INVALID_AVATAR_SIZE','AVATAR_REQUIRES_DIRECT_UPLOAD','AVATAR_DECODER_UNAVAILABLE','ACCOUNT_STORAGE_QUOTA_EXCEEDED','INVALID_UPLOAD','INVALID_UPLOAD_PATH','INVALID_UPLOAD_BUCKET','INVALID_UPLOAD_LENGTH','INVALID_UPLOAD_METADATA','INVALID_UPLOAD_CREATION','UPLOAD_NOT_OWNED','UPLOAD_CONFLICT','UPLOAD_LENGTH_EXCEEDED','CHUNK_TOO_LARGE','OBJECT_ALREADY_EXISTS','UPLOAD_EXPIRED','INTRO_PROCESSING_IN_PROGRESS'];
   return respond({error:allowed.includes(code)?code:'UPLOAD_GATEWAY_FAILED'},code==='ACCOUNT_STORAGE_QUOTA_EXCEEDED'||code==='CHUNK_TOO_LARGE'?413:code==='UPLOAD_NOT_OWNED'?403:allowed.includes(code)?400:502);
  }

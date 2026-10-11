@@ -167,6 +167,8 @@ export const errorMessage = reason => ({
   UPLOAD_CONFLICT: "Another upload was already in progress. Select Save Changes to try again.",
   UPLOAD_GATEWAY_FAILED: "The upload service is not responding right now. Select Save Changes to try again in a moment.",
   CHUNK_TOO_LARGE: "That file could not be sent. Choose a smaller file.",
+  UPLOAD_TOO_LARGE: "This video is larger than the current upload limit. Choose a smaller or shorter video.",
+  RESUMABLE_CREATE_FAILED: "The upload could not start. Select Save Changes to try again in a moment.",
   AVATAR_UPLOAD_NETWORK_ERROR: "The avatar upload could not reach GamID. Check your connection, then select Save Changes again.",
   INVALID_AVATAR: "That image could not be read. Choose another image.",
   INVALID_AVATAR_TYPE: "That file is not a supported image. Choose a JPG, PNG, WebP, or AVIF image.",

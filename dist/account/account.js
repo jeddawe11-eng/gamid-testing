@@ -2303,8 +2303,9 @@ async function saveEditorSection(key){
  try{await sectionSaveQueue.run(key,async()=>{
   if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
   if(key==='intro'){
-   if(source){let sourcePath;try{sourcePath=await api.uploadIntroSource(source.file,owner,source.jobId);if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error("AUTH_REQUIRED");await api.queueIntro({jobId:source.jobId,sourcePath,transitionKey:introChange.transitionKey,sourceMime:source.file.type,sourceSize:source.file.size,durationMs:source.durationMs});}catch(error){if (sourcePath) {try{await api.deleteIntroSource(sourcePath);}catch{/* Existing server cleanup remains available. */}}throw error;}}
-   else if(introChange.action==='remove')await api.removeIntro();
+   if(source){let sourcePath;try{await api.reconcileUsageUploads().catch(()=>{});   /* ISS-0011: release what is due first, so it cannot block this upload */
+      sourcePath=await api.uploadIntroSource(source.file,owner,source.jobId);if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error("AUTH_REQUIRED");await api.queueIntro({jobId:source.jobId,sourcePath,transitionKey:introChange.transitionKey,sourceMime:source.file.type,sourceSize:source.file.size,durationMs:source.durationMs});}catch(error){if (sourcePath) {try{await api.deleteIntroSource(sourcePath);}catch{/* Existing server cleanup remains available. */}}throw error;}}
+   else if(introChange.action==='remove'){await api.removeIntro();api.reconcileUsageUploads().catch(()=>{});}   // ISS-0011: the removed Intro's file is released now, not at the next Intro
    else if(savedIntro?.transitionKey!==introChange.transitionKey)await api.setIntroTransition(introChange.transitionKey);
    if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
    const intro=await api.getMyIntro();if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');await restoreIntroState(intro);if(isProcessingIntroState(intro))introStatusPoller.start();
