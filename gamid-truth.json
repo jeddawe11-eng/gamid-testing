@@ -41,7 +41,9 @@
       "id": "account-solo-identity",
       "name": "Account + SOLO identity",
       "status": "ACCEPTED",
-      "surfaces": ["/account/"],
+      "surfaces": [
+        "/account/"
+      ],
       "checkpoint": "69f31760509c3632a7a581b8474e72b09dcc7b95",
       "record": "PROJECT_HANDOFF.md §3 (Slice 2, accepted 2026-09-15)"
     },
@@ -49,16 +51,39 @@
       "id": "your-gamid-editor",
       "name": "YOUR GAMID identity editor",
       "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/account/"],
+      "surfaces": [
+        "/account/"
+      ],
       "checkpoint": "737360748eff1b15dca938bb6f6fff2ae999660f",
-      "limits": { "avatarMinSidePx": 16, "avatarMaxSidePx": 1024 },
+      "limits": {
+        "avatarMinSidePx": 16,
+        "avatarMaxSidePx": 1024
+      },
       "contracts": [
-        { "id": "avatar-upload-validation", "rule": "ISS-0007: an Avatar is stored only as the upload gateway's own re-encoded JPEG. The editor (crop step) and onboarding export the chosen picture as a square JPEG (at least 16 px; JPG, PNG, WebP and AVIF can still be chosen); the gateway accepts it only as a direct upload of a square 16-1024 px JPEG that fully decodes, within the existing 5 MB limit and storage quota, and refuses anything else (disguised, mismatched, corrupted, unsupported, wrong size) with a clear error before any quota is reserved. Resumable uploads into the Avatar bucket are refused. A new Avatar must be such a validated object; the Avatar a GamID already shows is kept, and stored Avatars are never modified." },
-        { "id": "intro-preview-returns-to-editor", "rule": "ISS-0010 (Mazen 2026-10-11): in the Profile Editor, Preview Intro plays the Intro, and both Skip Intro and its natural completion return the owner directly to the Profile Editor with every draft and saved value kept, like Return to editor. The Intro frame's old built-in profile card (DRAFT · PRIVATE) is never shown there, and the preview never opens the public profile. The public visitor Intro is unchanged: it still reveals the applicable Wall or Classic Profile." },
-        { "id": "profile-independent-sections", "rule": "Owner editor sections expand independently. Editable profile and visibility drafts persist only through their own Save Changes action; saving one section preserves other drafts. Existing relationship, lookup, navigation and publishing actions retain their explicit workflow boundaries." },
-        { "id": "profile-save-all", "rule": "Save All Changes, at the end of the editor, saves every section that has something to save, each once and through that section's own save path; unchanged sections are not sent and a running Save All cannot be started again. Section Save Changes remains. If any section fails, no overall success is shown: the failed sections are named, their drafts are kept and the first is opened, while sections that saved stay saved. Workflow actions (My Games entries, League lookup, relationships) keep their own buttons." },
-        { "id": "profile-account-menu", "rule": "There is no Account Settings section: Language (applied as soon as it is chosen) and Sign Out are in the editor's ⋯ menu, which holds no save button." },
-        { "id": "profile-feedback-lifecycle", "rule": "Profile transient feedback receives five seconds of actual visibility, reset by each new message. Progress and actionable errors remain persistent. A field validation error stays inline on its field until the field is valid; its notification below Save Changes is transient (five visible seconds) and clears at once when the field becomes valid. Replaced feedback controllers are disposed; owner lifecycle cleanup and stale-save guards prevent former-owner feedback from affecting the current editor." }
+        {
+          "id": "avatar-upload-validation",
+          "rule": "ISS-0007: an Avatar is stored only as the upload gateway's own re-encoded JPEG. The editor (crop step) and onboarding export the chosen picture as a square JPEG (at least 16 px; JPG, PNG, WebP and AVIF can still be chosen); the gateway accepts it only as a direct upload of a square 16-1024 px JPEG that fully decodes, within the existing 5 MB limit and storage quota, and refuses anything else (disguised, mismatched, corrupted, unsupported, wrong size) with a clear error before any quota is reserved. Resumable uploads into the Avatar bucket are refused. A new Avatar must be such a validated object; the Avatar a GamID already shows is kept, and stored Avatars are never modified."
+        },
+        {
+          "id": "intro-preview-returns-to-editor",
+          "rule": "ISS-0010 (Mazen 2026-10-11): in the Profile Editor, Preview Intro plays the Intro, and both Skip Intro and its natural completion return the owner directly to the Profile Editor with every draft and saved value kept, like Return to editor. The Intro frame's old built-in profile card (DRAFT · PRIVATE) is never shown there, and the preview never opens the public profile. The public visitor Intro is unchanged: it still reveals the applicable Wall or Classic Profile."
+        },
+        {
+          "id": "profile-independent-sections",
+          "rule": "Owner editor sections expand independently. Editable profile and visibility drafts persist only through their own Save Changes action; saving one section preserves other drafts. Existing relationship, lookup, navigation and publishing actions retain their explicit workflow boundaries."
+        },
+        {
+          "id": "profile-save-all",
+          "rule": "Save All Changes, at the end of the editor, saves every section that has something to save, each once and through that section's own save path; unchanged sections are not sent and a running Save All cannot be started again. Section Save Changes remains. If any section fails, no overall success is shown: the failed sections are named, their drafts are kept and the first is opened, while sections that saved stay saved. Workflow actions (My Games entries, League lookup, relationships) keep their own buttons."
+        },
+        {
+          "id": "profile-account-menu",
+          "rule": "There is no Account Settings section: Language (applied as soon as it is chosen) and Sign Out are in the editor's ⋯ menu, which holds no save button."
+        },
+        {
+          "id": "profile-feedback-lifecycle",
+          "rule": "Profile transient feedback receives five seconds of actual visibility, reset by each new message. Progress and actionable errors remain persistent. A field validation error stays inline on its field until the field is valid; its notification below Save Changes is transient (five visible seconds) and clears at once when the field becomes valid. Replaced feedback controllers are disposed; owner lifecycle cleanup and stale-save guards prevent former-owner feedback from affecting the current editor."
+        }
       ],
       "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23, §38 (ISS-0007), §41 and §44 (ISS-0010); desktop manual acceptance by Mazen 2026-10-11 (16 tests, Product Memory REV-0004) - Android Chrome acceptance still outstanding, so the capability stays PENDING_ACCEPTANCE; original Slice 3A: §3"
     },
@@ -66,13 +91,32 @@
       "id": "my-socials",
       "name": "My Socials (the owner's own social accounts, shown as icons on the public GamID)",
       "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/account/", "/@<handle>"],
-      "limits": { "socialPlatforms": 9, "socialLinksPerPlatform": 1, "socialUrlMaxChars": 200 },
+      "surfaces": [
+        "/account/",
+        "/@<handle>"
+      ],
+      "limits": {
+        "socialPlatforms": 9,
+        "socialLinksPerPlatform": 1,
+        "socialUrlMaxChars": 200
+      },
       "contracts": [
-        { "id": "socials-own-named-platforms", "rule": "My Socials holds the owner's own accounts on named Wall platforms (Instagram, TikTok, YouTube, Twitch, Kick, X, Snapchat, Discord, Facebook), at most one link each, added, edited and removed as a draft and saved by the section's Save Changes or Save All Changes. Only account kinds are accepted (a profile, channel, page, Discord personal profile or server invite), never a post or a video. There is no Other option; the Wall keeps its own Other link." },
-        { "id": "socials-shared-link-engine", "rule": "The Wall's link engine is the only source of platform and URL rules for the Wall and My Socials: the Wall adapters recognise a link and rebuild every address from its validated parts, and the server checks My Socials ids against the Wall's own server rules. My Socials only narrows which Wall platforms and account kinds it offers. Saved content is never copied between the Wall and My Socials." },
-        { "id": "socials-server-validation", "rule": "A saved link is stored as platform, account kind and id, validated by the database against the Wall's server rules, and the owner's list is replaced all-or-nothing; other schemes, hosts, kinds, credentials and markup are refused. Links are reachable only through owner functions acting on the caller's own GamID and an anonymous reader." },
-        { "id": "socials-public-display", "rule": "Saved links of a published (PUBLIC) GamID appear as labelled icon links leading the public profile panel, also when the owner has no Wall, opening in a new tab without referrer. An unpublished GamID shows none. When a published Wall replaces the profile body, the links are not shown." }
+        {
+          "id": "socials-own-named-platforms",
+          "rule": "My Socials holds the owner's own accounts on named Wall platforms (Instagram, TikTok, YouTube, Twitch, Kick, X, Snapchat, Discord, Facebook), at most one link each, added, edited and removed as a draft and saved by the section's Save Changes or Save All Changes. Only account kinds are accepted (a profile, channel, page, Discord personal profile or server invite), never a post or a video. There is no Other option; the Wall keeps its own Other link."
+        },
+        {
+          "id": "socials-shared-link-engine",
+          "rule": "The Wall's link engine is the only source of platform and URL rules for the Wall and My Socials: the Wall adapters recognise a link and rebuild every address from its validated parts, and the server checks My Socials ids against the Wall's own server rules. My Socials only narrows which Wall platforms and account kinds it offers. Saved content is never copied between the Wall and My Socials."
+        },
+        {
+          "id": "socials-server-validation",
+          "rule": "A saved link is stored as platform, account kind and id, validated by the database against the Wall's server rules, and the owner's list is replaced all-or-nothing; other schemes, hosts, kinds, credentials and markup are refused. Links are reachable only through owner functions acting on the caller's own GamID and an anonymous reader."
+        },
+        {
+          "id": "socials-public-display",
+          "rule": "Saved links of a published (PUBLIC) GamID appear as labelled icon links leading the public profile panel, also when the owner has no Wall, opening in a new tab without referrer. An unpublished GamID shows none. When a published Wall replaces the profile body, the links are not shown."
+        }
       ],
       "checkpoint": "67042938426f7c234c175483c6882c709b09046d",
       "record": "PROJECT_HANDOFF.md §23 and §24; docs/PROFILE-EDITOR-UX.md; migrations supabase/migrations/20261009120000_my_socials.sql, 20261009151000_my_socials_link_engine.sql"
@@ -81,21 +125,47 @@
       "id": "gaming-roles-education-work",
       "name": "Gaming Roles + Education & Work",
       "status": "ACCEPTED",
-      "surfaces": ["/account/"],
+      "surfaces": [
+        "/account/"
+      ],
       "record": "PROJECT_HANDOFF.md §3 (Slice 3B)"
     },
     {
       "id": "gaming-roles-categories",
       "name": "Gaming Roles in eight categories, the categorized selector, role badges and Suggest a Role (admin review)",
       "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/account/", "/@<handle>"],
-      "limits": { "gamingRoleCategories": 8, "approvedGamingRoles": 71, "roleSuggestionNameMinChars": 3, "roleSuggestionNameMaxChars": 40, "roleSuggestionsPerUserPer24h": 5 },
+      "surfaces": [
+        "/account/",
+        "/@<handle>"
+      ],
+      "limits": {
+        "gamingRoleCategories": 8,
+        "approvedGamingRoles": 71,
+        "roleSuggestionNameMinChars": 3,
+        "roleSuggestionNameMaxChars": 40,
+        "roleSuggestionsPerUserPer24h": 5
+      },
       "contracts": [
-        { "id": "gaming-role-catalog", "rule": "The ONE Gaming Roles catalog (gaming_role_catalog) holds the 71 roles of the approved list in eight categories, in its order: Gaming & Competitive Play, Streaming & Content Creation, Game Development, Art, Design & Animation, Audio, Video & Production, Esports & Team Management, Community & Marketing, Business & Technology (the owner's instruction says 77; the list it contains has 71 names). Role identifiers are stable keys; the 12 original keys stay (some relabelled, e.g. coach = Gaming Coach) and every existing selection and Primary Role is preserved. Education & Work is unchanged." },
-        { "id": "gaming-role-selector", "rule": "In the Profile Editor each category shows its title, description, role count and selected count and expands / collapses; roles are checkboxes, any number across categories. Exactly one selected role is the Primary Role (it moves to another selected role when it is deselected). The selected roles show as removable chips with Clear All. Save, unsaved-changes state and the Live Preview behave as before." },
-        { "id": "gaming-role-badges", "rule": "On the Classic Profile the roles show as individual badges, the Primary Role emphasised, wrapping onto further lines; they are never combined into one badge." },
-        { "id": "suggest-a-role", "rule": "Can't find your role? Suggest a Role: a signed-in owner submits a name (whitespace normalised, 3-40 characters, letters required, no links or markup). The server refuses a name that already exists in the catalog exactly or nearly (case, spacing, punctuation, a Gaming / Game / Esports prefix, plural), the same user's pending suggestion of the same name, and more than 5 suggestions in 24 hours. A suggestion is stored with its user, name, time and status PENDING, and the owner sees a confirmation and their recent suggestions. A suggestion is never a role until an administrator approves it." },
-        { "id": "role-suggestion-review", "rule": "Administrators are a server-side list (private.gamid_admins; on TESTING the owner account of @black); no client flag is trusted. They are notified of each suggestion through GamID Notifications (role.suggestion_submitted) and review pending suggestions in an admin-only Role Suggestions block at the very end of the Profile Editor's Gaming Roles section, after Suggest a Role (built only when the server says the account is an administrator; there is no separate Role Suggestions card; its actions are immediate and never part of the Gaming Roles draft or its Save): Approve assigns one of the eight categories and an optional final name (refused if it would duplicate a role) and makes the role selectable in the catalog at once, resolving other pending suggestions of the same name; Reject closes it. The submitter is notified of the decision (role.suggestion_approved / role.suggestion_rejected)." }
+        {
+          "id": "gaming-role-catalog",
+          "rule": "The ONE Gaming Roles catalog (gaming_role_catalog) holds the 71 roles of the approved list in eight categories, in its order: Gaming & Competitive Play, Streaming & Content Creation, Game Development, Art, Design & Animation, Audio, Video & Production, Esports & Team Management, Community & Marketing, Business & Technology (the owner's instruction says 77; the list it contains has 71 names). Role identifiers are stable keys; the 12 original keys stay (some relabelled, e.g. coach = Gaming Coach) and every existing selection and Primary Role is preserved. Education & Work is unchanged."
+        },
+        {
+          "id": "gaming-role-selector",
+          "rule": "In the Profile Editor each category shows its title, description, role count and selected count and expands / collapses; roles are checkboxes, any number across categories. Exactly one selected role is the Primary Role (it moves to another selected role when it is deselected). The selected roles show as removable chips with Clear All. Save, unsaved-changes state and the Live Preview behave as before."
+        },
+        {
+          "id": "gaming-role-badges",
+          "rule": "On the Classic Profile the roles show as individual badges, the Primary Role emphasised, wrapping onto further lines; they are never combined into one badge."
+        },
+        {
+          "id": "suggest-a-role",
+          "rule": "Can't find your role? Suggest a Role: a signed-in owner submits a name (whitespace normalised, 3-40 characters, letters required, no links or markup). The server refuses a name that already exists in the catalog exactly or nearly (case, spacing, punctuation, a Gaming / Game / Esports prefix, plural), the same user's pending suggestion of the same name, and more than 5 suggestions in 24 hours. A suggestion is stored with its user, name, time and status PENDING, and the owner sees a confirmation and their recent suggestions. A suggestion is never a role until an administrator approves it."
+        },
+        {
+          "id": "role-suggestion-review",
+          "rule": "Administrators are a server-side list (private.gamid_admins; on TESTING the owner account of @black); no client flag is trusted. They are notified of each suggestion through GamID Notifications (role.suggestion_submitted) and review pending suggestions in an admin-only Role Suggestions block at the very end of the Profile Editor's Gaming Roles section, after Suggest a Role (built only when the server says the account is an administrator; there is no separate Role Suggestions card; its actions are immediate and never part of the Gaming Roles draft or its Save): Approve assigns one of the eight categories and an optional final name (refused if it would duplicate a role) and makes the role selectable in the catalog at once, resolving other pending suggestions of the same name; Reject closes it. The submitter is notified of the decision (role.suggestion_approved / role.suggestion_rejected)."
+        }
       ],
       "checkpoint": "a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7",
       "record": "PROJECT_HANDOFF.md §37, §38; migration 20261011200000_roles_favorites_crews.sql (applied on TESTING)"
@@ -103,12 +173,33 @@
     {
       "id": "intro-identity",
       "name": "Intro identity (owner Intro video upload, processing, Full Preview)",
-      "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/account/"],
-      "limits": { "introSourceMaxBytes": 52428800, "introMaxSeconds": 30, "introTechnicalMaxSeconds": 31, "failedIntroSourceRetentionSeconds": 3600 },
+      "status": "ACCEPTED",
+      "surfaces": [
+        "/account/"
+      ],
+      "limits": {
+        "introSourceMaxBytes": 52428800,
+        "introMaxSeconds": 30,
+        "introTechnicalMaxSeconds": 31,
+        "failedIntroSourceRetentionSeconds": 3600
+      },
       "checkpoint": "5214d9b6add2629684e9c134f1e637598b90dd97",
-      "contracts": [{ "id": "intro-storage-lifecycle", "rule": "Removing an Intro releases its stored file without waiting for another Intro: the owner's cleanup (after the removal, before a new Intro upload and when Usage opens) deletes that owner's due Intro files. A failed Intro's source is kept for 1 hour, then becomes due. A file that was already due before 2026-10-11 13:55:56 UTC is not cleaned automatically. The active Intro and the source of a pending or processing Intro are never deleted." }, { "id": "intro-duration-tolerance", "rule": "The user-facing Intro maximum remains 30 seconds. Source metadata and processing/activation permit an inclusive technical tolerance up to 31.0 seconds; values over 31.0 seconds are rejected. The existing 0.5-second minimum remains." }, { "id": "intro-derivative-d3", "rule": "New Intro sources produce opaque VP9/WebM CRF 40 playback derivatives, downscaled only within a 1920-pixel long edge and 1080-pixel short edge, preserving display aspect/orientation, frame rate and timing; existing Opus audio behavior, derivative 15 MiB ceiling and source-retention policy remain. Existing READY derivatives are unchanged." }],
-      "record": "docs/INTRO-DURATION-TOLERANCE.md; PROJECT_HANDOFF.md §18, §42 (Intro storage lifecycle, ISS-0011) and §43 (Intro source limit 50 MiB = 52,428,800 bytes, Mazen 2026-10-11; migration 20261011260000); PROJECT_HANDOFF.md §3 + §7 (Slice 3C; formal acceptance deliberately deferred by Mazen; Split Reveal fix accepted at d7466f99); F2 derivative optimization separately ACCEPTED: §10–11 + docs/INTRO-DERIVATIVE-F2.md (Mazen, 2026-10-07)"
+      "contracts": [
+        {
+          "id": "intro-storage-lifecycle",
+          "rule": "Removing an Intro releases its stored file without waiting for another Intro: the owner's cleanup (after the removal, before a new Intro upload and when Usage opens) deletes that owner's due Intro files. A failed Intro's source is kept for 1 hour, then becomes due. A file that was already due before 2026-10-11 13:55:56 UTC is not cleaned automatically. The active Intro and the source of a pending or processing Intro are never deleted."
+        },
+        {
+          "id": "intro-duration-tolerance",
+          "rule": "The user-facing Intro maximum remains 30 seconds. Source metadata and processing/activation permit an inclusive technical tolerance up to 31.0 seconds; values over 31.0 seconds are rejected. The existing 0.5-second minimum remains."
+        },
+        {
+          "id": "intro-derivative-d3",
+          "rule": "New Intro sources produce opaque VP9/WebM CRF 40 playback derivatives, downscaled only within a 1920-pixel long edge and 1080-pixel short edge, preserving display aspect/orientation, frame rate and timing; existing Opus audio behavior, derivative 15 MiB ceiling and source-retention policy remain. Existing READY derivatives are unchanged."
+        }
+      ],
+      "record": "docs/INTRO-DURATION-TOLERANCE.md; PROJECT_HANDOFF.md §18, §42 (Intro storage lifecycle, ISS-0011) and §43 (Intro source limit 50 MiB = 52,428,800 bytes, Mazen 2026-10-11; migration 20261011260000); PROJECT_HANDOFF.md §3 + §7 (Slice 3C; historical acceptance deferral superseded by Mazen's 2026-10-11 acceptance of the currently deployed Intro identity with D3; Split Reveal fix accepted at d7466f99); F2 derivative optimization separately ACCEPTED: §10–11 + docs/INTRO-DERIVATIVE-F2.md (Mazen, 2026-10-07)",
+      "notes": "Mazen explicitly accepted the currently deployed Intro identity on TESTING on 2026-10-11, including the current D3 derivative and the verified Intro removal/storage cleanup (ISS-0011). A higher-quality D2 alternative discussed/tested historically is future work, not part of this acceptance; no D2 implementation or rollout is authorized."
     },
     {
       "id": "intro-derivative-f2",
@@ -142,14 +233,19 @@
       "id": "public-gamid-profile",
       "name": "Public GamID profile (public-safe data, Intro -> Transition -> profile, QR sharing)",
       "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/@<handle>", "/public/"],
+      "surfaces": [
+        "/@<handle>",
+        "/public/"
+      ],
       "record": "PROJECT_HANDOFF.md §7b, §7d, §7f (not formally accepted); accepted parts: responsive height §7v, Opera Intro reliability 706fc58e"
     },
     {
       "id": "public-handle-url",
       "name": "Permanent /@handle URL with social identity preview (Cloudflare TESTING Worker)",
       "status": "ACCEPTED",
-      "surfaces": ["https://gamid-testing-static.gamid.workers.dev/@<handle>"],
+      "surfaces": [
+        "https://gamid-testing-static.gamid.workers.dev/@<handle>"
+      ],
       "checkpoint": "8047bc22ef8ddc3bad70e208ae96462e4e8cb990",
       "record": "main commit 8047bc2 (Phase 1 accepted on Discord and WhatsApp)"
     },
@@ -192,7 +288,9 @@
       "id": "game-catalog-manual-games",
       "name": "Canonical Game Catalog + manual game add / edit / remove",
       "status": "PENDING_ACCEPTANCE",
-      "limits": { "manualGamesPerIdentity": 300 },
+      "limits": {
+        "manualGamesPerIdentity": 300
+      },
       "checkpoint": "b4a93b5d9f0b948c3d706e5fc2cbef665c74e63e",
       "record": "PROJECT_HANDOFF.md §7t, §7u"
     },
@@ -200,7 +298,9 @@
       "id": "public-my-games",
       "name": "Public My Games (compact list, View all, Game Details, playtime and ranks & stats privacy)",
       "status": "ACCEPTED",
-      "surfaces": ["/@<handle>"],
+      "surfaces": [
+        "/@<handle>"
+      ],
       "checkpoint": "006b97375a30d0be248d22e021b3588d673e1ee7",
       "record": "PROJECT_HANDOFF.md §7w"
     },
@@ -208,7 +308,9 @@
       "id": "game-id-wall",
       "name": "Game ID Wall: editor, assets, backgrounds, embeds, GamID blocks, Templates",
       "status": "ACCEPTED",
-      "surfaces": ["/wall-editor/"],
+      "surfaces": [
+        "/wall-editor/"
+      ],
       "checkpoint": "0934af4276f4955db5b3e79cf5db53e318ba9277",
       "record": "accepted main baseline 0934af4 (W1 accepted 1bbec1b; later rounds landed on main after acceptance)",
       "notes": "Asset and video limits are recorded under global-usage. Discord personal profiles (discord.com/users/<id>) are offered as a Link only since 67042938 (PROJECT_HANDOFF.md §24; migration 20261009150000_wall_discord_profile); that extension is pending manual acceptance."
@@ -217,7 +319,9 @@
       "id": "public-wall-publishing",
       "name": "Published Wall on the public GamID",
       "status": "ACCEPTED",
-      "surfaces": ["/@<handle>"],
+      "surfaces": [
+        "/@<handle>"
+      ],
       "checkpoint": "f609e76a0d6aa91be8d83271d23f876f4254a4d0",
       "record": "accepted and landed on main (f609e76)",
       "notes": "Visitors see the published Wall only while its owner keeps it enabled - see wall-visibility-toggle (pending acceptance)."
@@ -226,11 +330,23 @@
       "id": "wall-visibility-toggle",
       "name": "Enable / Disable My Wall (Profile Editor): published Wall or Classic Profile for visitors",
       "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/account/", "/@<handle>"],
+      "surfaces": [
+        "/account/",
+        "/@<handle>"
+      ],
       "contracts": [
-        { "id": "wall-toggle-public-result", "rule": "PRIVATE GamID: no public profile, whatever the Wall setting. PUBLIC GamID with a published, enabled Wall: the Wall. PUBLIC GamID with a published, disabled Wall: the Classic Profile. PUBLIC GamID without a published Wall: the Classic Profile. The server decides from the persisted setting; it is independent of the GamID's Publish / Unpublish." },
-        { "id": "wall-toggle-preserves", "rule": "Disabling keeps the published snapshot, its media and the draft untouched and editable, and the GamID stays PUBLIC; a disabled Wall's media is not publicly readable. Enabling shows the same published snapshot again. Republishing keeps the choice; existing published Walls are enabled by default. Only a published Wall can be enabled or disabled; an unpublished draft is never exposed." },
-        { "id": "wall-toggle-owner-ui", "rule": "In the Profile Editor's My Wall section the saved state is shown (Enabled / Disabled / Not published) with Edit and Disable My Wall / Enable My Wall, each confirmed first (Confirm / Cancel). Only the owner can change their own setting; one change runs at a time, and a failed change keeps the previous state with a clear error." }
+        {
+          "id": "wall-toggle-public-result",
+          "rule": "PRIVATE GamID: no public profile, whatever the Wall setting. PUBLIC GamID with a published, enabled Wall: the Wall. PUBLIC GamID with a published, disabled Wall: the Classic Profile. PUBLIC GamID without a published Wall: the Classic Profile. The server decides from the persisted setting; it is independent of the GamID's Publish / Unpublish."
+        },
+        {
+          "id": "wall-toggle-preserves",
+          "rule": "Disabling keeps the published snapshot, its media and the draft untouched and editable, and the GamID stays PUBLIC; a disabled Wall's media is not publicly readable. Enabling shows the same published snapshot again. Republishing keeps the choice; existing published Walls are enabled by default. Only a published Wall can be enabled or disabled; an unpublished draft is never exposed."
+        },
+        {
+          "id": "wall-toggle-owner-ui",
+          "rule": "In the Profile Editor's My Wall section the saved state is shown (Enabled / Disabled / Not published) with Edit and Disable My Wall / Enable My Wall, each confirmed first (Confirm / Cancel). Only the owner can change their own setting; one change runs at a time, and a failed change keeps the previous state with a clear error."
+        }
       ],
       "checkpoint": "85146e679faaa88de46e0271f0ec5f16fbebf409",
       "record": "PROJECT_HANDOFF.md §25; migration supabase/migrations/20261009170000_wall_public_publishing_toggle.sql; Product Memory DEC-0003"
@@ -239,11 +355,23 @@
       "id": "discord-profile-card",
       "name": "Discord Profile Card in My Socials (Classic Profile), from the existing Discord connection",
       "status": "ACCEPTED",
-      "surfaces": ["/account/", "/@<handle>"],
+      "surfaces": [
+        "/account/",
+        "/@<handle>"
+      ],
       "contracts": [
-        { "id": "discord-card-conditions", "rule": "A visitor gets the card only when all hold, checked on the server: the GamID is PUBLIC; the Discord connection exists; its Show on my GamID is on; the owner's separate Show Discord Profile Card consent is on; and the owner's saved My Socials Discord link is a personal profile (discord.com/users/<id>) whose numeric id equals the connected Discord account id. Otherwise no card data is returned and the Discord icon stays the ordinary link. Ownership is never inferred from a username or a pasted link." },
-        { "id": "discord-card-fields", "rule": "The card shows only the connected account's display name, @username and avatar (a Discord CDN address of that account, else a fallback), a Connected account indicator and Open on Discord (https://discord.com/users/<verified id>). It reuses the existing Discord connection (scopes identify connections, no stored token); no Discord call is made when someone visits, and no other connection data is exposed. It opens on click only and can be dismissed (Esc, Close, outside click); the visitor needs no Discord login to see it, and Discord itself may ask them to sign in." },
-        { "id": "discord-card-consent", "rule": "Show Discord Profile Card is a separate, explicit opt-in in Profile Editor -> Connections -> Discord, OFF by default (existing connections included), unavailable while Discord is not connected, saved with the section's Save Changes and shown as saved only after the server confirms it. The consent time is recorded while it is on; turning it off or disconnecting Discord removes the card at once and a new connection starts OFF. There is no separate public copy. Show on my GamID keeps its meaning." }
+        {
+          "id": "discord-card-conditions",
+          "rule": "A visitor gets the card only when all hold, checked on the server: the GamID is PUBLIC; the Discord connection exists; its Show on my GamID is on; the owner's separate Show Discord Profile Card consent is on; and the owner's saved My Socials Discord link is a personal profile (discord.com/users/<id>) whose numeric id equals the connected Discord account id. Otherwise no card data is returned and the Discord icon stays the ordinary link. Ownership is never inferred from a username or a pasted link."
+        },
+        {
+          "id": "discord-card-fields",
+          "rule": "The card shows only the connected account's display name, @username and avatar (a Discord CDN address of that account, else a fallback), a Connected account indicator and Open on Discord (https://discord.com/users/<verified id>). It reuses the existing Discord connection (scopes identify connections, no stored token); no Discord call is made when someone visits, and no other connection data is exposed. It opens on click only and can be dismissed (Esc, Close, outside click); the visitor needs no Discord login to see it, and Discord itself may ask them to sign in."
+        },
+        {
+          "id": "discord-card-consent",
+          "rule": "Show Discord Profile Card is a separate, explicit opt-in in Profile Editor -> Connections -> Discord, OFF by default (existing connections included), unavailable while Discord is not connected, saved with the section's Save Changes and shown as saved only after the server confirms it. The consent time is recorded while it is on; turning it off or disconnecting Discord removes the card at once and a new connection starts OFF. There is no separate public copy. Show on my GamID keeps its meaning."
+        }
       ],
       "checkpoint": "5757c5fcd1be61c5058718d971aef200bb751341",
       "record": "PROJECT_HANDOFF.md §26; migration supabase/migrations/20261009190000_discord_profile_card.sql; manual acceptance by Mazen 2026-10-10 (PROJECT_HANDOFF.md §27); Product Memory DEC-0004"
@@ -252,12 +380,29 @@
       "id": "visitor-media-access",
       "name": "Visitor access to stored media (Avatar, Intro, Wall media, Classic Profile Banner): server-decided, no visitor-minted Storage URLs",
       "status": "ACCEPTED",
-      "surfaces": ["/@<handle>", "/functions/v1/public-media", "/functions/v1/profile-banner/<handle>"],
-      "limits": { "introLeaseSeconds": 120, "wallVideoLeaseSeconds": 21600, "bannerMaxBytes": 5242880 },
+      "surfaces": [
+        "/@<handle>",
+        "/functions/v1/public-media",
+        "/functions/v1/profile-banner/<handle>"
+      ],
+      "limits": {
+        "introLeaseSeconds": 120,
+        "wallVideoLeaseSeconds": 21600,
+        "bannerMaxBytes": 5242880
+      },
       "contracts": [
-        { "id": "visitor-no-signing", "rule": "Only the owner of a stored object (its <uid>/ folder) can create a signed Storage URL for it. Visitors - anonymous or other signed-in users - cannot sign any object, whatever its visibility. Visitors read public Avatars and Wall pictures directly, and every such read re-checks the current visibility, so it ends as soon as a GamID goes PRIVATE, an Avatar is replaced or a Wall is disabled / unpublished." },
-        { "id": "visitor-media-leases", "rule": "A visitor's streaming address for a public Intro or a published, enabled Wall video comes only from public-media, which decides with the same public rules as the read policies and signs with a server-chosen lifetime (Intro 120 s, Wall video 6 h); the visitor never chooses a lifetime, and no lease is issued once the content is no longer public. An already issued lease stays valid until it expires." },
-        { "id": "banner-delivery", "rule": "The Classic Profile Banner is never readable or signable through Storage by visitors. profile-banner returns the attached Banner of a PUBLIC GamID as image/jpeg with Cache-Control: no-store, checked before and after reading it; every refusal (PRIVATE, DRAFT, detached, unknown, malformed) is the same empty 404, and requests are rate limited (429)." }
+        {
+          "id": "visitor-no-signing",
+          "rule": "Only the owner of a stored object (its <uid>/ folder) can create a signed Storage URL for it. Visitors - anonymous or other signed-in users - cannot sign any object, whatever its visibility. Visitors read public Avatars and Wall pictures directly, and every such read re-checks the current visibility, so it ends as soon as a GamID goes PRIVATE, an Avatar is replaced or a Wall is disabled / unpublished."
+        },
+        {
+          "id": "visitor-media-leases",
+          "rule": "A visitor's streaming address for a public Intro or a published, enabled Wall video comes only from public-media, which decides with the same public rules as the read policies and signs with a server-chosen lifetime (Intro 120 s, Wall video 6 h); the visitor never chooses a lifetime, and no lease is issued once the content is no longer public. An already issued lease stays valid until it expires."
+        },
+        {
+          "id": "banner-delivery",
+          "rule": "The Classic Profile Banner is never readable or signable through Storage by visitors. profile-banner returns the attached Banner of a PUBLIC GamID as image/jpeg with Cache-Control: no-store, checked before and after reading it; every refusal (PRIVATE, DRAFT, detached, unknown, malformed) is the same empty 404, and requests are rate limited (429)."
+        }
       ],
       "checkpoint": "660d91100a78f94c86288168c279e2b536dcdb0f",
       "record": "PROJECT_HANDOFF.md §30, §38-§40; migrations 20261010140000_visitor_storage_signing.sql and 20261010141000_visitor_storage_signing_ban.sql; security remediation explicitly accepted by Mazen on TESTING 2026-10-11 (PROJECT_HANDOFF.md §40); Product Memory ISS-0009 (VERIFIED), DEC-0005"
@@ -266,11 +411,26 @@
       "id": "profile-banner",
       "name": "Classic Profile Banner (Profile Editor upload / crop / replace / remove; shown on the desktop Classic Profile)",
       "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/account/", "/@<handle>"],
-      "limits": { "bannerSourceMaxBytes": 5242880, "bannerWidth": 1920, "bannerHeight": 320, "bannerMaxSourceSide": 8192, "bannerMaxSourcePixels": 40000000 },
+      "surfaces": [
+        "/account/",
+        "/@<handle>"
+      ],
+      "limits": {
+        "bannerSourceMaxBytes": 5242880,
+        "bannerWidth": 1920,
+        "bannerHeight": 320,
+        "bannerMaxSourceSide": 8192,
+        "bannerMaxSourcePixels": 40000000
+      },
       "contracts": [
-        { "id": "banner-editor", "rule": "In the Profile Editor's Banner section the owner chooses a JPEG, PNG, WebP, GIF or AVIF image of at most 5 MiB (recognised by its bytes; an animated GIF uses its first frame), positions it in a fixed 6:1 frame (drag, arrow keys, zoom) and saves it with Save Changes / Save All Changes. Refused files keep a clear inline message. The saved Banner is exactly 1920x320 JPEG, re-encoded by the server; replacing or removing it deletes the previous file, and a change made elsewhere is refused instead of overwritten." },
-        { "id": "banner-display", "rule": "The Banner is shown only on the desktop Classic Profile (1280px and wider) of a PUBLIC GamID, delivered by profile-banner (visitor-media-access); without a Banner, or when it cannot be delivered, a GamID gradient is shown. Banner bytes count toward the existing storage quota (shown as 'Avatar & Banner')." }
+        {
+          "id": "banner-editor",
+          "rule": "In the Profile Editor's Banner section the owner chooses a JPEG, PNG, WebP, GIF or AVIF image of at most 5 MiB (recognised by its bytes; an animated GIF uses its first frame), positions it in a fixed 6:1 frame (drag, arrow keys, zoom) and saves it with Save Changes / Save All Changes. Refused files keep a clear inline message. The saved Banner is exactly 1920x320 JPEG, re-encoded by the server; replacing or removing it deletes the previous file, and a change made elsewhere is refused instead of overwritten."
+        },
+        {
+          "id": "banner-display",
+          "rule": "The Banner is shown only on the desktop Classic Profile (1280px and wider) of a PUBLIC GamID, delivered by profile-banner (visitor-media-access); without a Banner, or when it cannot be delivered, a GamID gradient is shown. Banner bytes count toward the existing storage quota (shown as 'Avatar & Banner')."
+        }
       ],
       "checkpoint": "4948f6ccc88b4cb54f5aec23e40932798df19e74",
       "record": "PROJECT_HANDOFF.md §28-§31; Product Memory DEC-0005"
@@ -279,13 +439,32 @@
       "id": "about-me",
       "name": "About Me (Location, Languages, Favorite Genres, Member Since)",
       "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/account/", "/@<handle>"],
-      "limits": { "aboutLanguagesMax": 5, "locationCities": 34156, "locationCountries": 252 },
+      "surfaces": [
+        "/account/",
+        "/@<handle>"
+      ],
+      "limits": {
+        "aboutLanguagesMax": 5,
+        "locationCities": 34156,
+        "locationCountries": 252
+      },
       "contracts": [
-        { "id": "about-me-privacy", "rule": "Location, Languages and Favorite Genres are optional and each has its own Show on my GamID switch, OFF by default; a switch is available only while its value is set and turns OFF when the value is cleared. Only switched-on values of a PUBLIC GamID are ever sent to visitors. Member Since is the date the GamID was registered (entities.created_at as a UTC calendar date, shown as day, full month name and year, e.g. 10 October 2026, the same for every visitor's time zone) and is always shown on the public profile; it cannot be edited." },
-        { "id": "about-me-display", "rule": "About Me appears on the desktop Classic Profile (1280px and wider); the mobile layout does not show it." },
-        { "id": "about-me-location", "rule": "Location is chosen, never typed or geolocated: a country from the catalog (stored as its ISO 3166-1 code), then optionally a city of THAT country (stored as its GeoNames id), each searchable in English or Arabic. Visitors see it formatted (City, Country) only while its switch is ON. The catalog is GeoNames (CC BY 4.0, attribution shown in the editor): the 252 countries and the 34,156 cities with at least 15,000 inhabitants. A Location typed before this change is kept unchanged and still shown until its owner chooses a country (the editor offers a suggestion only when the text matches exactly one place); nothing is converted automatically." },
-        { "id": "about-me-genres", "rule": "Favorite Genres has no maximum: any number of active catalog genres can be selected and all of them are stored. While its switch is ON the public desktop profile shows every selected genre, in the owner's order, wrapping across rows inside About Me (no truncation, +N or ellipsis); while it is OFF no genre is sent. Languages keep their maximum of five." }
+        {
+          "id": "about-me-privacy",
+          "rule": "Location, Languages and Favorite Genres are optional and each has its own Show on my GamID switch, OFF by default; a switch is available only while its value is set and turns OFF when the value is cleared. Only switched-on values of a PUBLIC GamID are ever sent to visitors. Member Since is the date the GamID was registered (entities.created_at as a UTC calendar date, shown as day, full month name and year, e.g. 10 October 2026, the same for every visitor's time zone) and is always shown on the public profile; it cannot be edited."
+        },
+        {
+          "id": "about-me-display",
+          "rule": "About Me appears on the desktop Classic Profile (1280px and wider); the mobile layout does not show it."
+        },
+        {
+          "id": "about-me-location",
+          "rule": "Location is chosen, never typed or geolocated: a country from the catalog (stored as its ISO 3166-1 code), then optionally a city of THAT country (stored as its GeoNames id), each searchable in English or Arabic. Visitors see it formatted (City, Country) only while its switch is ON. The catalog is GeoNames (CC BY 4.0, attribution shown in the editor): the 252 countries and the 34,156 cities with at least 15,000 inhabitants. A Location typed before this change is kept unchanged and still shown until its owner chooses a country (the editor offers a suggestion only when the text matches exactly one place); nothing is converted automatically."
+        },
+        {
+          "id": "about-me-genres",
+          "rule": "Favorite Genres has no maximum: any number of active catalog genres can be selected and all of them are stored. While its switch is ON the public desktop profile shows every selected genre, in the owner's order, wrapping across rows inside About Me (no truncation, +N or ellipsis); while it is OFF no genre is sent. Languages keep their maximum of five."
+        }
       ],
       "checkpoint": "70f8940817aec80f07aee2fc95bad58fbe66f297",
       "record": "PROJECT_HANDOFF.md §31-§34; migrations 20261010160000_profile_about_me.sql, 20261010180000_member_since_date.sql, 20261011100000_classic_profile_consolidated.sql; docs/LOCATION-DATA.md; Product Memory DEC-0005"
@@ -294,17 +473,45 @@
       "id": "classic-profile-desktop",
       "name": "Desktop Classic Profile layout (1280px and wider)",
       "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/@<handle>"],
-      "limits": { "desktopBreakpointPx": 1280 },
+      "surfaces": [
+        "/@<handle>"
+      ],
+      "limits": {
+        "desktopBreakpointPx": 1280
+      },
       "contracts": [
-        { "id": "desktop-layout", "rule": "At 1280px and wider, when no published and enabled Wall replaces the profile, the Classic Profile has two independent columns, the left one wider: LEFT the hero (Banner, Avatar, display name, @handle, roles, education / work, bio and the real game count only when My Games is public), then Favorite Games (capability favorite-games), then My Games; RIGHT About Me, the My Socials / My Duo / My Crews / Steam panel, then Connected Games. Each column stacks its own sections with no forced equal heights. Only real GamID data is shown: no friends, achievements, search or messaging." },
-        { "id": "desktop-game-count", "rule": "The hero's game count is the authoritative public My Games count and is a link to the My Games section on the same page (smooth scroll, instant with reduced motion; keyboard reachable, visible focus; focus moves to My Games)." },
-        { "id": "desktop-my-crew", "rule": "On the desktop layout only, MY CREWS sits beneath My Duo in the sidebar as ONE fixed-size entry in the My Duo card's style, with the number of Crews and their games, for the Crews the server's public crews section lists for this GamID (ACTIVE membership, Crew Wall PUBLISHED; the server's order; there is no primary Crew). It opens the consolidated My Crews view (capability my-crews-view). No listed Crew, no entry. A published, enabled Wall still replaces all of it; mobile is unchanged." },
-        { "id": "desktop-connected-games", "rule": "On the desktop layout the GamID's linked game ACCOUNTS (today only the League prototype: identity, the rank line only while stats are public, PROTOTYPE / UNVERIFIED and its data source) appear in Connected Games, in the main column between About Me and My Games, and no longer in the sidebar; mobile keeps its League card. A few show directly and View all lists all of them. An item opens only an existing destination (League: the Game Details My Games opens for it). Connected Games is never the game library (My Games)." },
-        { "id": "desktop-game-tiles", "rule": "On the desktop layout a My Games row and a Connected Games item show a 56px game tile, and a My Crews card a game icon and background. A tile shows the title's initials on a neutral colour; an image is laid over it only when the provisional artwork evaluation (capability game-artwork-provisional) returns a reliable match - never a guessed image." },
-        { "id": "desktop-social-marks", "rule": "On the desktop layout the Discord and Instagram icons in My Socials show their recognisable marks (static, local, no animation); size, colours, placement, links and accessible names are unchanged, and the mobile icons keep their text marks." },
-        { "id": "desktop-preserves", "rule": "The Intro still plays first (full screen) and its transition reveals the desktop profile; Replay Intro, Skip and Back work as before; a published, enabled Wall still replaces the Classic Profile. Below 1280px the accepted mobile / tablet layout is unchanged, and crossing the width switches between the two without replaying the Intro." },
-        { "id": "desktop-discord", "rule": "On the desktop layout the separate Discord section is not shown: a connected Discord appears inside My Socials (its Discord Profile Card when there is a matching Discord link, otherwise its name with CONNECTED). On mobile the separate Discord section is unchanged." }
+        {
+          "id": "desktop-layout",
+          "rule": "At 1280px and wider, when no published and enabled Wall replaces the profile, the Classic Profile has two independent columns, the left one wider: LEFT the hero (Banner, Avatar, display name, @handle, roles, education / work, bio and the real game count only when My Games is public), then Favorite Games (capability favorite-games), then My Games; RIGHT About Me, the My Socials / My Duo / My Crews / Steam panel, then Connected Games. Each column stacks its own sections with no forced equal heights. Only real GamID data is shown: no friends, achievements, search or messaging."
+        },
+        {
+          "id": "desktop-game-count",
+          "rule": "The hero's game count is the authoritative public My Games count and is a link to the My Games section on the same page (smooth scroll, instant with reduced motion; keyboard reachable, visible focus; focus moves to My Games)."
+        },
+        {
+          "id": "desktop-my-crew",
+          "rule": "On the desktop layout only, MY CREWS sits beneath My Duo in the sidebar as ONE fixed-size entry in the My Duo card's style, with the number of Crews and their games, for the Crews the server's public crews section lists for this GamID (ACTIVE membership, Crew Wall PUBLISHED; the server's order; there is no primary Crew). It opens the consolidated My Crews view (capability my-crews-view). No listed Crew, no entry. A published, enabled Wall still replaces all of it; mobile is unchanged."
+        },
+        {
+          "id": "desktop-connected-games",
+          "rule": "On the desktop layout the GamID's linked game ACCOUNTS (today only the League prototype: identity, the rank line only while stats are public, PROTOTYPE / UNVERIFIED and its data source) appear in Connected Games, in the main column between About Me and My Games, and no longer in the sidebar; mobile keeps its League card. A few show directly and View all lists all of them. An item opens only an existing destination (League: the Game Details My Games opens for it). Connected Games is never the game library (My Games)."
+        },
+        {
+          "id": "desktop-game-tiles",
+          "rule": "On the desktop layout a My Games row and a Connected Games item show a 56px game tile, and a My Crews card a game icon and background. A tile shows the title's initials on a neutral colour; an image is laid over it only when the provisional artwork evaluation (capability game-artwork-provisional) returns a reliable match - never a guessed image."
+        },
+        {
+          "id": "desktop-social-marks",
+          "rule": "On the desktop layout the Discord and Instagram icons in My Socials show their recognisable marks (static, local, no animation); size, colours, placement, links and accessible names are unchanged, and the mobile icons keep their text marks."
+        },
+        {
+          "id": "desktop-preserves",
+          "rule": "The Intro still plays first (full screen) and its transition reveals the desktop profile; Replay Intro, Skip and Back work as before; a published, enabled Wall still replaces the Classic Profile. Below 1280px the accepted mobile / tablet layout is unchanged, and crossing the width switches between the two without replaying the Intro."
+        },
+        {
+          "id": "desktop-discord",
+          "rule": "On the desktop layout the separate Discord section is not shown: a connected Discord appears inside My Socials (its Discord Profile Card when there is a matching Discord link, otherwise its name with CONNECTED). On mobile the separate Discord section is unchanged."
+        }
       ],
       "checkpoint": "506bfa7a150c02234101e099ebc1538e73e35f3c",
       "record": "PROJECT_HANDOFF.md §31-§33, §37; Product Memory DEC-0005"
@@ -313,13 +520,30 @@
       "id": "favorite-games",
       "name": "Favorite Games (My Games hearts) on the Classic Profile, separate My Games / Connections Settings cards, artwork in View All Games",
       "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/account/", "/@<handle>"],
-      "limits": { "favoriteGamesMax": 4 },
+      "surfaces": [
+        "/account/",
+        "/@<handle>"
+      ],
+      "limits": {
+        "favoriteGamesMax": 4
+      },
       "contracts": [
-        { "id": "favorite-games-selection", "rule": "In the Profile Editor's My Games card each game with a catalog identity (added by the owner or discovered by a connected account) has a heart (♡ / ❤️); a click saves at once. At most 4 favorites, enforced by the server (set_my_favorite_games and the profiles constraint: own library only, no duplicates); a fifth heart changes nothing and shows 'Maximum 4 favorite games. Remove one to add another.' A game that leaves My Games leaves the favorites. No new game records." },
-        { "id": "favorite-games-public", "rule": "On the desktop Classic Profile (1280px and wider), in the left column directly below the profile hero and above My Games, the favorites appear in the owner's order as up to four portrait covers (2:3, the artwork resolver's portrait cover; initials when none) with the game's name below, in one row; with no favorites the section is absent. Visitors see them only while My Games is public, can open the existing Game Details, and cannot change them." },
-        { "id": "settings-games-connections", "rule": "My Games (with its Game Display settings) and Connections are independent Profile Editor cards at the same level; League stays inside Connections. Their existing functions, search, platforms, discovery and connections are unchanged." },
-        { "id": "view-all-games-artwork", "rule": "On the desktop, the View all games list shows the same cached game artwork tiles as the compact My Games list (lazy-loaded; initials when none)." }
+        {
+          "id": "favorite-games-selection",
+          "rule": "In the Profile Editor's My Games card each game with a catalog identity (added by the owner or discovered by a connected account) has a heart (♡ / ❤️); a click saves at once. At most 4 favorites, enforced by the server (set_my_favorite_games and the profiles constraint: own library only, no duplicates); a fifth heart changes nothing and shows 'Maximum 4 favorite games. Remove one to add another.' A game that leaves My Games leaves the favorites. No new game records."
+        },
+        {
+          "id": "favorite-games-public",
+          "rule": "On the desktop Classic Profile (1280px and wider), in the left column directly below the profile hero and above My Games, the favorites appear in the owner's order as up to four portrait covers (2:3, the artwork resolver's portrait cover; initials when none) with the game's name below, in one row; with no favorites the section is absent. Visitors see them only while My Games is public, can open the existing Game Details, and cannot change them."
+        },
+        {
+          "id": "settings-games-connections",
+          "rule": "My Games (with its Game Display settings) and Connections are independent Profile Editor cards at the same level; League stays inside Connections. Their existing functions, search, platforms, discovery and connections are unchanged."
+        },
+        {
+          "id": "view-all-games-artwork",
+          "rule": "On the desktop, the View all games list shows the same cached game artwork tiles as the compact My Games list (lazy-loaded; initials when none)."
+        }
       ],
       "checkpoint": "506bfa7a150c02234101e099ebc1538e73e35f3c",
       "record": "PROJECT_HANDOFF.md §36-§37; migrations 20261011180000_favorite_games.sql and 20261011200000_roles_favorites_crews.sql (applied on TESTING); deployed to TESTING by workflow run 38125086921 (stamp 506bfa7)"
@@ -328,13 +552,31 @@
       "id": "my-crews-view",
       "name": "My Crews view on the public Classic Profile and the 10-Crew limit",
       "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/@<handle>", "/account/"],
-      "limits": { "crewMembershipsPerIdentity": 10, "crewMembersShownPerCard": 5 },
+      "surfaces": [
+        "/@<handle>",
+        "/account/"
+      ],
+      "limits": {
+        "crewMembershipsPerIdentity": 10,
+        "crewMembersShownPerCard": 5
+      },
       "contracts": [
-        { "id": "my-crews-view-content", "rule": "The desktop My Crews entry opens a read-only full-screen view with one large card per Crew of the public crews section (same Crews and order): the game's artwork as its background when the provisional artwork evaluation has a reliable match (otherwise a gradient), the game's icon or initials, the Crew's name, its member count and up to five PUBLIC members' avatars (a non-public member is counted, never shown). Each card opens that existing Crew Wall; there is no second Crew Wall." },
-        { "id": "my-crews-view-sizing", "rule": "The My Crews view fits its cards: one Crew gives a compact panel for one card, two side by side, three in one row; four or more wrap onto further rows. At most three cards per row and each card at most 19rem wide (its 16:9 proportions kept, never stretched to fill empty space), centred. Below 960px at most two per row; on phones one full-width card per row; never any horizontal overflow." },
-        { "id": "crew-wall-header-logo", "rule": "The existing Crew Wall header shows its game's logo / icon tile (one request per page load, for every game, through the game-artwork function's Crew route and only for a Crew whose Crew Wall is published; the game's initials when there is no reliable match)." },
-        { "id": "crew-membership-limit", "rule": "A GamID can hold at most 10 ACTIVE Crew memberships, the Crews it owns and the ones it joined together (still one ACTIVE Crew per game). The server refuses creating or accepting an eleventh (CREW_LIMIT_REACHED); pending invites do not count and declining is always possible. Existing memberships are never removed or hidden by the limit." }
+        {
+          "id": "my-crews-view-content",
+          "rule": "The desktop My Crews entry opens a read-only full-screen view with one large card per Crew of the public crews section (same Crews and order): the game's artwork as its background when the provisional artwork evaluation has a reliable match (otherwise a gradient), the game's icon or initials, the Crew's name, its member count and up to five PUBLIC members' avatars (a non-public member is counted, never shown). Each card opens that existing Crew Wall; there is no second Crew Wall."
+        },
+        {
+          "id": "my-crews-view-sizing",
+          "rule": "The My Crews view fits its cards: one Crew gives a compact panel for one card, two side by side, three in one row; four or more wrap onto further rows. At most three cards per row and each card at most 19rem wide (its 16:9 proportions kept, never stretched to fill empty space), centred. Below 960px at most two per row; on phones one full-width card per row; never any horizontal overflow."
+        },
+        {
+          "id": "crew-wall-header-logo",
+          "rule": "The existing Crew Wall header shows its game's logo / icon tile (one request per page load, for every game, through the game-artwork function's Crew route and only for a Crew whose Crew Wall is published; the game's initials when there is no reliable match)."
+        },
+        {
+          "id": "crew-membership-limit",
+          "rule": "A GamID can hold at most 10 ACTIVE Crew memberships, the Crews it owns and the ones it joined together (still one ACTIVE Crew per game). The server refuses creating or accepting an eleventh (CREW_LIMIT_REACHED); pending invites do not count and declining is always possible. Existing memberships are never removed or hidden by the limit."
+        }
       ],
       "checkpoint": "a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7",
       "record": "PROJECT_HANDOFF.md §33, §37, §38; migrations 20261011100000_classic_profile_consolidated.sql and 20261011200000_roles_favorites_crews.sql"
@@ -343,11 +585,23 @@
       "id": "game-artwork-provisional",
       "name": "Game artwork from SteamGridDB on TESTING (all accounts; provisional)",
       "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/@<handle>"],
-      "limits": { "artworkLookupsPerRequest": 6, "artworkCacheDays": 7, "artworkRequestsPerClientPerMinute": 30 },
+      "surfaces": [
+        "/@<handle>"
+      ],
+      "limits": {
+        "artworkLookupsPerRequest": 6,
+        "artworkCacheDays": 7,
+        "artworkRequestsPerClientPerMinute": 30
+      },
       "contracts": [
-        { "id": "artwork-testing-scope", "rule": "On TESTING, game artwork from SteamGridDB is enabled for every account the same way (no per-account restriction; Mazen's product-owner decision 2026-10-11). It is active only while the server secret STEAMGRIDDB_API_KEY is set and the TESTING-wide artwork switch is ON; switching it off hides every image at once and loses no user data (only a metadata cache of provider ids and image URLs is kept, 7 days; no image is stored or re-served). SteamGridDB's Terms of Use allow personal, non-commercial use and require its explicit written permission for distribution; that permission has not been obtained, so no Production / public / commercial release." },
-        { "id": "artwork-matching", "rule": "Only games the visitor can already see get artwork (public My Games, a public League account, the public crews section, the game of a published Crew Wall). A game is matched by its catalog Steam app id, or else only when exactly one provider title equals the catalog title and the release years agree; anything else keeps the initials tile. Images are static and non-NSFW, load from the provider CDN with no referrer, and the provider key never reaches the browser." }
+        {
+          "id": "artwork-testing-scope",
+          "rule": "On TESTING, game artwork from SteamGridDB is enabled for every account the same way (no per-account restriction; Mazen's product-owner decision 2026-10-11). It is active only while the server secret STEAMGRIDDB_API_KEY is set and the TESTING-wide artwork switch is ON; switching it off hides every image at once and loses no user data (only a metadata cache of provider ids and image URLs is kept, 7 days; no image is stored or re-served). SteamGridDB's Terms of Use allow personal, non-commercial use and require its explicit written permission for distribution; that permission has not been obtained, so no Production / public / commercial release."
+        },
+        {
+          "id": "artwork-matching",
+          "rule": "Only games the visitor can already see get artwork (public My Games, a public League account, the public crews section, the game of a published Crew Wall). A game is matched by its catalog Steam app id, or else only when exactly one provider title equals the catalog title and the release years agree; anything else keeps the initials tile. Images are static and non-NSFW, load from the provider CDN with no referrer, and the provider key never reaches the browser."
+        }
       ],
       "checkpoint": "506bfa7a150c02234101e099ebc1538e73e35f3c",
       "record": "PROJECT_HANDOFF.md §33-§35, §37; docs/GAME-ARTWORK-STEAMGRIDDB.md; supabase/functions/game-artwork; migration 20261011160000_artwork_environment_wide.sql"
@@ -363,7 +617,12 @@
       "id": "authenticated-shell",
       "name": "Global authenticated shell (Notifications on every authenticated surface)",
       "status": "ACCEPTED",
-      "surfaces": ["/account/", "/wall-editor/", "/play-together/", "/crew/"],
+      "surfaces": [
+        "/account/",
+        "/wall-editor/",
+        "/play-together/",
+        "/crew/"
+      ],
       "checkpoint": "afef865a8868d5677f51b521d2c8f2e0e6a9048d",
       "record": "docs/GLOBAL_AUTHENTICATED_SHELL.md; manual acceptance by Mazen 2026-10-06 (PROJECT_HANDOFF.md §10)"
     },
@@ -371,8 +630,13 @@
       "id": "my-duo",
       "name": "My Duo",
       "status": "ACCEPTED",
-      "surfaces": ["/account/", "/@<handle>"],
-      "limits": { "duosPerIdentity": 1 },
+      "surfaces": [
+        "/account/",
+        "/@<handle>"
+      ],
+      "limits": {
+        "duosPerIdentity": 1
+      },
       "checkpoint": "237903a15e0e3ba13f203f929c8256b2cf484719",
       "record": "PROJECT_HANDOFF.md §3 (My Duo + Notifications acceptance, 2026-10-02)"
     },
@@ -380,8 +644,15 @@
       "id": "my-crew",
       "name": "My Crew (Crews, invitations, Crew Mini Wall, MY CREW block)",
       "status": "ACCEPTED",
-      "surfaces": ["/account/", "/crew/", "/@<handle>"],
-      "limits": { "activeMembersPerOwnedCrew": 15, "crewWallStages": 2 },
+      "surfaces": [
+        "/account/",
+        "/crew/",
+        "/@<handle>"
+      ],
+      "limits": {
+        "activeMembersPerOwnedCrew": 15,
+        "crewWallStages": 2
+      },
       "checkpoint": "d2a946691b7a7e2214107ebca38f6a095ae54b38",
       "record": "Mazen's acceptance 2026-10-04 at d2a9466 (feature/my-crew-v1, not merged to main); limits from docs/global-usage-center.md"
     },
@@ -389,14 +660,33 @@
       "id": "play-together",
       "name": "Play Together (create, find, host approval, Ready Check, Team Room, history)",
       "status": "ACCEPTED",
-      "surfaces": ["/play-together/"],
-      "limits": { "scheduledStartMaxHours": 3 },
-      "contracts": [
-        { "id": "pt.join-request-notifies-host", "rule": "A JOIN REQUEST gives the host a GamID notification." },
-        { "id": "pt.approve-notifies-requester", "rule": "An APPROVE gives the requester a GamID notification reflecting the decision." },
-        { "id": "pt.reject-notifies-requester", "rule": "A REJECT gives the requester a GamID notification reflecting the decision." }
+      "surfaces": [
+        "/play-together/"
       ],
-      "noContract": ["CREATE", "READY", "READY_CHECK_START", "START", "COMPLETE"],
+      "limits": {
+        "scheduledStartMaxHours": 3
+      },
+      "contracts": [
+        {
+          "id": "pt.join-request-notifies-host",
+          "rule": "A JOIN REQUEST gives the host a GamID notification."
+        },
+        {
+          "id": "pt.approve-notifies-requester",
+          "rule": "An APPROVE gives the requester a GamID notification reflecting the decision."
+        },
+        {
+          "id": "pt.reject-notifies-requester",
+          "rule": "A REJECT gives the requester a GamID notification reflecting the decision."
+        }
+      ],
+      "noContract": [
+        "CREATE",
+        "READY",
+        "READY_CHECK_START",
+        "START",
+        "COMPLETE"
+      ],
       "checkpoint": "e97594c52d5d341da40fd578c63404ec3b305475",
       "record": "accepted Play Together + Team Voice baseline 4fd0afa, landed on main; contracts approved by Mazen 2026-10-05; the producer for the three contracts (e97594c, feature/play-together-notifications, not on main) accepted by Mazen 2026-10-06",
       "notes": "Contracts are verified by consequence (unread count rises or a notification entry appears), not by transport. noContract: no notification requirement exists for these actions."
@@ -405,8 +695,12 @@
       "id": "play-together-marvel-rivals",
       "name": "Play Together: Marvel Rivals Quick Match on official servers",
       "status": "ACCEPTED",
-      "surfaces": ["/play-together/"],
-      "limits": { "quickMatchPlayers": 6 },
+      "surfaces": [
+        "/play-together/"
+      ],
+      "limits": {
+        "quickMatchPlayers": 6
+      },
       "checkpoint": "02a2877b3cf5207a6d5a052bfafe7b5bfa53df82",
       "record": "docs/PLAY_TOGETHER_MARVEL_RIVALS.md; manual acceptance by Mazen 2026-10-06 (PROJECT_HANDOFF.md §10)",
       "notes": "Competitive is shown but disabled by Mazen's decision."
@@ -415,7 +709,9 @@
       "id": "discord-team-voice",
       "name": "Discord Team Voice for the Play Together Team Room",
       "status": "ACCEPTED",
-      "surfaces": ["/play-together/"],
+      "surfaces": [
+        "/play-together/"
+      ],
       "checkpoint": "4fd0afa770a3c620a5b05f46821206b245571df3",
       "record": "accepted Play Together + Team Voice baseline 4fd0afa, landed on main; docs/PLAY_TOGETHER_TEAM_ROOM_VOICE.md"
     },
@@ -423,7 +719,12 @@
       "id": "global-usage",
       "name": "Global Usage (storage usage beside Notifications, quota-enforced upload gateway)",
       "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/account/", "/wall-editor/", "/play-together/", "/crew/"],
+      "surfaces": [
+        "/account/",
+        "/wall-editor/",
+        "/play-together/",
+        "/crew/"
+      ],
       "limits": {
         "storageQuotaBytes": 200000000,
         "storageEnforcement": true,
@@ -439,7 +740,9 @@
       "id": "landing-page",
       "name": "Root landing page",
       "status": "PENDING_ACCEPTANCE",
-      "surfaces": ["/"],
+      "surfaces": [
+        "/"
+      ],
       "checkpoint": "3cb0cde7f474cbe7efd194623c6c02853c3de365",
       "record": "PROJECT_HANDOFF.md §7k"
     }
