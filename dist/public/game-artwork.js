@@ -13,6 +13,16 @@ export async function fetchGameArtwork(baseUrl, handle, { fetchImpl = fetch, tim
   } catch { return null; }
 }
 
+// one Crew's game (its Crew Wall must be published): the Crew header logo
+export async function fetchCrewArtwork(baseUrl, crewId, { fetchImpl = fetch, timeoutMs = 8000 } = {}) {
+  try {
+    const response = await fetchImpl(`${baseUrl}/functions/v1/game-artwork/crew/${encodeURIComponent(crewId)}`, { signal: AbortSignal.timeout(timeoutMs) });
+    if (!response.ok) return null;
+    const body = await response.json();
+    return body && body.enabled && body.artwork && typeof body.artwork === "object" ? body : null;
+  } catch { return null; }
+}
+
 function image(doc, url, className) {
   const img = doc.createElement("img");
   img.className = className; img.alt = ""; img.decoding = "async"; img.loading = "lazy"; img.referrerPolicy = "no-referrer";

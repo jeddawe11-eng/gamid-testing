@@ -179,33 +179,20 @@ html.is-public-wall .public-shell .replay-button{grid-area:2/1;justify-self:star
    draws the wide identity hero, About Me, My Games and the My Socials / My Duo / League panel in one grid. Nothing below applies to narrower screens, so the
    accepted mobile / tablet layout is untouched. The separate Discord section is not shown here: Discord lives in My Socials (.desk-only items). */
 .desk-only{display:none}
+.desk-col{display:none}
 .desk-hero[hidden],.desk-about[hidden],.desk-connected[hidden],.desk-favorites[hidden]{display:none}
 @media(min-width:80rem){
-html.is-public-desktop .public-shell{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) 22rem;grid-template-areas:"hero hero side" "about games games" "replay replay replay";gap:1.25rem;align-items:start;align-content:start;justify-items:stretch;width:min(90rem,100%);margin:0 auto;padding:1.5rem max(1.5rem,env(safe-area-inset-right)) 0 max(1.5rem,env(safe-area-inset-left));box-sizing:border-box;background:transparent}
-html.is-public-desktop:not(.desk-has-side) .public-shell{grid-template-areas:"hero hero hero" "about games games" "replay replay replay"}
-html.is-public-desktop:not(.desk-has-games) .public-shell{grid-template-areas:"hero hero side" "about about side" "replay replay replay"}
-html.is-public-desktop:not(.desk-has-side):not(.desk-has-games) .public-shell{grid-template-areas:"hero hero hero" "about about about" "replay replay replay"}
-/* Connected Games sits under About Me (between About Me and My Games in reading order); the last flexible row takes My Games' extra height, so the two cards in
-   the left column stay together */
-html.is-public-desktop.desk-has-connected .public-shell{grid-template-rows:auto auto 1fr auto;grid-template-areas:"hero hero side" "about games games" "connected games games" "replay replay replay"}
-html.is-public-desktop.desk-has-connected:not(.desk-has-side) .public-shell{grid-template-areas:"hero hero hero" "about games games" "connected games games" "replay replay replay"}
-html.is-public-desktop.desk-has-connected:not(.desk-has-games) .public-shell{grid-template-areas:"hero hero side" "about about side" "connected connected side" "replay replay replay"}
-html.is-public-desktop.desk-has-connected:not(.desk-has-side):not(.desk-has-games) .public-shell{grid-template-areas:"hero hero hero" "about about about" "connected connected connected" "replay replay replay"}
-html.is-public-desktop .public-shell .desk-connected{grid-area:connected}
-/* Favorite Games: a full row directly below the hero (beside the sidebar when there is one), above About Me / My Games */
-html.is-public-desktop.desk-has-favorites .public-shell{grid-template-areas:"hero hero side" "favs favs side" "about games games" "replay replay replay"}
-html.is-public-desktop.desk-has-favorites:not(.desk-has-side) .public-shell{grid-template-areas:"hero hero hero" "favs favs favs" "about games games" "replay replay replay"}
-html.is-public-desktop.desk-has-favorites.desk-has-connected .public-shell{grid-template-rows:auto auto auto 1fr auto;grid-template-areas:"hero hero side" "favs favs side" "about games games" "connected games games" "replay replay replay"}
-html.is-public-desktop.desk-has-favorites.desk-has-connected:not(.desk-has-side) .public-shell{grid-template-areas:"hero hero hero" "favs favs favs" "about games games" "connected games games" "replay replay replay"}
-html.is-public-desktop .public-shell .desk-favorites{grid-area:favs}
+html.is-public-desktop .public-shell{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(19rem,1fr);grid-template-areas:"left right" "replay replay";gap:1.25rem;align-items:start;align-content:start;justify-items:stretch;width:min(90rem,100%);margin:0 auto;padding:1.5rem max(1.5rem,env(safe-area-inset-right)) 0 max(1.5rem,env(safe-area-inset-left));box-sizing:border-box;background:transparent}
 html.is-public-desktop [data-artwork-scope] .game-thumb{display:grid}
 html.is-public-desktop body{background:radial-gradient(circle at 12% 0,#27134e 0,transparent 32rem),#090811}
 html.is-public-desktop .experience-wrap{display:none}
 html.is-public-desktop.is-public-desktop-reveal .experience-wrap{display:block;position:fixed;inset:0;z-index:20;background:transparent}
-html.is-public-desktop .public-shell .desk-hero{grid-area:hero}
-html.is-public-desktop .public-shell .desk-about{grid-area:about}
-html.is-public-desktop .public-shell .public-sections{grid-area:side;width:auto;margin:0;justify-self:stretch}
-html.is-public-desktop .public-shell .public-games{grid-area:games;width:auto;margin:0}
+/* two independent columns (desk-col wrappers, public.js): LEFT = hero, Favorite Games, My Games; RIGHT = About Me, Socials / My Duo / My Crews (the sections panel),
+   Connected Games. Each column stacks its own cards, so neither forces gaps or equal heights on the other. Replay Intro spans both below. */
+html.is-public-desktop .desk-col{display:grid;gap:1.25rem;align-content:start;min-width:0}
+html.is-public-desktop .desk-col-left{grid-area:left}
+html.is-public-desktop .desk-col-right{grid-area:right}
+html.is-public-desktop .public-shell .desk-col>*{grid-area:auto;align-self:start;justify-self:stretch;width:auto;max-width:none;margin:0}
 html.is-public-desktop .public-shell .replay-button{grid-area:replay}
 html.is-public-desktop .public-section-discord{display:none}
 html.is-public-desktop .desk-only{display:revert}
@@ -299,9 +286,9 @@ button.desk-connected-card:hover,button.desk-connected-card:focus-visible{border
 .crew-card-face{display:grid;place-items:center;width:2rem;aspect-ratio:1;margin-right:-.45rem;border-radius:50%;overflow:hidden;border:2px solid #0b0a12;background:linear-gradient(145deg,#4d2eb1,#3bcbe7);font-size:.75rem;font-weight:900}
 .crew-card-face img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
 .crew-card-face.is-more{background:#1c1828;color:var(--muted);font-size:.68rem}
-/* FAVORITE GAMES (desktop): up to three large portrait covers (2:3, the provider's 600x900 family - never stretched), the name below; initials until a cover loads */
+/* FAVORITE GAMES (desktop): up to four large portrait covers in one row (2:3, the provider's 600x900 family - never stretched), the name below; initials until a cover loads */
 .desk-favorites{position:relative;z-index:1;min-width:0;padding:1.1rem 1.25rem;border:1px solid rgba(255,255,255,.2);border-radius:1rem;background:rgba(10,8,16,.78)}
-.desk-favorites-list{display:grid;grid-template-columns:repeat(3,minmax(0,13.5rem));gap:1.1rem;margin:.75rem 0 0;padding:0;list-style:none}
+.desk-favorites-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;margin:.75rem 0 0;padding:0;list-style:none}
 .desk-favorite{min-width:0}
 .desk-favorite-card{display:grid;gap:.55rem;width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:center}
 button.desk-favorite-card{cursor:pointer}

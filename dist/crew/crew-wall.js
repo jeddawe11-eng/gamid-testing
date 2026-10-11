@@ -92,10 +92,15 @@ export function paintCrewWall(host, model, people, { width, cardHref = () => nul
 
 function titleBlock(model, stage, make) {
   const box = make("div", "crew-title");
+  // the Crew's game logo (artwork resolver; the initials until / unless it has one)
+  const logo = make("span", "crew-title-logo");
+  logo.setAttribute("aria-hidden", "true");
+  if (model.gameKey) logo.setAttribute("data-game-key", model.gameKey);
+  logo.setAttribute("data-initials", (model.gameName.split(/[^\p{L}\p{N}]+/u).filter(w => w && !/^(a|an|and|of|the|to)$/i.test(w)).slice(0, 2).map(w => [...w][0]).join("") || "?").toUpperCase());
   const game = make("p", "crew-title-game", model.gameName.toUpperCase());
   const name = make("h1", "crew-title-name", model.crewName);
   const meta = make("p", "crew-title-meta", `${model.memberCount} member${model.memberCount === 1 ? "" : "s"} · Crew${model.stageCount > 1 ? ` · Stage ${stage} / ${model.stageCount}` : ""}`);
-  box.append(game, name, meta);
+  box.append(logo, game, name, meta);
   return box;
 }
 

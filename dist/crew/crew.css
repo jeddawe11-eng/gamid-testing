@@ -47,3 +47,7 @@ a.crew-card:hover,a.crew-card:focus-visible{border-color:var(--crew-cyan);outlin
 .identity-back:hover,.identity-back:focus-visible{border-color:#62e7ff;outline:none}
 .identity-back-arrow{font-size:1.2rem;line-height:1}
 .identity-skip,.identity-skip[hidden]{display:none}
+/* Crew header game logo (artwork resolver; initials until / unless it has one) */
+.crew-title-logo{position:relative;display:inline-grid;place-items:center;width:56px;aspect-ratio:1;margin:0 auto .45rem;overflow:hidden;border:1px solid rgba(255,255,255,.16);border-radius:.85rem;background:linear-gradient(145deg,#3b2a73,#1f4d73);color:#fff;font:800 1.05rem/1 Inter,system-ui,sans-serif}
+.crew-title-logo::before{content:attr(data-initials)}
+.crew-title-logo .game-art{position:absolute;inset:0;width:100%;aspect-ratio:1;object-fit:cover;display:block;background:#11101a}

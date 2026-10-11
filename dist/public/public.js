@@ -256,13 +256,23 @@ async function render() {
   function showDesktop(state) {
     const root = document.documentElement;
     if (state === "profile" || state === "transitioning") {
-      root.classList.add("is-public-desktop"); desktopView.show(); if (deskConnected) deskConnected.hidden = false; if (deskFavorites) deskFavorites.hidden = false;
+      root.classList.add("is-public-desktop"); arrangeDesktopColumns(); desktopView.show(); if (deskConnected) deskConnected.hidden = false; if (deskFavorites) deskFavorites.hidden = false;
       artwork().then(data => { applyGameArtwork(gamesBlock, data); if (deskConnected) applyGameArtwork(deskConnected, data); if (deskFavorites) applyGameArtwork(deskFavorites, data); });
       root.classList.toggle("is-public-desktop-reveal", state === "transitioning");
       experienceWrap.hidden = state === "profile";
     } else { hideDesktop(); experienceWrap.hidden = false; }
   }
-  function hideDesktop() { desktopView?.hide(); if (deskConnected) deskConnected.hidden = true; if (deskFavorites) deskFavorites.hidden = true; document.documentElement.classList.remove("is-public-desktop", "is-public-desktop-reveal"); }
+  function hideDesktop() { desktopView?.hide(); if (deskConnected) deskConnected.hidden = true; if (deskFavorites) deskFavorites.hidden = true; restoreMobileOrder(); document.documentElement.classList.remove("is-public-desktop", "is-public-desktop-reveal"); }
+  // The desktop Classic Profile's two independent columns. LEFT: hero, Favorite Games, My Games. RIGHT: About Me, the sections panel (Socials, My Duo, My Crews ...),
+  // Connected Games. The shared sections panel and My Games return to their accepted mobile places whenever the desktop profile is left.
+  let deskColumns = null;
+  function arrangeDesktopColumns() {
+    if (!desktopView) return;
+    if (!deskColumns) { deskColumns = { left: node("div", "desk-col desk-col-left"), right: node("div", "desk-col desk-col-right") }; replayButton.before(deskColumns.left, deskColumns.right); }
+    deskColumns.left.append(...[desktopView.hero, deskFavorites, gamesBlock].filter(Boolean));
+    deskColumns.right.append(...[desktopView.about, sectionsPanel, deskConnected].filter(Boolean));
+  }
+  function restoreMobileOrder() { if (deskColumns) replayButton.before(sectionsPanel, gamesBlock); }
   const artwork = () => (artworkRequest ||= fetchGameArtwork(SUPABASE_URL, identity.gamid_handle));
   frame.addEventListener("load", () => { frameReady = true; sendInitial(); });
   replayButton.addEventListener("click", layout.enterExperience);   // the Intro needs the full viewport again (registered first, so it runs before the config is sent)

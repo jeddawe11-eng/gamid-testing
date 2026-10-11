@@ -223,17 +223,54 @@ function introDraft() {
 const profileCatalogs = () => ({ roleKeys:roleCatalog.map(role => role.key), educationStatuses:educationWorkCatalog.map(status => status.key) });
 const catalogLabel = (catalog, key) => catalog.find(item => item.key === key)?.label || key || "";
 
+// Gaming Roles: the one catalog, shown in its eight categories (get_gaming_role_categories); a role the categories do not list yet still shows (under "Other").
+// Each category expands / collapses and counts its roles and the selected ones; the selected roles are removable chips with Clear All; the Primary Role select
+// below keeps the accepted Primary / Secondary model. Nothing is saved before the section's Save Changes.
+let roleCategories = null;
+const expandedRoleCategories = new Set();
+function roleCheckbox(role, checked) {
+  const label = document.createElement("label");
+  label.className = "role-choice";
+  const input = document.createElement("input");
+  input.type = "checkbox"; input.name = "gamingRole"; input.value = role.key; input.checked = checked;
+  const text = document.createElement("span"); text.textContent = role.label;
+  label.append(input, text);
+  return label;
+}
 function renderIdentityCatalogs() {
   const choices = document.getElementById("gamingRoleChoices");
-  choices.replaceChildren(...roleCatalog.map(role => {
-    const label = document.createElement("label");
-    label.className = "role-choice";
-    const input = document.createElement("input");
-    input.type = "checkbox"; input.name = "gamingRole"; input.value = role.key;
-    const text = document.createElement("span"); text.textContent = role.label;
-    label.append(input, text);
-    return label;
+  const checked = new Set([...choices.querySelectorAll('input[name="gamingRole"]:checked')].map(input => input.value));
+  const known = new Set(roleCatalog.map(role => role.key));
+  const groups = (roleCategories || []).map(c => ({ key: c.key, label: c.label, description: c.description, roles: (c.roles || []).filter(r => known.has(r.key)) })).filter(g => g.roles.length);
+  const placed = new Set(groups.flatMap(g => g.roles.map(r => r.key)));
+  const rest = roleCatalog.filter(role => !placed.has(role.key));
+  if (rest.length) groups.push({ key: "other", label: groups.length ? "Other" : "Gaming Roles", description: "", roles: rest });
+  choices.replaceChildren(...groups.map(group => {
+    const box = document.createElement("div"); box.className = "role-category"; box.dataset.roleCategory = group.key;
+    const toggle = document.createElement("button"); toggle.type = "button"; toggle.className = "role-category-toggle";
+    const panelId = `roleCategory-${group.key}`;
+    toggle.setAttribute("aria-controls", panelId);
+    const open = expandedRoleCategories.has(group.key);
+    toggle.setAttribute("aria-expanded", String(open));
+    const title = document.createElement("strong"); title.textContent = group.label;
+    const note = document.createElement("small"); note.className = "role-category-note"; note.textContent = group.description || "";
+    const count = document.createElement("span"); count.className = "role-category-count"; count.dataset.roleCount = group.key;
+    const chevron = document.createElement("span"); chevron.className = "section-chevron"; chevron.textContent = "›"; chevron.setAttribute("aria-hidden", "true");
+    const copy = document.createElement("span"); copy.className = "role-category-copy"; copy.append(title, note);
+    toggle.append(copy, count, chevron);
+    const panel = document.createElement("div"); panel.className = "role-category-panel"; panel.id = panelId; panel.hidden = !open;
+    panel.append(...group.roles.map(role => roleCheckbox(role, checked.has(role.key))));
+    toggle.addEventListener("click", () => {
+      const next = toggle.getAttribute("aria-expanded") !== "true";
+      toggle.setAttribute("aria-expanded", String(next)); panel.hidden = !next;
+      if (next) expandedRoleCategories.add(group.key); else expandedRoleCategories.delete(group.key);
+    });
+    box.append(toggle, panel);
+    box.dataset.roleTotal = String(group.roles.length);
+    return box;
   }));
+  ensureRoleSelectionArea();
+  renderRoleSelection();
   const education = document.getElementById("educationWorkStatus");
   education.replaceChildren(new Option("Prefer not to add", ""), ...educationWorkCatalog.map(status => new Option(status.label, status.key)));
 }
@@ -241,10 +278,146 @@ function renderIdentityCatalogs() {
 function syncPrimaryRole() {
   const selected = profileDraft().roleKeys;
   const primary = document.getElementById("primaryRoleSelect");
-  const previous = selected.includes(primary.value) ? primary.value : selected[0] || "";
+  const previous = selected.includes(primary.value) ? primary.value : selected[0] || "";   // a deselected Primary Role is replaced by the first remaining role
   primary.replaceChildren(...(selected.length ? selected.map(key => new Option(catalogLabel(roleCatalog, key), key)) : [new Option("Select roles first", "")]));
   primary.value = previous;
   primary.disabled = !selected.length;
+  renderRoleSelection();
+}
+
+// the selected roles (chips, each removable; Clear All) and every category's "N roles · M selected" - always from the checkboxes, the one source of truth
+function ensureRoleSelectionArea() {
+  if (document.getElementById("selectedRolesArea")) return;
+  const choices = document.getElementById("gamingRoleChoices");
+  const area = document.createElement("div"); area.id = "selectedRolesArea"; area.className = "selected-roles";
+  const head = document.createElement("div"); head.className = "selected-roles-head";
+  const title = document.createElement("strong"); title.textContent = "Selected roles";
+  const clear = document.createElement("button"); clear.type = "button"; clear.className = "text-button"; clear.id = "clearRolesButton"; clear.textContent = "Clear All";
+  clear.addEventListener("click", () => { choices.querySelectorAll('input[name="gamingRole"]:checked').forEach(input => { input.checked = false; }); choices.dispatchEvent(new Event("change", { bubbles: true })); });
+  head.append(title, clear);
+  const list = document.createElement("div"); list.id = "selectedRolesList"; list.className = "selected-roles-list"; list.setAttribute("aria-live", "polite");
+  area.append(head, list);
+  choices.after(area);
+  mountRoleSuggestion();
+}
+function renderRoleSelection() {
+  const choices = document.getElementById("gamingRoleChoices"), list = document.getElementById("selectedRolesList");
+  if (!choices || !list) return;
+  const selected = [...choices.querySelectorAll('input[name="gamingRole"]:checked')].map(input => input.value);
+  const primary = document.getElementById("primaryRoleSelect").value;
+  for (const box of choices.querySelectorAll("[data-role-category]")) {
+    const picked = box.querySelectorAll('input[name="gamingRole"]:checked').length;
+    const total = Number(box.dataset.roleTotal) || box.querySelectorAll('input[name="gamingRole"]').length;
+    box.querySelector("[data-role-count]").textContent = `${total} roles${picked ? ` · ${picked} selected` : ""}`;
+    box.classList.toggle("has-selection", picked > 0);
+  }
+  list.replaceChildren(...(selected.length ? selected.map(key => {
+    const chip = document.createElement("span"); chip.className = `selected-role${key === primary ? " is-primary" : ""}`;
+    const name = document.createElement("span"); name.textContent = `${catalogLabel(roleCatalog, key)}${key === primary ? " · Primary" : ""}`;
+    const remove = document.createElement("button"); remove.type = "button"; remove.className = "selected-role-remove"; remove.textContent = "×";
+    remove.setAttribute("aria-label", `Remove ${catalogLabel(roleCatalog, key)}`);
+    remove.addEventListener("click", () => { const input = [...choices.querySelectorAll('input[name="gamingRole"]')].find(i => i.value === key); if (input) { input.checked = false; choices.dispatchEvent(new Event("change", { bubbles: true })); } });
+    chip.append(name, remove);
+    return chip;
+  }) : [Object.assign(document.createElement("p"), { className: "connections-empty", textContent: "No roles selected yet." })]));
+  document.getElementById("clearRolesButton").disabled = !selected.length;
+}
+
+// "Can't find your role? Suggest a Role": sent to the GamID administrators for review; it never becomes selectable before it is approved into the catalog
+const ROLE_SUGGESTION_MESSAGES = {
+  ROLE_ALREADY_EXISTS: "That role is already in the catalog - find it in the categories above.",
+  ROLE_SUGGESTION_DUPLICATE: "You already suggested this role. It is waiting for review.",
+  ROLE_SUGGESTION_RATE_LIMIT: "You've sent 5 suggestions today. Please try again tomorrow.",
+  INVALID_ROLE_NAME: "Use 3-40 characters: letters, numbers, spaces and simple punctuation (no links).",
+};
+const ROLE_SUGGESTION_STATUS = { PENDING: "Waiting for review", APPROVED: "Approved - you can select it", REJECTED: "Not added" };
+function mountRoleSuggestion() {
+  const panel = document.getElementById("rolesSectionPanel");
+  if (!panel || document.getElementById("roleSuggestion")) return;
+  const box = document.createElement("div"); box.id = "roleSuggestion"; box.className = "role-suggestion";
+  const open = document.createElement("button"); open.type = "button"; open.className = "text-button role-suggestion-open"; open.textContent = "Can't find your role? Suggest a Role";
+  open.setAttribute("aria-expanded", "false"); open.setAttribute("aria-controls", "roleSuggestionForm");
+  const form = document.createElement("div"); form.id = "roleSuggestionForm"; form.className = "role-suggestion-form"; form.hidden = true;
+  const field = document.createElement("label"); field.textContent = "Role name";
+  const input = document.createElement("input"); input.id = "roleSuggestionInput"; input.maxLength = 40; input.autocomplete = "off"; input.placeholder = "e.g. Speedrunner";
+  field.append(input);
+  const submit = document.createElement("button"); submit.type = "button"; submit.className = "secondary"; submit.textContent = "Submit Suggestion";
+  const status = document.createElement("p"); status.className = "connections-message"; status.setAttribute("role", "status"); status.hidden = true;
+  const mine = document.createElement("ul"); mine.className = "role-suggestion-mine";
+  form.append(field, submit, status, mine);
+  box.append(open, form);
+  panel.querySelector(".section-save") ? panel.querySelector(".section-save").before(box) : panel.append(box);
+  const say = (text, tone) => { status.textContent = text; status.hidden = !text; status.dataset.tone = tone || "info"; };
+  const listMine = async () => {
+    try {
+      const rows = await api.getMyRoleSuggestions();
+      mine.replaceChildren(...rows.slice(0, 5).map(row => { const li = document.createElement("li"); li.textContent = `${row.approved_label || row.proposed_name} - ${ROLE_SUGGESTION_STATUS[row.status] || row.status}`; return li; }));
+    } catch { mine.replaceChildren(); }
+  };
+  open.addEventListener("click", () => { const next = form.hidden; form.hidden = !next; open.setAttribute("aria-expanded", String(next)); if (next) { input.focus(); listMine(); } });
+  submit.addEventListener("click", async () => {
+    const name = input.value.replace(/\s+/g, " ").trim();
+    if (name.length < 3 || name.length > 40) { say(ROLE_SUGGESTION_MESSAGES.INVALID_ROLE_NAME, "warn"); input.focus(); return; }
+    submit.disabled = true; say("Sending...", "info");
+    try {
+      await api.suggestGamingRole(name);
+      input.value = ""; say(`Thanks - "${name}" was sent for review. You'll get a notification when it is reviewed.`, "success"); listMine();
+    } catch (error) {
+      const code = Object.keys(ROLE_SUGGESTION_MESSAGES).find(key => `${error?.message || ""} ${error?.code || ""}`.includes(key));
+      say(code ? ROLE_SUGGESTION_MESSAGES[code] : "Your suggestion could not be sent right now. Please try again.", "warn");
+    }
+    submit.disabled = false;
+  });
+}
+
+// Role Suggestions review: GamID administrators only (get_my_admin_status; every review RPC checks again on the server)
+async function mountRoleReview() {
+  const section = document.getElementById("roleSuggestionsSection");
+  if (!section) return;
+  let admin = false;
+  try { admin = await api.getMyAdminStatus(); } catch { admin = false; }
+  section.hidden = !admin;
+  if (!admin) return;
+  const list = document.getElementById("roleSuggestionsList"), message = document.getElementById("roleSuggestionsMessage");
+  const categories = roleCategories || await api.getGamingRoleCategories().catch(() => []);
+  const render = async () => {
+    let rows = [];
+    try { rows = await api.listRoleSuggestions("PENDING"); } catch { message.textContent = "Couldn't load role suggestions."; message.hidden = false; return; }
+    if (!rows.length) { list.replaceChildren(Object.assign(document.createElement("p"), { className: "connections-empty", textContent: "No pending role suggestions." })); return; }
+    list.replaceChildren(...rows.map(row => {
+      const item = document.createElement("div"); item.className = "role-review-item";
+      const head = document.createElement("p"); head.className = "role-review-head";
+      const strong = document.createElement("strong"); strong.textContent = row.proposed_name;
+      const meta = document.createElement("small"); meta.textContent = ` · @${row.submitter_handle} · ${new Date(row.created_at).toLocaleDateString()}${row.same_name_pending > 1 ? ` · ${row.same_name_pending} people` : ""}`;
+      head.append(strong, meta);
+      const label = document.createElement("input"); label.value = row.proposed_name; label.maxLength = 40; label.setAttribute("aria-label", `Catalog name for ${row.proposed_name}`);
+      const select = document.createElement("select"); select.setAttribute("aria-label", `Category for ${row.proposed_name}`);
+      select.append(new Option("Choose a category", ""), ...categories.map(c => new Option(c.label, c.key)));
+      const approve = document.createElement("button"); approve.type = "button"; approve.className = "primary"; approve.textContent = "Approve";
+      const reject = document.createElement("button"); reject.type = "button"; reject.className = "secondary"; reject.textContent = "Reject";
+      const note = document.createElement("p"); note.className = "connections-message"; note.setAttribute("role", "status"); note.hidden = true;
+      const act = async (decision) => {
+        if (decision === "APPROVE" && !select.value) { note.textContent = "Choose the category first."; note.hidden = false; return; }
+        approve.disabled = reject.disabled = true;
+        try { await api.reviewRoleSuggestion(row.suggestion_id, decision, select.value || null, label.value); await refreshRoleCatalog(); await render(); }
+        catch (error) { note.textContent = /ROLE_ALREADY_EXISTS/.test(`${error?.message}`) ? "That name is already in the catalog." : "The review could not be saved."; note.hidden = false; approve.disabled = reject.disabled = false; }
+      };
+      approve.addEventListener("click", () => act("APPROVE")); reject.addEventListener("click", () => act("REJECT"));
+      const actions = document.createElement("div"); actions.className = "role-review-actions"; actions.append(label, select, approve, reject);
+      item.append(head, actions, note);
+      return item;
+    }));
+  };
+  await render();
+  if (location.hash === "#role-suggestions") openNotificationDestination("account.role_suggestions");
+}
+
+// an approved role joins the catalog at once (no reload): the categories and the identity catalog are read again, the current selection kept
+async function refreshRoleCatalog() {
+  try { roleCategories = await api.getGamingRoleCategories(); } catch { return; }
+  const known = new Map(roleCatalog.map(role => [role.key, role]));
+  for (const c of roleCategories) for (const r of c.roles || []) if (!known.has(r.key)) { roleCatalog.push({ key: r.key, label: r.label }); known.set(r.key, r); }
+  renderIdentityCatalogs(); syncPrimaryRole();
 }
 
 function syncEducationContext() {
@@ -461,6 +634,7 @@ async function showIdentity(data) {
   [...document.querySelectorAll('input[name="gamingRole"]')].forEach(input => { input.checked = (identity.role_keys || []).includes(input.value); });
   syncPrimaryRole();
   document.getElementById("primaryRoleSelect").value = identity.primary_role_key || "";
+  renderRoleSelection();
   document.getElementById("educationWorkStatus").value = identity.education_work_status || "";
   document.getElementById("profileInstitution").value = identity.institution || "";
   document.getElementById("profileFieldOfStudy").value = identity.field_of_study || "";
@@ -474,6 +648,9 @@ async function showIdentity(data) {
   await restoreIntroState(intro);
   if (isProcessingIntroState(intro)) introStatusPoller.start();
   updateProfilePreview();
+  // the Gaming Roles categories (one small catalog read) and, for administrators only, the Role Suggestions review
+  api.getGamingRoleCategories().then(categories => { roleCategories = categories; renderIdentityCatalogs(); syncPrimaryRole(); updateProfilePreview(); }, () => {});
+  mountRoleReview();
   await loadSectionVisibility();
   await loadSocials();
   loadBannerAndAbout();
@@ -968,7 +1145,7 @@ function revealEditorSection(node){
  }
 }
 function openNotificationDestination(destination) {
-  const sectionId = { "account.my_duo": "duoSection", "account.my_crew": "crewSection" }[destination];
+  const sectionId = { "account.my_duo": "duoSection", "account.my_crew": "crewSection", "account.role_suggestions": "roleSuggestionsSection", "account.gaming_roles": "gamingRoleChoices" }[destination];
   if (!sectionId) return;
   const section = document.getElementById(sectionId);
   if (!section) return;
@@ -1228,8 +1405,8 @@ const gameListExpanded = new Set();
 // Games the owner added by hand (canonical game_key + the platforms they declared; always MANUAL / unverified) and the state of the one Add Game panel.
 let manualGames = [];
 // Favorite Games: at most FAVORITE_GAMES_MAX catalog game keys from the owner's own library, in the owner's order (set_my_favorite_games enforces it again)
-const FAVORITE_GAMES_MAX = 3;
-const FAVORITE_LIMIT_TEXT = "Maximum 3 favorite games. Remove one to add another.";
+const FAVORITE_GAMES_MAX = 4;
+const FAVORITE_LIMIT_TEXT = "Maximum 4 favorite games. Remove one to add another.";
 let favoriteKeys = [];
 let favoritesBusy = false;
 let myGamesNotice = null;
@@ -1398,7 +1575,7 @@ async function toggleFavorite(gameKey) {
   const next = on ? favoriteKeys.filter(key => key !== gameKey) : [...favoriteKeys, gameKey];
   favoritesBusy = true; renderMyGames();
   try { favoriteKeys = await api.setMyFavoriteGames(next); myGamesNotice = null; }
-  catch (error) { myGamesNotice = { tone: "warn", text: /FAVORITE_GAMES_LIMIT/.test(String(error?.code || error?.message)) ? FAVORITE_LIMIT_TEXT : "Couldn't save your Favorite Games right now. Please try again." }; await loadFavoriteGames(); }
+  catch (error) { myGamesNotice = { tone: "warn", text: /FAVORITE_GAMES_LIMIT/.test(`${error?.message || ""} ${error?.code || ""}`) ? FAVORITE_LIMIT_TEXT : "Couldn't save your Favorite Games right now. Please try again." }; await loadFavoriteGames(); }
   favoritesBusy = false; renderMyGames();
 }
 
@@ -1899,7 +2076,7 @@ document.getElementById("avatarInput").addEventListener("change", event => {
 document.getElementById("profileDisplayName").addEventListener("input", updateProfilePreview);
 document.getElementById("profileBio").addEventListener("input", updateProfilePreview);
 document.getElementById("gamingRoleChoices").addEventListener("change", () => { syncPrimaryRole(); updateProfilePreview(); });
-document.getElementById("primaryRoleSelect").addEventListener("change", updateProfilePreview);
+document.getElementById("primaryRoleSelect").addEventListener("change", () => { renderRoleSelection(); updateProfilePreview(); });
 document.getElementById("educationWorkStatus").addEventListener("change", () => { syncEducationContext(); updateProfilePreview(); });
 document.getElementById("profileInstitution").addEventListener("input", updateProfilePreview);
 document.getElementById("profileFieldOfStudy").addEventListener("input", updateProfilePreview);

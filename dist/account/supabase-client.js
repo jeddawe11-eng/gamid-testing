@@ -505,7 +505,15 @@ export async function setMyAbout({ countryCode, cityId, keepLegacy, languages, g
 }
 // owner city search inside one country (at most 12, most populous first)
 export async function searchLocationCities(countryCode, query) { return (await rpc("search_location_cities", { candidate_country: countryCode, candidate_query: query ?? "" })) || []; }
-// Favorite Games: at most 3 catalog game keys from the owner's own My Games, in order (the server enforces the limit and the library membership)
+// Gaming Roles in categories (the one catalog) + Suggest a Role (pending until an administrator approves it into the catalog)
+export async function getGamingRoleCategories() { const rows = await rpc("get_gaming_role_categories"); return Array.isArray(rows) ? rows : []; }
+export async function suggestGamingRole(name) { return rpc("suggest_gaming_role", { candidate_name: name }); }
+export async function getMyRoleSuggestions() { const rows = await rpc("get_my_role_suggestions"); return Array.isArray(rows) ? rows : []; }
+// administrators only (the server decides; a client flag is never trusted)
+export async function getMyAdminStatus() { return (await rpc("get_my_admin_status")) === true; }
+export async function listRoleSuggestions(status = "PENDING") { const rows = await rpc("list_role_suggestions", { candidate_status: status }); return Array.isArray(rows) ? rows : []; }
+export async function reviewRoleSuggestion(id, decision, categoryKey = null, label = null) { return rpc("review_role_suggestion", { candidate_suggestion: id, candidate_decision: decision, candidate_category: categoryKey, candidate_label: label }); }
+// Favorite Games: at most 4 catalog game keys from the owner's own My Games, in order (the server enforces the limit and the library membership)
 export async function getMyFavoriteGames() { const rows = await rpc("get_my_favorite_games"); return Array.isArray(rows) ? rows.filter(key => typeof key === "string") : []; }
 export async function setMyFavoriteGames(keys) { const rows = await rpc("set_my_favorite_games", { candidate_keys: Array.isArray(keys) ? keys : [] }); return Array.isArray(rows) ? rows.filter(key => typeof key === "string") : []; }
 // a PUBLISHED GamID's Favorite Games (anonymous; only while its My Games is public): [{ game_key, name, year }]

@@ -28,6 +28,10 @@ export const NOTIFICATION_TEXT = Object.freeze({
   "play_together.request_received": row => `${who(row)} requested to join your Play Together squad${queue(row)}.`,
   "play_together.request_approved": row => `${who(row)} approved your request to join their Play Together squad${queue(row)}.`,
   "play_together.request_rejected": row => `${who(row)} declined your request to join their Play Together squad${queue(row)}.`,
+  // Gaming Roles - Suggest a Role (the role name is server-written context)
+  "role.suggestion_submitted": row => `${who(row)} suggested a new Gaming Role: ${plain(row?.context?.role_name, 40) || "a role"}.`,
+  "role.suggestion_approved": row => `Your suggested Gaming Role "${plain(row?.context?.role_name, 40) || "role"}" was approved and can now be selected.`,
+  "role.suggestion_rejected": row => `Your suggested Gaming Role "${plain(row?.context?.role_name, 40) || "role"}" was not added.`,
 });
 
 export const notificationText = row => (Object.hasOwn(NOTIFICATION_TEXT, row?.type_key) ? NOTIFICATION_TEXT[row.type_key](row) : "You have a new GamID notification.");
@@ -36,6 +40,8 @@ export const notificationText = row => (Object.hasOwn(NOTIFICATION_TEXT, row?.ty
 export const DESTINATIONS = Object.freeze({
   "account.my_duo": { page: "account", anchor: "my-duo", label: "My Duo" },
   "account.my_crew": { page: "account", anchor: "my-crew", label: "My Crew" },
+  "account.role_suggestions": { page: "account", anchor: "role-suggestions", label: "Role Suggestions" },
+  "account.gaming_roles": { page: "account", anchor: "gaming-roles", label: "Gaming Roles" },
   "play_together.requests": { page: "play-together", anchor: "requestSection", label: "Play Together" },
   "play_together.session": { page: "play-together", anchor: "activePanel", label: "Play Together" },
 });

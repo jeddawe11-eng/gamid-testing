@@ -438,6 +438,35 @@ a.duo-handle:hover,a.duo-handle:focus-visible{text-decoration:underline}
 .connection-card[data-provider="steam"] .connection-name{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere;line-height:1.35}
 .connection-card[data-provider="steam"] .connection-privacy,.connection-card[data-provider="steam"] .connection-discovery-note{overflow-wrap:anywhere;line-height:1.5}
 
+/* Gaming Roles in categories (account.js renderIdentityCatalogs): expandable groups with role / selected counts, the selected-role chips, Suggest a Role */
+.role-choices .role-category{flex:1 1 100%;min-width:0;border:1px solid #2b2738;border-radius:.85rem;background:#120f19}
+.role-category.has-selection{border-color:rgba(98,231,255,.35)}
+.role-category-toggle{display:flex;align-items:center;gap:.75rem;width:100%;min-height:3rem;margin:0;padding:.65rem .85rem;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.role-category-toggle:focus-visible{outline:2px solid var(--cyan);outline-offset:-2px;border-radius:.85rem}
+.role-category-copy{display:grid;gap:.1rem;flex:1;min-width:0}
+.role-category-copy strong{font-size:.86rem}
+.role-category-note{color:var(--muted);font-size:.7rem}
+.role-category-count{flex:none;color:var(--muted);font-size:.7rem;white-space:nowrap}
+.role-category.has-selection .role-category-count{color:#9ff2ff}
+.role-category-toggle[aria-expanded="true"] .section-chevron{transform:rotate(90deg)}
+.role-category-panel{display:flex;flex-wrap:wrap;gap:.5rem;padding:0 .85rem .85rem}
+.role-category-panel[hidden]{display:none}
+.selected-roles{display:grid;gap:.45rem;margin-top:.75rem}
+.selected-roles-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.selected-roles-head strong{font-size:.8rem}
+.selected-roles-list{display:flex;flex-wrap:wrap;gap:.4rem}
+.selected-role{display:inline-flex;align-items:center;gap:.25rem;max-width:100%;padding:.2rem .25rem .2rem .65rem;border:1px solid #393249;border-radius:999px;background:#17131f;font-size:.72rem;overflow-wrap:anywhere}
+.selected-role.is-primary{border-color:#fff;background:#fff;color:#0b0a10;font-weight:800}
+.selected-role-remove{display:inline-grid;place-items:center;width:1.9rem;min-width:1.9rem;min-height:1.9rem;margin:0;padding:0;border:0;border-radius:50%;background:transparent;color:inherit;font:400 1rem/1 system-ui,sans-serif;cursor:pointer}
+.selected-role-remove:focus-visible{outline:2px solid var(--cyan)}
+.role-suggestion{margin-top:.75rem}
+.role-suggestion-form{display:grid;gap:.5rem;margin-top:.5rem}
+.role-suggestion-form[hidden]{display:none}
+.role-suggestion-mine{margin:0;padding-left:1.1rem;color:var(--muted);font-size:.74rem}
+.role-review-item{display:grid;gap:.45rem;padding:.75rem 0;border-top:1px solid #2b2738}
+.role-review-head{margin:0}
+.role-review-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.role-review-actions input,.role-review-actions select{flex:1 1 12rem;margin-top:0}
 /* Steam My Games (discovery only): everything is scoped to the Steam card. Long names wrap; nothing is ellipsized or clipped. */
 .connection-card[data-provider="steam"] .steam-games{display:grid;gap:.7rem;margin-top:.9rem;padding:.85rem;border:1px dashed var(--line);border-radius:.8rem;background:rgba(255,255,255,.015);min-width:0}
 .connection-card[data-provider="steam"] .steam-games .connection-discovery-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem}

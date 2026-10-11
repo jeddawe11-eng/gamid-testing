@@ -7,6 +7,8 @@
 import { getPublicCrewWall, getCrewWallPreview, getPublicIdentity, loadPublicAvatar, restoreSession, currentSession, AUTH_SESSION_EVENT } from "../account/supabase-client.js";
 import { crewWallModel, paintCrewWall, CREW_UUID } from "./crew-wall.js";
 import { backHandle } from "../public/identity-link.js";
+import { fetchCrewArtwork, applyGameArtwork } from "../public/game-artwork.js";
+import { SUPABASE_URL } from "../account/supabase-client.js";
 import { createVisitorNav } from "../public/visitor-nav.js";
 
 export const SCROLL_KEY = crewId => `gamid.crewWall.scroll.${crewId}`;
@@ -63,7 +65,7 @@ async function main() {
   const nav = createVisitorNav({ from, pathname: location.pathname, referrer: document.referrer, origin: location.origin, history });
   if (nav) document.getElementById("crewShell").prepend(nav.element);
 
-  let model = null, people = new Map(), preview = false, paintedWidth = 0;
+  let model = null, people = new Map(), preview = false, paintedWidth = 0, artwork = null;
   async function read() {
     let view = null;
     try { view = await getPublicCrewWall(crewId); } catch { view = null; }
@@ -87,6 +89,9 @@ async function main() {
       cardHref: handle => memberHref(new URL(`../@${handle}`, location.href).pathname, model.crewId, from),
     });
     for (const link of host.querySelectorAll("a.crew-card")) link.addEventListener("click", () => { try { sessionStorage.setItem(SCROLL_KEY(crewId), String(scrollY)); } catch { /* storage off: Back still works */ } });
+    // the game logo in the Crew header: one request per page load (the published Crew's game only), re-applied on every repaint
+    artwork ||= fetchCrewArtwork(SUPABASE_URL, model.crewId);
+    artwork.then(data => applyGameArtwork(host, data));
   }
 
   await read();

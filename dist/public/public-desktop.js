@@ -151,10 +151,10 @@ export function initialsOf(name) {
   return (main.length ? main : words).slice(0, 2).map(word => [...word][0]).join("").toUpperCase() || "?";
 }
 
-// FAVORITE GAMES (desktop, directly below the hero and above My Games): up to three of the owner's games, in their order, as large portrait covers with the
+// FAVORITE GAMES (desktop, directly below the hero and above My Games): up to four of the owner's games, in their order, as large portrait covers with the
 // name below. Covers come from the existing artwork resolver (a portrait cover only); without one the card keeps the title's initials. A card opens the
 // existing Game Details when My Games lists the game. Read-only: visitors see the selection, only the owner changes it (Profile Editor -> My Games hearts).
-export const FAVORITE_GAMES_SHOWN = 3;
+export const FAVORITE_GAMES_SHOWN = 4;
 export function favoriteGamesSection(favorites, { doc = globalThis.document, onOpen = null } = {}) {
   const list = (Array.isArray(favorites) ? favorites : []).filter(f => typeof f?.game_key === "string" && typeof f?.name === "string" && f.name.trim()).slice(0, FAVORITE_GAMES_SHOWN);
   if (!list.length || !doc) return null;

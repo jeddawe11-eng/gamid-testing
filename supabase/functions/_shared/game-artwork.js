@@ -32,6 +32,14 @@ export const normalizeTitle = text => String(text ?? "").normalize("NFKD").repla
 export const gameRowKey = (name, year) => `${name}|${Number.isInteger(year) ? year : ""}`;
 export const safeCdnUrl = url => (typeof url === "string" && CDN_URL.test(url) ? url : null);
 
+const CREW_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+// GET /game-artwork/crew/<crew id>: the game of one Crew whose Crew Wall is published (the Crew header)
+export function crewFrom(url) {
+  const match = /\/game-artwork\/crew\/([^/?#]+)\/?$/.exec(new URL(url).pathname);
+  const id = match ? match[1].toLowerCase() : "";
+  return CREW_ID.test(id) ? id : null;
+}
+
 export function handleFrom(url) {
   const match = /\/game-artwork\/([^/?#]+)\/?$/.exec(new URL(url).pathname);
   if (!match) return null;
@@ -116,14 +124,15 @@ export async function handleGameArtwork({ request, env, fetchImpl = fetch, log =
   if (origin && !SITE_ORIGINS.includes(origin)) return json({ error: "origin_not_allowed" }, 403);
   const empty = extra => json({ provider: PROVIDER, configured: Boolean(env?.providerKey), enabled: false, artwork: {}, myGames: {}, ...extra }, 200, cors);
   if (!configured(env)) return empty({ configured: false });
-  const handle = handleFrom(request.url);
-  if (!handle) return empty();
+  const crew = crewFrom(request.url);
+  const handle = crew ? null : handleFrom(request.url);
+  if (!handle && !crew) return empty();
   try {
     if ((await serviceRpc(fetchImpl, env, "public_media_hit", { candidate_key: `artwork:${await clientKey(request, env)}`, candidate_limit: LIMITS.perClientPerMinute })) !== true) {
       log("game-artwork", "rate_limited");
       return new Response(null, { status: 429, headers: { ...cors, "Cache-Control": "no-store", "Retry-After": "60" } });
     }
-    const targets = await serviceRpc(fetchImpl, env, "game_artwork_targets", { candidate_handle: handle });
+    const targets = crew ? await serviceRpc(fetchImpl, env, "game_artwork_crew_targets", { candidate_crew: crew }) : await serviceRpc(fetchImpl, env, "game_artwork_targets", { candidate_handle: handle });
     const games = Array.isArray(targets?.games) ? targets.games.filter(g => typeof g?.game_key === "string" && typeof g?.name === "string") : [];
     if (!targets?.enabled) return empty();
     // the visitor's page knows My Games rows by title + year only: map them to this GamID's own library keys - only when unique within that library

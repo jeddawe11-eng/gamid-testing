@@ -36,3 +36,5 @@ html.host-reveal,html.host-reveal body,html.host-reveal .experience{background:t
 html.host-reveal .profile{visibility:hidden}
 /* the public host shows its own Skip Intro beside Back to @handle (config.hostSkip): this frame's own Skip is hidden so there is never two */
 html.host-skip .skip{display:none}
+/* each secondary Gaming Role is its own badge (the container itself draws nothing) */
+#previewSecondaryRoles{display:contents}
