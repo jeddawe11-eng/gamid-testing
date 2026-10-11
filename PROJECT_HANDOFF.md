@@ -2854,3 +2854,15 @@ Documentation and test-data task (Mazen), TESTING only. No code, deployment or T
 - CP-01: REV-0002 (PASS, one Crew).
 - GR-01: REV-0003 (PASS).
 - Truth statuses are unchanged: `my-crews-view` and `gaming-roles-categories` remain PENDING_ACCEPTANCE as whole capabilities.
+
+## 40. ISS-0009 owner acceptance — 2026-10-11
+
+Documentation only (Mazen). No code, deployment, JWT rotation or Production access; product checkpoint unchanged (`a1d2eeb`).
+- **Acceptance:** Mazen explicitly ACCEPTS the ISS-0009 security remediation on TESTING (Phase 1D, §30; closure assessment §38; known synthetic URL closed §39). This includes the documented residual possibility of unknown historical signed URLs.
+- **Residual risk, disclosed and accepted, not resolved:**
+  - URLs a visitor may have minted before 2026-10-10 for objects that were public then stay valid until they expire or their object is deleted. They cannot be listed or revoked without rotating the JWT secret, which was not done.
+  - Issued leases run to their accepted lifetimes (Intro 120 s, Wall video 6 h).
+  - The signing ban depends on Supabase setting `storage.operation()`; a periodic live check remains advisable.
+  - Owners can sign their own files.
+- **Product Memory:** ISS-0009 moves FIXED → VERIFIED, with `acceptance` recorded and the residuals kept in the record.
+- **GamID Truth:** `visitor-media-access` moves PENDING_ACCEPTANCE → ACCEPTED (the capability is exactly this remediation); its checkpoint stays `660d911`. No contract or limit changed.

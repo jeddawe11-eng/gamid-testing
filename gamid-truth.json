@@ -250,7 +250,7 @@
     {
       "id": "visitor-media-access",
       "name": "Visitor access to stored media (Avatar, Intro, Wall media, Classic Profile Banner): server-decided, no visitor-minted Storage URLs",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": ["/@<handle>", "/functions/v1/public-media", "/functions/v1/profile-banner/<handle>"],
       "limits": { "introLeaseSeconds": 120, "wallVideoLeaseSeconds": 21600, "bannerMaxBytes": 5242880 },
       "contracts": [
@@ -259,7 +259,7 @@
         { "id": "banner-delivery", "rule": "The Classic Profile Banner is never readable or signable through Storage by visitors. profile-banner returns the attached Banner of a PUBLIC GamID as image/jpeg with Cache-Control: no-store, checked before and after reading it; every refusal (PRIVATE, DRAFT, detached, unknown, malformed) is the same empty 404, and requests are rate limited (429)." }
       ],
       "checkpoint": "660d91100a78f94c86288168c279e2b536dcdb0f",
-      "record": "PROJECT_HANDOFF.md §30; migrations 20261010140000_visitor_storage_signing.sql and 20261010141000_visitor_storage_signing_ban.sql; Product Memory ISS-0009, DEC-0005"
+      "record": "PROJECT_HANDOFF.md §30, §38-§40; migrations 20261010140000_visitor_storage_signing.sql and 20261010141000_visitor_storage_signing_ban.sql; security remediation explicitly accepted by Mazen on TESTING 2026-10-11 (PROJECT_HANDOFF.md §40); Product Memory ISS-0009 (VERIFIED), DEC-0005"
     },
     {
       "id": "profile-banner",

@@ -1,7 +1,7 @@
 ---
 id: ISS-0009
 title: HIGH - anonymous visitors can mint long-lived signed Storage URLs that outlive PRIVATE / detach / unpublish
-status: FIXED
+status: VERIFIED
 created: 2026-10-10
 updated: 2026-10-11
 scope: Storage read access for visitors - Classic Profile Banner, public Avatar, Intro media, published Wall media (all CONFIRMED, all fixed on TESTING)
@@ -10,6 +10,7 @@ related: [DEC-0005, ISS-0007, ISS-0008]
 save_approval: Mazen 2026-10-10
 kind: BUG
 authorization: Mazen 2026-10-10, explicit task "GamID — Phase 1D: Complete Security Remediation" (TESTING only)
+acceptance: Mazen explicitly accepted the ISS-0009 security remediation on TESTING on 2026-10-11, including the documented residual possibility of unknown historical signed URLs (residual (a)); evidence: Phase 1D live checks (PROJECT_HANDOFF.md §30), the 2026-10-11 closure assessment (§38) and the deletion of the known synthetic URL's object (§39); recorded in §40
 truth_refs: [visitor-media-access, intro-streaming-f5, wall-visibility-toggle, public-wall-publishing, your-gamid-editor]
 checkpoints: [f9929e5d2061667963942b3210dc59204613f007, 660d91100a78f94c86288168c279e2b536dcdb0f]
 sources: [supabase/migrations/20261010140000_visitor_storage_signing.sql, supabase/migrations/20261010141000_visitor_storage_signing_ban.sql, supabase/functions/_shared/public-media.js, PROJECT_HANDOFF.md]
@@ -35,7 +36,7 @@ All live on TESTING, with synthetic files on GM-TEST-01 only; no signed URL was 
 
 ## Resolution
 
-FIXED on TESTING, checkpoint `660d911`.
+FIXED on TESTING, checkpoint `660d911`; **VERIFIED 2026-10-11**: Mazen explicitly accepted the remediation, including residual (a) below (PROJECT_HANDOFF.md §40). The residuals stay disclosed here and are not resolved by that acceptance.
 - **Migration `20261010141000`:** a restrictive policy lets only the folder owner sign, so visitors and other signed-in users cannot.
 - **Migration `20261010140000`:** service-only RPCs (the lease decision with the accepted public predicates, the Banner lookup, rate counters), and Banner compare-and-set conflicts now return HTTP 409.
 - **Edge Function `public-media`:** server-issued leases, Intro 120 s and Wall video 6 h, the accepted F5 and F4 lifetimes.
@@ -74,3 +75,4 @@ Verified live after the fix:
 - 2026-10-10 OPEN — Mazen asked for it to be recorded as a HIGH-severity security issue in Phase 1C.
 - 2026-10-10 AUTHORIZED — Mazen authorized Phase 1D (complete security remediation, TESTING only).
 - 2026-10-10 FIXED — Confirmed live for Avatar, Intro and Wall, then fixed and verified on TESTING (migrations 20261010140000 and 20261010141000; Edge Functions public-media and profile-banner; checkpoint 660d911; frontend run 38040935387). Not VERIFIED: Mazen's acceptance is pending.
+- 2026-10-11 VERIFIED — Mazen explicitly accepted the security remediation on TESTING, including the residual possibility of unknown historical signed URLs (not revoked; no JWT rotation).
