@@ -1,17 +1,17 @@
 ---
 id: ISS-0010
 title: Intro Preview Skip shows an older-looking DRAFT · PRIVATE profile instead of the current Wall / Classic Profile
-status: OPEN
+status: VERIFIED
 created: 2026-10-11
 updated: 2026-10-11
 scope: Profile Editor Intro Preview (/account/) and its end-of-Intro destination; comparison with the public visitor Intro on /@<handle>
-summary: In the editor's Intro Preview, Skip leads to an older-looking Classic Profile card marked DRAFT · PRIVATE rather than the current Wall or Classic Profile presentation; needs investigation, root cause not confirmed.
+summary: The editor's Intro Preview previously revealed a stale built-in DRAFT · PRIVATE card. Fixed on TESTING so Skip and natural completion return to the existing editor; Mazen manually confirmed Skip and approved the reported results.
 related: [REV-0004, DEC-0003, DEC-0005]
 save_approval: Mazen 2026-10-11
 kind: BUG
-authorization: NONE
+authorization: Mazen 2026-10-11 approved editor-preview-only fix
 truth_refs: [your-gamid-editor, intro-identity, classic-profile-desktop, wall-visibility-toggle, public-wall-publishing]
-checkpoints: [a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7]
+checkpoints: [a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7, 737360748eff1b15dca938bb6f6fff2ae999660f]
 sources: [dist/account/intro-preview.html, dist/account/intro-preview.js, dist/account/account.js, dist/public/public.js]
 ---
 
@@ -45,8 +45,12 @@ sources: [dist/account/intro-preview.html, dist/account/intro-preview.js, dist/a
 
 ## Resolution
 
-Unresolved. Needs investigation, then a product decision on the intended editor-preview destination. No fix is authorized: wait for Mazen's separate authorization.
+Implemented and deployed to TESTING at `7373607` (CI run `38148668016`). The editor preview now requests `hostReveal`, keeping the frame's old profile card hidden; a new preview-end host helper closes the preview through the existing Return-to-editor path after Skip or natural completion. Public visitor behavior remains unchanged. Automated regressions (6/6) and local browser checks cover both completion paths; CI passed. Mazen manually confirmed the Skip path returns to the editor and explicitly approved the reported results on 2026-10-11. Natural completion is supported by automated and local browser tests, not separately confirmed by Mazen in this chat. No further manual test is required for this accepted result unless Mazen requests one.
 
 ## History
+
+- 2026-10-11 AUTHORIZED — Mazen approved editor-preview-only return to editor for Skip and natural completion.
+- 2026-10-11 FIXED — Commit 7373607 deployed to TESTING; regression and browser tests passed.
+- 2026-10-11 VERIFIED — Mazen confirmed Skip returned to the editor and explicitly accepted the reported results, including the tested natural-completion behavior.
 
 - 2026-10-11 OPEN — Mazen reported it during the desktop editor acceptance (REV-0004); recorded for investigation, root cause not confirmed.
