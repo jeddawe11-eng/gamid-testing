@@ -21,7 +21,7 @@ const relations={duo:{gamid_handle:'fixture_duo',display_name:'Duo Partner',avat
 const baseSections=identity({}).public_sections;
 const LONG_LOCATION='Taumatawhakatangihangakoauauotamateaturipukakapikimaungahoronukupokaiwhenuakitanatahu'.slice(0,56)+', NZ';   // one unbreakable word + a country: 60 characters
 const LONG={duo:{gamid_handle:'fixture_duo_long_handle1',display_name:'TheExtremelyLongDisplayNameOfMyDuoPartnerThatKeepsGoingOnAn',avatar_media_reference:null},crews:[{crew_id:CREW_A,crew_name:'The Unbelievably Long Crew Name Of Night',game_key:'league_of_legends',game_name:'League of Legends',role:'OWNER',member_count:15}]};
-const longExtras={member_since_year:2024,member_since_date:'2024-03-05',has_banner:true,about_location:LONG_LOCATION,about_languages:['Portuguese (Brazil)','Chinese (Simplified)','Indonesian','Vietnamese','Ukrainian'].map((label,i)=>({code:`l${i}`,label})),about_genres:['Massively Multiplayer Online Role-Playing Game','Real-Time Strategy','Battle Royale','Survival Horror','Fighting'].map((label,i)=>({key:`g${i}`,label}))};
+const longExtras={member_since_year:2024,member_since_date:'2024-03-05',has_banner:true,about_location:LONG_LOCATION,about_languages:['Portuguese (Brazil)','Chinese (Simplified)','Indonesian','Vietnamese','Ukrainian'].map((label,i)=>({code:`l${i}`,label})),about_genres:['Massively Multiplayer Online Role-Playing Game','Real-Time Strategy','Battle Royale','Survival Horror','Fighting','Action','Adventure','Role-Playing','First-Person Shooter','Simulation','Open World','Card Games'].map((label,i)=>({key:`g${i}`,label}))};
 const SCENARIOS={
  full:{identity:identity({public_sections:{...baseSections,...relations}}),links:[{platform_key:'instagram',label:'Instagram',kind:'profile',account_id:'fixture'},{platform_key:'youtube',label:'YouTube',kind:'channel',account_id:'@fixture'}],extras:{member_since_year:2024,member_since_date:'2024-03-05',has_banner:true,about_location:'Riyadh, Saudi Arabia',about_languages:[{code:'ar',label:'Arabic'},{code:'en',label:'English'}],about_genres:['Action','RPG','FPS','MOBA','MMO','Sports','Racing'].map(label=>({key:label.toLowerCase(),label}))},banner:true,artwork:'ok'},
  artFail:{identity:identity({public_sections:{...baseSections,...relations}}),links:[],extras:{member_since_year:2024,member_since_date:'2024-03-05',has_banner:false,about_location:null,about_languages:[],about_genres:[]},banner:false,artwork:'fail'},
@@ -69,7 +69,7 @@ try{
   assert.equal(await page.locator('.desk-banner-img').evaluate(i=>i.complete&&i.naturalWidth),1920,'the Banner from profile-banner');
   assert.ok(calls.includes('profile-banner')&&calls.includes('get_public_profile_extras'));
   const facts=await page.locator('.desk-fact').allTextContents();
-  assert.deepEqual(facts,['LocationRiyadh, Saudi Arabia','Member Since5 March 2024','LanguagesArabicEnglish','Favorite GenresActionRPGFPSMOBAMMO'],'seven public genres: five shown');
+  assert.deepEqual(facts,['LocationRiyadh, Saudi Arabia','Member Since5 March 2024','LanguagesArabicEnglish','Favorite GenresActionRPGFPSMOBAMMOSportsRacing'],'all seven public genres, in order');
   // My Duo, then ONE My Crews entry beneath it (count + games), the same width and look
   assert.match(await page.locator('.public-duo-card:not(.public-crew-card)').getAttribute('href'),/^\/public\/(index\.html)?\?handle=fixture_duo&from=fixture_desk$/);
   assert.equal(await page.locator('.public-crew-card').count(),1,'one fixed entry, not one card per Crew');
@@ -154,7 +154,10 @@ try{
  for(const width of [1280,1920]){const {context,page,errors}=await open(browser,{width},'long');
   assert.deepEqual(await page.locator('.desk-fact dt').allTextContents(),['Location','Member Since','Languages','Favorite Genres']);
   assert.equal(await page.locator('.desk-fact dd').first().textContent(),LONG_LOCATION);assert.equal(LONG_LOCATION.length,60);
-  assert.equal(await page.locator('.desk-chip').count(),10);
+  assert.equal(await page.locator('.desk-chip').count(),17,'5 languages + all 12 genres');
+  const genreChips=await page.locator('.desk-fact',{hasText:'Favorite Genres'}).locator('.desk-chip').evaluateAll(c=>c.map(x=>{const r=x.getBoundingClientRect(),a=x.closest('.desk-about').getBoundingClientRect();return {t:x.textContent,inside:r.left>=a.left-1&&r.right<=a.right+1&&r.bottom<=a.bottom+1,clip:x.scrollWidth>x.clientWidth+1};}));
+  assert.ok(genreChips.length===12&&genreChips.every(c=>c.inside&&!c.clip),'every genre chip wraps inside About Me, none clipped');
+  assert.equal(await page.locator('.desk-fact',{hasText:'Favorite Genres'}).textContent().then(s=>/\+\d|…/.test(s)),false,'no +N, no ellipsis');
   const overflow=await page.evaluate(()=>[...document.querySelectorAll('.desk-about,.desk-about *,.public-sections,.public-sections *,.public-games,.public-games .pg-row')].filter(e=>e.getClientRects().length&&e.scrollWidth>e.clientWidth+1&&getComputedStyle(e).overflow!=='visible'||(()=>{const r=e.getBoundingClientRect(),p=e.closest('.desk-about,.public-sections,.public-games')?.getBoundingClientRect();return p&&e.getClientRects().length&&(r.right>p.right+1||r.left<p.left-1);})()).map(e=>e.className||e.tagName));
   assert.deepEqual(overflow,[],`${width}: nothing sticks out of About Me, the sidebar or My Games`);
   const about=await page.locator('#desktopAbout').boundingBox(),gamesBox=await page.locator('#publicGames').boundingBox(),side=await page.locator('#publicSections').boundingBox(),hero=await page.locator('#desktopHero').boundingBox();

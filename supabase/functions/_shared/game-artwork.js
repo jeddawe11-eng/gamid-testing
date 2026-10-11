@@ -62,8 +62,10 @@ async function providerGet(fetchImpl, env, path) {
   if (response.status === 404) return null;
   if (response.status === 429 || response.status >= 500 || response.status === 401 || response.status === 403) throw new ProviderStop(String(response.status));
   if (!response.ok) return null;
-  const body = await response.json().catch(() => null);
-  return body && body.success !== false ? body.data ?? null : null;
+  // a 200 that is not the documented { success, data } shape is a provider fault, not "no artwork": stop and cache nothing
+  const body = await response.json().catch(() => undefined);
+  if (!body || typeof body !== "object" || body.success !== true || !("data" in body)) throw new ProviderStop("malformed");
+  return body.data ?? null;
 }
 
 // a catalog game -> { game_key, status, match_basis, provider_game_id, icon_url, grid_url, hero_url }
@@ -83,7 +85,7 @@ export async function resolveGame(fetchImpl, env, game) {
   }
   if (id === null) return { game_key: game.game_key, status: "NO_MATCH" };
   const first = data => safeCdnUrl(Array.isArray(data) ? data[0]?.url : null);
-  const icon = first(await providerGet(fetchImpl, env, `/icons/game/${id}?styles=official,custom&${IMAGE_FILTERS}`));
+  const icon = first(await providerGet(fetchImpl, env, `/icons/game/${id}?styles=official,custom&mimes=image/png&${IMAGE_FILTERS}`));
   const grid = first(await providerGet(fetchImpl, env, `/grids/game/${id}?dimensions=460x215,920x430&${IMAGE_FILTERS}`));
   const hero = game.purposes?.includes("crews") ? first(await providerGet(fetchImpl, env, `/heroes/game/${id}?${IMAGE_FILTERS}`)) : null;
   if (!icon && !grid && !hero) return { game_key: game.game_key, status: "NO_MATCH" };

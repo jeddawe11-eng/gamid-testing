@@ -8,12 +8,13 @@ import { PGlite } from "@electric-sql/pglite";
 import { handleGameArtwork, resolveGame, normalizeTitle, handleFrom, LIMITS } from "../supabase/functions/_shared/game-artwork.js";
 import { applyGameArtwork, fetchGameArtwork } from "../dist/public/game-artwork.js";
 import { normalizeCrewDirectory, crewCard, createCrewsDirectory } from "../dist/public/crews-directory.js";
-import { connectedGamesSection, initialsOf, createDesktopProfile, PUBLIC_GENRES_SHOWN } from "../dist/public/public-desktop.js";
+import { connectedGamesSection, initialsOf, createDesktopProfile } from "../dist/public/public-desktop.js";
 import { locationSearchKey, filterCountries } from "../dist/account/location.js";
 import { parseCity, parseCountries, batchSql } from "../scripts/location/geonames-import.mjs";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
 const migration = read("supabase/migrations/20261011100000_classic_profile_consolidated.sql");
+const allowlist = read("supabase/migrations/20261011140000_artwork_evaluation_allowlist.sql");
 
 // ---------------------------------------------------------------------------------------------------------------- PGlite fixture
 const A = "11111111-1111-4111-8111-111111111111", B = "22222222-2222-4222-8222-222222222222", EA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", EB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -71,6 +72,7 @@ async function fixture() {
   for (const f of ["20261010120000_profile_banner.sql", "20261010130000_profile_banner_read_containment.sql", "20261010140000_visitor_storage_signing.sql", "20261010160000_profile_about_me.sql", "20261010180000_member_since_date.sql"]) await db.exec(read(`supabase/migrations/${f}`));
 
   await db.exec(migration);
+  await db.exec(allowlist);
   await db.exec(`grant execute on function public.create_crew(text, text), public.respond_to_crew_invite(uuid, boolean), private.create_crew_impl(text, text), private.respond_to_crew_invite_impl(uuid, boolean) to authenticated;
     select private.import_location_batch('${JSON.stringify({ countries: [{ code: "SA", name: "Saudi Arabia", geoname_id: "102358" }, { code: "PG", name: "Papua New Guinea" }, { code: "GN", name: "Guinea" }, { code: "US", name: "United States" }],
       cities: [{ id: 105343, country: "SA", name: "Jeddah", name_ar: "جدة", search: "jeddah|جده|jiddah", population: 2867446 }, { id: 108410, country: "SA", name: "Riyadh", name_ar: "الرياض", search: "riyadh|الرياض", population: 4205961 },
@@ -97,7 +99,10 @@ test("Favorite Genres: more than five are stored and returned (still catalog-val
   assert.equal(genres.length, 20);
   const row = (await f.set(A, { genres, showGenres: true }))[0];
   assert.equal(row.about_genres.length, 20, "all twenty kept");
-  assert.equal((await f.extras("alpha")).about_genres.length, 20, "the server sends them all; the page draws five");
+  assert.equal((await f.extras("alpha")).about_genres.length, 20, "the server sends them all and the page draws them all");
+  assert.deepEqual((await f.extras("alpha")).about_genres.map(g => g.key), genres, "in the owner's order");
+  await f.set(A, { genres, showGenres: false });
+  assert.deepEqual((await f.extras("alpha")).about_genres, [], "visibility OFF: no genre leaves the server");
   await assert.rejects(f.set(A, { genres: ["rpg", "rpg"] }), e => code(e) === "DUPLICATE_GENRE");
   await assert.rejects(f.set(A, { genres: ["dating"] }), e => code(e) === "INVALID_GENRE");
   await assert.rejects(f.set(A, { languages: ["ar", "en", "fr", "es", "de", "it"] }), e => code(e) === "TOO_MANY_LANGUAGES");
@@ -180,6 +185,8 @@ test("artwork RPCs: service role only; targets follow the visitor's own visibili
     await assert.rejects(f.call(null, `select ${fn}`), /permission denied/, fn);
     await assert.rejects(f.call(A, `select ${fn}`), /permission denied/, fn);
   }
+  assert.deepEqual((await f.service("select public.game_artwork_targets('alpha') v"))[0].v, { enabled: false, games: [] }, "outside the evaluation allowlist (only the GM-TEST personas): nothing");
+  await f.db.exec("update private.game_artwork_settings set evaluation_handles = array['alpha', 'bravo']");
   const t = (await f.service("select public.game_artwork_targets('alpha') v"))[0].v;
   assert.equal(t.enabled, true);
   assert.deepEqual(t.games.map(g => [g.game_key, g.purposes, g.steam_appid]).sort(), [["league_of_legends", ["connected"], null], ["rocket_league", ["my_games"], 252950]]);
@@ -270,6 +277,19 @@ test("artwork failures never break the profile: timeout / 429 / 5xx / 401 stop l
   assert.equal((await handleGameArtwork({ request: request("alpha", { origin: "https://evil.example" }), env: ENV, fetchImpl: bad.fetchImpl })).status, 403);
   assert.equal(handleFrom("https://x.supabase.co/functions/v1/game-artwork/Alpha_1"), "alpha_1");
   assert.ok(LIMITS.lookupsPerRequest <= 8 && LIMITS.requestTimeoutMs <= 5000);
+});
+
+test("artwork: a malformed 200 (not JSON, or not the documented { success, data } shape) is a provider fault - lookups stop and nothing is cached", async () => {
+  for (const bad of [{ raw: "<html>oops</html>" }, { body: { data: [] } }, { body: { success: false, errors: ["x"] } }, { body: [] }]) {
+    const fetchImpl = async (url, options = {}) => {
+      const u = new URL(url);
+      if (u.hostname === "abc.supabase.co") { const name = u.pathname.split("/").pop(); return new Response(JSON.stringify(name === "public_media_hit" ? true : name === "game_artwork_targets" ? TARGETS : name === "game_artwork_cache_get" ? [] : (bad.put = true, 1)), { status: 200 }); }
+      return new Response(bad.raw ?? JSON.stringify(bad.body), { status: 200 });
+    };
+    const body = await (await handleGameArtwork({ request: request(), env: ENV, fetchImpl })).json();
+    assert.deepEqual(body.artwork, {}, JSON.stringify(bad));
+    assert.equal(bad.put, undefined, "nothing cached");
+  }
 });
 
 test("artwork: two library games with the same title and year are not mapped (no image rather than a wrong one)", async () => {
@@ -377,12 +397,18 @@ test("Connected Games: real linked accounts only, a few shown + View all, an ite
   assert.match(read("dist/public/public.css"), /html\.is-public-desktop \.public-section-league\{display:none\}/, "the League card leaves the desktop sidebar (mobile unchanged)");
 });
 
-test("public genres: the desktop About Me draws at most five; the editor allows every catalog genre", () => {
+test("public genres: the desktop About Me draws EVERY public genre in the owner's order (0, 1, 5, 9, 12) - no cap, no +N, no ellipsis", () => {
   const doc = makeDoc();
-  const genres = Array.from({ length: 8 }, (_, i) => ({ key: `g${i}`, label: `Genre ${i}` }));
-  const view = createDesktopProfile({ doc, profile: { displayName: "A", handle: "@a", secondaryRoles: [] }, extras: { member_since_date: "2026-10-11", about_languages: [], about_genres: genres } });
-  assert.equal(PUBLIC_GENRES_SHOWN, 5);
-  assert.equal(view.about.byClass("desk-chip").length, 5);
+  for (const count of [0, 1, 5, 9, 12]) {
+    const genres = Array.from({ length: count }, (_, i) => ({ key: `g${i}`, label: `Genre ${i}` }));
+    const view = createDesktopProfile({ doc, profile: { displayName: "A", handle: "@a", secondaryRoles: [] }, extras: { member_since_date: "2026-10-11", about_languages: [], about_genres: genres } });
+    const row = view.about.byClass("desk-fact").find(r => r.children[0].textContent === "Favorite Genres");
+    if (!count) { assert.equal(row, undefined, "nothing public: no row"); continue; }
+    assert.deepEqual(row.byClass("desk-chip").map(c => c.textContent), genres.map(g => g.label), `${count}`);
+  }
+  assert.doesNotMatch(read("dist/public/public-desktop.js"), /PUBLIC_GENRES_SHOWN|genres\.slice\(/);
+  assert.doesNotMatch(read("dist/account/about-editor.js"), /shows five/, "the editor no longer says five are shown");
+  assert.match(read("dist/public/public.css"), /\.desk-chips\{display:flex;flex-wrap:wrap;/, "chips wrap inside About Me");
 });
 
 test("location search keys: accents and Arabic variants fold the same way in the import and the editor; countries filter in English or Arabic", () => {

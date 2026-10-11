@@ -7,7 +7,6 @@ import { normalizeCrews, crewWallHref } from "./identity-link.js";
 import { formatMemberSince } from "../account/about-editor.js";
 
 export const DESKTOP_QUERY = "(min-width: 80rem)";
-export const PUBLIC_GENRES_SHOWN = 5;
 export const CONNECTED_GAMES_SHOWN = 3;
 
 const node = (doc, tag, className, text) => { const el = doc.createElement(tag); if (className) el.className = className; if (text !== undefined) el.textContent = text; return el; };
@@ -73,7 +72,7 @@ export function createDesktopProfile({ doc = globalThis.document, profile, extra
   const languages = Array.isArray(extras?.about_languages) ? extras.about_languages.filter(x => typeof x?.label === "string") : [];
   const genres = Array.isArray(extras?.about_genres) ? extras.about_genres.filter(x => typeof x?.label === "string") : [];
   if (languages.length) fact("Languages", chips(languages));
-  if (genres.length) fact("Favorite Genres", chips(genres.slice(0, PUBLIC_GENRES_SHOWN)));   // every selected genre stays stored; the profile shows five
+  if (genres.length) fact("Favorite Genres", chips(genres));   // every public genre, in the owner's order; the chips wrap inside About Me
   about.append(facts);
   const hasAbout = facts.childElementCount > 0;
 

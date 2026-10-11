@@ -1,6 +1,6 @@
 // About Me (Profile Editor; DEC-0005, consolidated update 2026-10-11): Location (a catalog country, then a city of THAT country - searchable in English or
-// Arabic; never GPS), Languages (max 5) and Favorite Genres (any number of catalog genres; the public profile shows five), each with its own explicit
-// "Show on my GamID" switch - OFF by default, unavailable while the value is empty, and switched OFF again when the value is cleared. An older free-text Location
+// Arabic; never GPS), Languages (max 5) and Favorite Genres (any number of catalog genres, all shown on the public profile), each with its own explicit
+// "Show on my GamID" switch - OFF by default, unavailable while the value is empty, and switched OFF again when the value is cleared. Every public genre is shown. An older free-text Location
 // is kept as it is until the owner chooses a country (a suggestion is offered only when the text matches exactly one place; using it is the owner's choice).
 // Member Since (the date the GamID was created) is read-only and always shown on the public profile. Draft-only: nothing is sent until the section's Save
 // Changes. The server (set_my_about) validates everything again. Built with createElement / textContent only.
@@ -201,7 +201,7 @@ export function createAboutEditor(doc, { onChange = () => {}, searchCities = asy
     setSwitch(locationSwitch, draft.showLocation, hasLoc); setSwitch(languagesSwitch, draft.showLanguages, hasLang); setSwitch(genresSwitch, draft.showGenres, hasGenre);
     locationHint.textContent = hint(draft.showLocation, hasLoc, "Choose a country first (a city is optional).");
     languagesHint.textContent = `${draft.languages.length}/${ABOUT_LIMITS.languages} · ${hint(draft.showLanguages, hasLang, "Choose at least one language first.")}`;
-    genresHint.textContent = `${draft.genres.length} selected · ${hint(draft.showGenres, hasGenre, "Choose at least one genre first.")}${hasGenre ? " Your public profile shows five." : ""}`;
+    genresHint.textContent = `${draft.genres.length} selected · ${hint(draft.showGenres, hasGenre, "Choose at least one genre first.")}`;
     renderChips(languagesGroup, catalogs.languages, "code", "languages", ABOUT_LIMITS.languages);
     renderChips(genresGroup, catalogs.genres, "key", "genres", null);
     memberSince.textContent = saved.memberSince ? `Member since ${saved.memberSince} - always shown on your public GamID (the date your GamID was created).` : "";

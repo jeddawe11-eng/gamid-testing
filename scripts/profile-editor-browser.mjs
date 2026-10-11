@@ -194,7 +194,7 @@ const CITIES={SA:[{city_id:108410,name:'Riyadh',name_ar:'الرياض',populatio
  await sw('showLocation').click();assert.equal(await sw('showLocation').getAttribute('aria-checked'),'true');
  for(const l of ['Arabic','English'])await page.locator('[data-about-group=Languages] label').filter({hasText:l}).click();
  for(const g of ['Action','RPG','FPS','MOBA','MMO','Sports'])await page.locator('[data-about-group=\"Favorite Genres\"] label').filter({hasText:g}).click();
- assert.equal(await page.locator('[data-about-group=\"Favorite Genres\"] input:disabled').count(),0,'no genre maximum');assert.match(await page.locator('[data-about-group=\"Favorite Genres\"] + * , [data-editor-section=about] .about-hint').last().textContent(),/6 selected .*Your public profile shows five\./);
+ assert.equal(await page.locator('[data-about-group=\"Favorite Genres\"] input:disabled').count(),0,'no genre maximum');assert.match(await page.locator('[data-about-group=\"Favorite Genres\"] + * , [data-editor-section=about] .about-hint').last().textContent(),/^6 selected · (?![\s\S]*five)/);
  // the checkboxes: one compact native box each, checked ones clearly marked, Space toggles
  const boxes=await page.locator('#aboutSection .about-chip input[type=checkbox]').evaluateAll(list=>list.map(b=>{const r=b.getBoundingClientRect(),l=b.closest('label').getBoundingClientRect();return {w:Math.round(r.width),h:Math.round(r.height),inside:r.left>=l.left&&r.right<=l.right&&r.top>=l.top&&r.bottom<=l.bottom,checked:b.checked,labelH:Math.round(l.height)};}));
  assert.ok(boxes.length===12&&boxes.every(b=>b.w===16&&b.h===16&&b.inside),`every checkbox 16x16 inside its chip (${boxes.length})`);
