@@ -3176,3 +3176,55 @@ Mazen's explicit task "GAMID — Final Acceptance + Mobile My Socials Icons", TE
 - Not performed: an editor save and reload, and a real-device test.
 
 **Manual check (Mazen).** On a phone, open `/@black`. The Spotify, SoundCloud and Vimeo icons show their logos and open the right pages. The other icons look as before.
+
+## 49. Wall Icon display option and Icon Group (DEC-0006) — 2026-10-12
+
+Mazen's explicit implementation authorization of Product Memory DEC-0006, TESTING only. Product checkpoint `efac19e6a99d1aac9893243603d1db824534aefa`. Workflow run [38204748089](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38204748089): full validation passed; TESTING serves `efac19e`. Migration `20261012120000_wall_icons.sql` APPLIED (rehearsed in a rolled-back transaction first, then `migration repair`). PENDING Mazen's manual acceptance.
+
+**Icon (every platform, every URL kind).**
+- `presentation: "icon"` is a new embed presentation, offered for every kind of all 13 provider adapters. It is always listed last; Player / Card / Link are unchanged (`presentationsFor`, `validateEmbedData`). The Discord personal profile stays Link-only otherwise.
+- On the Wall it is one round badge in a square box. It opens the adapter-rebuilt address in a new tab (`noopener noreferrer nofollow`). In the editor it is not a link.
+- **Editor:** "Icon" appears in the paste flow and in **Show as**. Switching to Icon makes the box a 160-unit square; switching back restores the new presentation's starting size, in one undo step. Resizing keeps it square.
+- **Other:** the Other form offers **Text link** (as before) or **Icon**. An Other Icon is a one-icon Icon Group.
+
+**Icon Group (new `icons` element).**
+- **Contents:** 1–24 icons in the owner's order. Each is `{ providerKey, kind, id }` (the Wall link engine, any kind) or `{ url }` (the Other link rule), with optional `size` 40–400, `gap` 0–200 and `align` left / center / right.
+- **Layout:** `iconGroupLayout` aligns and wraps the icons inside the box and shrinks them together so none is cut off. A uniform group resize scales size and spacing.
+- **Editor:** Media & Links → **Icon Group** creates a group from pasted links. A platform link keeps its platform icon; any other website becomes a link icon; unsafe links and unsupported pages of a supported site are refused with the existing wording. Properties lists the icons: change a link, move up / down, remove (one icon always stays), add, plus Icon size, Spacing and Align.
+
+**Branding.**
+- Each provider adapter declares its own badge (`icon`, so platform names stay in the adapters as the Wall guard requires). The badges are the Classic My Socials colours and marks / glyphs, and the Classic My Games Steam mark.
+- The marks are byte-identical copies of the `dist/public/public.css` data URIs, enforced by `tests/wall-icons.test.js`.
+- `platform-icons.js` holds the generic link icon for Other.
+- `icons-paint.js` paints inline from these constants and re-checks every address before linking: provider hosts for a platform icon, the Other rule for Other.
+- The Classic Profile code and CSS are untouched.
+
+**Database (functions only).**
+- `wall_embed_data_errors` now accepts `'icon'`.
+- The new `wall_icons_payload_errors` is revoked from public, anon and authenticated.
+- `wall_element_payload_errors` learns `icons`; the rest of its body is unchanged (pinned by a test).
+- **Rehearsal** (rolled back, no user created): the 606-entry shared corpus, including 35 new Icon cases, gives the same errors in the database as in the browser. Without the migration the 35 new cases mismatch, so the check is meaningful.
+- **Saved Walls:** all 5 drafts and 2 publications stay valid. After applying, the live database matches 606/606.
+
+**Verification.**
+- **Tests:** full suite 1883 run, 0 failures, 1 skipped; lint and typecheck pass. `tests/wall-icons.test.js` (16) covers every platform and kind, Classic branding parity, single Icon, Icon Group, editing and order, layout at several widths, URL safety, save / load / publish and the Discord safeguard. Presentation expectations in older tests gain `"icon"`; the corpus is extended and `tests/integration/wall-w2-db.sql` regenerated.
+- **Local editor lab:** the real editor from this commit, served on localhost with only the Supabase client replaced by an in-memory fake, so no TESTING data was touched.
+  - **Built:** an Icon Group from 6 pasted links; reordered, added an X icon, edited a link; a `javascript:` link was refused with the group unchanged.
+  - **Single icons:** a Twitch Icon from the paste flow, and an Other Icon.
+  - **Persistence:** Save, then reload: everything came back.
+  - **Preview:** all 9 icons are real links (correct addresses, `_blank`, `noopener noreferrer nofollow`) and receive taps.
+  - **Visitor painting** (`paintDocument` in view mode, as `public-wall.js`) at 1440 / 768 / 375 px: no horizontal overflow, badges inside their boxes, all round, all tappable; 38 px badges on a phone.
+  - **Editor at 375 px:** the Icon Group panel fits, with 44 px buttons.
+- **TESTING:** the served editor files contain the new code. `/@black` and `/@zshot`, viewed as a visitor, show their Classic Profiles with no errors; no visible published Wall exists there, so the live published-Wall path was not exercised.
+- **Not performed:** a signed-in editor session on TESTING (protected accounts, no test account) and a real-device test.
+
+**Discord safeguard.** The cancelled Wall Discord Profile Card task was not resumed. The Classic Discord Profile Card, Discord Connections and the Wall's Discord Link / Card are unchanged; Discord only gains the ordinary Icon.
+
+**Truth:** new capability `wall-icons` (PENDING_ACCEPTANCE; limits, four contracts, checkpoint `efac19e`). **Product Memory:** not modified; the DEC-0006 status update is proposed, awaiting save approval.
+
+**Manual check (Mazen).**
+1. Wall Editor → Media & Links: paste a link (e.g. a YouTube video) and add it as **Icon**. Then switch its **Show as** between Card / Link / Player / Icon.
+2. Media & Links → **Icon Group**: paste several links (platforms and a website). Add it, then move and resize the group as one element and check the icons rewrap.
+3. Select the group: change a link, reorder, remove and add icons; try Icon size / Spacing / Align.
+4. Media & Links → Other → **Icon**.
+5. Save, reload, Preview: each icon opens its own link in a new tab. Publish and open your public Wall on a phone and on desktop.

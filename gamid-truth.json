@@ -320,6 +320,42 @@
       "notes": "Asset and video limits are recorded under global-usage. Discord personal profiles (discord.com/users/<id>) are offered as a Link only since 67042938 (PROJECT_HANDOFF.md §24; migration 20261009150000_wall_discord_profile); that extension is pending manual acceptance."
     },
     {
+      "id": "wall-icons",
+      "name": "Wall Icon display option and Icon Group (Media & Links)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/",
+        "/@<handle>"
+      ],
+      "limits": {
+        "iconGroupMaxIcons": 24,
+        "iconGroupIconMinSizeUnits": 40,
+        "iconGroupIconMaxSizeUnits": 400,
+        "iconGroupMaxGapUnits": 200
+      },
+      "contracts": [
+        {
+          "id": "wall-icon-option",
+          "rule": "Every URL kind of all 14 Media & Links platforms (YouTube, TikTok, Twitch, Spotify, SoundCloud, Vimeo, Kick, Facebook, Snapchat, X, Instagram, Discord, Steam, Other) can be shown as an Icon, next to its existing Player / Card / Link choices, which are unchanged. A single Icon is its own Wall element (a round badge in a square box) that opens the platform's address rebuilt by the Wall link adapter, in a new tab without referrer; an Other Icon opens an address that passes the Other link rule."
+        },
+        {
+          "id": "wall-icon-group",
+          "rule": "An Icon Group is one Wall element holding 1-24 icons in the owner's order, each with its own validated destination (a supported platform link of any kind, or any other website as a link icon). The icons align and wrap automatically inside the element and shrink together so none is cut off; the group moves and resizes as one element. Icons are added, removed, reordered and changed in the editor's Properties; Icon size, Spacing and Align are adjustable."
+        },
+        {
+          "id": "wall-icon-branding",
+          "rule": "Wall icons use the accepted Classic My Socials badges (platform colours and marks or glyphs), the Classic My Games Steam mark and a generic link icon for Other. The Classic Profile itself is unchanged."
+        },
+        {
+          "id": "wall-icon-validation",
+          "rule": "The database validates Icons and Icon Groups exactly like the editor: a platform icon stores only provider, kind and id (no address); an Other icon stores only an address passing the Other link rule; anything else (other schemes, credentials, markup, unknown kinds, more than 24 icons) is refused. Existing Walls and their Player / Card / Link elements stay valid and unchanged. Discord gets the ordinary Icon; the Discord Profile Card is not part of the Wall."
+        }
+      ],
+      "checkpoint": "efac19e6a99d1aac9893243603d1db824534aefa",
+      "record": "Product Memory DEC-0006 (approved design; implementation authorized by Mazen 2026-10-12); PROJECT_HANDOFF.md §49; migration supabase/migrations/20261012120000_wall_icons.sql",
+      "notes": "Implemented and deployed to TESTING (run 38204748089); awaiting Mazen's manual acceptance."
+    },
+    {
       "id": "public-wall-publishing",
       "name": "Published Wall on the public GamID",
       "status": "ACCEPTED",
