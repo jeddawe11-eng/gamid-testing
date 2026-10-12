@@ -10,6 +10,8 @@ const list = { id: ID, inline: true, aspect: "auto", aspects: ["auto"], size: { 
 export const spotify = defineProvider({
   key: "spotify",
   label: "Spotify",
+  // the Wall Icon badge (Product Memory DEC-0006): the accepted Classic My Socials badge: its colour and its mark / glyph - tests/wall-icons.test.js keeps it identical to dist/public/public.css
+  icon: Object.freeze({ background: "#1db954", color: "#000000", mark: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4.4 9.1c5.1-1.6 10.5-1.1 15.2 1.5' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round'/%3E%3Cpath d='M5.6 13c4.2-1.2 8.6-.8 12.4 1.2' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M6.8 16.6c3.3-.9 6.6-.6 9.5.9' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round'/%3E%3C/svg%3E\")" }),
   hosts: ["open.spotify.com"],
   frameOrigins: ["https://open.spotify.com"],
   examples: "open.spotify.com/track/…  ·  /album/…  ·  /playlist/…  ·  /episode/…",

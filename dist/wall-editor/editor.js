@@ -211,8 +211,9 @@ function layerName(element) {
     return slice ? `${base} · piece ${Math.round(slice.from * 100)}–${Math.round(slice.to * 100)}%` : base;
   }
   if (element.type === "gamidData") return `GamID data: ${DATA_FIELD_INFO[element.payload.field]?.label ?? "field"}`;
-  if (element.type === "embed") { const descriptor = elementRegistry.get("embed").render(element.payload).content; return `${descriptor?.providerLabel ?? "Link"} ${descriptor?.contentLabel?.toLowerCase() ?? ""}`.trim(); }
+  if (element.type === "embed") { const descriptor = elementRegistry.get("embed").render(element.payload).content; return `${descriptor?.providerLabel ?? "Link"} ${descriptor?.contentLabel?.toLowerCase() ?? ""}${descriptor?.presentation === "icon" ? " icon" : ""}`.trim(); }
   if (element.type === "gamid") return `GamID: ${GAMID_BLOCK_INFO[element.payload.block]?.label ?? "block"}`;
+  if (element.type === "icons") return `Icon Group: ${element.payload.items.length} icon${element.payload.items.length === 1 ? "" : "s"}`;
   return element.type;
 }
 function renderLayers() {

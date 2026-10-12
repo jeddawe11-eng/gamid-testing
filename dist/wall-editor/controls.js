@@ -6,7 +6,9 @@ import { FONT_CATALOG, fontKnown } from "../wall-kit/fonts.js";
 import { TEXT_LIMITS, WEIGHTS, LINK_MAX } from "../wall-kit/text.js";
 import { normalizeLinkInput, LINK_PROBLEMS } from "../wall-kit/links.js";
 import { describeErrors } from "../wall-kit/messages.js";
-import { PROVIDERS, isAllowedOpenUrl, presentationsFor } from "../wall-kit/embed/engine.js";
+import { PROVIDERS, isAllowedOpenUrl, presentationsFor, PRESENTATION_LABELS } from "../wall-kit/embed/engine.js";
+import { ICON_LIMITS, ICON_ALIGNS, ICON_DEFAULTS, iconItemFromInput, iconItemAddress, resolveIconItem } from "../wall-kit/icons.js";
+import { paintIconBadge } from "../wall-kit/icons-paint.js";
 import { ALT_MAX, MASKS, BLENDS, CROP_PRESETS, SPLIT_COUNTS, EFFECT_LIMITS, FADE_MAX, cropFor } from "../wall-kit/image.js";
 import { DATA_FIELD_INFO, DATA_ITEMS, DATA_TEXT_FIELDS, DATA_COLLECTIONS, dataTextStyle, renderGamidDataPayload } from "../wall-kit/gamid-data.js";
 import { resolveGamidData } from "../wall-kit/gamid-data-paint.js";
@@ -26,7 +28,7 @@ const h = (tag, attributes = {}, ...children) => {
 };
 
 const WEIGHT_NAMES = { 100: "Thin", 200: "Extra light", 300: "Light", 400: "Regular", 500: "Medium", 600: "Semi-bold", 700: "Bold", 800: "Extra bold", 900: "Black" };
-const TYPE_LABEL = { text: "Text", rect: "Shape", embed: "Link / Embed", image: "Artwork", gamid: "GamID block", gamidData: "GamID data" };
+const TYPE_LABEL = { text: "Text", rect: "Shape", embed: "Link / Embed", image: "Artwork", gamid: "GamID block", gamidData: "GamID data", icons: "Icon Group" };
 const MASK_LABELS = { circle: "Circle", rounded: "Rounded rectangle", hexagon: "Hexagon", diamond: "Diamond" };
 const BLEND_LABELS = { normal: "Normal", screen: "Screen", multiply: "Multiply", overlay: "Overlay", "soft-light": "Soft light" };
 const CROP_LABELS = { free: "Free (this box)", original: "Original", "1:1": "Square 1:1", "16:9": "Wide 16:9", "9:16": "Tall 9:16" };
@@ -517,9 +519,10 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     const patchData = patch => ops.setEmbedData(session.doc, session.state.selection[0], patch);
     // Only the presentations this content honestly supports (a Player only where the provider has a working official player).
     const offered = kind ? presentationsFor(kind) : ["card", "link"];
-    const presentations = [{ value: "card", label: "Card" }, { value: "link", label: "Link" }, { value: "embed", label: "Player" }].filter(option => offered.includes(option.value));
+    const presentations = ["card", "link", "embed", "icon"].filter(value => offered.includes(value)).map(value => ({ value, label: PRESENTATION_LABELS[value] }));
     root.append(selectField({ label: "Show as", options: presentations, get: item => item.payload.data.presentation, set: value => patchData({ presentation: value }), key: "embedShow" }));
-    if (!kind?.inline) root.append(h("p", { class: "ed-hint", text: `${provider?.label ?? "This platform"} has no player for this content, so it opens on ${provider?.label ?? "the platform"} as ${offered.includes("card") ? "a Card or Link" : "a Link"}.` }));
+    if (!kind?.inline) root.append(h("p", { class: "ed-hint", text: `${provider?.label ?? "This platform"} has no player for this content, so it opens on ${provider?.label ?? "the platform"} as ${offered.includes("card") ? "a Card, Link or Icon" : "a Link or Icon"}.` }));
+    if (element.payload.data.presentation === "icon") root.append(h("p", { class: "ed-hint", text: `Shows the ${provider?.label ?? "platform"} icon; visitors tap it to open this link. To show several icons together, use Media & Links > Icon Group.` }));
     // Shape: a Player's own shapes from its adapter (never a copied list); a card keeps its own box, so it has no Shape.
     const shapes = (kind?.aspects ?? []).filter(value => value !== "auto");
     if (element.payload.data.presentation === "embed" && shapes.length > 1) root.append(selectField({ label: "Shape", options: shapes.map(value => ({ value, label: value })), get: item => item.payload.data.aspect ?? kind.aspect, set: value => patchData({ aspect: value === kind.aspect ? undefined : value }), key: "embedAspect" }));
@@ -530,6 +533,59 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     if (descriptor && isAllowedOpenUrl(descriptor.providerKey, descriptor.openUrl)) {
       root.append(h("div", { class: "ed-btn-row" }, h("a", { class: "ed-btn", href: descriptor.openUrl, target: "_blank", rel: "noopener noreferrer nofollow", text: `Open on ${descriptor.providerLabel} ↗` })));
     }
+  }
+
+  // Icon Group (DEC-0006): the icons in the owner's order. Each row: its badge, its link (checked by the Wall link engine when it changes), move up / down, remove.
+  // The list itself is rebuilt when icons are added, removed or reordered (the panel key below); a refused link leaves the saved one unchanged.
+  function iconsControls(root) {
+    const element = selectedElements()[0];
+    const items = () => selectedElements()[0]?.payload.items ?? [];
+    const setItems = next => exec(patchAll({ items: next }));
+    root.append(h("div", { class: "ed-group-title", text: `Icons (${element.payload.items.length} of ${ICON_LIMITS.items})` }));
+    const list = h("ol", { class: "ed-icon-list" });
+    element.payload.items.forEach((item, index) => {
+      const input = h("input", { class: "ed-text-line", type: "url", inputmode: "url", autocomplete: "off", spellcheck: "false", maxlength: LINK_MAX, "aria-label": `Link of icon ${index + 1}` });
+      const status = h("p", { class: "ed-media-msg", role: "status", hidden: true });
+      const commit = () => {
+        const current = items()[index];
+        if (!current || input.value.trim() === iconItemAddress(current)) { status.hidden = true; return; }
+        const parsed = iconItemFromInput(input.value);
+        if (!parsed.ok) { status.hidden = false; status.textContent = `${parsed.message} The icon still opens ${iconItemAddress(current)}.`; return; }
+        status.hidden = true;
+        setItems(items().map((value, i) => (i === index ? parsed.item : value)));
+      };
+      input.addEventListener("change", commit);
+      input.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); commit(); } });
+      syncers.push(targets => { const current = targets[0].payload.items?.[index]; if (current && document.activeElement !== input) input.value = iconItemAddress(current); });
+      const move = delta => { const next = [...items()]; const [moved] = next.splice(index, 1); next.splice(index + delta, 0, moved); setItems(next); };
+      const resolved = resolveIconItem(item);
+      list.append(h("li", { class: "ed-icon-item" },
+        paintIconBadge(tag => document.createElement(tag), resolved, 32),
+        h("div", { class: "ed-icon-link" }, input, status),
+        h("div", { class: "ed-icon-actions" },
+          h("button", { class: "ed-btn", type: "button", text: "↑", "aria-label": `Move icon ${index + 1} up`, disabled: index === 0, onclick: () => move(-1) }),
+          h("button", { class: "ed-btn", type: "button", text: "↓", "aria-label": `Move icon ${index + 1} down`, disabled: index === element.payload.items.length - 1, onclick: () => move(1) }),
+          h("button", { class: "ed-btn", type: "button", text: "✕", "aria-label": `Remove icon ${index + 1}`, disabled: element.payload.items.length === 1, onclick: () => setItems(items().filter((_, i) => i !== index)) }))));
+    });
+    root.append(list);
+    if (element.payload.items.length < ICON_LIMITS.items) {
+      const input = h("input", { class: "ed-text-line", type: "url", inputmode: "url", autocomplete: "off", spellcheck: "false", maxlength: LINK_MAX, placeholder: "Paste a link", "aria-label": "Link of a new icon" });
+      const status = h("p", { class: "ed-media-msg", role: "status", hidden: true });
+      const add = () => {
+        const parsed = iconItemFromInput(input.value);
+        if (!parsed.ok) { status.hidden = false; status.textContent = parsed.message; input.focus(); return; }
+        const applied = setItems([...items(), parsed.item]);
+        if (applied.ok) { input.value = ""; status.hidden = true; }
+      };
+      input.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); add(); } });
+      root.append(h("label", { class: "ed-stack" }, h("span", { text: "Add an icon" }), input), status,
+        h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn", type: "button", text: "Add icon", onclick: add })));
+    }
+    root.append(h("p", { class: "ed-hint", text: "Any supported platform link shows that platform's icon; any other website shows a link icon. A group keeps at least one icon: to remove the last one, delete the element." }));
+    root.append(numberSlider({ label: "Icon size", min: ICON_LIMITS.size[0], max: ICON_LIMITS.size[1], step: 1, get: item => item.payload.size ?? ICON_DEFAULTS.size, set: value => patchAll({ size: Math.round(value) }), key: "iconSize" }));
+    root.append(numberSlider({ label: "Spacing", min: ICON_LIMITS.gap[0], max: ICON_LIMITS.gap[1], step: 1, get: item => item.payload.gap ?? ICON_DEFAULTS.gap, set: value => patchAll({ gap: Math.round(value) }), key: "iconGap" }));
+    root.append(selectField({ label: "Align", options: ICON_ALIGNS.map(value => ({ value, label: value[0].toUpperCase() + value.slice(1) })), get: item => item.payload.align ?? ICON_DEFAULTS.align, set: value => patchAll({ align: value }), key: "iconAlign" }));
+    root.append(h("p", { class: "ed-hint", text: "Icons line up and wrap inside the box by themselves; when the box is too small, they all shrink together so none is cut off." }));
   }
 
   function gamidControls(root) {
@@ -678,6 +734,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     else if (types.length === 1 && types[0] === "gamidData") dataControls(body, targets);
     else if (types.length === 1 && types[0] === "embed" && single) embedControls(body);
     else if (types.length === 1 && types[0] === "gamid") gamidControls(body);
+    else if (types.length === 1 && types[0] === "icons" && single) iconsControls(body);
     if (single && !groupedSelection) geometryControls(body);
     else body.append(h("p", { class: "ed-hint", text: groupedSelection ? "Groups move and resize as one unit. Ungroup to edit an element on its own." : "Multiple elements selected. Move and resize them together on the canvas." }));
     actionControls(body, targets, single);
@@ -687,7 +744,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     update() {
       const targets = selectedElements();
       // (an embed's presentation is part of the key: switching Card <-> Player changes which controls apply, e.g. Shape)
-      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}${element.type === "image" ? `:${element.payload.slice?.set ?? "-"}` : ""}${element.type === "text" ? `:${element.payload.link ? "link" : "-"}` : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}`;
+      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}${element.type === "image" ? `:${element.payload.slice?.set ?? "-"}` : ""}${element.type === "text" ? `:${element.payload.link ? "link" : "-"}` : ""}${element.type === "icons" ? `:${(element.payload.items ?? []).map(item => item.providerKey ?? "other").join("+")}` : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}`;
       if (key !== builtKey) { builtKey = key; rebuild(targets); }
       if (targets.length) for (const sync of syncers) sync(targets);
     },

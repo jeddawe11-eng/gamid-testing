@@ -76,7 +76,7 @@ test("A1 the owner's editor canvas draws the Steam avatar too (it used to show o
 test("A2 Instagram: no Player (Instagram does not play Reels / videos inside third-party pages for logged-out visitors; its official embed needs a Meta token + its own script) - Card / Link with the real poster", () => {
   for (const url of ["https://www.instagram.com/reel/C0hQSaMpD97/", "https://www.instagram.com/p/DLLQqjCMkiN/", "https://www.instagram.com/nasagoddard/reel/C0hQSaMpD97/"]) {
     const detected = detectEmbed(url);
-    assert.deepEqual([detected.ok, detected.presentations, detected.inline], [true, ["card", "link"], false], url);
+    assert.deepEqual([detected.ok, detected.presentations, detected.inline], [true, ["card", "link", "icon"], false], url);
   }
   const instagram = mediaCapabilities().find(entry => entry.key === "instagram");
   assert.equal(instagram.player, false, "the Supported platforms list no longer advertises a Player");

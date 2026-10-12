@@ -10,7 +10,8 @@
 import { providerRegistry } from "../../wall/providers.js";
 import { isSet } from "../../wall/fields.js";
 
-export const PRESENTATIONS = Object.freeze(["link", "card", "embed"]);
+// "icon" (Product Memory DEC-0006): the platform's badge alone - offered for EVERY kind of every provider, whatever else the kind supports
+export const PRESENTATIONS = Object.freeze(["link", "card", "embed", "icon"]);
 export const ASPECTS = Object.freeze(["16:9", "9:16", "1:1", "4:3", "auto"]);
 export const CAPTION_MAX = 80;
 const MAX_URL_LENGTH = 2048;
@@ -48,8 +49,8 @@ export function validateEmbedData(provider, data) {
   if (!idOk(kind, data.id)) errors.push("INVALID_ID");
   // legacyEmbed: a kind that USED to offer a Player keeps accepting presentation "embed" so Walls saved then stay valid (it is shown as a Card - describeEmbed)
   if (!PRESENTATIONS.includes(data.presentation) || (data.presentation === "embed" && !kind.inline && !kind.legacyEmbed)) errors.push("INVALID_PRESENTATION");
-  // a kind that declares its own presentations (e.g. Discord profile: Link only) accepts no other
-  else if (kind.presentations && !kind.presentations.includes(data.presentation)) errors.push("INVALID_PRESENTATION");
+  // a kind that declares its own presentations (e.g. Discord profile: Link only) accepts no other - except the Icon, which every kind offers
+  else if (kind.presentations && data.presentation !== "icon" && !kind.presentations.includes(data.presentation)) errors.push("INVALID_PRESENTATION");
   if (isSet(data.aspect) && !ASPECTS.includes(data.aspect)) errors.push("INVALID_ASPECT");
   if (isSet(data.caption) && (typeof data.caption !== "string" || codePoints(data.caption) > CAPTION_MAX)) errors.push("INVALID_CAPTION");
   return errors;
@@ -134,9 +135,11 @@ export function buildEmbedPayload(detected, { presentation, aspect, caption } = 
   return { payload: { providerKey: detected.providerKey, data }, errors: validateEmbedData(provider, data) };
 }
 
-// A sensible starting element size (canonical units) for a presentation.
+// A sensible starting element size (canonical units) for a presentation. An Icon is a square badge (about the size of a Classic My Socials icon on a phone).
+export const ICON_SIZE = 160;
 export function defaultEmbedSize(detected, presentation) {
   if (presentation === "link") return { width: 640, height: 96 };
+  if (presentation === "icon") return { width: ICON_SIZE, height: ICON_SIZE };
   if (presentation === "card") return { width: 800, height: detected.profile ? 240 : 260 };
   return { ...detected.size };
 }
@@ -149,10 +152,10 @@ export const humanReason = {
 };
 
 // ---- capability matrix (what the editor tells the owner, derived ONLY from the adapters - there is no second list to drift) ------------------------------
-export const PRESENTATION_LABELS = Object.freeze({ embed: "Player", card: "Card", link: "Link" });
+export const PRESENTATION_LABELS = Object.freeze({ embed: "Player", card: "Card", link: "Link", icon: "Icon" });
 // Presentations a kind can honestly be shown as: a Player only where the provider has a working official player for that content.
-// A kind may narrow this with its own `presentations` (never widen it: a Player still needs `inline`).
-export const presentationsFor = kind => (kind.inline ? ["embed", "card", "link"] : ["card", "link"]).filter(value => !kind.presentations || kind.presentations.includes(value));
+// A kind may narrow this with its own `presentations` (never widen it: a Player still needs `inline`). The Icon is always last and always offered (DEC-0006).
+export const presentationsFor = kind => [...(kind.inline ? ["embed", "card", "link"] : ["card", "link"]).filter(value => !kind.presentations || kind.presentations.includes(value)), "icon"];
 // `featuredOrder`: the provider keys to list first, in that order (the registry module supplies it; this engine names no provider). Every other registered provider
 // follows, marked featured: false.
 export function capabilityMatrix(featuredOrder = []) {

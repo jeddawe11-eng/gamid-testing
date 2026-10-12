@@ -65,13 +65,13 @@ test("B Steam unavailable: known persona metadata is KEPT (nothing is written), 
 test("A2 Kick VOD: kick.com/<channel>/videos/<id> is accepted as a CARD / LINK (Kick has no working VOD embed - never a fake Player), opens on Kick, validates in the database table", () => {
   const detected = detectEmbed("https://kick.com/xqc/videos/01A0DF43-5130-7429-AF65-66A176D79E10?t=10");
   assert.equal(detected.ok, true);
-  assert.deepEqual([detected.kind, detected.id, detected.presentations, detected.inline], ["video", "xqc/01a0df43-5130-7429-af65-66a176d79e10", ["card", "link"], false]);
+  assert.deepEqual([detected.kind, detected.id, detected.presentations, detected.inline], ["video", "xqc/01a0df43-5130-7429-af65-66a176d79e10", ["card", "link", "icon"], false]);
   assert.equal(detected.canonicalUrl, "https://kick.com/xqc/videos/01a0df43-5130-7429-af65-66a176d79e10");
   assert.equal(detectEmbed("https://kick.com/xqc").kind, "channel", "live channels keep their Player");
   assert.equal(detectEmbed("https://kick.com/videos/01a0df43-5130-7429-af65-66a176d79e10").ok, false, "a reserved first segment is not a channel");
   assert.equal(PROVIDERS.get("kick").embedUrl("video", "xqc/01a0df43-5130-7429-af65-66a176d79e10"), null);
   const kick = mediaCapabilities().find(entry => entry.key === "kick");
-  assert.deepEqual(kick.kinds.map(kind => [kind.kind, kind.presentations.join("|")]), [["channel", "embed|card|link"], ["video", "card|link"]], "the Supported platforms list says exactly this");
+  assert.deepEqual(kick.kinds.map(kind => [kind.kind, kind.presentations.join("|")]), [["channel", "embed|card|link|icon"], ["video", "card|link|icon"]], "the Supported platforms list says exactly this");
   const sql = read("supabase/migrations/20260927140000_wall_kick_vod.sql");
   assert.match(sql, /\('kick', 'video', '\^\[A-Za-z0-9_-\]\{3,25\}\/\[0-9a-f\]\{8\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{4\}-\[0-9a-f\]\{12\}\$', false\)/);
   assert.match(sql, /revoke all on function private\.wall_embed_specs\(\) from public, anon, authenticated;/);
@@ -80,7 +80,7 @@ test("A2 Kick VOD: kick.com/<channel>/videos/<id> is accepted as a CARD / LINK (
 test("A3 Facebook: no Player is offered for any content (its plugin needs Facebook's SDK and renders blank/login-gated in the Wall sandbox) - honest Card / Link to the original", () => {
   const facebook = mediaCapabilities().find(entry => entry.key === "facebook");
   assert.equal(facebook.player, false);
-  for (const kind of facebook.kinds) assert.deepEqual(kind.presentations, ["card", "link"]);
+  for (const kind of facebook.kinds) assert.deepEqual(kind.presentations, ["card", "link", "icon"]);
   assert.equal(PROVIDERS.get("facebook").frameOrigins.length, 0);
   assert.doesNotMatch(read("dist/wall-editor/index.html"), /facebook\.com/, "no Facebook frame-src in the page policy");
   assert.equal(detectEmbed("https://www.facebook.com/facebook/videos/10153231379946729/").canonicalUrl, "https://www.facebook.com/watch/?v=10153231379946729");

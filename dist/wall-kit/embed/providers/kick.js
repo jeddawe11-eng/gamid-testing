@@ -13,6 +13,8 @@ const VIDEO = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const kick = defineProvider({
   key: "kick",
   label: "Kick",
+  // the Wall Icon badge (Product Memory DEC-0006): the accepted Classic My Socials badge: its colour and its mark / glyph - tests/wall-icons.test.js keeps it identical to dist/public/public.css
+  icon: Object.freeze({ background: "#53fc18", color: "#000000", mark: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M3 3h6v5h2V6h2V3h8v6h-2v2h-2v2h2v2h2v6h-8v-3h-2v-2H9v5H3z'/%3E%3C/svg%3E\")" }),
   hosts: ["kick.com", "www.kick.com", "player.kick.com"],
   frameOrigins: ["https://player.kick.com"],
   examples: "kick.com/name  ·  kick.com/name/videos/…",

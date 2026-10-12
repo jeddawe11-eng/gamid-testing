@@ -87,7 +87,7 @@ test("recognition: every supported URL shape maps to (provider, kind, id) with t
     const found = detectEmbed(url);
     assert.equal(found.ok, true, url);
     assert.deepEqual([found.providerKey, found.kind, found.id], [provider, kind, id], url);
-    if (presentations) assert.deepEqual(found.presentations, presentations, url);
+    if (presentations) assert.deepEqual(found.presentations, [...presentations, "icon"], `${url} (plus the Icon every kind offers - DEC-0006)`);
     assert.equal(found.defaultPresentation, found.presentations[0]);
     assert.ok(found.canonicalUrl.startsWith("https://"), url);
   }
@@ -498,7 +498,7 @@ test("database parity: the SQL provider table equals the JavaScript adapters (pr
 });
 
 test("the Wall core stays provider-neutral: presentation vocabulary is generic and the core never names a provider", () => {
-  assert.deepEqual([...PRESENTATIONS], ["link", "card", "embed"]);
+  assert.deepEqual([...PRESENTATIONS], ["link", "card", "embed", "icon"]);   // "icon" (DEC-0006) is a generic presentation: the badge comes from each adapter
   const core = readdirSync("dist/wall").filter(name => name.endsWith(".js")).map(name => read(`dist/wall/${name}`)).join("\n");
   assert.doesNotMatch(core, /youtube|spotify|twitch|tiktok|instagram|discord|steam|twitter/i);
 });

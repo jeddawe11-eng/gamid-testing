@@ -11,6 +11,8 @@ const ID = /^[0-9]{5,25}$/;
 export const facebook = defineProvider({
   key: "facebook",
   label: "Facebook",
+  // the Wall Icon badge (Product Memory DEC-0006): the accepted Classic My Socials badge: its colour and its mark / glyph - tests/wall-icons.test.js keeps it identical to dist/public/public.css
+  icon: Object.freeze({ background: "#1877f2", color: "#ffffff", glyph: "f", glyphScale: 0.4 }),
   hosts: ["facebook.com", "www.facebook.com", "m.facebook.com", "web.facebook.com", "fb.com", "www.fb.com", "fb.watch"],
   frameOrigins: [],
   examples: "facebook.com/…/videos/…  ·  facebook.com/reel/…  ·  facebook.com/page",

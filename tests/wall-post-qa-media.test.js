@@ -138,7 +138,8 @@ test("D capability matrix: the requested Media & Links providers in order, each 
   const list = mediaCapabilities();
   assert.deepEqual(list.filter(entry => entry.featured).map(entry => entry.label), ["YouTube", "TikTok", "Twitch", "Spotify", "SoundCloud", "Vimeo", "Kick", "Facebook", "Snapchat", "X / Twitter", "Instagram"]);
   assert.deepEqual(list.filter(entry => !entry.featured).map(entry => entry.key), ["discord", "steam"], "still supported, listed after them");
-  const P = "embed|card|link", C = "card|link";
+  // every kind also offers the Icon, always last (DEC-0006); the Player / Card / Link rules are unchanged
+  const P = "embed|card|link|icon", C = "card|link|icon";
   assert.deepEqual(matrix(), {
     youtube: { video: P, playlist: P, channel: C },
     tiktok: { video: P, profile: C },
@@ -146,12 +147,12 @@ test("D capability matrix: the requested Media & Links providers in order, each 
     spotify: { track: P, episode: P, album: P, playlist: P, show: P, artist: P },
     soundcloud: { track: P, playlist: P, profile: P },
     vimeo: { video: P, profile: C },
-    kick: { channel: P, video: "card|link" },   // post-Round 2: Kick documents no VOD player (its player says "misconfigured")
+    kick: { channel: P, video: "card|link|icon" },   // post-Round 2: Kick documents no VOD player (its player says "misconfigured")
     facebook: { video: C, reel: C, page: C },
     snapchat: { spotlight: P, profile: C },
     x: { post: P, profile: C },
     instagram: { post: C, reel: C, profile: C },   // no Player (Instagram platform limitation; saved Players stay valid as Cards)
-    discord: { invite: C, profile: "link" },   // a personal profile (discord.com/users/<id>) has no card or player: a Link only
+    discord: { invite: C, profile: "link|icon" },   // a personal profile (discord.com/users/<id>) has no card or player: a Link (or its Icon) only
     steam: { app: P, profile: C, group: C },
   });
   assert.equal(list.find(entry => entry.key === "facebook").player, false);
@@ -163,12 +164,12 @@ test("D unsupported Player modes can never be chosen: the engine refuses them an
   const refuse = url => buildEmbedPayload(detectEmbed(url), { presentation: "embed" }).errors;
   for (const url of ["https://www.facebook.com/watch/?v=10153231379946729", "https://www.facebook.com/reel/1234567890123", "https://www.facebook.com/NASA", "https://www.snapchat.com/add/snapchat", "https://vimeo.com/staff", "https://www.tiktok.com/@scout2015"]) assert.deepEqual(refuse(url), ["INVALID_PRESENTATION"], url);
   for (const url of ["https://kick.com/xqc", "https://vimeo.com/76979871", "https://soundcloud.com/forss", "https://www.snapchat.com/spotlight/W7_EDlXWTBiXAEEniNoMPwAAYdWxvYnBhaHR3AaARhNpsAaARhNmWAAAAAQ"]) assert.deepEqual(refuse(url), [], url);
-  for (const url of ["https://www.facebook.com/NASA", "https://www.snapchat.com/add/snapchat"]) assert.deepEqual(detectEmbed(url).presentations, ["card", "link"], `${url} is never offered as a Player`);
+  for (const url of ["https://www.facebook.com/NASA", "https://www.snapchat.com/add/snapchat"]) assert.deepEqual(detectEmbed(url).presentations, ["card", "link", "icon"], `${url} is never offered as a Player`);
   const controls = read("dist/wall-editor/controls.js");
   // the editor's Show as is derived from the engine (presentationsFor): a Player only for an inline kind, and a kind can narrow it further (Discord profile: Link)
   assert.match(controls, /const offered = kind \? presentationsFor\(kind\) : \["card", "link"\];/, "Show as offers exactly what the engine allows");
-  assert.match(controls, /\{ value: "embed", label: "Player" \}\]\.filter\(option => offered\.includes\(option\.value\)\)/);
-  assert.deepEqual(detectEmbed("https://discord.com/users/374102653111762948").presentations, ["link"], "a Discord personal profile is a Link only");
+  assert.match(controls, /\["card", "link", "embed", "icon"\]\.filter\(value => offered\.includes\(value\)\)/);
+  assert.deepEqual(detectEmbed("https://discord.com/users/374102653111762948").presentations, ["link", "icon"], "a Discord personal profile is a Link (or its Icon) only");
   assert.deepEqual(buildEmbedPayload(detectEmbed("https://discord.com/users/374102653111762948"), { presentation: "card" }).errors, ["INVALID_PRESENTATION"]);
 });
 
@@ -276,7 +277,7 @@ test("E provider discovery: the Media & Links panel lists every platform with it
   const html = read("dist/wall-editor/index.html");
   assert.match(html, /id="mediaProviders" class="ed-providers" role="list"/);
   assert.match(html, /id="mediaProviderInfo" class="ed-provider-info" aria-live="polite" hidden/);
-  assert.match(html, /<b>Player<\/b> plays on your Wall, <b>Card<\/b> and <b>Link<\/b> open it on the platform/);
+  assert.match(html, /<b>Player<\/b> plays on your Wall, <b>Card<\/b>, <b>Link<\/b> and <b>Icon<\/b> \(its logo\) open it on the platform/);
   const tools = read("dist/wall-editor/tools.js");
   assert.match(tools, /const capabilities = mediaCapabilities\(\);/, "built from the adapters - no hand-written provider list");
   assert.match(tools, /"aria-expanded": "false", "aria-controls": "mediaProviderInfo"/);

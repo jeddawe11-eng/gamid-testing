@@ -6,3 +6,4 @@ import "./background.js";
 import "./gamid.js";
 import "./embed/index.js";
 import "./gamid-data.js";
+import "./icons.js";

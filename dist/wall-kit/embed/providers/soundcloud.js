@@ -13,6 +13,8 @@ const widget = path => `https://w.soundcloud.com/player/?url=${encodeURIComponen
 export const soundcloud = defineProvider({
   key: "soundcloud",
   label: "SoundCloud",
+  // the Wall Icon badge (Product Memory DEC-0006): the accepted Classic My Socials badge: its colour and its mark / glyph - tests/wall-icons.test.js keeps it identical to dist/public/public.css
+  icon: Object.freeze({ background: "#ff5500", color: "#ffffff", mark: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M10.2 8.6a5.2 5.2 0 0 1 9.7 2.6 3.3 3.3 0 0 1 .3 6.5H10.2z'/%3E%3Crect fill='black' x='1' y='12.6' width='1.3' height='5.1' rx='.65'/%3E%3Crect fill='black' x='3.2' y='11' width='1.3' height='6.7' rx='.65'/%3E%3Crect fill='black' x='5.4' y='9.6' width='1.3' height='8.1' rx='.65'/%3E%3Crect fill='black' x='7.6' y='8.8' width='1.3' height='8.9' rx='.65'/%3E%3C/svg%3E\")" }),
   hosts: ["soundcloud.com", "www.soundcloud.com", "m.soundcloud.com", "on.soundcloud.com"],
   frameOrigins: ["https://w.soundcloud.com"],
   examples: "soundcloud.com/artist/track  ·  soundcloud.com/artist/sets/…  ·  soundcloud.com/artist",

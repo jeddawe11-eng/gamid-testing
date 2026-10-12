@@ -160,6 +160,16 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* Media & Links > Other: URL + Display Text */
 .ed-other { display: grid; gap: .55rem; }
 .ed-other .ed-hint { margin: 0; }
+/* Icon Group (DEC-0006): the icons of a group in the owner's order - badge, link, move up / down, remove - and the link rows of a new group */
+.ed-icon-rows { display: grid; gap: .4rem; }
+.ed-icon-list { list-style: none; margin: .3rem 0 .6rem; padding: 0; display: grid; gap: .45rem; }
+.ed-icon-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: .45rem; }
+.ed-icon-item > .wall-icon { margin-top: .3rem; }
+.ed-icon-link { display: grid; gap: .3rem; min-width: 0; }
+.ed-icon-link .ed-text-line { width: 100%; min-width: 0; }
+.ed-icon-actions { display: flex; gap: .25rem; }
+.ed-icon-actions .ed-btn { min-width: 2.75rem; min-height: 2.75rem; padding: 0; justify-content: center; }
+.ed-icon-actions .ed-btn:disabled { opacity: .4; cursor: default; }
 .ed-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .6rem; }
 .ed-chip { min-width: 2.75rem; min-height: 2.75rem; border-radius: .7rem; border: 1px solid #3a334b; background: #1c1828; font-weight: 800; cursor: pointer; }
 .ed-chip[aria-selected="true"] { border-color: var(--cyan); color: var(--cyan); background: #0d2530; }

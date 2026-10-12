@@ -37,6 +37,12 @@ const BY_CODE = {
   INVALID_FADE: "An edge fade must be between 0 and 50%.",
   INVALID_MEDIA: "That media type is not available.",
   INVALID_LINK: "That link is not a valid https:// or http:// web address, so it was not applied.",
+  // Icon Group (DEC-0006)
+  INVALID_ICON_ITEMS: "An Icon Group holds 1 to 24 icons, so that was not applied.",
+  INVALID_ICON_ITEM: "An icon's link must be a supported platform link or a valid https:// or http:// web address, so that was not applied.",
+  INVALID_ICON_SIZE: "Icon size must be between 40 and 400.",
+  INVALID_ICON_GAP: "Spacing must be between 0 and 200.",
+  INVALID_ICON_ALIGN: "That alignment is not available.",
   VIDEO_SPLIT_UNSUPPORTED: "A video can't be split (its pieces would play out of step). Split a picture or GIF instead.",
   INVALID_BACKDROP: "The backing must be None or a colour.",
   INVALID_CROP: "That crop is not valid, so it was not applied.",

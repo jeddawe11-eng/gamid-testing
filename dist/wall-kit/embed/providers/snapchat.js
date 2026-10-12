@@ -9,6 +9,8 @@ const USER = "^[A-Za-z0-9._-]{3,15}$";
 export const snapchat = defineProvider({
   key: "snapchat",
   label: "Snapchat",
+  // the Wall Icon badge (Product Memory DEC-0006): the accepted Classic My Socials badge: its colour and its mark / glyph - tests/wall-icons.test.js keeps it identical to dist/public/public.css
+  icon: Object.freeze({ background: "#fffc00", color: "#000000", mark: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M12 2.2c3.4 0 5.8 2.6 5.8 6v2.4l1.7-.6c.7-.2 1.2.7.6 1.1l-2.1 1.3c.7 2 2.3 3.4 4.2 3.9.5.1.5.7 0 .9-.9.4-1.8.6-2.6.8-.2.7-.2 1.4-.9 1.4-.8 0-1.7-.4-2.9.3-1.1.7-2.3 1.5-3.8 1.5s-2.7-.8-3.8-1.5c-1.2-.7-2.1-.3-2.9-.3-.7 0-.7-.7-.9-1.4-.8-.2-1.7-.4-2.6-.8-.5-.2-.5-.8 0-.9 1.9-.5 3.5-1.9 4.2-3.9L3.5 11.1c-.6-.4-.1-1.3.6-1.1l1.7.6V8.2c0-3.4 2.4-6 6.2-6z'/%3E%3C/svg%3E\")" }),
   hosts: ["snapchat.com", "www.snapchat.com"],
   frameOrigins: ["https://www.snapchat.com"],
   examples: "snapchat.com/spotlight/…  ·  snapchat.com/add/name",

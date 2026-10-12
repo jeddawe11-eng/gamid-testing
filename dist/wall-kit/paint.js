@@ -9,6 +9,7 @@ import { isSafeLinkUrl } from "./text.js";
 import { hasPoster } from "./posters.js";
 import { paintGamidBlock } from "./gamid-blocks.js";
 import { paintGamidData } from "./gamid-data-paint.js";
+import { paintEmbedIcon, paintIcons } from "./icons-paint.js";
 import { markInteractive, markPassThrough } from "./interaction.js";
 import { safeMediaUrl, backgroundVideo } from "./video-background.js";
 import "./register.js";   // makes sure every element type, background kind and provider is registered wherever documents are painted
@@ -314,6 +315,7 @@ export function facadeLayout(presentation, widthUnits, heightUnits) {
 // A provider embed. EDIT: a facade card only (no iframe, no network). VIEW: link/card open the content; a player starts on a tap, always inline inside this same element
 // (no overlay). Everything shown comes from the adapter's descriptor; the address followed is re-checked against the provider's own hosts.
 function paintEmbed(node, descriptor, scale, item, createNode, ctx) {
+  if (descriptor.presentation === "icon") { paintEmbedIcon(node, descriptor, item, createNode, ctx); return; }   // the platform's badge alone (icons-paint.js)
   const view = ctx.mode === "view";
   const s = value => px(value * scale);
   const make = (tag, className, text) => { const n = createNode(tag); if (className) n.className = className; if (text !== undefined) n.textContent = text; return n; };
@@ -447,6 +449,7 @@ export function paintElement(item, scale, order, createNode, ctx = {}) {
   else if (content?.kind === "text") paintText(node, content, scale, createNode, ctx);
   else if (content?.kind === "image") paintImage(node, content, scale, item, createNode, ctx);
   else if (content?.kind === "embed" && content.content?.kind === "embed") paintEmbed(node, content.content, scale, item, createNode, ctx);
+  else if (content?.kind === "icons") paintIcons(node, content, scale, item, createNode, ctx);
   else if (content?.kind === "gamidData") paintGamidData(node, content, scale, item, createNode, ctx, { paintText, paintArtworkFrame, px });
   else if (content?.kind === "gamid") node.append(paintGamidBlock(content, ctx.gamid ?? null, createNode, { scale, interactive: ctx.mode === "view", details: ctx.details ?? null, posters: ctx.posters ?? null }));
   return node;

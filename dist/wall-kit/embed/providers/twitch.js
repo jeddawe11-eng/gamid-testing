@@ -14,6 +14,8 @@ const MIN = { w: 400, h: 300 };
 export const twitch = defineProvider({
   key: "twitch",
   label: "Twitch",
+  // the Wall Icon badge (Product Memory DEC-0006): the accepted Classic My Socials badge: its colour and its mark / glyph - tests/wall-icons.test.js keeps it identical to dist/public/public.css
+  icon: Object.freeze({ background: "#9146ff", color: "#ffffff", mark: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z'/%3E%3C/svg%3E\")" }),
   hosts: ["twitch.tv", "www.twitch.tv", "m.twitch.tv", "clips.twitch.tv"],
   frameOrigins: ["https://player.twitch.tv", "https://clips.twitch.tv"],
   examples: "twitch.tv/name  ·  twitch.tv/videos/…  ·  clips.twitch.tv/…",

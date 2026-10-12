@@ -12,7 +12,8 @@ import { defaultBackground, createImageBackground, createVideoBackground } from 
 import { GAMID_BLOCKS, GAMID_BLOCK_INFO, createGamidPayload } from "../wall-kit/gamid.js";
 import { DATA_FIELD_INFO, DATA_ITEMS, DATA_TEXT_FIELDS, createGamidDataPayload, dataTextStyle } from "../wall-kit/gamid-data.js";
 import { startingImageSize, describeVideoJobFailure, isVideoAsset, isVideoFileType } from "../wall-kit/assets.js";
-import { PROVIDERS, detectEmbed, buildEmbedPayload, defaultEmbedSize, humanReason, PRESENTATION_LABELS } from "../wall-kit/embed/engine.js";
+import { PROVIDERS, detectEmbed, buildEmbedPayload, defaultEmbedSize, humanReason, PRESENTATION_LABELS, ICON_SIZE } from "../wall-kit/embed/engine.js";
+import { ICON_LIMITS, createIconsPayload, defaultIconGroupSize, iconItemFromInput } from "../wall-kit/icons.js";
 import { mediaCapabilities } from "../wall-kit/embed/index.js";
 import { fitFrame } from "../wall-kit/embed/player.js";
 import { createVideoPreviews } from "./video-preview.js";
@@ -95,6 +96,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
   function renderProviderInfo() {
     for (const button of providerList.querySelectorAll("button")) button.setAttribute("aria-expanded", String(button.dataset.provider === openProvider));
     if (openProvider === OTHER) { providerInfo.hidden = false; providerInfo.replaceChildren(otherForm()); requestAnimationFrame(() => $("otherUrl")?.focus()); return; }
+    if (openProvider === GROUP) { providerInfo.hidden = false; providerInfo.replaceChildren(groupForm()); requestAnimationFrame(() => providerInfo.querySelector("input")?.focus()); return; }
     const entry = capabilities.find(item => item.key === openProvider);
     providerInfo.hidden = !entry;
     if (!entry) { providerInfo.replaceChildren(); return; }
@@ -122,15 +124,64 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
     onclick: () => { openProvider = openProvider === OTHER ? null : OTHER; renderProviderInfo(); } }, h("b", { text: "Other" }), h("small", { text: "Text link" }));
   otherButton.dataset.provider = OTHER;
   providerList.append(otherButton);
+  // ICON GROUP (DEC-0006): several platform icons - any supported link, or any other website - in ONE Wall element that aligns and wraps them by itself
+  const GROUP = "icon-group";
+  const groupButton = h("button", { type: "button", class: "ed-provider", "aria-expanded": "false", "aria-controls": "mediaProviderInfo", role: "listitem",
+    onclick: () => { openProvider = openProvider === GROUP ? null : GROUP; renderProviderInfo(); } }, h("b", { text: "Icon Group" }), h("small", { text: "Several icons" }));
+  groupButton.dataset.provider = GROUP;
+  providerList.append(groupButton);
+  function groupForm() {
+    const rows = h("div", { class: "ed-icon-rows" });
+    const status = h("p", { class: "ed-media-msg", role: "status", hidden: true });
+    const addRow = () => {
+      if (rows.children.length >= ICON_LIMITS.items) return;
+      const input = h("input", { class: "ed-text-line", type: "url", inputmode: "url", autocomplete: "off", spellcheck: "false", maxlength: LINK_MAX, placeholder: "Paste a link", "aria-label": `Link ${rows.children.length + 1}` });
+      input.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); add(); } });
+      rows.append(input);
+      return input;
+    };
+    const add = () => {
+      const values = [...rows.querySelectorAll("input")].map(input => input.value.trim());
+      const items = [];
+      for (const [index, value] of values.entries()) {
+        if (!value) continue;
+        const parsed = iconItemFromInput(value);
+        if (!parsed.ok) { status.hidden = false; status.textContent = `Link ${index + 1}: ${parsed.message}`; rows.children[index]?.focus(); return; }
+        items.push(parsed.item);
+      }
+      if (!items.length) { status.hidden = false; status.textContent = "Paste at least one link."; rows.children[0]?.focus(); return; }
+      const result = addCustom("icons", createIconsPayload(items), defaultIconGroupSize(items.length));
+      if (!result.ok) { status.hidden = false; status.textContent = describeErrors(result.errors).join(" "); return; }
+      openProvider = null;
+      renderProviderInfo();
+      setTool("props");
+    };
+    addRow(); addRow();
+    return h("div", { class: "ed-other" },
+      h("strong", { class: "title", text: "Icon Group" }),
+      h("p", { class: "ed-hint", text: `Several icons in one element: paste up to ${ICON_LIMITS.items} links (any supported platform, or any other website for a link icon). They line up and wrap by themselves; move and resize the group as one. Each icon opens its own link.` }),
+      rows, status,
+      h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn", type: "button", text: "Add another link", onclick: () => addRow()?.focus() }),
+        h("button", { class: "ed-btn ed-primary", type: "button", text: "Add to Wall", onclick: add })),
+      h("p", { class: "ed-hint", text: "Add, remove, reorder or change links later in Edit." }));
+  }
   function otherForm() {
     const url = h("input", { id: "otherUrl", class: "ed-text-line", type: "url", inputmode: "url", autocomplete: "off", spellcheck: "false", maxlength: LINK_MAX, placeholder: "mywebsite.com" });
     const text = h("input", { id: "otherText", class: "ed-text-line", type: "text", autocomplete: "off", maxlength: OTHER_TEXT_MAX, placeholder: "Support Me" });
     const status = h("p", { class: "ed-media-msg", role: "status", hidden: true });
+    // Show as: the Display Text (a text link, as before) or the generic link Icon (DEC-0006: a one-icon Icon Group, so more links can join it later)
+    let asIcon = false;
+    const textLabel = h("label", { class: "ed-stack" }, h("span", { text: "Display Text" }), text);
+    const seg = h("div", { class: "ed-seg", role: "group", "aria-label": "How to show it" });
+    for (const [value, label] of [[false, "Text link"], [true, "Icon"]]) seg.append(h("button", { type: "button", "aria-pressed": String(value === asIcon), text: label, onclick: () => {
+      asIcon = value; textLabel.hidden = asIcon; for (const button of seg.children) button.setAttribute("aria-pressed", String(button.textContent === label));
+    } }));
     const add = () => {
       const link = normalizeLinkInput(url.value);
       if (!link.ok) { status.hidden = false; status.textContent = LINK_PROBLEMS[link.reason]; url.focus(); return; }
       const shown = text.value.trim() || new URL(link.url).hostname;
-      const result = addCustom("text", createTextPayload({ ...OTHER_LINK_STYLE, text: shown, link: { url: link.url } }), OTHER_LINK_SIZE);
+      const result = asIcon ? addCustom("icons", createIconsPayload([{ url: link.url }], { size: ICON_SIZE }), { width: ICON_SIZE, height: ICON_SIZE })
+        : addCustom("text", createTextPayload({ ...OTHER_LINK_STYLE, text: shown, link: { url: link.url } }), OTHER_LINK_SIZE);
       if (!result.ok) { status.hidden = false; status.textContent = describeErrors(result.errors).join(" "); return; }
       openProvider = null;
       renderProviderInfo();
@@ -141,7 +192,8 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
       h("strong", { class: "title", text: "Other" }),
       h("p", { class: "ed-hint", text: "Link to any website - your site, a shop, a support or payment page. Your Display Text is what shows on your Wall; visitors tap it to open the address in a new tab." }),
       h("label", { class: "ed-stack" }, h("span", { text: "URL" }), url),
-      h("label", { class: "ed-stack" }, h("span", { text: "Display Text" }), text),
+      seg,
+      textLabel,
       status,
       h("button", { class: "ed-btn ed-primary", type: "button", text: "Add to Wall", onclick: add }),
       h("p", { class: "ed-hint", text: "Only https:// or http:// addresses. Style it like any text (font, size, colour, effects) in Edit; change the text or the address there too." }));
@@ -155,7 +207,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
     choice.presentation = detected.defaultPresentation; choice.aspect = detected.aspect; choice.caption = "";
     const card = h("div", { class: "ed-media-card" });
     card.append(h("span", { class: "tag", text: detected.providerLabel.toUpperCase() }), h("strong", { text: `${detected.kindLabel}${detected.profile ? "" : ""}` }));
-    const labels = { embed: "Player", card: "Card", link: "Link" };
+    const labels = PRESENTATION_LABELS;
     const seg = h("div", { class: "ed-seg", role: "group", "aria-label": "How to show it" });
     for (const value of detected.presentations) seg.append(h("button", { type: "button", "aria-pressed": String(choice.presentation === value), text: labels[value], onclick: () => { choice.presentation = value; for (const other of seg.children) other.setAttribute("aria-pressed", String(other.textContent === labels[value])); } }));
     card.append(seg);

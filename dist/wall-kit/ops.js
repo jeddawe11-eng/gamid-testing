@@ -17,7 +17,7 @@ import { createTextPayload } from "./text.js";
 import { GAMID_BLOCK_INFO } from "./gamid.js";
 import { cropRatio, MIN_SLICE, SPLIT_COUNTS, SLICE_DIRS } from "./image.js";
 import { DATA_COLLECTIONS } from "./gamid-data.js";
-import { PROVIDERS } from "./embed/engine.js";
+import { PROVIDERS, ICON_SIZE, defaultEmbedSize } from "./embed/engine.js";
 import "./register.js";   // every element type, background kind and embed provider the kit provides
 
 export const MIN_SIZE = 10;
@@ -56,6 +56,7 @@ export function minSizeOf(element) {
   if (element.type === "embed") {
     const descriptor = embedDescriptor(element);
     if (!descriptor) return TOUCH_MIN;
+    if (descriptor.presentation === "icon") return TOUCH_MIN;   // one badge: a touch target at the narrowest column
     if (descriptor.presentation === "link") return LINK_MIN;
     if (!descriptor.inline) return CARD_MIN;
     const tile = PROVIDERS.get(descriptor.providerKey)?.kinds?.[descriptor.contentKind]?.minTile;
@@ -68,6 +69,7 @@ export function minSizeOf(element) {
     const frameW = inline ? (turn ? inline.h : inline.w) : 0, frameH = inline ? (turn ? inline.w : inline.h) + INLINE_CLOSE_BAR_UNITS : 0;
     return { width: Math.max(portrait ? short : long, frameW), height: Math.max(portrait ? long : short, frameH) };
   }
+  if (element.type === "icons") return TOUCH_MIN;   // an Icon Group shrinks its icons to fit (icons.js iconGroupLayout); its box stays a touch target
   if (element.type === "gamid") return GAMID_BLOCK_INFO[element.payload?.block]?.minSize ?? BASE_MIN;
   if (element.type === "gamidData" && DATA_COLLECTIONS[element.payload?.field]) return GAMID_BLOCK_INFO[DATA_COLLECTIONS[element.payload.field]]?.minSize ?? BASE_MIN;   // a live collection is the block
   return BASE_MIN;
@@ -400,6 +402,7 @@ export function assetUsage(doc, assetId) {
 export function lockedAspect(element) {
   if (element.type === "embed") {
     const descriptor = embedDescriptor(element);
+    if (descriptor?.presentation === "icon") return 1;   // an Icon is a round badge: its box stays square
     const ratio = ratioOf(descriptor?.aspect);
     if (!ratio) return null;
     return descriptor.inline ? ratio : element.width / element.height;
@@ -450,6 +453,15 @@ export function setEmbedData(doc, id, patch) {
   const { valid, errors } = validateDocument(next);
   if (!valid) return fail(doc, ...errors);
   const after = embedDescriptor(element);
+  // Icon (DEC-0006): becoming an Icon makes the box the standard square badge; leaving it restores the new presentation's starting size - both centred where it was
+  if (after && before && (after.presentation === "icon") !== (before.presentation === "icon")) {
+    const size = after.presentation === "icon" ? { width: ICON_SIZE, height: ICON_SIZE }
+      : defaultEmbedSize({ profile: after.profile, size: PROVIDERS.get(after.providerKey)?.kinds?.[after.contentKind]?.size ?? { width: 800, height: 450 } }, after.presentation);
+    const cx = element.x + element.width / 2, cy = element.y + element.height / 2;
+    element.width = Math.min(next.canvas.width, size.width); element.height = Math.min(next.canvas.height, size.height);
+    element.x = Math.round(cx - element.width / 2); element.y = Math.round(cy - element.height / 2);
+    if (!clampToCanvas(element, next.canvas, minSizeOf(element))) return fail(doc, "OUTSIDE_CANVAS");
+  }
   const ratio = ratioOf(after?.aspect);
   if (after?.inline && ratio && (after.aspect !== before?.aspect || !before?.inline)) {
     refitToRatio(element, ratio, next.canvas);

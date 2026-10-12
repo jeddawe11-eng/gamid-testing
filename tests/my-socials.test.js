@@ -50,7 +50,7 @@ test("one engine: My Socials keeps no URL patterns of its own; every platform an
 test("Discord personal profile, the same URL in both surfaces: the Wall offers it as a Link; My Socials accepts it as a Discord account; both open the same official address", () => {
   const wall = detectEmbed(DISCORD_USER);
   assert.equal(wall.ok, true);
-  assert.deepEqual([wall.providerKey, wall.kind, wall.id, wall.presentations], ["discord", "profile", "374102653111762948", ["link"]]);
+  assert.deepEqual([wall.providerKey, wall.kind, wall.id, wall.presentations], ["discord", "profile", "374102653111762948", ["link", "icon"]]);   // Link only - plus the Icon every kind offers (DEC-0006)
   assert.equal(wall.canonicalUrl, DISCORD_USER);
   const linkPayload = buildEmbedPayload(wall, { presentation: "link" });
   assert.deepEqual(linkPayload.errors, []);
@@ -61,7 +61,7 @@ test("Discord personal profile, the same URL in both surfaces: the Wall offers i
   assert.equal(socialUrl("discord", "profile", "374102653111762948"), DISCORD_USER);
   // invitations still work, on both surfaces
   for (const url of ["discord.gg/abc123", "https://discord.com/invite/abc123"]) {
-    assert.deepEqual([detectEmbed(url).kind, detectEmbed(url).presentations, detectEmbed(url).canonicalUrl], ["invite", ["card", "link"], "https://discord.gg/abc123"], url);
+    assert.deepEqual([detectEmbed(url).kind, detectEmbed(url).presentations, detectEmbed(url).canonicalUrl], ["invite", ["card", "link", "icon"], "https://discord.gg/abc123"], url);
     assert.equal(parseSocialLink("discord", url).kind, "invite");
   }
   for (const url of ["https://discord.com/users/abc", "https://discord.com/users/123", "https://discord.com/channels/1/2", "https://discord.gg/users/374102653111762948"]) assert.notEqual(detectEmbed(url).kind, "profile", url);

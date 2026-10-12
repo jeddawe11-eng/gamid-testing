@@ -12,6 +12,8 @@ const RESERVED = new Set(["p", "reel", "reels", "tv", "explore", "accounts", "st
 export const instagram = defineProvider({
   key: "instagram",
   label: "Instagram",
+  // the Wall Icon badge (Product Memory DEC-0006): the accepted Classic My Socials badge: its colour and its mark / glyph - tests/wall-icons.test.js keeps it identical to dist/public/public.css
+  icon: Object.freeze({ background: "linear-gradient(45deg, #f58529, #dd2a7b, #8134af)", color: "#ffffff", mark: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2.6' y='2.6' width='18.8' height='18.8' rx='5.4' fill='none' stroke='black' stroke-width='2.1'/%3E%3Ccircle cx='12' cy='12' r='4.3' fill='none' stroke='black' stroke-width='2.1'/%3E%3Ccircle cx='17.5' cy='6.5' r='1.3' fill='black'/%3E%3C/svg%3E\")" }),
   hosts: ["instagram.com", "www.instagram.com", "m.instagram.com"],
   frameOrigins: [],
   examples: "instagram.com/p/…  ·  instagram.com/reel/…  ·  instagram.com/name",

@@ -18,6 +18,8 @@ const gamidEl = (id, over = {}, extra = {}) => rect(id, { type: "gamid", width: 
 const dataEl = (id, payload, extra = {}) => rect(id, { type: "gamidData", width: 600, height: 200, payload, ...extra });
 const dataText = (over = {}) => { const { text: _text, ...style } = createTextPayload(over); return style; };
 const embedEl = (id, providerKey, data, extra = {}) => rect(id, { type: "embed", width: 600, height: 340, payload: { providerKey, data }, ...extra });
+const iconsEl = (id, payload, extra = {}) => rect(id, { type: "icons", width: 600, height: 300, payload, ...extra });
+const YT = { providerKey: "youtube", kind: "video", id: "dQw4w9WgXcQ" };
 const withBackground = (background, stageBackground) => { const d = docWith(rect("r1")); if (background !== undefined) d.background = background; if (stageBackground !== undefined) d.stages[0].background = stageBackground; return d; };const withStages = stages => ({ ...createDocument(), stages });
 
 export const CORPUS = [
@@ -614,5 +616,41 @@ export const CORPUS = [
   { name: "embed: snapchat profile is never a player", doc: docWith(embedEl("e1", "snapchat", { kind: "profile", id: "snapchat", presentation: "embed" })) },
   { name: "embed: several providers in one Wall", doc: docWith(embedEl("a", "youtube", { kind: "video", id: "dQw4w9WgXcQ", presentation: "embed" }, { y: 0 }), embedEl("b", "spotify", { kind: "track", id: "4uLU6hMCjMI75M1A2tKUQC", presentation: "embed" }, { y: 400 }), embedEl("c", "twitch", { kind: "channel", id: "shroud", presentation: "card" }, { y: 800 }), embedEl("d", "discord", { kind: "invite", id: "abcDEF", presentation: "link" }, { y: 1200 })) },
   { name: "embed: one bad provider among good ones reports only the bad one", doc: docWith(embedEl("a", "youtube", { kind: "video", id: "dQw4w9WgXcQ", presentation: "embed" }, { y: 0 }), embedEl("b", "spotify", { kind: "track", id: "bad", presentation: "embed" }, { y: 400 })) },
-  { name: "mixed Wall: text, image, shapes, GamID blocks, embeds, backgrounds and stages together", doc: (() => { const d = withStages([{ id: "s1", elements: [textEl("t", {}, { y: 0 }), imageEl("i", {}, { y: 200 }), rect("r", { y: 400 }), gamidEl("g", { block: "games", initial: 10 }, { y: 600 }), embedEl("e", "youtube", { kind: "video", id: "dQw4w9WgXcQ", presentation: "embed" }, { y: 950 })] }, { id: "s2", elements: [embedEl("f", "steam", { kind: "app", id: "730", presentation: "embed" }, { y: 0 })], background: { kind: "gradient", from: "#000000", to: "#111111", angle: 90 } }]); d.background = { kind: "color", color: "#0d0b14" }; return d; })() },
+  // ---- Icon display option and Icon Group (DEC-0006): every provider kind as an Icon; groups of platform parts and Other addresses ----
+  { name: "icon: a youtube video shown as an Icon", doc: docWith(embedEl("e1", "youtube", { kind: "video", id: "dQw4w9WgXcQ", presentation: "icon" }, { width: 160, height: 160 })) },
+  { name: "icon: a discord personal profile (Link-only kind) may still be an Icon", doc: docWith(embedEl("e1", "discord", { kind: "profile", id: "374102653111762948", presentation: "icon" })) },
+  { name: "icon: a steam group as an Icon", doc: docWith(embedEl("e1", "steam", { kind: "group", id: "valve", presentation: "icon" })) },
+  { name: "icon: an unknown presentation is still refused", doc: docWith(embedEl("e1", "youtube", { kind: "video", id: "dQw4w9WgXcQ", presentation: "badge" })) },
+  { name: "icon: an Icon with a bad id is refused", doc: docWith(embedEl("e1", "spotify", { kind: "artist", id: "short", presentation: "icon" })) },
+  { name: "icons: a group of platform icons and an Other address", doc: docWith(iconsEl("g1", { items: [YT, { providerKey: "spotify", kind: "track", id: "4uLU6hMCjMI75M1A2tKUQC" }, { providerKey: "discord", kind: "invite", id: "abcDEF" }, { providerKey: "steam", kind: "app", id: "570" }, { url: "https://paypal.me/example" }] })) },
+  { name: "icons: one Other icon with size, gap and align", doc: docWith(iconsEl("g1", { items: [{ url: "https://mysite.example/shop?x=1" }], size: 160, gap: 0, align: "left" })) },
+  { name: "icons: 24 icons is the maximum", doc: docWith(iconsEl("g1", { items: Array.from({ length: 24 }, () => YT), size: 40, gap: 200, align: "right" })) },
+  { name: "icons: 25 icons are refused", doc: docWith(iconsEl("g1", { items: Array.from({ length: 25 }, () => YT) })) },
+  { name: "icons: an empty group is refused", doc: docWith(iconsEl("g1", { items: [] })) },
+  { name: "icons: items must be a list", doc: docWith(iconsEl("g1", { items: { 0: YT } })) },
+  { name: "icons: a missing item list is refused", doc: docWith(iconsEl("g1", { size: 120 })) },
+  { name: "icons: the payload must be an object", doc: docWith(iconsEl("g1", [YT])) },
+  { name: "icons: an unknown provider is refused", doc: docWith(iconsEl("g1", { items: [{ providerKey: "myspace", kind: "profile", id: "tom" }] })) },
+  { name: "icons: an unknown kind is refused", doc: docWith(iconsEl("g1", { items: [{ providerKey: "youtube", kind: "short", id: "dQw4w9WgXcQ" }] })) },
+  { name: "icons: a bad platform id is refused", doc: docWith(iconsEl("g1", { items: [{ providerKey: "youtube", kind: "video", id: "nope" }] })) },
+  { name: "icons: a platform item may not carry an address or a presentation", doc: docWith(iconsEl("g1", { items: [{ ...YT, url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }] })) },
+  { name: "icons: a platform item needs all three parts", doc: docWith(iconsEl("g1", { items: [{ providerKey: "youtube", kind: "video" }] })) },
+  { name: "icons: a non-string id is refused", doc: docWith(iconsEl("g1", { items: [{ providerKey: "x", kind: "post", id: 12345 }] })) },
+  { name: "icons: a javascript: address is refused", doc: docWith(iconsEl("g1", { items: [{ url: "javascript:alert(1)" }] })) },
+  { name: "icons: a data: address is refused", doc: docWith(iconsEl("g1", { items: [{ url: "data:text/html,hi" }] })) },
+  { name: "icons: an address with a user name is refused", doc: docWith(iconsEl("g1", { items: [{ url: "https://bank.example@evil.example/" }] })) },
+  { name: "icons: an address without a dotted host is refused", doc: docWith(iconsEl("g1", { items: [{ url: "https://localhost/x" }] })) },
+  { name: "icons: an Other item takes nothing but its address", doc: docWith(iconsEl("g1", { items: [{ url: "https://paypal.me/example", label: "Pay" }] })) },
+  { name: "icons: an item must be an object", doc: docWith(iconsEl("g1", { items: ["https://paypal.me/example"] })) },
+  { name: "icons: one bad item among good ones refuses the group once", doc: docWith(iconsEl("g1", { items: [YT, { url: "ftp://x.example/a" }, { providerKey: "kick", kind: "channel", id: "?" }] })) },
+  { name: "icons: size below 40 is refused", doc: docWith(iconsEl("g1", { items: [YT], size: 39 })) },
+  { name: "icons: size above 400 is refused", doc: docWith(iconsEl("g1", { items: [YT], size: 401 })) },
+  { name: "icons: a text size is refused", doc: docWith(iconsEl("g1", { items: [YT], size: "120" })) },
+  { name: "icons: negative spacing is refused", doc: docWith(iconsEl("g1", { items: [YT], gap: -1 })) },
+  { name: "icons: spacing above 200 is refused", doc: docWith(iconsEl("g1", { items: [YT], gap: 201 })) },
+  { name: "icons: an unknown alignment is refused", doc: docWith(iconsEl("g1", { items: [YT], align: "justify" })) },
+  { name: "icons: a non-string alignment is refused", doc: docWith(iconsEl("g1", { items: [YT], align: 1 })) },
+  { name: "icons: several problems are all reported", doc: docWith(iconsEl("g1", { items: [], size: 1, gap: 999, align: "top" })) },
+  { name: "icons: markup in an item is caught by the unsafe-content scan too", doc: docWith(iconsEl("g1", { items: [{ url: "https://a.example/<script>" }] })) },
+  { name: "icons: null optional fields mean unset", doc: docWith(iconsEl("g1", { items: [YT], size: null, gap: null, align: null })) },  { name: "mixed Wall: text, image, shapes, GamID blocks, embeds, backgrounds and stages together", doc: (() => { const d = withStages([{ id: "s1", elements: [textEl("t", {}, { y: 0 }), imageEl("i", {}, { y: 200 }), rect("r", { y: 400 }), gamidEl("g", { block: "games", initial: 10 }, { y: 600 }), embedEl("e", "youtube", { kind: "video", id: "dQw4w9WgXcQ", presentation: "embed" }, { y: 950 })] }, { id: "s2", elements: [embedEl("f", "steam", { kind: "app", id: "730", presentation: "embed" }, { y: 0 })], background: { kind: "gradient", from: "#000000", to: "#111111", angle: 90 } }]); d.background = { kind: "color", color: "#0d0b14" }; return d; })() },
 ];

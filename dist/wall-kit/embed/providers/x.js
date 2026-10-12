@@ -9,6 +9,8 @@ const RESERVED = new Set(["home", "explore", "i", "search", "settings", "message
 export const x = defineProvider({
   key: "x",
   label: "X",
+  // the Wall Icon badge (Product Memory DEC-0006): the accepted Classic My Socials badge: its colour and its mark / glyph - tests/wall-icons.test.js keeps it identical to dist/public/public.css
+  icon: Object.freeze({ background: "#000000", ring: { color: "#5a5470", width: 0.023 }, color: "#ffffff", glyph: "X", glyphScale: 0.298 }),
   displayLabel: "X / Twitter",
   examples: "x.com/name/status/…  ·  twitter.com/name/status/…  ·  x.com/name",
   hosts: ["x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com"],

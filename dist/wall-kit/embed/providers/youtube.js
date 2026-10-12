@@ -8,6 +8,8 @@ const CHANNEL = "^(@[A-Za-z0-9._-]{3,30}|UC[A-Za-z0-9_-]{22})$";
 export const youtube = defineProvider({
   key: "youtube",
   label: "YouTube",
+  // the Wall Icon badge (Product Memory DEC-0006): the accepted Classic My Socials badge: its colour and its mark / glyph - tests/wall-icons.test.js keeps it identical to dist/public/public.css
+  icon: Object.freeze({ background: "#ff0000", color: "#ffffff", glyph: "\u25b6", glyphScale: 0.298 }),
   hosts: ["youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be", "youtube-nocookie.com", "www.youtube-nocookie.com"],
   frameOrigins: ["https://www.youtube-nocookie.com"],
   examples: "youtube.com/watch?v=…  ·  youtu.be/…  ·  youtube.com/shorts/…  ·  youtube.com/@channel",

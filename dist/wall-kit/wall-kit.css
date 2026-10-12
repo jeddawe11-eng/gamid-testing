@@ -10,6 +10,8 @@
 .wall-el { pointer-events: none; }
 .wall-el [data-wall-interactive] { pointer-events: auto; }
 .wall-text { width: 100%; height: 100%; margin: 0; padding: 0; }
+/* platform icons (DEC-0006; badges painted by icons-paint.js): a keyboard focus ring drawn INSIDE the badge (the element box clips outside it) - white on a dark band, visible on every brand colour */
+.wall-icon:focus-visible { outline: 3px solid #ffffff; outline-offset: -3px; box-shadow: inset 0 0 0 7px #0d0b14 !important; }
 
 /* GamID blocks (real identity data drawn on the Wall). Sizes inside a block scale with the Wall through the inline font-size set by the painter (em units).
    Round 2 styling: a styled block sets --g-* custom properties + classes on its root (gamid-blocks.js applyGamidStyle); every var() falls back to the accepted look. */
