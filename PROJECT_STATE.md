@@ -108,15 +108,15 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 - **ISS-0013 (My Socials marks for TikTok, Twitch, Kick, Snapchat on desktop, §45):** deployed as `514e462` (fix `ec3fda4`), **accepted by Mazen 2026-10-11**; ISS-0013 VERIFIED; Truth `desktop-social-marks` final (`classic-profile-desktop` ACCEPTED).
 - **Public profile scroll bug (desktop, §46):** fixed and deployed at `5529d17`, **accepted by Mazen 2026-10-11**; recorded as ISS-0014 (VERIFIED).
 - **My Socials: Spotify, SoundCloud and Vimeo (§47):** own artist / profile accounts only; deployed at `9e6e765` (run `38165131715`; migration `20261012100000`); Truth `my-socials` lists 12 platforms. **Accepted by Mazen 2026-10-12** (REV-0006, §48). Their logos on mobile too: `bc70717` (run `38166266548`, §48), PENDING Mazen's acceptance.
-- **Wall Icon and Icon Group (DEC-0006, §49):** implemented at `efac19e` (run `38204748089`; migration `20261012120000`); Truth `wall-icons` PENDING_ACCEPTANCE; checklist in §49. The cancelled Wall Discord Profile Card task is not to be resumed.
+- **Wall Icon and Icon Group (DEC-0006, §49):** implemented at `efac19e` (run `38204748089`; migration `20261012120000`); Truth `wall-icons` **ACCEPTED by Mazen 2026-10-12** (DEC-0006 ACCEPTED, §50). The cancelled Wall Discord Profile Card task is not to be resumed.
 - **Accepted 2026-10-11:** ISS-0009 is VERIFIED and Truth `visitor-media-access` is ACCEPTED (Mazen, including the accepted residual possibility of unknown historical signed URLs; §30, §38–§40).
 - **Manual passes recorded, capability still pending:**
   - CP-01 (REV-0002) and GR-01 (REV-0003).
   - ISS-0007: Mazen's Avatar save passed; the issue stays FIXED until his explicit security acceptance (§38–§39).
   - YOUR GAMID Editor (`your-gamid-editor`): Mazen passed all 16 desktop tests and accepted the tested desktop functionality (REV-0004, §41). **Android Chrome real-device acceptance is still outstanding**, so the capability stays PENDING_ACCEPTANCE.
-- **Awaiting Mazen's acceptance:** every capability Truth marks PENDING_ACCEPTANCE (12 today), notably:
+- **Awaiting Mazen's acceptance:** every capability Truth marks PENDING_ACCEPTANCE (11 today), notably:
   - Profile Editor: `your-gamid-editor` (Android Chrome still to test; desktop accepted; `docs/PROFILE-EDITOR-UX.md`; handoff §20, §22–§24);
-  - Wall: `wall-icons` (Icon display option + Icon Group, DEC-0006, §49), `wall-visibility-toggle` (Mazen to test Enable / Disable My Wall and the Discord personal profile in the Wall and the Classic Profile; §24–§25);
+  - Wall: `wall-visibility-toggle` (Mazen to test Enable / Disable My Wall and the Discord personal profile in the Wall and the Classic Profile; §24–§25);
   - Classic Profile: `public-gamid-profile`, `favorite-games`, `my-crews-view`, `gaming-roles-categories`, `game-artwork-provisional` (§31–§38);
   - Other: `steam-my-games`, `league-prototype`, `game-catalog-manual-games`, `landing-page` (the full list is in Truth).
 - **Open conditions:**

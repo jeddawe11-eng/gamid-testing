@@ -3228,3 +3228,12 @@ Mazen's explicit implementation authorization of Product Memory DEC-0006, TESTIN
 3. Select the group: change a link, reorder, remove and add icons; try Icon size / Spacing / Align.
 4. Media & Links → Other → **Icon**.
 5. Save, reload, Preview: each icon opens its own link in a new tab. Publish and open your public Wall on a phone and on desktop.
+
+## 50. Wall Icon and Icon Group: final acceptance — 2026-10-12
+
+Documentation only (no code, migration or deployment). Mazen gave final manual acceptance of the Wall Icon display option and Icon Group (§49) on TESTING on 2026-10-12, confirming that all functionality works.
+- **Accepted scope:** all 14 Media & Links platforms, Single Icon, Icon Group, working links, correct icons, saving, and the manually verified vertical layout. That layout is produced by the existing responsive wrapping (a narrow group box). No dedicated vertical layout control was implemented.
+- **Unchanged:** implementation checkpoint `efac19e6a99d1aac9893243603d1db824534aefa`, TESTING run [38204748089](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38204748089), migration `20261012120000_wall_icons.sql`.
+- **Truth:** `wall-icons` PENDING_ACCEPTANCE → ACCEPTED (record and notes updated; limits, contracts and checkpoint unchanged).
+- **Product Memory:** DEC-0006 APPROVED → AUTHORIZED → IMPLEMENTED → ACCEPTED (authorization, acceptance, checkpoint, Implementation and Acceptance sections); Register updated.
+- The cancelled Wall Discord Profile Card task stays cancelled.

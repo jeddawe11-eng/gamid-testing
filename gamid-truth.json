@@ -322,7 +322,7 @@
     {
       "id": "wall-icons",
       "name": "Wall Icon display option and Icon Group (Media & Links)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/wall-editor/",
         "/@<handle>"
@@ -352,8 +352,8 @@
         }
       ],
       "checkpoint": "efac19e6a99d1aac9893243603d1db824534aefa",
-      "record": "Product Memory DEC-0006 (approved design; implementation authorized by Mazen 2026-10-12); PROJECT_HANDOFF.md §49; migration supabase/migrations/20261012120000_wall_icons.sql",
-      "notes": "Implemented and deployed to TESTING (run 38204748089); awaiting Mazen's manual acceptance."
+      "record": "Product Memory DEC-0006 (implementation authorized and accepted by Mazen 2026-10-12); PROJECT_HANDOFF.md §49 (implementation, TESTING run 38204748089) and §50 (acceptance); migration supabase/migrations/20261012120000_wall_icons.sql",
+      "notes": "Mazen gave final manual acceptance on TESTING on 2026-10-12 (all 14 platforms, Single Icon, Icon Group, working links, correct icons, saving). A vertical arrangement is made with the existing automatic wrapping (a narrow group box); there is no dedicated vertical layout control."
     },
     {
       "id": "public-wall-publishing",

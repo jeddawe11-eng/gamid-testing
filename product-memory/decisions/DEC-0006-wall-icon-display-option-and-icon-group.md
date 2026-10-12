@@ -1,18 +1,19 @@
 ---
 id: DEC-0006
 title: Wall Icon Display Option & Icon Group
-status: APPROVED
+status: ACCEPTED
 created: 2026-10-12
 updated: 2026-10-12
 scope: Wall Media & Links (all 14 platforms) - a new Icon display option, Single Icon and Icon Group, reusing the Classic My Socials icons
-summary: Icon becomes an additional display option for every Wall Media & Links platform and URL kind, placed as a Single Icon or as an auto-aligned Icon Group; it reuses the Classic icons and the Wall's own link engine. Approved design only - not authorized for implementation.
+summary: Icon becomes an additional display option for every Wall Media & Links platform and URL kind, placed as a Single Icon or as an auto-aligned Icon Group; it reuses the Classic icons and the Wall's own link engine. Implemented at efac19e and accepted by Mazen on TESTING 2026-10-12.
 related: [DEC-0002, DEC-0004, ISS-0013, REV-0006]
 save_approval: Mazen 2026-10-12
-authorization: NONE
+authorization: Mazen 2026-10-12, explicit task "GAMID — Implement Wall Icon & Icon Group" (TESTING only)
+acceptance: Mazen 2026-10-12 gave final manual acceptance on TESTING, confirming all functionality works - all 14 platforms, Single Icon, Icon Group, working links, correct icons, saving, and a vertical arrangement made with the existing responsive wrapping (no dedicated vertical layout control exists); implementation checkpoint efac19e, TESTING run 38204748089; record PROJECT_HANDOFF.md §49-§50
 supersedes: []
-truth_refs: [game-id-wall, public-wall-publishing, my-socials, discord-profile-card]
-checkpoints: []
-sources: [dist/wall-kit/embed/index.js, dist/wall-kit/embed/engine.js, dist/wall-editor/tools.js, dist/account/socials.js, dist/public/public.css]
+truth_refs: [wall-icons, game-id-wall, public-wall-publishing, my-socials, discord-profile-card]
+checkpoints: [efac19e6a99d1aac9893243603d1db824534aefa]
+sources: [dist/wall-kit/embed/index.js, dist/wall-kit/embed/engine.js, dist/wall-kit/icons.js, dist/wall-kit/icons-paint.js, dist/wall-kit/platform-icons.js, dist/wall-editor/tools.js, dist/wall-editor/controls.js, dist/account/socials.js, dist/public/public.css, supabase/migrations/20261012120000_wall_icons.sql, tests/wall-icons.test.js, PROJECT_HANDOFF.md]
 ---
 
 ## Context
@@ -78,6 +79,20 @@ Technical constraints noted for a future implementation; none prevents reuse:
 - **Icons placed only one by one:** rejected. A group must move as one element and align automatically.
 - **Copying the Classic Discord Profile Card into the Wall:** cancelled; not part of this decision.
 
+## Implementation
+
+Authorized by Mazen on 2026-10-12 and implemented at `efac19e` (TESTING run 38204748089; migration `20261012120000_wall_icons.sql`, rehearsed and applied; PROJECT_HANDOFF.md §49):
+- **Icon:** a new embed presentation for every kind of all 13 provider adapters, listed after the unchanged Player / Card / Link. Other can be shown as an Icon.
+- **Icon Group:** a new `icons` element of 1-24 icons in the owner's order. Each icon is the parts of a platform link or an Other address, with optional size, spacing and alignment. The icons align, wrap and shrink together to fit the box.
+- **Badges:** each provider adapter declares its Classic badge; there is a generic link icon for Other. The database mirrors the validator: the shared corpus matches 606/606.
+- **Not implemented:** a dedicated vertical layout control. A vertical arrangement comes from the existing wrapping, by making the group's box narrow.
+
+## Acceptance
+
+Mazen gave final manual acceptance on TESTING on 2026-10-12, confirming that all functionality works. This covers all 14 platforms, Single Icon, Icon Group, working links, correct icons, saving, and the manually verified vertical layout produced by the existing responsive wrapping.
 ## History
 
 - 2026-10-12 APPROVED — Mazen approved the Wall Icon / Icon Group design and its saving in Product Memory; implementation is not authorized.
+- 2026-10-12 AUTHORIZED — Mazen explicitly authorized the implementation ("GAMID — Implement Wall Icon & Icon Group", TESTING only).
+- 2026-10-12 IMPLEMENTED — Implemented at efac19e and deployed to TESTING (run 38204748089); migration 20261012120000 rehearsed and applied.
+- 2026-10-12 ACCEPTED — Mazen gave final manual acceptance on TESTING: all functionality works.
