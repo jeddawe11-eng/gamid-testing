@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-12",
+  "updated": "2026-10-13",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -369,7 +369,7 @@
     {
       "id": "wall-visibility-toggle",
       "name": "Enable / Disable My Wall (Profile Editor): published Wall or Classic Profile for visitors",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/account/",
         "/@<handle>"
@@ -389,7 +389,7 @@
         }
       ],
       "checkpoint": "85146e679faaa88de46e0271f0ec5f16fbebf409",
-      "record": "PROJECT_HANDOFF.md §25; migration supabase/migrations/20261009170000_wall_public_publishing_toggle.sql; Product Memory DEC-0003"
+      "record": "PROJECT_HANDOFF.md §25 and §51 (acceptance); migration supabase/migrations/20261009170000_wall_public_publishing_toggle.sql; Product Memory DEC-0003 (ACCEPTED by Mazen 2026-10-13)"
     },
     {
       "id": "discord-profile-card",

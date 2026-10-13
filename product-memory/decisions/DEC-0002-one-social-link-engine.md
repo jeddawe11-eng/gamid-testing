@@ -3,7 +3,7 @@ id: DEC-0002
 title: One social link engine for the Wall and My Socials (Discord personal profiles)
 status: IMPLEMENTED
 created: 2026-10-09
-updated: 2026-10-09
+updated: 2026-10-13
 scope: Wall link engine, My Socials (Classic Profile) and the public profile icons
 summary: The Wall's link engine is the single source of platform and URL rules; My Socials reuses it, and Discord personal profiles become a Wall Link.
 related: [DEC-0001, DIS-0003, DIS-0001]
@@ -40,6 +40,10 @@ One rule set cannot drift. The Wall already rebuilds every address from validate
 - Keep two catalogs with a parity test — rejected: still two sources of truth.
 - Add Threads, Reddit and LinkedIn to the Wall so My Socials keeps them — not done: that changes the Wall's supported platforms, a separate product decision.
 - Offer the Discord profile as a Card — rejected: Discord has no public profile data GamID can show; a Card would be invented.
+
+## Manual test results
+
+- 2026-10-13 PASS: Mazen confirmed on TESTING that the existing Discord functionality works. That includes the Discord personal profile, which PROJECT_STATE listed for his check in the Wall and the Classic Profile. User-reported result; no independent verification claimed. This is a test result, not a status change: the decision stays IMPLEMENTED. The cancelled Wall Discord Profile Card copy is not part of it.
 
 ## History
 

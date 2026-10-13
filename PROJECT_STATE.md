@@ -104,19 +104,19 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 **Current stop point:** product `4b56646` (ISS-0011 Intro storage lifecycle fix) was deployed to TESTING as head `72896d6` (run `38145293680`, full validation passed; migration `20261011240000`; `usage-upload` v9) and is PENDING Mazen's targeted manual check (§42). Documentation runs through `PROJECT_HANDOFF.md` §42.
 - **ISS-0011:** FIXED, not VERIFIED. The three authorized failed Intro sources (29.38 MB) are deleted. Held for Mazen's decision: the removed 0.73 MB derivative, which is excluded from automatic cleanup by the cutoff. The 116.29 MB reservation releases by the 26-hour rule after 2026-10-12 12:41 UTC.
 - **Intro source limit 50 MiB (Mazen's decision, §43):** implemented at `5214d9b`, migration `20261011260000` applied, deployed to TESTING as `af2af0d` (run `38147127030`, full validation passed); Truth `intro-identity.introSourceMaxBytes` = 52428800 (contract `intro-source-limit`). **Accepted by Mazen 2026-10-12 as the final limit** (§48); ISS-0012 VERIFIED. This acceptance covers the limit only.
-- **ISS-0010 (editor Intro Preview returns to the editor, §44):** deployed at `7373607` (run `38148668016`); Truth `your-gamid-editor` contract `intro-preview-returns-to-editor`. PENDING Mazen's manual check. The ISS-0010 record update awaits his save approval.
+- **ISS-0010 (editor Intro Preview returns to the editor, §44):** fixed at `7373607` (run `38148668016`), VERIFIED by Mazen 2026-10-11; he retested Skip on 2026-10-13 and confirmed the problem no longer occurs (PASS, no new code; §51).
 - **ISS-0013 (My Socials marks for TikTok, Twitch, Kick, Snapchat on desktop, §45):** deployed as `514e462` (fix `ec3fda4`), **accepted by Mazen 2026-10-11**; ISS-0013 VERIFIED; Truth `desktop-social-marks` final (`classic-profile-desktop` ACCEPTED).
 - **Public profile scroll bug (desktop, §46):** fixed and deployed at `5529d17`, **accepted by Mazen 2026-10-11**; recorded as ISS-0014 (VERIFIED).
 - **My Socials: Spotify, SoundCloud and Vimeo (§47):** own artist / profile accounts only; deployed at `9e6e765` (run `38165131715`; migration `20261012100000`); Truth `my-socials` lists 12 platforms. **Accepted by Mazen 2026-10-12** (REV-0006, §48). Their logos on mobile too: `bc70717` (run `38166266548`, §48), PENDING Mazen's acceptance.
 - **Wall Icon and Icon Group (DEC-0006, §49):** implemented at `efac19e` (run `38204748089`; migration `20261012120000`); Truth `wall-icons` **ACCEPTED by Mazen 2026-10-12** (DEC-0006 ACCEPTED, §50). The cancelled Wall Discord Profile Card task is not to be resumed.
+- **Manual TESTING results (Mazen, 2026-10-13, §51):** Enable / Disable My Wall PASS and **ACCEPTED** (Truth `wall-visibility-toggle` ACCEPTED, DEC-0003 ACCEPTED); Discord PASS (recorded in DEC-0002, no status change); Intro Preview Skip PASS (ISS-0010 stays VERIFIED). The cancelled Wall Discord Profile Card copy stays cancelled.
 - **Accepted 2026-10-11:** ISS-0009 is VERIFIED and Truth `visitor-media-access` is ACCEPTED (Mazen, including the accepted residual possibility of unknown historical signed URLs; §30, §38–§40).
 - **Manual passes recorded, capability still pending:**
   - CP-01 (REV-0002) and GR-01 (REV-0003).
   - ISS-0007: Mazen's Avatar save passed; the issue stays FIXED until his explicit security acceptance (§38–§39).
   - YOUR GAMID Editor (`your-gamid-editor`): Mazen passed all 16 desktop tests and accepted the tested desktop functionality (REV-0004, §41). **Android Chrome real-device acceptance is still outstanding**, so the capability stays PENDING_ACCEPTANCE.
-- **Awaiting Mazen's acceptance:** every capability Truth marks PENDING_ACCEPTANCE (11 today), notably:
+- **Awaiting Mazen's acceptance:** every capability Truth marks PENDING_ACCEPTANCE (10 today), notably:
   - Profile Editor: `your-gamid-editor` (Android Chrome still to test; desktop accepted; `docs/PROFILE-EDITOR-UX.md`; handoff §20, §22–§24);
-  - Wall: `wall-visibility-toggle` (Mazen to test Enable / Disable My Wall and the Discord personal profile in the Wall and the Classic Profile; §24–§25);
   - Classic Profile: `public-gamid-profile`, `favorite-games`, `my-crews-view`, `gaming-roles-categories`, `game-artwork-provisional` (§31–§38);
   - Other: `steam-my-games`, `league-prototype`, `game-catalog-manual-games`, `landing-page` (the full list is in Truth).
 - **Open conditions:**
@@ -124,7 +124,6 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
   - The Discord Profile Card (ACCEPTED, §27) still needs a privacy policy for the Discord application.
   - @black's free-text Location is kept until he picks a country.
   - The TESTING administrator assignment (@black's owner account) is provisional and remains Mazen's decision (§37–§38).
-  - **ISS-0010 (OPEN):** in the editor's Intro Preview, Skip shows an older-looking `DRAFT · PRIVATE` profile instead of the current Wall / Classic Profile; it needs investigation, and no fix is authorized (§41).
 - **Product Memory:**
   - DEC-0001 to DEC-0003 and DEC-0005 are IMPLEMENTED; DEC-0004 is ACCEPTED.
   - ISS-0001..ISS-0005 and ISS-0007 are FIXED, not VERIFIED; ISS-0006 and ISS-0008 are OPEN; ISS-0009, ISS-0010, ISS-0011, ISS-0012, ISS-0013 and ISS-0014 are VERIFIED.

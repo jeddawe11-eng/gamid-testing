@@ -1,14 +1,15 @@
 ---
 id: DEC-0003
 title: Enable / Disable My Wall without unpublishing
-status: IMPLEMENTED
+status: ACCEPTED
 created: 2026-10-09
-updated: 2026-10-11
+updated: 2026-10-13
 scope: Profile Editor My Wall section, public profile resolution, Wall publication
 summary: The owner can hide a published Wall so visitors see the Classic Profile, and show the same Wall again, independent of the GamID's Publish / Unpublish.
 related: [DEC-0001, DEC-0002]
 save_approval: Mazen 2026-10-09
 authorization: Mazen 2026-10-09, explicit task "GamID — Enable / Disable My Wall" (TESTING only)
+acceptance: Mazen manually tested Enable / Disable My Wall on TESTING (PASS) and explicitly accepted it on 2026-10-13; implementation checkpoint 85146e6, TESTING run 37894870969; record PROJECT_HANDOFF.md §25 and §51
 supersedes: []
 truth_refs: [wall-visibility-toggle, public-wall-publishing, your-gamid-editor]
 checkpoints: [85146e679faaa88de46e0271f0ec5f16fbebf409]
@@ -38,9 +39,11 @@ Reusing the published snapshot keeps the Wall exactly as it was, and the change 
 ## Manual test results
 
 - 2026-10-11 MANUAL PASS: Mazen confirmed that he tested the Enable / Disable My Wall control on TESTING and it works. User-reported PASS, no repeated test. Exact visitor scenarios were not individually specified; no independent verification claimed.
+- 2026-10-13 PASS and ACCEPTED: Mazen reported Enable / Disable My Wall as PASS on TESTING and accepted it. User-reported result; no independent verification claimed.
 
 ## History
 
 - 2026-10-09 APPROVED — Mazen specified the feature, its texts and the public-profile rules.
 - 2026-10-09 AUTHORIZED — Mazen explicitly authorized the implementation on TESTING.
 - 2026-10-09 IMPLEMENTED — Implemented at 85146e6 and deployed to TESTING (run 37894870969); migration 20261009170000 applied. The existing published Walls (@black, @zshot) were verified unchanged and enabled. Acceptance pending.
+- 2026-10-13 ACCEPTED — Mazen manually tested Enable / Disable My Wall on TESTING (PASS) and explicitly accepted it.

@@ -3237,3 +3237,17 @@ Documentation only (no code, migration or deployment). Mazen gave final manual a
 - **Truth:** `wall-icons` PENDING_ACCEPTANCE → ACCEPTED (record and notes updated; limits, contracts and checkpoint unchanged).
 - **Product Memory:** DEC-0006 APPROVED → AUTHORIZED → IMPLEMENTED → ACCEPTED (authorization, acceptance, checkpoint, Implementation and Acceptance sections); Register updated.
 - The cancelled Wall Discord Profile Card task stays cancelled.
+
+## 51. Manual TESTING results: Enable / Disable My Wall, Discord, Intro Preview Skip — 2026-10-13
+
+Documentation only (no code, migration or deployment). Mazen explicitly approved saving these manual results from TESTING.
+- **Enable / Disable My Wall: PASS and ACCEPTED.**
+  - Truth `wall-visibility-toggle`: PENDING_ACCEPTANCE → ACCEPTED. Its three contracts are unchanged; the record cites §25 and this section.
+  - DEC-0003: IMPLEMENTED → ACCEPTED, with an acceptance entry, the manual result and a History line. Implementation checkpoint `85146e6` (run 37894870969, §25).
+- **Discord: PASS.** Mazen confirmed that the existing Discord functionality works. This includes the Discord personal profile in the Wall and the Classic Profile (DEC-0002, §24), which was listed for his check.
+  - Recorded as a manual test result in DEC-0002. Its status stays IMPLEMENTED, and no other acceptance status changed.
+  - The cancelled Wall Discord Profile Card copy was not reopened.
+- **Intro Preview Skip: PASS.** Mazen retested the issue and confirmed it no longer occurs.
+  - The issue is ISS-0010, already VERIFIED (the closed state of the issue vocabulary) since 2026-10-11, after the fix at `7373607` (§44). The retest is added to its Resolution; there is no new status transition and no new code change.
+- **Product Memory:** DEC-0003, DEC-0002 and ISS-0010 are updated, and the Register now shows DEC-0003 as ACCEPTED.
+- **PROJECT_STATE:** the stale ISS-0010 "OPEN / PENDING" lines are reconciled, and the pending-acceptance list now shows 10.

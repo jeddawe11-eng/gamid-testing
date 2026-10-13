@@ -3,7 +3,7 @@ id: ISS-0010
 title: Intro Preview Skip shows an older-looking DRAFT · PRIVATE profile instead of the current Wall / Classic Profile
 status: VERIFIED
 created: 2026-10-11
-updated: 2026-10-11
+updated: 2026-10-13
 scope: Profile Editor Intro Preview (/account/) and its end-of-Intro destination; comparison with the public visitor Intro on /@<handle>
 summary: The editor's Intro Preview previously revealed a stale built-in DRAFT · PRIVATE card. Fixed on TESTING so Skip and natural completion return to the existing editor; Mazen manually confirmed Skip and approved the reported results.
 related: [REV-0004, DEC-0003, DEC-0005]
@@ -47,6 +47,8 @@ sources: [dist/account/intro-preview.html, dist/account/intro-preview.js, dist/a
 ## Resolution
 
 Implemented and deployed to TESTING at `7373607` (CI run `38148668016`). The editor preview now requests `hostReveal`, keeping the frame's old profile card hidden; a new preview-end host helper closes the preview through the existing Return-to-editor path after Skip or natural completion. Public visitor behavior remains unchanged. Automated regressions (6/6) and local browser checks cover both completion paths; CI passed. Mazen manually confirmed the Skip path returns to the editor and explicitly approved the reported results on 2026-10-11. Natural completion is supported by automated and local browser tests, not separately confirmed by Mazen in this chat. No further manual test is required for this accepted result unless Mazen requests one.
+
+**Retest (2026-10-13):** Mazen retested the reported Intro Preview Skip problem on TESTING. It no longer occurs (PASS). No new code change was made; the issue stays VERIFIED, its closed state. The retest confirms the fix at `7373607`.
 
 ## History
 

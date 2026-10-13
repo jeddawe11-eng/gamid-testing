@@ -87,7 +87,7 @@ Rules:
 |---|---|---|---|
 | DEC-0001 | Implement the approved Profile Editor notes (My Socials, Save All Changes, Account Settings menu) | IMPLEMENTED | [DEC-0001-implement-profile-editor-notes.md](decisions/DEC-0001-implement-profile-editor-notes.md) |
 | DEC-0002 | One social link engine for the Wall and My Socials (Discord personal profiles) | IMPLEMENTED | [DEC-0002-one-social-link-engine.md](decisions/DEC-0002-one-social-link-engine.md) |
-| DEC-0003 | Enable / Disable My Wall without unpublishing | IMPLEMENTED | [DEC-0003-enable-disable-my-wall.md](decisions/DEC-0003-enable-disable-my-wall.md) |
+| DEC-0003 | Enable / Disable My Wall without unpublishing | ACCEPTED | [DEC-0003-enable-disable-my-wall.md](decisions/DEC-0003-enable-disable-my-wall.md) |
 | DEC-0004 | Discord Profile Card in My Socials from the existing Discord connection | ACCEPTED | [DEC-0004-discord-profile-card.md](decisions/DEC-0004-discord-profile-card.md) |
 | DEC-0005 | Classic Profile desktop redesign (Banner, About Me, desktop layout) | ACCEPTED | [DEC-0005-classic-profile-desktop-redesign.md](decisions/DEC-0005-classic-profile-desktop-redesign.md) |
 | DEC-0006 | Wall Icon Display Option & Icon Group | ACCEPTED | [DEC-0006-wall-icon-display-option-and-icon-group.md](decisions/DEC-0006-wall-icon-display-option-and-icon-group.md) |
