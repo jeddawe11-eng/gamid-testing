@@ -112,15 +112,16 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 - **Manual TESTING results (Mazen, 2026-10-13, §51):** Enable / Disable My Wall PASS and **ACCEPTED** (Truth `wall-visibility-toggle` ACCEPTED, DEC-0003 ACCEPTED); Discord PASS, then **DEC-0002 ACCEPTED** by Mazen the same day (§52; Truth `game-id-wall` note reconciled); Intro Preview Skip PASS (ISS-0010 stays VERIFIED). The cancelled Wall Discord Profile Card copy stays cancelled.
 - **Gaming Roles (Mazen, 2026-10-13, §53):** final acceptance of the whole capability (all eight categories, the 71-role catalog, role selection, Primary Role, Classic Profile badges, Suggest a Role, administrator review). Truth `gaming-roles-categories` ACCEPTED (checkpoint `a1d2eeb`, limits and contracts unchanged); recorded in REV-0003.
 - **Favorite Games (Mazen, 2026-10-13, §54):** final acceptance; Truth `favorite-games` ACCEPTED (maximum 4 favorites, contracts and checkpoint `506bfa7` unchanged); recorded in REV-0007.
-- **Edit Crew Name (§55):** the owner renames a Crew inline in My Crew; implemented at `7fa7117` (run `38392848965`; migration `20261013100000`); Truth `crew-rename` PENDING_ACCEPTANCE. Supersedes the My Crew V1 immutable-name rule (game and owner stay immutable). Checklist in §55.
+- **Edit Crew Name (§55):** the owner renames a Crew inline in My Crew; implemented at `7fa7117` (run `38392848965`; migration `20261013100000`); Truth `crew-rename` **ACCEPTED by Mazen 2026-10-13** (§56). Crew names are now owner-editable, replacing the My Crew V1 immutable-name rule (game and owner stay immutable).
+- **My Crews (Mazen, 2026-10-13, §56):** final acceptance of `my-crews-view` (the My Crews view, sizing, Crew Wall header logo, the 10-Crew membership limit) including the existing member invitation flow; Truth ACCEPTED (contracts, limits and checkpoint `a1d2eeb` unchanged).
 - **Accepted 2026-10-11:** ISS-0009 is VERIFIED and Truth `visitor-media-access` is ACCEPTED (Mazen, including the accepted residual possibility of unknown historical signed URLs; §30, §38–§40).
 - **Manual passes recorded, capability still pending:**
-  - CP-01 (REV-0002). GR-01 (REV-0003) is now covered by the final acceptance of Gaming Roles (2026-10-13, §53).
+  - CP-01 (REV-0002) is now covered by the final acceptance of My Crews (2026-10-13, §56); GR-01 (REV-0003) by the final acceptance of Gaming Roles (§53).
   - ISS-0007: Mazen's Avatar save passed; the issue stays FIXED until his explicit security acceptance (§38–§39).
   - YOUR GAMID Editor (`your-gamid-editor`): Mazen passed all 16 desktop tests and accepted the tested desktop functionality (REV-0004, §41). **Android Chrome real-device acceptance is still outstanding**, so the capability stays PENDING_ACCEPTANCE.
-- **Awaiting Mazen's acceptance:** every capability Truth marks PENDING_ACCEPTANCE (9 today), notably:
+- **Awaiting Mazen's acceptance:** every capability Truth marks PENDING_ACCEPTANCE (7 today), notably:
   - Profile Editor: `your-gamid-editor` (Android Chrome still to test; desktop accepted; `docs/PROFILE-EDITOR-UX.md`; handoff §20, §22–§24);
-  - Classic Profile: `public-gamid-profile`, `my-crews-view`, `game-artwork-provisional` (§31–§38);
+  - Classic Profile: `public-gamid-profile`, `game-artwork-provisional` (§31–§38);
   - Other: `steam-my-games`, `league-prototype`, `game-catalog-manual-games`, `landing-page` (the full list is in Truth).
 - **Open conditions:**
   - SteamGridDB's written permission for distribution / commercial use is still outstanding, so artwork stays TESTING-only, with no Production / public release (§33–§35; `docs/GAME-ARTWORK-STEAMGRIDDB.md`).

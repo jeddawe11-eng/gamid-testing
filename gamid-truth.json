@@ -591,7 +591,7 @@
     {
       "id": "my-crews-view",
       "name": "My Crews view on the public Classic Profile and the 10-Crew limit",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/@<handle>",
         "/account/"
@@ -619,7 +619,7 @@
         }
       ],
       "checkpoint": "a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7",
-      "record": "PROJECT_HANDOFF.md §33, §37, §38; migrations 20261011100000_classic_profile_consolidated.sql and 20261011200000_roles_favorites_crews.sql"
+      "record": "PROJECT_HANDOFF.md §33, §37, §38; migrations 20261011100000_classic_profile_consolidated.sql and 20261011200000_roles_favorites_crews.sql; final acceptance by Mazen 2026-10-13, including the existing member invitation flow (PROJECT_HANDOFF.md §56)"
     },
     {
       "id": "game-artwork-provisional",
@@ -694,12 +694,13 @@
         "crewWallStages": 2
       },
       "checkpoint": "d2a946691b7a7e2214107ebca38f6a095ae54b38",
-      "record": "Mazen's acceptance 2026-10-04 at d2a9466 (feature/my-crew-v1, not merged to main); limits from docs/global-usage-center.md"
+      "record": "Mazen's acceptance 2026-10-04 at d2a9466 (feature/my-crew-v1, not merged to main); limits from docs/global-usage-center.md",
+      "notes": "A Crew's name is owner-editable since crew-rename (accepted 2026-10-13), replacing the V1 immutable-name rule; the Crew's game and owner remain immutable."
     },
     {
       "id": "crew-rename",
       "name": "Edit Crew Name (the owner renames a Crew from My Crew)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/account/"
       ],
@@ -723,7 +724,7 @@
       ],
       "checkpoint": "7fa7117ceab32061d1dd628d2724ad1678926db8",
       "record": "PROJECT_HANDOFF.md §55; migration supabase/migrations/20261013100000_crew_rename.sql (applied on TESTING); deployed to TESTING by workflow run 38392848965",
-      "notes": "Supersedes, by Mazen's task of 2026-10-13, the My Crew V1 rule that a Crew's name is immutable (20261003100000_my_crew.sql); game and owner remain immutable. Awaiting Mazen's manual acceptance."
+      "notes": "Supersedes, by Mazen's decision of 2026-10-13, the My Crew V1 rule that a Crew's name is immutable (20261003100000_my_crew.sql); game and owner remain immutable. Accepted by Mazen on 2026-10-13 after manual testing (PROJECT_HANDOFF.md §56)."
     },
     {
       "id": "play-together",

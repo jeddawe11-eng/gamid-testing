@@ -3336,3 +3336,23 @@ Mazen's explicit implementation authorization ("GAMID — Implement Edit Crew Na
 4. Try an empty name and Cancel.
 5. Check that a member account sees no pencil.
 6. On a phone, check the field and buttons fit.
+
+## 56. Edit Crew Name and My Crews: final acceptance — 2026-10-13
+
+Documentation only (no code, migration or deployment). On 2026-10-13 Mazen explicitly confirmed successful manual testing and gave final acceptance of:
+- **Edit Crew Name** (Truth `crew-rename`, §55; checkpoint `7fa7117`, run 38392848965, migration `20261013100000_crew_rename.sql`): PENDING_ACCEPTANCE → ACCEPTED.
+- **My Crews** (Truth `my-crews-view`, §33, §37, §38; checkpoint `a1d2eeb`), including the existing member invitation flow: PENDING_ACCEPTANCE → ACCEPTED.
+
+**Rule change recorded.** Crew names are owner-editable; this replaces the My Crew V1 immutable-name rule (`20261003100000_my_crew.sql`). The Crew's game and owner stay immutable. This is noted in Truth `crew-rename` and `my-crew`, whose status, limits and checkpoint are unchanged.
+
+**Preserved:**
+- all contracts and limits of both capabilities, including:
+  - the 10 ACTIVE Crew memberships per GamID (`crew-membership-limit`);
+  - the member visibility rules;
+  - owner-only actions;
+  - the 2–40 character name rule;
+- the implementation checkpoints.
+
+Remaining PENDING_ACCEPTANCE capabilities: 7.
+
+**Product Memory:** not modified. The records proposed to Mazen await his separate approval.
