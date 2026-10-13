@@ -3251,3 +3251,10 @@ Documentation only (no code, migration or deployment). Mazen explicitly approved
   - The issue is ISS-0010, already VERIFIED (the closed state of the issue vocabulary) since 2026-10-11, after the fix at `7373607` (§44). The retest is added to its Resolution; there is no new status transition and no new code change.
 - **Product Memory:** DEC-0003, DEC-0002 and ISS-0010 are updated, and the Register now shows DEC-0003 as ACCEPTED.
 - **PROJECT_STATE:** the stale ISS-0010 "OPEN / PENDING" lines are reconciled, and the pending-acceptance list now shows 10.
+
+## 52. DEC-0002 (one social link engine, Discord personal profiles): final acceptance — 2026-10-13
+
+Documentation only (no code, migration or deployment). Mazen explicitly approved final acceptance of DEC-0002 on 2026-10-13, after the Discord PASS recorded in §51.
+- **Product Memory:** DEC-0002 IMPLEMENTED → ACCEPTED, with an acceptance entry, an Acceptance section and a History line. The §51 Discord PASS is kept. The Register is updated.
+- **Accepted scope:** the single Wall link engine shared by the Wall and My Socials, and the Discord personal profile kind (`discord.com/users/<id>`) as a Wall Link and as a My Socials Discord account (implementation `6704293`, run 37892333328, §24). The Discord Profile Card (DEC-0004) and the cancelled Wall Discord Profile Card copy are not part of it.
+- **Truth:** the `game-id-wall` note no longer calls the Discord personal profile extension "pending manual acceptance". It now records the 2026-10-13 acceptance, and that the kind also offers an Icon since `wall-icons`. No capability status changed: `game-id-wall` and `my-socials` were already ACCEPTED, and the other pending capabilities are unchanged (10).

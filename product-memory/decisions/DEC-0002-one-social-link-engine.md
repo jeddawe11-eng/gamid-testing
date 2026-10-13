@@ -1,7 +1,7 @@
 ---
 id: DEC-0002
 title: One social link engine for the Wall and My Socials (Discord personal profiles)
-status: IMPLEMENTED
+status: ACCEPTED
 created: 2026-10-09
 updated: 2026-10-13
 scope: Wall link engine, My Socials (Classic Profile) and the public profile icons
@@ -9,6 +9,7 @@ summary: The Wall's link engine is the single source of platform and URL rules; 
 related: [DEC-0001, DIS-0003, DIS-0001]
 save_approval: Mazen 2026-10-09
 authorization: Mazen 2026-10-09, explicit task "GamID — Unified Social Link Engine (Wall + Classic Profile)" (TESTING only); separate explicit approval to convert @black's one saved Discord My Socials row losslessly
+acceptance: Mazen gave final acceptance on 2026-10-13 after his manual TESTING check (Discord PASS, 2026-10-13); implementation checkpoint 6704293, TESTING run 37892333328; record PROJECT_HANDOFF.md §24, §51 and §52
 supersedes: []
 truth_refs: [my-socials, game-id-wall]
 checkpoints: [67042938426f7c234c175483c6882c709b09046d]
@@ -43,10 +44,15 @@ One rule set cannot drift. The Wall already rebuilds every address from validate
 
 ## Manual test results
 
-- 2026-10-13 PASS: Mazen confirmed on TESTING that the existing Discord functionality works. That includes the Discord personal profile, which PROJECT_STATE listed for his check in the Wall and the Classic Profile. User-reported result; no independent verification claimed. This is a test result, not a status change: the decision stays IMPLEMENTED. The cancelled Wall Discord Profile Card copy is not part of it.
+- 2026-10-13 PASS: Mazen confirmed on TESTING that the existing Discord functionality works. That includes the Discord personal profile, which PROJECT_STATE listed for his check in the Wall and the Classic Profile. User-reported result; no independent verification claimed. Recorded as a test result first. Mazen then gave final acceptance the same day (see Acceptance). The cancelled Wall Discord Profile Card copy is not part of it.
+
+## Acceptance
+
+Mazen gave final acceptance of this decision on 2026-10-13, after the Discord PASS above. It covers the single Wall link engine shared by the Wall and My Socials, and the Discord personal profile kind (`discord.com/users/<id>`) as a Wall Link and as a My Socials Discord account. The Discord Profile Card (DEC-0004) and the cancelled Wall Discord Profile Card copy are not part of it.
 
 ## History
 
 - 2026-10-09 APPROVED — Mazen specified the single shared engine and the Discord profile behaviour.
 - 2026-10-09 AUTHORIZED — Mazen explicitly authorized the implementation on TESTING. He separately approved converting @black's one saved My Socials row (the same Discord profile) to the new storage format, preserving the exact URL, ownership and public behaviour.
 - 2026-10-09 IMPLEMENTED — Implemented at 6704293 and deployed to TESTING (run 37892333328). Migrations 20261009150000 and 20261009151000 applied. @black's row was verified identical before and after (same address, order, timestamp and GamID record). Acceptance pending.
+- 2026-10-13 ACCEPTED — Mazen gave final acceptance after his manual TESTING check (Discord PASS).

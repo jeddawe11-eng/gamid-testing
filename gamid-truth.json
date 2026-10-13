@@ -317,7 +317,7 @@
       ],
       "checkpoint": "0934af4276f4955db5b3e79cf5db53e318ba9277",
       "record": "accepted main baseline 0934af4 (W1 accepted 1bbec1b; later rounds landed on main after acceptance)",
-      "notes": "Asset and video limits are recorded under global-usage. Discord personal profiles (discord.com/users/<id>) are offered as a Link only since 67042938 (PROJECT_HANDOFF.md §24; migration 20261009150000_wall_discord_profile); that extension is pending manual acceptance."
+      "notes": "Asset and video limits are recorded under global-usage. Discord personal profiles (discord.com/users/<id>) are offered as a Link since 67042938 (PROJECT_HANDOFF.md §24; migration 20261009150000_wall_discord_profile) - and as an Icon since wall-icons; that extension was accepted by Mazen on 2026-10-13 (Product Memory DEC-0002, PROJECT_HANDOFF.md §52)."
     },
     {
       "id": "wall-icons",
