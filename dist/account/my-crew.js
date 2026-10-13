@@ -21,6 +21,7 @@ export const CREW_ERRORS = Object.freeze({
   CREW_MEMBERS_ONLY: "Only members can see this Crew's members.",
   GAME_NOT_FOUND: "Pick a game from the list.",
   INVALID_CREW_NAME: "Crew names are 2-40 characters.",
+  EMPTY_CREW_NAME: "Enter a name for your Crew.",
   GAMID_NOT_FOUND: "That GamID doesn't exist.",
   SEARCH_TOO_SHORT: "Type at least 3 letters or numbers.",
   AUTH_REQUIRED: "Please sign in again, then try again.",
@@ -52,6 +53,13 @@ export function crewState(rows) {
 export const deleteWarning = crew => `Delete ${crew.name}? Every member leaves and pending invitations are cancelled. This can't be undone - you can create a new Crew for ${crew.gameName} afterwards.`;
 export const leaveWarning = crew => `Leave ${crew.name}? You can only rejoin if the owner invites you again.`;
 export const removeWarning = (crew, handle) => `Remove @${handle} from ${crew.name}?`;
+// Edit Crew Name: what the owner typed -> the name to send, or the problem (the server applies the same rule again and decides)
+export function renameProblem(value, current) {
+  const name = String(value ?? "").trim();
+  if (!name) return { problem: CREW_ERRORS.EMPTY_CREW_NAME };
+  if (!validCrewName(name)) return { problem: CREW_ERRORS.INVALID_CREW_NAME };
+  return { name, unchanged: name === current };
+}
 
 export function createCrewPanel({ api, root, message, element, timers = globalThis, gamidUrl = handle => `../@${handle}` }) {
   let state = null;               // null = could not be read
@@ -63,6 +71,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
   const avatars = new Map();
   const walls = new Map();        // crew id -> Crew Wall editing model (owner Crews only)
   const editingWall = new Set();  // crew ids whose Wall editor is open
+  const renames = new Map();      // crew id -> { value, saving, error } while the owner edits the Crew name (inline; Save / Cancel)
   const feedback = createTransientMessage(message, { timers });
   const say = (text, tone = "error") => feedback.show(text, { tone });
 
@@ -135,7 +144,20 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     card.dataset.crew = crew.id;
     const head = element("div", "crew-card-head");
     const titles = element("div", "crew-titles");
-    titles.append(element("p", "eyebrow crew-game", crew.gameName.toUpperCase()), element("strong", "crew-name", crew.name));
+    titles.append(element("p", "eyebrow crew-game", crew.gameName.toUpperCase()));
+    const renaming = crew.role === "OWNER" ? renames.get(crew.id) : null;
+    if (renaming) titles.append(renameForm(crew, renaming));
+    else {
+      const line = element("div", "crew-name-line");
+      line.append(element("strong", "crew-name", crew.name));
+      if (crew.role === "OWNER") {
+        const edit = button("✎", "text-button duo-button crew-rename-edit", () => { renames.set(crew.id, { value: crew.name, saving: false, error: "" }); render(); });
+        edit.setAttribute("aria-label", `Edit the name of ${crew.name}`);
+        edit.setAttribute("title", "Edit Crew name");
+        line.append(edit);
+      }
+      titles.append(line);
+    }
     head.append(titles, element("span", `crew-role${crew.role === "OWNER" ? " is-owner" : ""}`, crew.role === "OWNER" ? "OWNER" : "MEMBER"));
     card.append(head);
     card.append(element("p", "duo-note crew-count", `${crew.members} / ${crew.max} members${crew.role === "OWNER" && crew.pending ? ` · ${crew.pending} invitation${crew.pending === 1 ? "" : "s"} pending` : ""}${crew.role === "MEMBER" && crew.ownerHandle ? ` · Owner @${crew.ownerHandle}` : ""}`));
@@ -208,6 +230,56 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     return card;
   }
 
+  // Edit Crew Name (owner only; the server enforces it too): an inline field with the current name, Save / Cancel. While saving, both are disabled (one request at a
+  // time); a failure stays visible inline until the owner edits the name again or cancels; success shows the new name at once.
+  function renameForm(crew, renaming) {
+    const form = element("form", "crew-rename");
+    const label = element("label", "duo-search-label crew-rename-label");
+    label.append(element("span", "", "Crew name"));
+    const input = element("input");
+    input.type = "text"; input.maxLength = CREW_NAME.max; input.autocomplete = "off"; input.value = renaming.value; input.disabled = renaming.saving;
+    input.setAttribute("aria-label", "Crew name");
+    let errorNode = null;
+    // typing clears a shown error in place (no re-render, so the field keeps focus and the caret)
+    input.addEventListener("input", () => { renaming.value = input.value; if (renaming.error) { renaming.error = ""; if (errorNode) errorNode.hidden = true; } });
+    label.append(input);
+    const actions = element("div", "duo-actions crew-rename-actions");
+    const save = element("button", "primary duo-button crew-rename-save", renaming.saving ? "Saving…" : "Save");
+    save.type = "submit"; save.disabled = renaming.saving;
+    if (renaming.saving) save.setAttribute("aria-busy", "true");
+    const cancel = element("button", "text-button duo-button crew-rename-cancel", "Cancel");
+    cancel.type = "button"; cancel.disabled = renaming.saving;
+    cancel.addEventListener("click", () => { if (renaming.saving) return; renames.delete(crew.id); render(); });
+    actions.append(save, cancel);
+    form.append(label, actions);
+    if (renaming.error) { errorNode = element("p", "crew-rename-error", renaming.error); errorNode.setAttribute("role", "alert"); form.append(errorNode); }
+    form.addEventListener("submit", event => { event?.preventDefault?.(); saveName(crew); });
+    return form;
+  }
+  async function saveName(crew) {
+    const renaming = renames.get(crew.id);
+    if (!renaming || renaming.saving) return;
+    const checked = renameProblem(renaming.value, crew.name);
+    if (checked.problem) { renaming.error = checked.problem; render(); return; }
+    if (checked.unchanged) { renames.delete(crew.id); render(); return; }
+    renaming.saving = true; renaming.error = ""; render();
+    let stored;
+    try { stored = await api.renameCrew(crew.id, checked.name); }
+    catch (error) {
+      renaming.saving = false;
+      renaming.error = crewErrorText(error);
+      if (/NOT_FOUND/.test(error?.message ?? "")) { renames.delete(crew.id); await load(); say(renaming.error); return; }
+      render();
+      return;
+    }
+    const name = typeof stored === "string" && stored ? stored : checked.name;
+    if (state) state = { ...state, crews: state.crews.map(item => (item.id === crew.id ? { ...item, name } : item)) };
+    renames.delete(crew.id);
+    render();
+    say(`Renamed to ${name}.`, "success");
+    refresh();
+  }
+
   function invitationCard(crew) {
     const card = element("article", "duo-card is-request crew-invitation");
     card.dataset.crew = crew.id;
@@ -261,7 +333,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     } else {
       card.append(element("p", "duo-note", `Game: ${create.game.name}`));
       const label = element("label", "duo-search-label");
-      label.append(element("span", "", "Crew name (it can't be changed later)"));
+      label.append(element("span", "", "Crew name (you can rename it later)"));
       const input = element("input");
       input.type = "text"; input.maxLength = CREW_NAME.max; input.placeholder = "e.g. Night Raiders"; input.autocomplete = "off"; input.value = create.name;
       input.addEventListener("input", () => { create.name = input.value; });
@@ -308,6 +380,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     walls.clear();
     for (const [id, wall] of wallList) walls.set(id, wall);
     for (const id of [...editingWall]) if (!walls.has(id)) editingWall.delete(id);
+    for (const id of [...renames.keys()]) if (!state.crews.some(crew => crew.id === id && crew.role === "OWNER")) renames.delete(id);
     for (const id of [...invite.keys()]) if (!state.crews.some(crew => crew.id === id && crew.role === "OWNER")) invite.delete(id);
     if (confirm && !state.crews.some(crew => crew.id === confirm.crewId)) confirm = null;
     if (confirm?.kind === "remove" && !(members.get(confirm.crewId) ?? []).some(row => row.gamid_handle === confirm.handle && row.status === "ACTIVE")) confirm = null;

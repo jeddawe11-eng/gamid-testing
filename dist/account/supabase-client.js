@@ -583,6 +583,8 @@ export const respondToCrewInvite = (crewId, accept) => rpc("respond_to_crew_invi
 export const removeCrewMember = (crewId, handle) => rpc("remove_crew_member", { candidate_crew: crewId, candidate_handle: handle });
 export const leaveCrew = crewId => rpc("leave_crew", { candidate_crew: crewId });
 export const deleteCrew = crewId => rpc("delete_crew", { candidate_crew: crewId });
+// the owner renames the Crew (20261013100000_crew_rename.sql): the server trims and checks the name and refuses anyone but the owner; only the name changes
+export const renameCrew = (crewId, name) => rpc("rename_crew", { candidate_crew: crewId, candidate_name: name });
 // Crew Mini Wall (dist/crew/): the owner edits a typed layout (stages + member placements, by @handle); visitors read only a PUBLISHED Wall, and only members whose own
 // GamID is public. The stage allowance and usage are server-authoritative (get_crew_wall_usage is what a future Usage & Limits screen reads).
 export const getMyCrewWall = crewId => rpc("get_my_crew_wall", { candidate_crew: crewId });

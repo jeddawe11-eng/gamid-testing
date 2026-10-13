@@ -66,7 +66,7 @@ test("crewState: my ACTIVE Crews (sorted by game) and my INVITATIONS; malformed 
 });
 
 // ---------- owner ----------
-test("owner: create a Crew - pick a game from the existing catalog search, name it (immutable), create; games where I already have a Crew are not offered", async () => {
+test("owner: create a Crew - pick a game from the existing catalog search, name it (renamable later by its owner: tests/crew-rename.test.js), create; games where I already have a Crew are not offered", async () => {
   const db = fakeApi({ crews: [crewRow("c1", "val", "Zero")], members: { c1: [person("black", { role: "OWNER" })] } });
   const p = await panel(db);
   await buttons(p.root, "Create a Crew")[0].fire("click");
@@ -77,7 +77,7 @@ test("owner: create a Crew - pick a game from the existing catalog search, name 
   const picks = byClass(p.root, "crew-game-pick");
   assert.equal(picks.find(pick => /Valorant/.test(pick.textContent)).disabled, true, "already in Zero for Valorant");
   await picks.find(pick => pick.textContent === "League of Legends").fire("click");
-  assert.match(p.root.textContent, /it can't be changed later/);
+  assert.match(p.root.textContent, /Crew name \(you can rename it later\)/);
   await typeInto(all(byClass(p.root, "crew-create")[0], node => node.tag === "input")[0], "  Night Raiders ");
   await buttons(p.root, "Create Crew")[0].fire("click"); await tick();
   assert.deepEqual(db.calls.find(call => call[0] === "createCrew").slice(1), ["lol", "Night Raiders"]);

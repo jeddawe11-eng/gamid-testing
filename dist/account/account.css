@@ -314,6 +314,15 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .crew-name{font-size:1.05rem;overflow-wrap:break-word}
 .crew-role{flex:0 0 auto;padding:.25rem .55rem;border:1px solid #3a334b;border-radius:999px;color:var(--muted);font-size:.6rem;font-weight:800;letter-spacing:.08em}
 .crew-role.is-owner{border-color:rgba(98,231,255,.55);color:#62e7ff}
+/* Edit Crew Name (owner): the name with a small pencil beside it; editing replaces them with an inline field, Save / Cancel and a persistent inline error */
+.crew-name-line{display:flex;align-items:center;gap:.35rem;min-width:0}
+.crew-name-line .crew-name{min-width:0}
+.crew-rename-edit{flex:0 0 auto;min-width:2.75rem;min-height:2.75rem;padding:0;font-size:1rem;line-height:1}
+.crew-rename{display:grid;gap:.45rem;min-width:0;width:100%}
+.crew-rename-label input{width:100%;min-width:0}
+.crew-rename-actions{margin:0}
+.crew-rename-error{margin:0;padding:.45rem .6rem;border:1px solid #754151;border-radius:.6rem;background:#28151c;color:#ffc1cd;font-size:.8rem}
+.crew-card-head:has(.crew-rename) .crew-titles{flex:1 1 16rem}
 .crew-card.is-owner{border-color:rgba(98,231,255,.35)}
 .crew-members,.crew-pending{display:grid;gap:.5rem}
 .crew-pending{padding-top:.5rem;border-top:1px solid var(--line)}
