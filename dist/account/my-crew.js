@@ -72,6 +72,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
   const walls = new Map();        // crew id -> Crew Wall editing model (owner Crews only)
   const editingWall = new Set();  // crew ids whose Wall editor is open
   const renames = new Map();      // crew id -> { value, saving, error } while the owner edits the Crew name (inline; Save / Cancel)
+  let focusRename = null;         // the crew id whose name field takes focus when it opens
   const feedback = createTransientMessage(message, { timers });
   const say = (text, tone = "error") => feedback.show(text, { tone });
 
@@ -151,7 +152,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
       const line = element("div", "crew-name-line");
       line.append(element("strong", "crew-name", crew.name));
       if (crew.role === "OWNER") {
-        const edit = button("✎", "text-button duo-button crew-rename-edit", () => { renames.set(crew.id, { value: crew.name, saving: false, error: "" }); render(); });
+        const edit = button("✎", "text-button duo-button crew-rename-edit", () => { renames.set(crew.id, { value: crew.name, saving: false, error: "" }); focusRename = crew.id; render(); });
         edit.setAttribute("aria-label", `Edit the name of ${crew.name}`);
         edit.setAttribute("title", "Edit Crew name");
         line.append(edit);
@@ -243,6 +244,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     // typing clears a shown error in place (no re-render, so the field keeps focus and the caret)
     input.addEventListener("input", () => { renaming.value = input.value; if (renaming.error) { renaming.error = ""; if (errorNode) errorNode.hidden = true; } });
     label.append(input);
+    if (focusRename === crew.id) { focusRename = null; Promise.resolve().then(() => { input.focus?.(); input.select?.(); }); }
     const actions = element("div", "duo-actions crew-rename-actions");
     const save = element("button", "primary duo-button crew-rename-save", renaming.saving ? "Saving…" : "Save");
     save.type = "submit"; save.disabled = renaming.saving;
@@ -260,7 +262,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     const renaming = renames.get(crew.id);
     if (!renaming || renaming.saving) return;
     const checked = renameProblem(renaming.value, crew.name);
-    if (checked.problem) { renaming.error = checked.problem; render(); return; }
+    if (checked.problem) { renaming.error = checked.problem; focusRename = crew.id; render(); return; }
     if (checked.unchanged) { renames.delete(crew.id); render(); return; }
     renaming.saving = true; renaming.error = ""; render();
     let stored;
@@ -269,6 +271,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
       renaming.saving = false;
       renaming.error = crewErrorText(error);
       if (/NOT_FOUND/.test(error?.message ?? "")) { renames.delete(crew.id); await load(); say(renaming.error); return; }
+      focusRename = crew.id;   // back to the field, so the owner can correct and try again
       render();
       return;
     }

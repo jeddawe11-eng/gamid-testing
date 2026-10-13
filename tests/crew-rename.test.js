@@ -176,7 +176,7 @@ test("only the owner sees the pencil; a member never can rename (the server refu
 test("layout: the existing card design with a 44px pencil and a full-width field that wraps on a phone (no ellipsis / nowrap)", () => {
   const css = read("dist/account/account.css");
   const block = css.slice(css.indexOf("/* Edit Crew Name (owner)"), css.indexOf(".crew-card-head:has(.crew-rename) .crew-titles{flex:1 1 16rem}") + 60);
-  assert.match(block, /\.crew-rename-edit\{flex:0 0 auto;min-width:2\.75rem;min-height:2\.75rem;/);
+  assert.match(block, /\.crew-name-line \.crew-rename-edit\{flex:0 0 auto;width:2\.75rem;min-width:2\.75rem;min-height:2\.75rem;/, "a 44px square, not the full-width .text-button");
   assert.match(block, /\.crew-rename-label input\{width:100%;min-width:0\}/);
   assert.doesNotMatch(block, /nowrap|ellipsis|data-provider|overflow-wrap:anywhere/);
   assert.ok(css.indexOf("/* Edit Crew Name (owner)") < css.indexOf("/* Steam Connection Foundation:"));

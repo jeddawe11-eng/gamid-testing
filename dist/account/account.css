@@ -316,8 +316,7 @@ textarea:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,93,255,.
 .crew-role.is-owner{border-color:rgba(98,231,255,.55);color:#62e7ff}
 /* Edit Crew Name (owner): the name with a small pencil beside it; editing replaces them with an inline field, Save / Cancel and a persistent inline error */
 .crew-name-line{display:flex;align-items:center;gap:.35rem;min-width:0}
-.crew-name-line .crew-name{min-width:0}
-.crew-rename-edit{flex:0 0 auto;min-width:2.75rem;min-height:2.75rem;padding:0;font-size:1rem;line-height:1}
+.crew-name-line .crew-rename-edit{flex:0 0 auto;width:2.75rem;min-width:2.75rem;min-height:2.75rem;padding:0;font-size:1rem;line-height:1}
 .crew-rename{display:grid;gap:.45rem;min-width:0;width:100%}
 .crew-rename-label input{width:100%;min-width:0}
 .crew-rename-actions{margin:0}
