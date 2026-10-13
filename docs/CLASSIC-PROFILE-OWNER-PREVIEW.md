@@ -36,10 +36,18 @@ Reproduce browser checks with installed Playwright/Chrome via `GAMID_BROWSER_MOD
 
 ## Delivery and governance
 
-Frontend only: no database migration, Edge Function, worker, authentication/RLS or Production change. No branch merge, history rewrite or Product Memory modification. The authorized Cloudflare TESTING workflow accepts an exact branch and expected SHA, validates the full build, stamps the frontend and smoke-checks it. Deployment confirmation is recorded here after that workflow completes.
+Frontend only: no database migration, Edge Function, worker, authentication/RLS or Production change. No branch merge, history rewrite or Product Memory modification. The authorized Cloudflare TESTING workflow accepts an exact branch and expected SHA, validates the full build, stamps the frontend and smoke-checks it. Deployment is confirmed below.
 
 **GamID Truth: UPDATED** — `your-gamid-editor` records the saved Classic preview contract and product checkpoint; the obsolete Live Preview wording in the Gaming Roles selector is reconciled. Existing acceptance statuses and limits are unchanged.
 
 **Product Memory: PROPOSED** — a concise decision record for replacing the draft card with a saved Classic owner preview, preserving drafts by keeping Account alive. No Product Memory record or Register entry is saved; separate Mazen approval is required.
 
 Stop after TESTING verification for Mazen's review and acceptance.
+
+## TESTING deployment confirmation (2026-10-14)
+
+[Cloudflare TESTING run #108](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38427825018) **SUCCESS**, source `feature/play-together-notifications`, exact deployed checkpoint `7aa0133ee881e171f3b03fb868bb0145695a66f7`. The workflow verified ancestry and TESTING-only configuration, ran the complete validation, deployed the existing TESTING Worker and passed its smoke checks. Account HTML and all seven changed frontend modules/styles match the committed sources byte-for-byte after normal asset stamping (`7aa0133`).
+
+`scripts/classic-preview-browser.mjs --live` **2/2 PASS** at 1440 and 390: no-edits PRIVATE preview, all three Wall states, saved Classic content, Avatar and valid local Intro draft preservation, Back to Edit, no write/Intro requests, signed-out refusal and ordinary visitor Wall behavior; no page errors. All backend traffic was mocked in isolated contexts. No real account, stored media, database, function or worker-processing state was modified. These checks verify the deployed frontend; owner and Android-device acceptance remain Mazen's.
+
+The subsequent delivery-record commit is documentation-only; it does not require a second frontend deployment. The running frontend remains the exact deployed `7aa0133` tree. **STOP for owner review and acceptance.**
