@@ -3274,3 +3274,16 @@ Documentation only (no code, migration or deployment). Mazen explicitly gave fin
 - **Product Memory:** REV-0003 (the existing Gaming Roles acceptance review, GR-01) gains a "Final capability acceptance" section, an updated summary and an updated Follow-up.
   - Its status stays COMPLETED, the final status for reviews. No new record was created and no other status changed.
   - The permanent administrator assignment remains a separate owner decision.
+
+## 54. Favorite Games: final acceptance — 2026-10-13
+
+Documentation only (no code, migration or deployment). Mazen explicitly gave final acceptance of Favorite Games on 2026-10-13.
+- **Scope:** as implemented at `506bfa7` (§36-§37; run 38125086921; migrations `20261011180000_favorite_games.sql` and `20261011200000_roles_favorites_crews.sql`):
+  - My Games hearts;
+  - the desktop Classic Profile favorites row;
+  - the separate My Games / Connections Settings cards;
+  - artwork in View All Games.
+- **Truth:** `favorite-games` PENDING_ACCEPTANCE → ACCEPTED.
+  - Unchanged: all four contracts, the maximum of 4 favorite games and the checkpoint `506bfa7`.
+  - The record cites REV-0007 and this section. The other pending capabilities are unchanged (8 remain).
+- **Product Memory:** new REV-0007 (ACCEPTANCE, PASS, reviewer Mazen), because no existing record covered Favorite Games. It was saved with Mazen's explicit approval in this task, and the Register and REV counter are updated.

@@ -79,7 +79,7 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0006 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0006 |
+| REV | Reviews | reviews/ | REV-0007 |
 
 ## Register
 
@@ -117,3 +117,4 @@ Rules:
 | ISS-0014 | Desktop Classic Profile could not be scrolled by the user | VERIFIED | [ISS-0014-desktop-classic-profile-cannot-scroll.md](issues/ISS-0014-desktop-classic-profile-cannot-scroll.md) |
 | REV-0005 | My Socials visitor links acceptance | COMPLETED | [REV-0005-my-socials-visitor-links-acceptance.md](reviews/REV-0005-my-socials-visitor-links-acceptance.md) |
 | REV-0006 | My Socials Spotify, SoundCloud and Vimeo - Mazen acceptance | COMPLETED | [REV-0006-my-socials-spotify-soundcloud-vimeo-acceptance.md](reviews/REV-0006-my-socials-spotify-soundcloud-vimeo-acceptance.md) |
+| REV-0007 | Favorite Games - Mazen final acceptance | COMPLETED | [REV-0007-favorite-games-final-acceptance.md](reviews/REV-0007-favorite-games-final-acceptance.md) |

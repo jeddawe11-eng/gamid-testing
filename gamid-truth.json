@@ -559,7 +559,7 @@
     {
       "id": "favorite-games",
       "name": "Favorite Games (My Games hearts) on the Classic Profile, separate My Games / Connections Settings cards, artwork in View All Games",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/account/",
         "/@<handle>"
@@ -586,7 +586,7 @@
         }
       ],
       "checkpoint": "506bfa7a150c02234101e099ebc1538e73e35f3c",
-      "record": "PROJECT_HANDOFF.md §36-§37; migrations 20261011180000_favorite_games.sql and 20261011200000_roles_favorites_crews.sql (applied on TESTING); deployed to TESTING by workflow run 38125086921 (stamp 506bfa7)"
+      "record": "PROJECT_HANDOFF.md §36-§37; migrations 20261011180000_favorite_games.sql and 20261011200000_roles_favorites_crews.sql (applied on TESTING); deployed to TESTING by workflow run 38125086921 (stamp 506bfa7); final acceptance by Mazen 2026-10-13 (Product Memory REV-0007, PROJECT_HANDOFF.md §54)"
     },
     {
       "id": "my-crews-view",
