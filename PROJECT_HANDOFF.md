@@ -3287,3 +3287,52 @@ Documentation only (no code, migration or deployment). Mazen explicitly gave fin
   - Unchanged: all four contracts, the maximum of 4 favorite games and the checkpoint `506bfa7`.
   - The record cites REV-0007 and this section. The other pending capabilities are unchanged (8 remain).
 - **Product Memory:** new REV-0007 (ACCEPTANCE, PASS, reviewer Mazen), because no existing record covered Favorite Games. It was saved with Mazen's explicit approval in this task, and the Register and REV counter are updated.
+
+## 55. Edit Crew Name — 2026-10-13
+
+Mazen's explicit implementation authorization ("GAMID — Implement Edit Crew Name"), TESTING only.
+- **Checkpoints:** product `7fa7117ceab32061d1dd628d2724ad1678926db8`, on top of `3d72a5f`.
+- **Deployment:** workflow run [38392848965](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38392848965); TESTING serves `7fa7117`. URL: https://gamid-testing-static.gamid.workers.dev/account/ → My Crew.
+- **Migration:** `20261013100000_crew_rename.sql` APPLIED (rehearsed in a rolled-back transaction first, then `migration repair`).
+- **Status:** PENDING Mazen's manual acceptance.
+
+**Changed product rule (flagged).** My Crew V1 made a Crew's name, game and owner immutable: renaming meant deleting and recreating the Crew (`20261003100000_my_crew.sql`). By Mazen's task, only the **name** becomes editable by the owner. The game, owner and id stay immutable (`private.crews_immutable` still raises `CREW_IMMUTABLE` for them).
+
+**Server.**
+- New `public.rename_crew(crew_id, name)` → `private.rename_crew_impl`, granted to authenticated only.
+- **Owner check:** made under the Crew's row lock (`CREW_OWNER_ONLY`).
+- **Name rule:** trimmed, then exactly the `create_crew` rule: 2–40 characters, no control characters, no `<` `>` (`INVALID_CREW_NAME`). There is no uniqueness rule (none existed).
+- **What changes:** only `crews.name`. The existing data-free `crew_changed` signal goes to the members and invitees.
+- **Displays:** every one reads the name live (`get_my_crews`, the Crew Wall views, `get_public_crews` / the personal Crews section), so the new name shows everywhere. Notification contexts keep the name captured at their event.
+
+**UI** (`dist/account/my-crew.js`, `account.css`).
+- **Edit:** a 44 px pencil beside the owner's Crew name opens an inline field with the current name, Save and Cancel. The field takes focus.
+- **Saving:** "Saving…" with the field, Save and Cancel disabled, so a second submit sends nothing.
+- **Failure:** a persistent inline error (`role="alert"`) for permission, validation, network or server errors. Typing hides it in place without a re-render, and focus returns to the field.
+- **Success:** the new name shows immediately and is then re-read.
+- **Other changes:** members see no pencil, and the Create form's label now reads "Crew name (you can rename it later)".
+
+**Verification.**
+- **Tests:** `tests/crew-rename.test.js` (13 tests):
+  - the UI flows: owner rename, Cancel, invalid names, one request while saving, inline errors, persistence after reload, a live refresh during editing, members without a pencil, layout CSS;
+  - the database, with the real My Crew migration, the Crew Wall tables and this migration in PGlite: owner rename; member / outsider / invitee / anon refused; invalid names; only the name changes (members, invitations, Crew Wall, cards); game and owner still immutable.
+  - Also updated: `my-crew.test.js` (the Create label) and the `public-my-games` migration pin.
+  - Full suite 1896 run, 0 failures, 1 skipped; lint and typecheck pass.
+- **TESTING rehearsal** (rolled back; synthetic GM-TEST fixtures only, a throwaway Crew with a member and a Crew Wall):
+  - the member was refused (`CREW_OWNER_ONLY`) and a whitespace name refused (`INVALID_CREW_NAME`);
+  - the owner's rename was stored trimmed, and both the owner and the member see it;
+  - members, Crew Wall and cards were identical; the 2 real Crews were unchanged.
+  - Re-run against the live functions after applying: same result. 2 Crews remain on TESTING.
+- **Browser check:** the real `my-crew.js` and `account.css` with a fake API on localhost, at 1440 / 768 / 375 px. The pencil is 44 × 44 px; the field, Save and Cancel fit the card; no horizontal overflow; save, error, Cancel and focus all behave as described.
+  - The first deploy (`3d72a5f`) showed the pencil inheriting the full-width `.text-button` and squeezing the name to one letter per line. This is fixed in `7fa7117`.
+- **Not performed:** a signed-in rename on TESTING (no test account; the real Crews belong to protected accounts) and a real-device test.
+
+**Truth:** new capability `crew-rename` (PENDING_ACCEPTANCE; limits 2 / 40 characters; contracts `crew-rename-owner`, `crew-rename-validation`, `crew-rename-integrity`; checkpoint `7fa7117`). **Product Memory:** not modified.
+
+**Manual check (Mazen).** Sign in, open My Crew and press ✎ beside `espada` (Marvel Rivals).
+1. Change the name and Save: the name shows at once and stays after a reload.
+2. Check that it appears on the Crew Wall and on your public profile's Crews.
+3. Check that the members, invitations and the Crew Wall are unchanged.
+4. Try an empty name and Cancel.
+5. Check that a member account sees no pencil.
+6. On a phone, check the field and buttons fit.

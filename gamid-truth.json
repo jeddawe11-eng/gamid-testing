@@ -697,6 +697,35 @@
       "record": "Mazen's acceptance 2026-10-04 at d2a9466 (feature/my-crew-v1, not merged to main); limits from docs/global-usage-center.md"
     },
     {
+      "id": "crew-rename",
+      "name": "Edit Crew Name (the owner renames a Crew from My Crew)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/account/"
+      ],
+      "limits": {
+        "crewNameMinChars": 2,
+        "crewNameMaxChars": 40
+      },
+      "contracts": [
+        {
+          "id": "crew-rename-owner",
+          "rule": "In My Crew, the Crew owner sees a pencil beside the Crew name. It opens an inline field with the current name and Save / Cancel. Save shows a saving state and accepts one request at a time; a failure stays visible inline until the owner edits the name or cancels; success shows the new name at once. Members and invitees cannot rename, and the server refuses anyone but the owner (CREW_OWNER_ONLY)."
+        },
+        {
+          "id": "crew-rename-validation",
+          "rule": "The new name is trimmed and follows the Crew creation rule: 2-40 characters, no control characters, no < or >; empty or whitespace-only names are refused (INVALID_CREW_NAME). Crew names have no uniqueness rule."
+        },
+        {
+          "id": "crew-rename-integrity",
+          "rule": "A rename changes only the Crew's name. Its id, game, owner, members, invitations, membership status, Crew Wall (stages, member cards, published state) and URLs are unchanged; the Crew is never recreated. Every display reads the name live (My Crew, the public My Crews / Crews sections, the Crew Wall), and members' open pages are told to re-read. The game and owner stay immutable."
+        }
+      ],
+      "checkpoint": "7fa7117ceab32061d1dd628d2724ad1678926db8",
+      "record": "PROJECT_HANDOFF.md §55; migration supabase/migrations/20261013100000_crew_rename.sql (applied on TESTING); deployed to TESTING by workflow run 38392848965",
+      "notes": "Supersedes, by Mazen's task of 2026-10-13, the My Crew V1 rule that a Crew's name is immutable (20261003100000_my_crew.sql); game and owner remain immutable. Awaiting Mazen's manual acceptance."
+    },
+    {
       "id": "play-together",
       "name": "Play Together (create, find, host approval, Ready Check, Team Room, history)",
       "status": "ACCEPTED",
