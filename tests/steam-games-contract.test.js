@@ -185,7 +185,8 @@ test("the module only ever talks to the official API host and the Supabase proje
 test("the browser reads stored games with database reads and contacts Steam only through the explicit refresh action, sending no SteamID", () => {
   const block = client.slice(client.indexOf("export async function getMyGameDiscoveryState"), client.indexOf("// League of Legends prototype"));
   assert.match(block, /rpc\("get_my_game_discovery_state", \{ candidate_provider: provider \}\)/);
-  assert.match(block, /rpc\("get_my_discovered_games", \{ candidate_provider: provider, candidate_limit: limit, candidate_offset: 0 \}\)/);
+  assert.match(block, /getMyDiscoveredGames\(provider = "steam", limit = 1000, offset = 0\)/);
+  assert.match(block, /rpc\("get_my_discovered_games", \{ candidate_provider: provider, candidate_limit: limit, candidate_offset: offset \}\)/);
   assert.match(block, /body: JSON\.stringify\(\{ action: "refresh" \}\)/);
   assert.match(block, /functions\/v1\/steam-games-refresh/);
   assert.doesNotMatch(block, /steamid|steam_id|provider_account_id|provider_username/i);

@@ -20,7 +20,7 @@ test('five-second feedback resets on new messages; actionable errors persist',()
  let current,delay,cleared=0;const el={hidden:true,classList:{toggle(){}},textContent:''};const timers={setTimeout(fn,ms){current=fn;delay=ms;return 1;},clearTimeout(){cleared++;}};const feedback=createTransientMessage(el,{timers,durationMs:5000});feedback.show('saved',{tone:'success'});assert.equal(delay,5000);feedback.show('new',{tone:'info'});assert.ok(cleared);assert.equal(el.textContent,'new');current();assert.equal(el.hidden,true);feedback.show('retry',{tone:'error'});assert.equal(feedback.pending,false);assert.equal(el.hidden,false);
 });
 test('all existing editor sections and independent panels are covered; no exclusive accordion',()=>{
- const view=readFileSync(new URL('../dist/account/profile-editor.js',import.meta.url),'utf8');for(const key of ['avatar','name','bio','intro','roles','education','connections','games','game-display','league','duo','crew','socials','preview','share','play','wall'])assert.ok(view.includes(`'${key}'`),key);assert.doesNotMatch(view,/'Account Settings'/,'Account Settings is the ⋯ menu, not a section');assert.ok(view.includes("panel.hidden=!open"));assert.doesNotMatch(view,/other === toggle/);
+ const view=readFileSync(new URL('../dist/account/profile-editor.js',import.meta.url),'utf8');for(const key of ['avatar','name','bio','intro','roles','education','connections','games','game-display','league','duo','crew','socials','share','play','wall'])assert.ok(view.includes(`'${key}'`),key);assert.doesNotMatch(view,/'Account Settings'/,'Account Settings is the ⋯ menu, not a section');assert.ok(view.includes("panel.hidden=!open"));assert.doesNotMatch(view,/other === toggle/);
  const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.ok(source.includes('sectionSaveQueue.run'));assert.ok(source.includes('sectionDraft(savedProfile,snapshot,key)'));assert.ok(source.includes('beforeunload'));assert.ok(source.includes('Leave this page'));assert.ok(source.includes("owner!==api.userIdFromToken()"));assert.doesNotMatch(source,/saveConfirmationTimer/);
 });
 
@@ -78,8 +78,8 @@ test('same-account re-sign-in invalidates save feedback from the previous editor
 });
 
 
-test('owner preview has one accordion heading and no overlapping internal label',()=>{
- const html=readFileSync(new URL('../dist/account/index.html',import.meta.url),'utf8');assert.doesNotMatch(html,/class="preview-state"/);const source=readFileSync(new URL('../dist/account/profile-editor.js',import.meta.url),'utf8');assert.ok(source.includes("'Live Preview'"));
+test('Classic preview is a compact action without the removed accordion',()=>{
+ const html=readFileSync(new URL('../dist/account/index.html',import.meta.url),'utf8');assert.doesNotMatch(html,/class="preview-state"/);const source=readFileSync(new URL('../dist/account/profile-editor.js',import.meta.url),'utf8');assert.doesNotMatch(source,/Live Preview/);assert.match(html,/id="previewClassicButton"/);
 });
 test('resolved field validation clears its associated feedback without hiding unrelated errors',()=>{
  const source=readFileSync(new URL('../dist/account/account.js',import.meta.url),'utf8');assert.ok(source.includes('panel.dataset.invalidDraft&&'));assert.ok(source.includes('panel.dataset.validationMessage===feedback.textContent'));assert.ok(source.includes('section.panel.dataset.validationMessage=text'));assert.ok(source.includes('delete panel.dataset.validationMessage;const el='));

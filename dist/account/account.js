@@ -6,6 +6,7 @@ import { PRESETS } from "../transition-engine.js";
 import * as api from "./supabase-client.js";
 import { createIntroSourceResolver } from "./intro-source.js";
 import { createEditorPreviewEnd } from "./intro-preview-host.js";
+import { mountClassicPreview } from "./classic-preview.js";
 import { authenticatedReturnPath } from "./testing-auth-handoff.js";
 import { createOwnedUploadBlob } from "./resumable-upload.js";
 import { renderUploadError } from "../app/upload-feedback.js";
@@ -31,6 +32,9 @@ const handleInput = document.getElementById("handleInput");
 const handleStatus = document.getElementById("handleStatus");
 const createButton = document.getElementById("createButton");
 let identity = null;
+const classicPreview = mountClassicPreview({ canOpen: () => Boolean(identity && api.userIdFromToken() === introOwner) });
+window.addEventListener(api.AUTH_SESSION_EVENT, () => { if (api.userIdFromToken() !== introOwner) classicPreview.close(); });
+window.addEventListener('storage', () => { if (api.userIdFromToken() !== introOwner) classicPreview.close(); });
 let handleAvailable = false;
 let avatarPreviewUrl;
 let persistedAvatarUrl;
@@ -474,27 +478,16 @@ function renderVisibility() {
   chip.classList.toggle("is-public", isPublic);
   toggle.textContent = isPublic ? "Unpublish" : "Publish";
   toggle.disabled = !identity;
+  document.getElementById('previewClassicButton').disabled = !identity;
 }
 
 function updateProfilePreview() {
   const draft = profileDraft();
-  document.getElementById("displayNameSummary").textContent = draft.displayName.trim() || "Your display name";
-  document.getElementById("bioSummary").textContent = draft.bio || "Add a short bio to tell players who you are.";
   document.getElementById("bioCount").textContent = String(draft.bio.length);
   const selectedRoles = draft.roleKeys;
   const primaryLabel = catalogLabel(roleCatalog, draft.primaryRoleKey);
   const secondaryLabels = selectedRoles.filter(key => key !== draft.primaryRoleKey).map(key => catalogLabel(roleCatalog, key));
-  const rolesPreview = document.getElementById("rolesPreview");
-  rolesPreview.hidden = !selectedRoles.length;
-  document.getElementById("primaryRoleSummary").textContent = primaryLabel;
-  const secondary = document.getElementById("secondaryRolesSummary");
-  secondary.replaceChildren(...secondaryLabels.slice(0, 2).map(label => { const chip = document.createElement("span"); chip.textContent = label; return chip; }));
-  if (secondaryLabels.length > 2) { const more = document.createElement("span"); more.textContent = `+${secondaryLabels.length - 2}`; secondary.append(more); }
   const educationLabel = catalogLabel(educationWorkCatalog, draft.educationWorkStatus);
-  const educationContext = [educationLabel, draft.institution, draft.fieldOfStudy].filter(Boolean).join(" · ");
-  const educationSummary = document.getElementById("educationWorkSummary");
-  educationSummary.textContent = educationContext;
-  educationSummary.hidden = !educationContext;
   document.getElementById("rolesSectionSummary").textContent = primaryLabel ? `${primaryLabel}${secondaryLabels.length ? ` +${secondaryLabels.length}` : ""}` : "Add your gaming roles";
   document.getElementById("educationSectionSummary").textContent = educationLabel || "Optional";
   refreshEditorSaves();
@@ -526,7 +519,7 @@ async function restoreIntroState(intro) {
 async function setPersistedAvatar(path, fallbackLetter) {
   if (persistedAvatarUrl) URL.revokeObjectURL(persistedAvatarUrl);
   persistedAvatarUrl = null;
-  const avatar = document.getElementById("avatarSummary");
+  const avatar = document.getElementById("profileAvatarThumbnail");
   avatar.style.backgroundImage = "";
   avatar.textContent = fallbackLetter;
   if (!path) return;
@@ -635,7 +628,6 @@ async function showIdentity(data) {
   educationWorkCatalog = editor.education_work_catalog || [];
   renderIdentityCatalogs();
   const handle = `@${identity.gamid_handle}`;
-  document.getElementById("claimedHandle").textContent = handle;
   document.getElementById("handleField").textContent = handle;
   document.getElementById("accountEmail").textContent = data.account_email;
   document.querySelector("#languageForm select").value = data.preferred_language || "en";
@@ -2259,7 +2251,7 @@ document.getElementById("applyAvatarCrop").addEventListener("click", async event
     pendingAvatar = normalized.blob;
     clearUploadError("avatar");
     avatarPreviewUrl = URL.createObjectURL(pendingAvatar);
-    const avatar = document.getElementById("avatarSummary");
+    const avatar = document.getElementById("profileAvatarThumbnail");
     avatar.style.backgroundImage = `url("${avatarPreviewUrl}")`;
     avatar.textContent = "";
     cropDialog.close();
@@ -2287,7 +2279,6 @@ function refreshEditorSaves() {
  editor.sections.get('bio').status.textContent=draft.bio?`${draft.bio.length}/160 characters`:'Add a short bio';
  editor.sections.get('avatar').status.textContent=pendingAvatar?'Unsaved avatar':savedProfile.avatarPath?'Avatar saved':'No avatar yet';
  editor.sections.get('share').status.textContent=`@${identity.gamid_handle} · Link and QR`;
- editor.sections.get('preview').status.textContent=`Current draft · ${draft.displayName.trim()||'Your GamID'}`;
  editor.sections.get('socials').status.textContent=socialsCount<0?'Could not load your social accounts. Reload to try again.':socialsEditor.isDirty()?'Unsaved changes':socialsCount?`${socialsCount} account${socialsCount===1?'':'s'}`:'Add your social accounts';
  editor.sections.get('banner').status.textContent=bannerFailed?'Could not load your Banner. Reload to try again.':bannerEditor.status();
  editor.sections.get('about').status.textContent=aboutFailed?'Could not load About Me. Reload to try again.':aboutLoaded&&aboutEditor.isDirty()?'Unsaved changes':aboutEditor.status();

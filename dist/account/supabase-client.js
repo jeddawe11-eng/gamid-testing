@@ -608,8 +608,8 @@ export async function getMyGameDiscoveryState(provider = "steam") {
   return rows?.[0] || null;
 }
 
-export async function getMyDiscoveredGames(provider = "steam", limit = 1000) {
-  return (await rpc("get_my_discovered_games", { candidate_provider: provider, candidate_limit: limit, candidate_offset: 0 })) || [];
+export async function getMyDiscoveredGames(provider = "steam", limit = 1000, offset = 0) {
+  return (await rpc("get_my_discovered_games", { candidate_provider: provider, candidate_limit: limit, candidate_offset: offset })) || [];
 }
 
 // Game display (provider-neutral): the owner's single switch for showing playtime / hours publicly. OFF by default; only the owner can flip it;

@@ -198,7 +198,7 @@ test("public page: the Duo leads the sections, the Back control is built from `f
   assert.match(source, /renderPublicSections\(sectionsPanel, identity\.public_sections, \{ ownerHandle: identity\.gamid_handle, pathname: location\.pathname, loadAvatar: loadPublicAvatar \}\)/);
   // My Crew Slice 2 adds the Crew context (?crew=) to the same accepted visitor navigation; the Duo `from` path is unchanged when there is no Crew. With a Crew, `from`
   // (the GamID the Crew was entered from) only rides along on Back to Crew - so it is not dropped when it names this page itself
-  assert.match(source, /visitorNav = createVisitorNav\(\{ crew: fromCrew, from: fromCrew \? backHandle\(location\.search, ""\) : backHandle\(location\.search, identity\?\.gamid_handle \?\? handle\), pathname: location\.pathname, referrer: document\.referrer, origin: location\.origin, history,/);
+  assert.match(source, /visitorNav = ownerPreview \? null : createVisitorNav\(\{ crew: fromCrew, from: fromCrew \? backHandle\(location\.search, ""\) : backHandle\(location\.search, identity\?\.gamid_handle \?\? handle\), pathname: location\.pathname, referrer: document\.referrer, origin: location\.origin, history,/);
   assert.match(read("dist/public/visitor-nav.js"), /goBack\(event, \{ href, referrer, origin, history \}\)/);
   assert.match(read("dist/public/public.css"), /\.identity-nav\{position:fixed;z-index:30/, "above the Intro (z 20), below dialogs (z 50)");
   assert.match(read("dist/public/public-wall.js"), /gamidHref\(duo, \{ from: handle, pathname \}\)/, "a published Wall's Duo navigates in place with `from`");

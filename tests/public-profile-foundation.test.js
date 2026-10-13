@@ -70,10 +70,10 @@ test("YOUR GAMID exposes a Publish/Unpublish control without redesigning the res
   assert.match(accountController, /identity\?\.visibility === "PUBLIC"/);
 });
 
-test("the decorative circle behind the live-preview card cannot intercept real taps on Publish/Unpublish", () => {
-  const rule = accountCss.match(/\.identity-preview::after\{[^}]*\}/)?.[0] || "";
-  assert.ok(rule.length > 0, "could not locate the .identity-preview::after decorative rule");
-  assert.match(rule, /pointer-events:none/);
+test("Classic Preview removes the decorative card and keeps explicit GamID publication controls", () => {
+  assert.doesNotMatch(accountCss, /\.identity-preview::after/);
+  assert.match(accountHtml, /class="gamid-publication" aria-label="GamID publication"/);
+  assert.match(accountHtml, /id="visibilityToggle"/);
 });
 
 test("The public route is read-only: no forms, no file inputs, no auth-only controls", () => {

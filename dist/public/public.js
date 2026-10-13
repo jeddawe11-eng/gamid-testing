@@ -12,6 +12,10 @@ import { preparePublicWall, createPublicWallView } from "./public-wall.js";
 import { backHandle, crewIdFromSearch } from "./identity-link.js";
 import { createVisitorNav } from "./visitor-nav.js";
 import { duoSection } from "./public-duo.js";
+import * as ownerApi from '../account/supabase-client.js';
+import { createOwnerClassicSource } from '../account/classic-profile-source.js';
+
+const publicSource = { getPublicIdentity, getPublicProfileExtras, getPublicSocialLinks, getPublicDiscordCard, getPublicFavoriteGames, getPublicCrews, getPublicMyGames, loadPublicAvatar, publicBannerUrl };
 
 const catalogLabel = (catalog, key) => catalog?.find(item => item.key === key)?.label || key || "";
 
@@ -103,14 +107,14 @@ function leagueConnectedItem(league) {
   };
 }
 
-async function buildConfig(identity) {
+async function buildConfig(identity, avatarLoader = loadPublicAvatar) {
   const primaryLabel = catalogLabel(identity.role_catalog, identity.primary_role_key);
   const secondaryLabels = (identity.role_keys || [])
     .filter(key => key !== identity.primary_role_key)
     .map(key => catalogLabel(identity.role_catalog, key));
   const educationLabel = catalogLabel(identity.education_work_catalog, identity.education_work_status);
   const education = [educationLabel, identity.institution, identity.field_of_study].filter(Boolean).join(" · ");
-  const avatarUrl = await loadPublicAvatar(identity.avatar_media_reference).catch(() => null);
+  const avatarUrl = await avatarLoader(identity.avatar_media_reference).catch(() => null);
   const videoUrl = identity.intro_derivative_path ? "pending" : "";
   return {
     publicMode: true,
@@ -147,6 +151,26 @@ async function render() {
   const sectionsPanel = document.getElementById("publicSections");
   const gamesBlock = document.getElementById("publicGames");
   const shell = document.getElementById("publicShell");
+  const ownerPreview = new URLSearchParams(location.search).get('classic-preview') === 'owner';
+  let source = publicSource;
+  if (ownerPreview) {
+    try { source = await createOwnerClassicSource(ownerApi); }
+    catch {
+      loading.hidden = true; notFound.hidden = false;
+      notFound.querySelector('h1').textContent = 'Classic preview is unavailable.';
+      notFound.querySelector('p').textContent = 'Sign in to your Account, or return to the editor and try again. Nothing has been saved or published.';
+      return;
+    }
+    document.querySelector('.site-head').hidden = true;
+    const endOwnerPreview = () => {
+      if (ownerApi.userIdFromToken() === source.owner) return;
+      source.dispose(); location.replace('../account/');
+    };
+    addEventListener(ownerApi.AUTH_SESSION_EVENT, endOwnerPreview);
+    addEventListener('storage', endOwnerPreview);
+    addEventListener('pagehide', source.dispose, { once:true });
+  }
+  const { getPublicIdentity, getPublicProfileExtras, getPublicSocialLinks, getPublicDiscordCard, getPublicFavoriteGames, getPublicCrews, getPublicMyGames, loadPublicAvatar, publicBannerUrl } = source;
   let hasSections = false;
   let hasDeskSide = false;   // the panel holds something the desktop sidebar shows (it hides the separate Discord and League cards and adds desk-only blocks)
   let crewsDirectory = null, artworkRequest = null, deskConnected = null, deskFavorites = null;   // the My Crews view, the one artwork request, Connected Games (desktop only)
@@ -179,6 +203,11 @@ async function render() {
   const stopIntro = () => { introRequest++; frame.contentWindow?.postMessage({ type: "gamid-intro-preview-stop" }, location.origin); };
   const sendReplay = async () => {
     if (!config) return;
+    if (ownerPreview) {
+      hasIntro = false;
+      frame.contentWindow?.postMessage({ type:'gamid-intro-preview', config:{ ...config, videoUrl:'' } }, location.origin);
+      return;
+    }
     stopIntro();
     const current = introRequest;
     introResolving = true;
@@ -279,7 +308,7 @@ async function render() {
   replayButton.addEventListener("click", sendReplay);
 
   const params = new URLSearchParams(location.search);
-  const handle = resolveHandle(location.search, location.pathname);
+  const handle = ownerPreview ? source.handle : resolveHandle(location.search, location.pathname);
   const qrToken = (params.get("qr") || "").trim();
 
   let identity = null;
@@ -293,7 +322,7 @@ async function render() {
   // ... or from a Crew Wall (?crew=<id>): Back to that Crew (its name comes from the public Crew Wall; until then / if it is not public, "Back to Crew"). A `from`
   // beside ?crew= is the Personal GamID the visitor entered that Crew from: it rides along on Back to Crew, so the Crew Wall still offers "Back to @<from>".
   const fromCrew = crewIdFromSearch(location.search);
-  visitorNav = createVisitorNav({ crew: fromCrew, from: fromCrew ? backHandle(location.search, "") : backHandle(location.search, identity?.gamid_handle ?? handle), pathname: location.pathname, referrer: document.referrer, origin: location.origin, history,
+  visitorNav = ownerPreview ? null : createVisitorNav({ crew: fromCrew, from: fromCrew ? backHandle(location.search, "") : backHandle(location.search, identity?.gamid_handle ?? handle), pathname: location.pathname, referrer: document.referrer, origin: location.origin, history,
     onSkip: () => frame.contentWindow?.postMessage({ type: "gamid-intro-preview-skip" }, location.origin) });
   if (visitorNav) document.body.append(visitorNav.element);
   if (visitorNav && fromCrew) getPublicCrewWall(fromCrew).then(view => visitorNav.setBackName(view?.crew_name), () => {});
@@ -353,7 +382,7 @@ async function render() {
   // the published Wall is looked up alongside the Intro config (one anonymous call); its media and data load while the Intro plays
   const extrasRequest = getPublicProfileExtras(identity.gamid_handle).catch(() => null);
   const favoritesRequest = hasGames ? getPublicFavoriteGames(identity.gamid_handle).catch(() => []) : Promise.resolve([]);   // Favorite Games (only with public My Games)   // the desktop profile's Member Since / Banner / About Me (in parallel)
-  const [built, published] = await Promise.all([buildConfig(identity), getPublicWall(identity.gamid_handle).catch(() => null)]);
+  const [built, published] = await Promise.all([buildConfig(identity, loadPublicAvatar), ownerPreview ? Promise.resolve(null) : getPublicWall(identity.gamid_handle).catch(() => null)]);
   const extras = await extrasRequest;
   if (published?.document) {
     const host = node("section", "public-wall");

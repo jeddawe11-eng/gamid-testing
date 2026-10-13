@@ -56,15 +56,12 @@
 
       <div id="identityView" class="view identity-editor">
         <p class="eyebrow">GAMID IDENTITY FOUNDATION</p><h2>YOUR GAMID</h2><p class="lede">Shape your gaming identity. Your profile stays private until you explicitly publish it.</p>
-        <section class="identity-preview" aria-label="Live GamID identity preview">
-          <div class="preview-avatar avatar-placeholder" id="avatarSummary">G</div>
-          <div class="preview-copy">
-            <strong id="displayNameSummary"></strong>
-            <span class="locked-handle"><span aria-hidden="true">🔒</span> <span id="claimedHandle"></span></span>
-            <div id="rolesPreview" class="roles-preview" hidden><strong id="primaryRoleSummary"></strong><div id="secondaryRolesSummary"></div></div>
-            <p id="educationWorkSummary" class="education-work-summary" hidden></p>
-            <p id="bioSummary">Add a short bio to tell players who you are.</p>
-          </div>
+        <div class="classic-preview-entry">
+          <button id="previewClassicButton" class="secondary" type="button" disabled>Preview Your GamID Classic <span aria-hidden="true">↗</span></button>
+          <small>Your saved profile. Unsaved edits stay here.</small>
+        </div>
+        <section class="gamid-publication" aria-label="GamID publication">
+          <span>GamID visibility</span>
           <div class="visibility-row">
             <span class="draft-chip" id="visibilityChip">DRAFT · PRIVATE</span>
             <button id="visibilityToggle" class="text-button" type="button" disabled>Publish</button>
@@ -84,7 +81,7 @@
         </section>
         <p class="eyebrow editor-group-label">PROFILE INFORMATION</p>
         <form id="profileForm" class="profile-form" novalidate>
-          <label class="avatar-picker">Avatar <span>Private storage</span><input id="profileAvatarInput" name="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /><small>Tap to replace · JPG, PNG, WebP, or AVIF · max 5 MB</small></label>
+          <label class="avatar-picker">Avatar <span>Private storage</span><span id="profileAvatarThumbnail" class="profile-avatar-thumbnail avatar-placeholder" aria-label="Selected Avatar">G</span><input id="profileAvatarInput" name="avatar" type="file" accept="image/jpeg,image/png,image/webp,image/avif" /><small>Tap to replace · JPG, PNG, WebP, or AVIF · max 5 MB</small></label>
           <div class="identity-section intro-section">
             <button id="introSectionToggle" class="section-toggle" type="button" aria-expanded="false" aria-controls="introSectionPanel"><span class="section-icon" aria-hidden="true">🎬</span><span><strong>YOUR INTRO</strong><small id="introSectionSummary">No intro yet</small></span><span class="section-chevron" aria-hidden="true">›</span></button>
             <div id="introSectionPanel" class="section-panel" hidden>

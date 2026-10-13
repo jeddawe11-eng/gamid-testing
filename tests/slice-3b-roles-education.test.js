@@ -55,11 +55,11 @@ test("YOUR GAMID uses independently expandable section controls without navigati
   assert.doesNotMatch(html, /href=[^>]*(roles|education|occupation)/i);
 });
 
-test("live preview and existing Save Profile flow include Slice 3B state", () => {
-  assert.match(html, /id="primaryRoleSummary"/);
-  assert.match(html, /id="secondaryRolesSummary"/);
-  assert.match(html, /id="educationWorkSummary"/);
-  assert.match(controller, /secondaryLabels\.slice\(0, 2\)/);
+test("Classic Preview replaces the draft summary; existing section saves include Slice 3B state", () => {
+  assert.match(html, /id="previewClassicButton"/);
+  assert.match(html, /id="gamingRoleChoices"/);
+  assert.match(html, /id="educationWorkStatus"/);
+  assert.match(controller, /secondaryLabels\.length/);
   assert.match(controller, /api\.updateIdentityProfile\(\{\.\.\.draft,avatarPath\}\)/);
   assert.match(client, /candidate_role_keys: roleKeys/);
   assert.match(client, /candidate_primary_role_key: primaryRoleKey/);
