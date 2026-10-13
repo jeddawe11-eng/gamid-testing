@@ -14,7 +14,7 @@ All 17 existing owner sections are independently expandable, initially compact, 
 | Intro | Existing local-file validation/Preview, upload/queue/remove/transition APIs; own Save Changes; F2/F5 and processing untouched |
 | Gaming Roles | Selected roles + primary role only; existing update_my_identity_profile |
 | Education & Work | Status/institution/field only; existing profile RPC plus its own optional visibility setting |
-| Live Preview | Read-only current draft; compact and collapsible |
+| Preview Your GamID Classic | Compact action; full-screen saved Classic owner preview over Account; Back to Edit retains all drafts. No save/publication/Intro/Wall. See CLASSIC-PROFILE-OWNER-PREVIEW.md. |
 | Share your GamID | Existing readonly link/QR, copy/share/download actions |
 | Play Together | Existing navigation, not a settings save |
 | My Wall | Existing navigation (Edit), not a Wall save. Since 2026-10-09 also the saved Wall state (Enabled / Disabled / Not published) and Disable My Wall / Enable My Wall with a confirmation: whether visitors see the published Wall or the Classic Profile (DEC-0003); the Wall content is never changed. |
@@ -94,3 +94,7 @@ Product `7373607`, TESTING run 38148668016.
 - **Behaviour:** Preview Intro plays the Intro. Skip Intro, and the natural end after its transition, both close the preview through the existing Return to editor path (`stopIntroPreview()` + `dialog.close()`), so focus goes back to Preview Intro and every draft is kept.
 - **How:** the editor asks the frame for `hostReveal`, so the frame's old built-in profile card (`DRAFT · PRIVATE`) is never shown. `dist/account/intro-preview-host.js` (`createEditorPreviewEnd`) reacts only to a preview that actually started, and only to the editor's own frame.
 - **Unchanged:** the public visitor Intro, the frame, transitions and controls. This fix is PENDING Mazen's manual acceptance.
+
+## Saved Classic owner preview (2026-10-14)
+
+The former Live Preview accordion is replaced by the compact Preview Your GamID Classic action (product `41aa906`, PENDING owner acceptance). It opens the actual Classic renderer above Account; Back to Edit preserves every draft including pending Avatar and Intro selections. Saved section visibility still applies, while Wall and Intro are bypassed. The former card's GamID publication controls remain in an independent row; Share your GamID and My Wall retain their workflows. Full implementation, validation and deployment record: [CLASSIC-PROFILE-OWNER-PREVIEW.md](CLASSIC-PROFILE-OWNER-PREVIEW.md).

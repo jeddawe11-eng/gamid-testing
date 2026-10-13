@@ -3356,3 +3356,13 @@ Documentation only (no code, migration or deployment). On 2026-10-13 Mazen expli
 Remaining PENDING_ACCEPTANCE capabilities: 7.
 
 **Product Memory:** not modified. The records proposed to Mazen await his separate approval.
+
+## 57. Account saved Classic owner preview — 2026-10-14
+
+Authorized by Mazen's Live Preview replacement task and continuation; TESTING only, PENDING owner acceptance. Started at GitHub `2d8a657e400c85676ed9996ac867a27fc8125a1a` on the current unmerged development branch `feature/play-together-notifications`. Product checkpoint: `41aa90692c164d9675698131f561b285cdc8b736`.
+
+Preview Your GamID Classic replaces the oversized Live Preview draft card. The existing Classic host renders currently saved owner data in a full-screen dialog over Account. Back to Edit keeps Account at `/account/` and preserves all unsaved drafts, including Avatar and Intro selections. The preview works for an unpublished identity and with any Wall state; no Intro, Wall lookup, save, publication or media upload is performed. Existing Classic sections, saved opt-ins, server ownership and other-person public gates are retained. The old card's GamID Publish / Unpublish row, Share your GamID and My Wall remain independent. No Classic redesign or change to the independent Intro Preview.
+
+Full build: 1902 tests, 1901 PASS / 1 existing SKIP / 0 failures, plus lint and syntax checks. Owner browser round trips at 1440 and 390 passed; Avatar and valid local Intro drafts retained; no writes or Intro; signed-out access refused. Public Classic snapshots are pixel-identical to starting `2d8a657` at both widths, and ordinary visitor Wall selection is preserved. Existing Profile Editor browser regression passes at 1280 and 390. Fixture backend is mocked; no real user data is changed and no owner/Android acceptance is claimed. Detailed scope, security, test procedures and deployment confirmation: [`docs/CLASSIC-PROFILE-OWNER-PREVIEW.md`](docs/CLASSIC-PROFILE-OWNER-PREVIEW.md).
+
+GamID Truth UPDATED (`your-gamid-editor` contract/checkpoint; removed Live Preview wording in Gaming Roles). Product Memory PROPOSED, not saved; separate approval required. No Production, migration, backend/worker deployment or branch merge. Stop after TESTING verification for Mazen's acceptance.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-13",
+  "updated": "2026-10-14",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -54,7 +54,7 @@
       "surfaces": [
         "/account/"
       ],
-      "checkpoint": "737360748eff1b15dca938bb6f6fff2ae999660f",
+      "checkpoint": "41aa90692c164d9675698131f561b285cdc8b736",
       "limits": {
         "avatarMinSidePx": 16,
         "avatarMaxSidePx": 1024
@@ -83,9 +83,13 @@
         {
           "id": "profile-feedback-lifecycle",
           "rule": "Profile transient feedback receives five seconds of actual visibility, reset by each new message. Progress and actionable errors remain persistent. A field validation error stays inline on its field until the field is valid; its notification below Save Changes is transient (five visible seconds) and clears at once when the field becomes valid. Replaced feedback controllers are disposed; owner lifecycle cleanup and stale-save guards prevent former-owner feedback from affecting the current editor."
+        },
+        {
+          "id": "profile-classic-preview",
+          "rule": "Preview Your GamID Classic replaces the Account Live Preview draft card and opens the actual Classic Profile renderer full-screen above Account using currently saved owner data, without Save, Publish, Wall or Intro. Back to Edit keeps the original Account document and every unsaved field, visibility, Avatar and Intro draft. Saved section visibility controls still determine Classic content; other people and Crew Walls retain their public gates. The owner is resolved by authenticated ownership, never a URL handle; sign-out or account switching invalidates the preview. GamID Publish / Unpublish stays separate, Share your GamID remains, and the independent Intro Preview and public visitor flow keep their existing behavior."
         }
       ],
-      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23, §38 (ISS-0007), §41 and §44 (ISS-0010); desktop manual acceptance by Mazen 2026-10-11 (16 tests, Product Memory REV-0004) - Android Chrome acceptance still outstanding, so the capability stays PENDING_ACCEPTANCE; original Slice 3A: §3"
+      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23, §38 (ISS-0007), §41 and §44 (ISS-0010); desktop manual acceptance by Mazen 2026-10-11 (16 tests, Product Memory REV-0004) - Android Chrome acceptance still outstanding, so the capability stays PENDING_ACCEPTANCE; original Slice 3A: §3; docs/CLASSIC-PROFILE-OWNER-PREVIEW.md; PROJECT_HANDOFF.md §57 (saved owner Classic preview, PENDING Mazen acceptance)"
     },
     {
       "id": "my-socials",
@@ -152,7 +156,7 @@
         },
         {
           "id": "gaming-role-selector",
-          "rule": "In the Profile Editor each category shows its title, description, role count and selected count and expands / collapses; roles are checkboxes, any number across categories. Exactly one selected role is the Primary Role (it moves to another selected role when it is deselected). The selected roles show as removable chips with Clear All. Save, unsaved-changes state and the Live Preview behave as before."
+          "rule": "In the Profile Editor each category shows its title, description, role count and selected count and expands / collapses; roles are checkboxes, any number across categories. Exactly one selected role is the Primary Role (it moves to another selected role when it is deselected). The selected roles show as removable chips with Clear All. Section saving and unsaved-changes state are preserved. The Account Classic Preview entry point displays saved roles through the existing Classic Profile role badges."
         },
         {
           "id": "gaming-role-badges",

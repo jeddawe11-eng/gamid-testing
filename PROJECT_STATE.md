@@ -4,7 +4,7 @@
 
 This file is an index and a continuation pointer. It is **not** an authoritative source. Every fact here points to the source that owns it, and **that source wins** whenever the two disagree.
 
-Last reviewed: 2026-10-11.
+Last reviewed: 2026-10-14.
 
 ## 1. Mandatory entry order
 
@@ -100,6 +100,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 - Deterministic exploration decides which meaningful states are captured. AI inspects the resulting evidence; it does not control navigation.
 
 ## 7. Current continuation point
+
+**Latest continuation (2026-10-14):** Account saved Classic owner preview implemented at product `41aa90692c164d9675698131f561b285cdc8b736` on the existing `feature/play-together-notifications` branch. See Truth `your-gamid-editor`, `PROJECT_HANDOFF.md` §57 and [`docs/CLASSIC-PROFILE-OWNER-PREVIEW.md`](docs/CLASSIC-PROFILE-OWNER-PREVIEW.md). Stop for Mazen's review and acceptance after authorized TESTING deployment; no merge or Product Memory saving. This pointer supersedes the older implementation stop point below, without changing historical acceptance records.
+
 
 **Current stop point:** product `4b56646` (ISS-0011 Intro storage lifecycle fix) was deployed to TESTING as head `72896d6` (run `38145293680`, full validation passed; migration `20261011240000`; `usage-upload` v9) and is PENDING Mazen's targeted manual check (§42). Documentation runs through `PROJECT_HANDOFF.md` §42.
 - **ISS-0011:** FIXED, not VERIFIED. The three authorized failed Intro sources (29.38 MB) are deleted. Held for Mazen's decision: the removed 0.73 MB derivative, which is excluded from automatic cleanup by the cutoff. The 116.29 MB reservation releases by the 26-hour rule after 2026-10-12 12:41 UTC.
