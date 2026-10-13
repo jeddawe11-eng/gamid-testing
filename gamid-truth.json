@@ -133,7 +133,7 @@
     {
       "id": "gaming-roles-categories",
       "name": "Gaming Roles in eight categories, the categorized selector, role badges and Suggest a Role (admin review)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/account/",
         "/@<handle>"
@@ -168,7 +168,7 @@
         }
       ],
       "checkpoint": "a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7",
-      "record": "PROJECT_HANDOFF.md §37, §38; migration 20261011200000_roles_favorites_crews.sql (applied on TESTING)"
+      "record": "PROJECT_HANDOFF.md §37, §38, §53 (final acceptance); migration 20261011200000_roles_favorites_crews.sql (applied on TESTING); accepted by Mazen 2026-10-13 (Product Memory REV-0003)"
     },
     {
       "id": "intro-identity",

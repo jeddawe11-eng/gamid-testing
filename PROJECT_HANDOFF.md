@@ -3258,3 +3258,19 @@ Documentation only (no code, migration or deployment). Mazen explicitly approved
 - **Product Memory:** DEC-0002 IMPLEMENTED → ACCEPTED, with an acceptance entry, an Acceptance section and a History line. The §51 Discord PASS is kept. The Register is updated.
 - **Accepted scope:** the single Wall link engine shared by the Wall and My Socials, and the Discord personal profile kind (`discord.com/users/<id>`) as a Wall Link and as a My Socials Discord account (implementation `6704293`, run 37892333328, §24). The Discord Profile Card (DEC-0004) and the cancelled Wall Discord Profile Card copy are not part of it.
 - **Truth:** the `game-id-wall` note no longer calls the Discord personal profile extension "pending manual acceptance". It now records the 2026-10-13 acceptance, and that the kind also offers an Icon since `wall-icons`. No capability status changed: `game-id-wall` and `my-socials` were already ACCEPTED, and the other pending capabilities are unchanged (10).
+
+## 53. Gaming Roles: final acceptance — 2026-10-13
+
+Documentation only (no code, migration or deployment). Mazen explicitly gave final acceptance of the entire Gaming Roles capability on 2026-10-13.
+- **Accepted scope:**
+  - all eight categories;
+  - role selection and the Primary Role;
+  - the Classic Profile badges;
+  - Suggest a Role and the administrator review.
+  Implementation: §37 (`506bfa7`, migration `20261011200000_roles_favorites_crews.sql`) and §38 (GR-01 placement at `a1d2eeb`).
+- **Truth:** `gaming-roles-categories` PENDING_ACCEPTANCE → ACCEPTED.
+  - Unchanged: the 71-role catalog, the 8 categories, the five contracts, the limits and the checkpoint `a1d2eeb`.
+  - The record now cites this section and REV-0003. The other pending capabilities are unchanged (9 remain).
+- **Product Memory:** REV-0003 (the existing Gaming Roles acceptance review, GR-01) gains a "Final capability acceptance" section, an updated summary and an updated Follow-up.
+  - Its status stays COMPLETED, the final status for reviews. No new record was created and no other status changed.
+  - The permanent administrator assignment remains a separate owner decision.

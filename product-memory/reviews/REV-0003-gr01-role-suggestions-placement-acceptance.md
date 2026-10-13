@@ -3,9 +3,9 @@ id: REV-0003
 title: GR-01 Role Suggestions review inside Gaming Roles - Mazen manual acceptance
 status: COMPLETED
 created: 2026-10-11
-updated: 2026-10-11
+updated: 2026-10-13
 scope: Profile Editor Gaming Roles section (administrator Role Suggestions review placement), TESTING checkpoint a1d2eeb
-summary: Mazen manually confirmed on TESTING that the administrator Role Suggestions review appears at the end of the Gaming Roles section; the separate card is gone.
+summary: Mazen manually confirmed on TESTING that the administrator Role Suggestions review appears at the end of the Gaming Roles section; the separate card is gone. On 2026-10-13 he gave final acceptance of the whole Gaming Roles capability.
 related: []
 save_approval: Mazen 2026-10-11
 review_type: ACCEPTANCE
@@ -35,7 +35,17 @@ GR-01: the administrators' Role Suggestions review moved from its own Profile Ed
 
 ## Follow-up
 
-None for GR-01. The `gaming-roles-categories` capability as a whole remains PENDING_ACCEPTANCE in GamID Truth. The permanent administrator assignment is still a separate owner decision.
+None for GR-01. The capability as a whole was accepted on 2026-10-13 (see Final capability acceptance). The permanent administrator assignment is still a separate owner decision; it is not changed by this acceptance.
+
+## Final capability acceptance
+
+On 2026-10-13 Mazen gave final acceptance of the entire Gaming Roles capability (Truth `gaming-roles-categories`), as implemented at `a1d2eeb` (PROJECT_HANDOFF.md §37-§38, §53). It covers:
+- all eight categories and the 71-role catalog;
+- role selection and the Primary Role;
+- the Classic Profile badges;
+- Suggest a Role and the administrator review.
+
+The catalog, contracts and limits are unchanged.
 
 ## History
 
