@@ -41,6 +41,7 @@ export function mountDesktopEditor(doc,sections){
  for(const key of ['avatar','intro','banner','connections','socials','games','game-display','duo','crew']){const summary=h('div','desktop-summary');summaries.set(key,summary);}
  let active=false,slots=[],model={};const added=[],oldIcons=new Map(),formAttrs=new Map();
  function move(node,target){if(!node)return;for(const control of node.querySelectorAll('input,select,textarea,button')){if(control.form?.id==='profileForm'&&!formAttrs.has(control)){formAttrs.set(control,control.getAttribute('form'));control.setAttribute('form','profileForm');}}const slot=doc.createComment('desktop editor original position');node.before(slot);slots.push([node,slot]);target.append(node);}
+ function associate(){if(!active)return;for(const key of ['avatar','intro','name','bio','roles','education'])for(const control of sections.get(key).panel.querySelectorAll('input,select,textarea,button')){if(!control.form&&!control.closest('form')&&!formAttrs.has(control)){formAttrs.set(control,control.getAttribute('form'));control.setAttribute('form','profileForm');}}}
  function thumbnail(node){const n=h('div','desktop-mini-image');if(node){n.style.backgroundImage=node.style.backgroundImage;const img=node.querySelector('img');if(img){const c=img.cloneNode();c.removeAttribute('id');c.alt='';n.append(c);}else n.textContent=node.textContent.trim().slice(0,2);}return n;}
  function item(label,detail,visual){const n=h('div','desktop-summary-item');if(visual)n.append(visual);n.append(h('strong','',label),h('small','',detail??'Not added'));return n;}
  function render(){
@@ -93,14 +94,14 @@ export function mountDesktopEditor(doc,sections){
   const playGlyph=h('span','section-icon desktop-play-glyph');playGlyph.append(icon(doc,'games'));sections.get('play').panel.querySelector('.play-together-entry').prepend(playGlyph);added.push(playGlyph);
   for(const [key,s] of sections){if(key==='about-group')continue;const old=s.toggle.querySelector('.section-icon');if(old){oldIcons.set(old,[...old.childNodes]);old.replaceChildren(icon(doc,key));}}
   for(const [key,summary] of summaries){const s=sections.get(key);s.toggle.after(summary);added.push(summary);}
-  render();
+  associate();render();
  }
  function disable(){
   if(!active)return;active=false;for(const [node,slot] of slots.reverse()){slot.replaceWith(node);}slots=[];shell.remove();group.remove();savedCard.remove();added.splice(0).forEach(n=>n.remove());for(const [node,children] of oldIcons)node.replaceChildren(...children);oldIcons.clear();for(const [control,value] of formAttrs){if(value===null)control.removeAttribute('form');else control.setAttribute('form',value);}formAttrs.clear();sections.delete('about-group');root.classList.remove('desktop-editor');sections.get('play').card.classList.remove('desktop-play-static');
  }
  const sync=()=>mq.matches?enable():disable();mq.addEventListener('change',sync);sync();
  // Only original panels are observed; summary rendering cannot trigger its own observer.
- let queued=false;const queue=()=>{if(!active||queued)return;queued=true;win.requestAnimationFrame(()=>{queued=false;render();});};
+ let queued=false;const queue=()=>{if(!active)return;associate();if(queued)return;queued=true;win.requestAnimationFrame(()=>{queued=false;render();});};
  for(const [key,s] of sections){if(key!=='about-group')new win.MutationObserver(queue).observe(s.panel,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['style','aria-checked','disabled']});}
  root.addEventListener('input',queue);root.addEventListener('change',queue);
  return {update(next){model={...model,...next};queue();},setAbout(row){const country=row?.catalogs?.countries?.find(c=>(c.country_code||c.code)===row.about_country_code);model.location=row?.show_location?[row.about_city_name,country?.name||country?.label||row.about_country_code||row.legacy_location].filter(Boolean).join(', '):'';queue();}};
