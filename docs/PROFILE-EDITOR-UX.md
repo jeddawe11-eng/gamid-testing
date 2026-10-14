@@ -4,7 +4,7 @@ Status: PENDING_ACCEPTANCE. Product checkpoint: `8ce1616ce4024c0f875f97094dc516c
 
 ## Inventory and save boundaries
 
-All 17 existing owner sections are independently expandable, initially compact, with a title, icon and summary. Opening one does not close another. Nested My Games / Game Display / League retain their Connections parent; hash/notification and OAuth return destinations reveal the appropriate collapsed panels.
+The smaller-width editor retains its 18 original owner sections. From 1024px, the authorized Desktop redesign groups About Me, Gaming Roles, Education & Work, Bio and Identity inside one About Me card; Identity is not duplicated. Other sections expand independently with meaningful visual summaries. Play Together is static on Desktop. My Games and Game Display are independent of Connections; League stays inside Connections. Hash/notification, failed-save and OAuth return destinations reveal ancestor panels. Desktop Save All is in the heading; smaller widths retain the original bottom placement. See [PROFILE-EDITOR-DESKTOP-REDESIGN.md](PROFILE-EDITOR-DESKTOP-REDESIGN.md), product `4f980a4`, PENDING Mazen acceptance.
 
 | Section | Existing controls / persistence |
 |---|---|
@@ -24,7 +24,7 @@ All 17 existing owner sections are independently expandable, initially compact, 
 | Game Display | Own Save Changes for existing Games/playtime/stats visibility flags |
 | League of Legends | Existing Riot-ID lookup form now labelled Save Changes; its existing public visibility has a separate section footer when a League profile exists; Refresh/Remove remain explicit actions |
 | Connections | Own Save Changes for provider visibility; connect/disconnect/OAuth retain explicit existing actions. Since 2026-10-09 the Discord card also has Show Discord Profile Card, a separate opt-in (OFF by default, disabled while not connected, saved by the same Save Changes) for the visitor card behind the Discord icon in My Socials (DEC-0004) |
-| My Socials | The owner's own accounts on 9 Wall platforms (Instagram, TikTok, YouTube, Twitch, Kick, X, Snapchat, Discord, Facebook; no Other): add / edit / remove as a draft; own Save Changes replaces the saved list (server-validated, all or nothing). Recognised, validated and rebuilt by the Wall's link engine (DEC-0002): account kinds only (profile, channel, page, Discord profile or invite). Replaced the old IDENTITY BOARD · FUTURE placeholder (2026-10-09). |
+| My Socials | The owner's own accounts on 12 Wall platforms (Instagram, TikTok, YouTube, Twitch, Kick, X, Snapchat, Discord, Facebook; no Other): add / edit / remove as a draft; own Save Changes replaces the saved list (server-validated, all or nothing). Recognised, validated and rebuilt by the Wall's link engine (DEC-0002): account kinds only (profile, channel, page, Discord profile or invite). Replaced the old IDENTITY BOARD · FUTURE placeholder (2026-10-09). |
 | ⋯ menu (no section) | Signed-in email, Language (applied when chosen, no save button) and the existing confirmed Sign Out. The standalone Account Settings section was removed on 2026-10-09. |
 
 Readonly/navigation sections do not get dummy saves. Relationship and lookup actions retain their established intentional submission/confirmation semantics; Save Changes never sends an invitation, joins a Crew, starts OAuth, refreshes external data, publishes a GamID or saves a Wall.

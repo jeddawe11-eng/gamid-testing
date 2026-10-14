@@ -54,7 +54,7 @@
       "surfaces": [
         "/account/"
       ],
-      "checkpoint": "41aa90692c164d9675698131f561b285cdc8b736",
+      "checkpoint": "4f980a4d23b88ee27e80afd27ad644a96be24088",
       "limits": {
         "avatarMinSidePx": 16,
         "avatarMaxSidePx": 1024
@@ -74,7 +74,7 @@
         },
         {
           "id": "profile-save-all",
-          "rule": "Save All Changes, at the end of the editor, saves every section that has something to save, each once and through that section's own save path; unchanged sections are not sent and a running Save All cannot be started again. Section Save Changes remains. If any section fails, no overall success is shown: the failed sections are named, their drafts are kept and the first is opened, while sections that saved stay saved. Workflow actions (My Games entries, League lookup, relationships) keep their own buttons."
+          "rule": "Save All Changes, in the Desktop heading and at the end of the unchanged smaller-width editor, saves every section that has something to save, each once and through that section's own save path; unchanged sections are not sent and a running Save All cannot be started again. Section Save Changes remains. If any section fails, no overall success is shown: the failed sections are named, their drafts are kept and the first is opened, while sections that saved stay saved. Workflow actions (My Games entries, League lookup, relationships) keep their own buttons."
         },
         {
           "id": "profile-account-menu",
@@ -87,9 +87,13 @@
         {
           "id": "profile-classic-preview",
           "rule": "Preview Your GamID Classic replaces the Account Live Preview draft card and opens the actual Classic Profile renderer full-screen above Account using currently saved owner data, without Save, Publish, Wall or Intro. Back to Edit keeps the original Account document and every unsaved field, visibility, Avatar and Intro draft. Saved section visibility controls still determine Classic content; other people and Crew Walls retain their public gates. The owner is resolved by authenticated ownership, never a URL handle; sign-out or account switching invalidates the preview. GamID Publish / Unpublish stays separate, Share your GamID remains, and the independent Intro Preview and public visitor flow keep their existing behavior."
+        },
+        {
+          "id": "profile-desktop-dashboard",
+          "rule": "From 1024px the Account Profile Editor uses a wide owner dashboard with YOUR GAMID saved Classic Preview, separate publication, Share, My Wall and saved profile summary in its sidebar. About Me contains five independently expandable original sections: About Me (Location, Languages, Favorite Genres), Gaming Roles, Education & Work, Bio and Identity; Identity fields occur once and the permanent handle remains read-only. Other editor cards show real collapsed visual summaries and can expand independently; Play Together is static navigation on Desktop. Original controls, per-section saves, Save All, drafts including Avatar and Intro, workflow action boundaries, visibility rules and limits are preserved. Below 1024px the original mobile/smaller-width layout is retained. No backend or infrastructure change."
         }
       ],
-      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23, §38 (ISS-0007), §41 and §44 (ISS-0010); desktop manual acceptance by Mazen 2026-10-11 (16 tests, Product Memory REV-0004) - Android Chrome acceptance still outstanding, so the capability stays PENDING_ACCEPTANCE; original Slice 3A: §3; docs/CLASSIC-PROFILE-OWNER-PREVIEW.md; PROJECT_HANDOFF.md §57 (saved owner Classic preview, PENDING Mazen acceptance)"
+      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23, §38 (ISS-0007), §41 and §44 (ISS-0010); desktop manual acceptance by Mazen 2026-10-11 (16 tests, Product Memory REV-0004) - Android Chrome acceptance still outstanding, so the capability stays PENDING_ACCEPTANCE; original Slice 3A: §3; docs/CLASSIC-PROFILE-OWNER-PREVIEW.md; PROJECT_HANDOFF.md §57 (saved owner Classic preview, PENDING Mazen acceptance); docs/PROFILE-EDITOR-DESKTOP-REDESIGN.md; PROJECT_HANDOFF.md §58 (Mazen-authorized Desktop redesign, PENDING acceptance)"
     },
     {
       "id": "my-socials",
