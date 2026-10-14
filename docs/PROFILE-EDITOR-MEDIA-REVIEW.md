@@ -33,3 +33,13 @@ GamID Truth: UPDATED — Desktop owner media contract and authenticated canonica
 Product Memory: PROPOSED — an IDEA-0001 follow-up issue/review recording Mazen's four findings, their presentation-only resolutions and safe missing-media fallbacks. No Product Memory file/Register is saved; separate explicit approval is required.
 
 No Production access, main merge, infrastructure/schema migration, protected-identity mutation or new processing service. Deploy the existing game-artwork function to the confirmed TESTING project only, then the exact-commit existing Cloudflare TESTING workflow. STOP for Mazen review.
+
+## TESTING deployment confirmation
+
+Existing `game-artwork` function **v6 ACTIVE** on confirmed TESTING project `upvtrczefcvigxdyuylw`; all three deployed files exactly match the tested committed sources. Existing public-route verify_jwt=false remains; custom caller authorization protects /owner/self. Direct live requests with no authorization and an invalid session both return **401**, private/no-store and authorization-varying CORS; an unknown ordinary public handle returns an empty result with **200**. No authenticated real-account library was read for these checks.
+
+[Cloudflare TESTING run 38551040449](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38551040449) **SUCCESS**, deployed exact frontend source `1b247fc114719e840f9e914a85f9701098433c88`. The established workflow reran full validation and smoke checks. Direct reads verify eight frontend files match committed content after normal stamping/line-ending normalization.
+
+Deployed `--media-review --live`: **4/4 PASS** (1024 / 1440 / 1920 / 390), including loaded saved-video frame, provider images, shared Editor/Preview artwork, natural card heights / independent column positions, expanded Intro thumbnail, no playback / writes, resize restoration and broken-media fallback. Deployed Classic Preview: **2/2 PASS** (1440 / 390), saved sections / three Wall states / Avatar and Intro drafts / Back / unauthorized refusal / preserved public visitor Wall. Deployed layout: **6/6 PASS** (1024 / 1280 / 1440 / 1920 / 390 / 1023). Deployed smaller-width screenshots are byte-identical to `c4116ef` at 390 and 1023. All browser backend traffic was intercepted fixtures; no real account mutations, uploads or publications.
+
+The following delivery-confirmation checkpoint is documentation-only; running frontend remains `1b247fc`. **STOP for Mazen review; not ACCEPTED.**

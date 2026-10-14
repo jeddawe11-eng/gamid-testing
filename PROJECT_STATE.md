@@ -69,7 +69,7 @@ Snapshot from 2026-10-11; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `57e7adb`** (run `38512058032`, Desktop Profile Editor; `PROJECT_HANDOFF.md` §58; PENDING Mazen review and acceptance).
+- **TESTING serves `1b247fc`** (run `38551040449`, Desktop Profile Editor media follow-up; existing game-artwork v6; `PROJECT_HANDOFF.md` §59; PENDING Mazen review and acceptance). Previous Desktop deployment `57e7adb`, §58.
 - **Previous editor deployment `7aa0133`** (run `38427825018`, Account saved Classic preview; `PROJECT_HANDOFF.md` §57).
 - **Previously served `7fa7117`** (run `38392848965`, PROJECT_HANDOFF.md §55: Edit Crew Name, on top of §49 Wall Icon and Icon Group, §48 Spotify / SoundCloud / Vimeo logos on mobile, §47 My Socials Spotify / SoundCloud / Vimeo, §46 desktop scroll fix, §45 ISS-0013, §44 ISS-0010 and §43 Intro limit 50 MiB).
   - Historical static-site checkpoint: workflow run `38145293680` from ref `feature/play-together-notifications` (its head was exactly `72896d6`); the Account HTML stamp reads `72896d6`. Source: `PROJECT_HANDOFF.md` §42.
