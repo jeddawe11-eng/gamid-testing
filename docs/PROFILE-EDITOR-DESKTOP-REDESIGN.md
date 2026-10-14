@@ -1,6 +1,6 @@
 # Desktop Profile Editor redesign (TESTING)
 
-Product checkpoint: `4f980a4d23b88ee27e80afd27ad644a96be24088`, branch `feature/play-together-notifications`, from verified GitHub / clean local `99874cf8a560a00faa16eb9a924a3bde1e9faed9`. Mazen explicitly authorized implementation and TESTING deployment after review and eight resolved decisions. **PENDING Mazen review and acceptance.**
+Product checkpoint: `436de5e3cf9990c88c7863996542900018514013`, branch `feature/play-together-notifications`, from verified GitHub / clean local `99874cf8a560a00faa16eb9a924a3bde1e9faed9`. Mazen explicitly authorized implementation and TESTING deployment after review and eight resolved decisions. **PENDING Mazen review and acceptance.**
 
 ## Layout
 

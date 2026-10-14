@@ -4,7 +4,7 @@ Status: PENDING_ACCEPTANCE. Product checkpoint: `8ce1616ce4024c0f875f97094dc516c
 
 ## Inventory and save boundaries
 
-The smaller-width editor retains its 18 original owner sections. From 1024px, the authorized Desktop redesign groups About Me, Gaming Roles, Education & Work, Bio and Identity inside one About Me card; Identity is not duplicated. Other sections expand independently with meaningful visual summaries. Play Together is static on Desktop. My Games and Game Display are independent of Connections; League stays inside Connections. Hash/notification, failed-save and OAuth return destinations reveal ancestor panels. Desktop Save All is in the heading; smaller widths retain the original bottom placement. See [PROFILE-EDITOR-DESKTOP-REDESIGN.md](PROFILE-EDITOR-DESKTOP-REDESIGN.md), product `4f980a4`, PENDING Mazen acceptance.
+The smaller-width editor retains its 18 original owner sections. From 1024px, the authorized Desktop redesign groups About Me, Gaming Roles, Education & Work, Bio and Identity inside one About Me card; Identity is not duplicated. Other sections expand independently with meaningful visual summaries. Play Together is static on Desktop. My Games and Game Display are independent of Connections; League stays inside Connections. Hash/notification, failed-save and OAuth return destinations reveal ancestor panels. Desktop Save All is in the heading; smaller widths retain the original bottom placement. See [PROFILE-EDITOR-DESKTOP-REDESIGN.md](PROFILE-EDITOR-DESKTOP-REDESIGN.md), product `436de5e`, PENDING Mazen acceptance.
 
 | Section | Existing controls / persistence |
 |---|---|
