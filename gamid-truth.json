@@ -54,7 +54,7 @@
       "surfaces": [
         "/account/"
       ],
-      "checkpoint": "436de5e3cf9990c88c7863996542900018514013",
+      "checkpoint": "0dd59a91b947571d5579c8ed61be5c94cb9dffc0",
       "limits": {
         "avatarMinSidePx": 16,
         "avatarMaxSidePx": 1024
@@ -90,10 +90,14 @@
         },
         {
           "id": "profile-desktop-dashboard",
-          "rule": "From 1024px the Account Profile Editor uses a wide owner dashboard with YOUR GAMID saved Classic Preview, separate publication, Share, My Wall and saved profile summary in its sidebar. About Me contains five independently expandable original sections: About Me (Location, Languages, Favorite Genres), Gaming Roles, Education & Work, Bio and Identity; Identity fields occur once and the permanent handle remains read-only. Other editor cards show real collapsed visual summaries and can expand independently; Play Together is static navigation on Desktop. Original controls, per-section saves, Save All, drafts including Avatar and Intro, workflow action boundaries, visibility rules and limits are preserved. Below 1024px the original mobile/smaller-width layout is retained. No backend or infrastructure change."
+          "rule": "From 1024px the Account Profile Editor uses a wide owner dashboard with YOUR GAMID saved Classic Preview, separate publication, Share, My Wall and saved profile summary in its sidebar. About Me contains five independently expandable original sections: About Me (Location, Languages, Favorite Genres), Gaming Roles, Education & Work, Bio and Identity; Identity fields occur once and the permanent handle remains read-only. Other editor cards show real collapsed visual summaries and can expand independently; Play Together is static navigation on Desktop. Original controls, per-section saves, Save All, drafts including Avatar and Intro, workflow action boundaries, visibility rules and limits are preserved. Below 1024px the original mobile/smaller-width layout is retained. Desktop cards have independent natural heights and community cards flow in separate column stacks; expanding one column does not stretch or move cards in the other."
+        },
+        {
+          "id": "profile-desktop-media",
+          "rule": "From 1024px the owner editor captures a real paused video frame for existing saved Intro videos and local selections, using the existing authenticated 120-second Intro source lease or the local file. Thumbnail generation never plays Intro, saves, uploads or publishes; its Blob image is memory-only and released on replacement, removal, owner changes and Desktop teardown. Stored Steam avatars and available League prototype profile-icon IDs supply images without provider refresh or verification claims. Unavailable videos/images retain explicit fallback states. Smaller-width presentation remains unchanged."
         }
       ],
-      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23, §38 (ISS-0007), §41 and §44 (ISS-0010); desktop manual acceptance by Mazen 2026-10-11 (16 tests, Product Memory REV-0004) - Android Chrome acceptance still outstanding, so the capability stays PENDING_ACCEPTANCE; original Slice 3A: §3; docs/CLASSIC-PROFILE-OWNER-PREVIEW.md; PROJECT_HANDOFF.md §57 (saved owner Classic preview, PENDING Mazen acceptance); docs/PROFILE-EDITOR-DESKTOP-REDESIGN.md; PROJECT_HANDOFF.md §58 (Mazen-authorized Desktop redesign, PENDING acceptance)"
+      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23, §38 (ISS-0007), §41 and §44 (ISS-0010); desktop manual acceptance by Mazen 2026-10-11 (16 tests, Product Memory REV-0004) - Android Chrome acceptance still outstanding, so the capability stays PENDING_ACCEPTANCE; original Slice 3A: §3; docs/CLASSIC-PROFILE-OWNER-PREVIEW.md; PROJECT_HANDOFF.md §57 (saved owner Classic preview, PENDING Mazen acceptance); docs/PROFILE-EDITOR-DESKTOP-REDESIGN.md; PROJECT_HANDOFF.md §58 (Mazen-authorized Desktop redesign, PENDING acceptance); docs/PROFILE-EDITOR-MEDIA-REVIEW.md; PROJECT_HANDOFF.md §59 (Desktop media presentation, PENDING acceptance)"
     },
     {
       "id": "my-socials",
@@ -634,7 +638,8 @@
       "name": "Game artwork from SteamGridDB on TESTING (all accounts; provisional)",
       "status": "PENDING_ACCEPTANCE",
       "surfaces": [
-        "/@<handle>"
+        "/@<handle>",
+        "/account/"
       ],
       "limits": {
         "artworkLookupsPerRequest": 6,
@@ -648,11 +653,15 @@
         },
         {
           "id": "artwork-matching",
-          "rule": "Only games the visitor can already see get artwork (public My Games, a public League account, the public crews section, the game of a published Crew Wall). A game is matched by its catalog Steam app id, or else only when exactly one provider title equals the catalog title and the release years agree; anything else keeps the initials tile. Images are static and non-NSFW, load from the provider CDN with no referrer, and the provider key never reaches the browser."
+          "rule": "For ordinary visitors, only games the visitor can already see get artwork (public My Games, a public League account, the public crews section, the game of a published Crew Wall). A game is matched by its catalog Steam app id, or else only when exactly one provider title equals the catalog title and the release years agree; anything else keeps the initials tile. Images are static and non-NSFW, load from the provider CDN with no referrer, and the provider key never reaches the browser."
+        },
+        {
+          "id": "artwork-owner-read",
+          "rule": "On TESTING, Desktop Account My Games and authenticated saved Classic owner preview reuse the existing artwork resolver, CDN image renderer, strict matching and metadata cache through GET game-artwork/owner/self. Caller-scoped owner RPCs establish identity and canonical manual/discovered library keys; existing eligible public Classic targets for that same owner are retained. URL handles or browser game keys cannot select private data. Canonical catalog metadata is read for at most 64 derived targets, with existing six-lookup request budget, 30-request rate limit, seven-day cache and TESTING kill switch. Responses are private/no-store and vary by authorization. Anonymous/invalid sessions cannot read private targets; ordinary public Classic and Crew visibility gates remain unchanged. No game-account discovery/refresh, profile mutation, database migration or new media service is performed."
         }
       ],
-      "checkpoint": "506bfa7a150c02234101e099ebc1538e73e35f3c",
-      "record": "PROJECT_HANDOFF.md §33-§35, §37; docs/GAME-ARTWORK-STEAMGRIDDB.md; supabase/functions/game-artwork; migration 20261011160000_artwork_environment_wide.sql"
+      "checkpoint": "0dd59a91b947571d5579c8ed61be5c94cb9dffc0",
+      "record": "PROJECT_HANDOFF.md §33-§35, §37; docs/GAME-ARTWORK-STEAMGRIDDB.md; supabase/functions/game-artwork; migration 20261011160000_artwork_environment_wide.sql; PROJECT_HANDOFF.md §59; docs/PROFILE-EDITOR-MEDIA-REVIEW.md"
     },
     {
       "id": "notifications",

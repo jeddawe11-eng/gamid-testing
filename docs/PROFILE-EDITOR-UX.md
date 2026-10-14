@@ -98,3 +98,5 @@ Product `7373607`, TESTING run 38148668016.
 ## Saved Classic owner preview (2026-10-14)
 
 The former Live Preview accordion is replaced by the compact Preview Your GamID Classic action (product `41aa906`, PENDING owner acceptance). It opens the actual Classic renderer above Account; Back to Edit preserves every draft including pending Avatar and Intro selections. Saved section visibility still applies, while Wall and Intro are bypassed. The former card's GamID publication controls remain in an independent row; Share your GamID and My Wall retain their workflows. Full implementation, validation and deployment record: [CLASSIC-PROFILE-OWNER-PREVIEW.md](CLASSIC-PROFILE-OWNER-PREVIEW.md).
+
+Desktop media / independent card flow follow-up: [PROFILE-EDITOR-MEDIA-REVIEW.md](PROFILE-EDITOR-MEDIA-REVIEW.md), checkpoint `0dd59a91b947571d5579c8ed61be5c94cb9dffc0`, PENDING Mazen review. Smaller widths and save/workflow contracts remain unchanged.

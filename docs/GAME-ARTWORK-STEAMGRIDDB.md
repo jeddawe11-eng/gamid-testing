@@ -106,3 +106,9 @@ They sat in My Games (public); there were also 3 published Crews (League, Valora
 | Allowlist | @black: `enabled:false`, no artwork |
 | Kill switch | OFF: initials everywhere; ON: restored |
 | Failure modes (timeout, 401, 429, 503, malformed 200, missing images, mismatches) | Mocked against the exact function code (`tests/classic-profile-consolidated.test.js`). They are not provoked against the live provider. |
+
+## Desktop owner artwork follow-up (2026-10-14)
+
+Checkpoint `0dd59a91b947571d5579c8ed61be5c94cb9dffc0`, PENDING Mazen acceptance. The existing game-artwork function adds GET /owner/self, used by Desktop Account and saved Classic owner preview. Existing caller-JWT RPCs establish the owner and manual/discovered canonical game keys (first 1000 discovered rows); favorite keys must belong to that library. Existing public Classic targets for this owner are retained, including Crew / League-only images. Catalog metadata is read-only, service-side and filtered to at most 64 derived active keys; no client handle/key can choose private targets. Missing catalog/provider/artwork data retains initials.
+
+The same resolver, cache, CDN filtering and renderer serve Editor and Preview. Existing six-lookup request budget, 30/minute client rate, seven-day metadata cache, provider key and environment-wide switch remain. No new provider, paid service, table, migration, Storage object or game-account discovery/refresh. Owner responses are private/no-store and vary by Authorization; missing/invalid caller authorization is refused. Existing anonymous public / Crew routes and their gates remain. verify_jwt remains false as before because those routes are public; the owner branch validates its caller through existing authenticated RPCs.
