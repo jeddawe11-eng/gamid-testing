@@ -1,3 +1,4 @@
+import { mountDesktopEditor } from './desktop-editor.js';
 // Shared Profile Editor layout and section save contract. No new backend or storage.
 export const SECTION_FIELDS = Object.freeze({name:['displayName'],bio:['bio'],avatar:['avatarPath'],roles:['roleKeys','primaryRoleKey'],education:['educationWorkStatus','institution','fieldOfStudy']});
 export function sectionDraft(saved,draft,section) {
@@ -56,5 +57,6 @@ export function mountProfileEditor(doc) {
  signOut.textContent='Sign Out';menu.append(signOut);
  const old=doc.getElementById('saveProfileButton');old?.remove();doc.getElementById('saveConfirmation')?.remove();
  for(const {toggle,panel} of sections.values())toggle.addEventListener('click',()=>{const open=toggle.getAttribute('aria-expanded')!=='true';toggle.setAttribute('aria-expanded',String(open));panel.hidden=!open;});
- return {sections,saves};
+ const desktop=mountDesktopEditor(doc,sections);
+ return {sections,saves,desktop};
 }

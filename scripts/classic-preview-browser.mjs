@@ -19,7 +19,7 @@ const jpg = (w,h) => jpeg.encode({width:w,height:h,data:Buffer.alloc(w*h*4,180)}
 const avatar = jpg(128,128), banner = jpg(1920,320);
 const roles = [{key:'player',label:'Player'},{key:'creator',label:'Creator'}];
 const library = {library_count:2,total_count:2,games:[{name:'League of Legends',sources:['MANUAL'],platforms:[{key:'windows_pc',label:'PC',source:'MANUAL'}]},{name:'Saved Game',sources:['MANUAL'],platforms:[{key:'windows_pc',label:'PC',source:'MANUAL'}]}]};
-const about = {about_location:'Jeddah, Saudi Arabia',about_languages:['ar'],about_genres:['rpg'],show_location:true,show_languages:true,show_genres:true,member_since_year:2024,member_since_date:'2024-03-05',catalogs:{languages:[{code:'ar',label:'Arabic'}],genres:[{key:'rpg',label:'RPG'}],countries:[{code:'SA',name:'Saudi Arabia'}]}};
+const about = {about_country_code:'SA',about_city_id:100,about_city_name:'Jeddah',about_location:'Jeddah, Saudi Arabia',about_languages:['ar'],about_genres:['rpg'],show_location:true,show_languages:true,show_genres:true,member_since_year:2024,member_since_date:'2024-03-05',catalogs:{languages:[{code:'ar',label:'Arabic'}],genres:[{key:'rpg',label:'RPG'}],countries:[{code:'SA',name:'Saudi Arabia'}]}};
 const extras = {has_banner:true,member_since_year:2024,member_since_date:'2024-03-05',about_location:about.about_location,about_languages:about.catalogs.languages,about_genres:about.catalogs.genres};
 const socials = [{platform_key:'instagram',kind:'profile',account_id:'fixture.gamer',sort_order:0}];
 const crews = [{crew_id:crewId,crew_name:'Saved Crew',game_key:'league_of_legends',game_name:'League of Legends',role:'OWNER',member_count:2,members:[{handle:'fixture_friend',display_name:'Saved Friend'}]}];
@@ -71,7 +71,8 @@ try {
       return route.abort();
     });
     await page.goto(CF+'/account/');await page.locator('#identityView.is-active').waitFor();
-    const openSection=async key=>{const toggle=page.locator(`[data-editor-section="${key}"] > .section-toggle`);if(await toggle.getAttribute('aria-expanded')!=='true')await toggle.click();};
+    if(width>=1024){await page.waitForFunction(()=>document.querySelector('[data-editor-section=crew] > .desktop-summary')?.textContent.includes('Saved Crew'));assert.match(await page.locator('[data-editor-section=games] > .desktop-summary').innerText(),/Saved Game/);assert.match(await page.locator('[data-editor-section=crew] > .desktop-summary').innerText(),/Saved Crew/);assert.match(await page.locator('[data-editor-section=socials] > .desktop-summary').innerText(),/Instagram\s+Added/);await page.screenshot({path:path.join(out,`editor-populated-${width}.png`),fullPage:true});}
+    const openSection=async key=>{const card=page.locator(`[data-editor-section="${key}"]`);for(const parent of await card.evaluate(e=>{const a=[];for(let p=e.parentElement;p;p=p.parentElement)if(p.dataset.editorSection)a.unshift(p.dataset.editorSection);return a;})){const t=page.locator(`[data-editor-section="${parent}"] > .section-toggle`);if(await t.getAttribute('aria-expanded')!=='true')await t.click();}const toggle=card.locator(':scope > .section-toggle');if(await toggle.getAttribute('aria-expanded')!=='true')await toggle.click();};
     const preview=async label=>{
       const before=calls.length;
       await page.locator('#previewClassicButton').click();await page.locator('.classic-preview-dialog[open]').waitFor();

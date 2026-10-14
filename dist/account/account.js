@@ -68,7 +68,7 @@ function actionDraftsDirty(){
  for(const [control,baseline] of actionDrafts){if(!control.isConnected)actionDrafts.delete(control);else if(controlValue(control)!==baseline)return true;}
  return Boolean(myGamesView?.panel.hasDraft?.()) || Boolean(leagueDraft.gameName||leagueDraft.tagLine||leagueDraft.platformId);
 }
-document.addEventListener('focusin',event=>{const control=event.target;if(control.matches?.('input,select,textarea')&&control.closest('[data-profile-editor]')&&!control.closest('#profileForm,#languageForm')&&!actionDrafts.has(control))actionDrafts.set(control,controlValue(control));});
+document.addEventListener('focusin',event=>{const control=event.target;if(control.matches?.('input,select,textarea')&&control.closest('[data-profile-editor]')&&control.form?.id!=='profileForm'&&!control.closest('#profileForm,#languageForm')&&!actionDrafts.has(control))actionDrafts.set(control,controlValue(control));});
 document.addEventListener("focusin",event=>{const key=event.target.closest?.("[data-editor-section]")?.dataset.editorSection;if(key)editorActionSection=key;});
 function feedbackFor(el) { if(!sectionFeedback.has(el))sectionFeedback.set(el,createTransientMessage(el,{durationMs:5000}));return sectionFeedback.get(el); }
 function reportSection(key,text,success=false,progress=false,persistent=!success&&!progress) { clearUploadError(key);const panel=editor.sections.get(key)?.panel;if(panel)delete panel.dataset.validationMessage;const el=editor.saves.get(key)?.feedback; if(el)feedbackFor(el).show(text,{tone:success?"success":"error",progress,persistent}); }
@@ -446,6 +446,7 @@ function isProfileDirty() {
 }
 
 function renderIntroState() {
+  editor.desktop.update({introURL:pendingIntroSource?.url||''});
   const status = document.getElementById("introFileStatus");
   const summary = document.getElementById("introSectionSummary");
   status.className = "intro-file-status";
@@ -522,11 +523,13 @@ async function setPersistedAvatar(path, fallbackLetter) {
   const avatar = document.getElementById("profileAvatarThumbnail");
   avatar.style.backgroundImage = "";
   avatar.textContent = fallbackLetter;
+  editor.desktop.update({avatar:''});
   if (!path) return;
   try {
     persistedAvatarUrl = await api.loadAvatar(path);
     avatar.style.backgroundImage = `url("${persistedAvatarUrl}")`;
     avatar.textContent = "";
+    editor.desktop.update({avatar:persistedAvatarUrl});
   } catch { /* Keep a safe initial fallback if private media cannot load. */ }
 }
 
@@ -734,7 +737,7 @@ async function loadBannerAndAbout() {
   const fresh = () => epoch === profileFeedbackEpoch && owner === api.userIdFromToken();
   await Promise.all([
     bannerEditor.load().then(() => { if (fresh()) bannerLoaded = true; }, () => { if (fresh()) bannerFailed = true; }),
-    api.getMyAbout().then(row => { if (fresh() && row) { aboutEditor.setSaved(row); aboutLoaded = true; } else if (fresh()) aboutFailed = true; }, () => { if (fresh()) aboutFailed = true; }),
+    api.getMyAbout().then(row => { if (fresh() && row) { aboutEditor.setSaved(row); editor.desktop.setAbout(row); aboutLoaded = true; } else if (fresh()) aboutFailed = true; }, () => { if (fresh()) aboutFailed = true; }),
   ]);
   if (fresh()) refreshEditorSaves();
 }
@@ -746,6 +749,7 @@ async function loadSocials() {
     const rows = await api.getMySocialLinks();
     if (epoch !== profileFeedbackEpoch || owner !== api.userIdFromToken()) return;
     socialsEditor.setSaved(rows); socialsCount = rows.length; socialsLoaded = true;
+    editor.desktop.update({savedSocials:rows});
   } catch {
     if (epoch === profileFeedbackEpoch) { socialsEditor.setSaved([]); socialsCount = -1; }
   }
@@ -1644,6 +1648,7 @@ function renderMyGames() {
   view.chip.textContent = shown ? (isGamidPublished() ? "PUBLIC" : "PUBLIC WHEN PUBLISHED") : "PRIVATE";
   view.chip.classList.toggle("is-connected", shown);
   const rows = buildLibraryRows(steamGames, manualGames);
+  editor.desktop.update({gameCount:rows.length,favoriteCount:favoriteKeys.length});
   libraryKeys = new Set(rows.map(rowGameKey).filter(Boolean));
   view.status.className = `my-games-status is-${myGamesNotice?.tone || "info"}`;
   if(view.lastNotice!==myGamesNotice){feedbackFor(view.status).show(myGamesNotice?.text||'',{tone:myGamesNotice?.tone==='ok'?'success':'error'});view.lastNotice=myGamesNotice;}
@@ -2264,6 +2269,7 @@ document.getElementById("applyAvatarCrop").addEventListener("click", async event
 });
 
 function refreshEditorSaves() {
+ editor.desktop.update({name:savedProfile?.displayName||'',handle:identity?.gamid_handle||'',bio:savedProfile?.bio||'',avatar:persistedAvatarUrl||'',socials:socialsLoaded?socialsEditor.draft():[],favoriteCount:favoriteKeys.length,gameCount:buildLibraryRows(steamGames,manualGames).length});
  if(!savedProfile)return;
  const draft=profileDraft();
  for(const [key,{panel}] of editor.sections){if(!['name','bio','roles','education'].includes(key))continue;if(panel.dataset.invalidDraft&&panel.dataset.invalidDraft!==JSON.stringify(sectionDraft({},draft,key))&&validateProfileDraft(sectionDraft(savedProfile,draft,key),profileCatalogs()).valid){panel.querySelectorAll('[aria-invalid]').forEach(c=>{c.removeAttribute('aria-invalid');c.removeAttribute('aria-describedby');});panel.querySelector('.field-error')?.remove();const feedback=editor.saves.get(key)?.feedback;if(feedback&&panel.dataset.validationMessage===feedback.textContent)feedbackFor(feedback).hide();delete panel.dataset.validationMessage;delete panel.dataset.invalidDraft;}}
@@ -2334,6 +2340,7 @@ async function saveEditorSection(key){
    const rows=await api.setMySocialLinks(check.links);
    if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
    socialsEditor.setSaved(rows);socialsCount=rows.length;
+   editor.desktop.update({savedSocials:rows});
   }else if(key==='banner'){
    // upload (the gateway decodes / re-encodes) -> compare-and-set attach -> delete the replaced object; a failure keeps the staged image for a retry
    if(!bannerLoaded)throw Error('Your Banner has not loaded yet. Reload the page and try again.');
@@ -2345,6 +2352,7 @@ async function saveEditorSection(key){
    if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
    if(!row)throw Error('About Me could not be confirmed. Please try again.');
    aboutEditor.setSaved(row);
+   editor.desktop.setAbout(row);
   }
   for(const [id,entry] of [...stagedVisibility])if(entry.section===key){if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');await entry.commit(entry.value);if(stagedVisibility.get(id)===entry)stagedVisibility.delete(id);}
  });if(epoch===profileFeedbackEpoch&&owner===api.userIdFromToken()&&entity===identity?.entity_id){reportSection(key,'Saved successfully',true);return true;}
@@ -2419,6 +2427,7 @@ document.getElementById("signOutButton").addEventListener("click", async () => {
   for(const feedback of sectionFeedback.values())feedback.hide();
   clearUploadErrors();
   socialsEditor.setSaved([]); socialsLoaded = false;
+  editor.desktop.update({savedSocials:[],name:'',handle:'',bio:'',avatar:'',location:''});
   bannerEditor.reset(); aboutEditor.reset(); bannerLoaded = false; aboutLoaded = false;
   if (wallDialog.open) wallDialog.close();
   wallVisibility = undefined; wallBusy = false; renderWallVisibility();

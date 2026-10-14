@@ -97,6 +97,8 @@ export function socialIcon(doc, key) {
   icon.textContent = platform?.glyph ?? "?";
   return icon;
 }
+// Desktop editor uses the existing provider's static brand mark; no new provider or link rules.
+export const socialBrandMark = key => socialPlatform(key) ? PROVIDERS.get(key)?.icon?.mark ?? null : null;
 
 // Public icons: only saved accounts the server returned for a published GamID ({ platform_key, kind, account_id }). Each address is rebuilt by the Wall adapter,
 // checked against the platform's own hosts, and opened in a new tab without referrer / opener.
