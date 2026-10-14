@@ -41,3 +41,13 @@ GamID Truth: UPDATED — your-gamid-editor records the 1024px Desktop layout, fi
 Product Memory: PROPOSED — update IDEA-0001 or add a decision for the authorized Desktop redesign and its 1024px / grouping / persistence boundaries. No record / Register saved; separate memory-save approval required.
 
 Deploy only through the existing exact-ref / expected-SHA Cloudflare TESTING workflow after validation. Record the result here, then STOP for Mazen review.
+
+## TESTING deployment confirmation (2026-10-14)
+
+[Cloudflare TESTING run 38512058032](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38512058032) **SUCCESS**, exact deployed source `57e7adb8ae2c125366c1fb4b675c20efc04a1ad9`, branch `feature/play-together-notifications`. The existing workflow validated the full build, ancestry and TESTING-only configuration, deployed the frontend and passed its smoke checks. The earlier `cf7650e` run is superseded by this final deployment, which includes form ownership for catalog-created role fields.
+
+Deployed layout checks **5/5 PASS** at 1024 / 1280 / 1440 / 1920 / 390, including the keyboard-focused role-only save with no phantom workflow draft. Deployed boundary check at 1023 also PASS. Deployed screenshots at 390 and 1023 are byte-identical to archived `99874cf`. `classic-preview-browser.mjs --live` **2/2 PASS** at 1440 / 390, preserving saved Classic sections, all Wall states, Avatar / Intro drafts, Back to Edit, no write / publication / Intro request, unauthorized refusal and ordinary visitor Wall behavior. All backend traffic was intercepted fixtures; no real account or stored object was modified.
+
+Direct TESTING reads verify Account HTML, account.js, profile-editor.js, socials.js, desktop-editor.js and desktop-editor.css match the committed source after normal build stamping / line-ending normalization. Local public Classic pixel equality against the baseline also passes; no public Classic layout code was changed.
+
+The following delivery-confirmation commit is documentation-only, so the frontend remains `57e7adb`. **STOP for Mazen review and acceptance.**
