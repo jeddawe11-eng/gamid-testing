@@ -25,13 +25,15 @@ const socials = [{platform_key:'instagram',kind:'profile',account_id:'fixture.ga
 const crews = [{crew_id:crewId,crew_name:'Saved Crew',game_key:'league_of_legends',game_name:'League of Legends',role:'OWNER',member_count:2,members:[{handle:'fixture_friend',display_name:'Saved Friend'}]}];
 const browser = await chromium.launch({executablePath:process.env.GAMID_CHROME_PATH || undefined,headless:true});
 const results=[];
+const mediaReview=process.argv.includes('--media-review'),reproduce=process.argv.includes('--reproduce');
 try {
-  for (const width of [1440,390]) {
+  for (const width of (mediaReview?[1024,1440,1920,390]:[1440,390])) {
     const context = await browser.newContext({viewport:{width,height:900},hasTouch:width===390});
     await context.routeWebSocket('**/*',ws=>ws.close());
     const page = await context.newPage(), errors=[], calls=[];
+    await page.addInitScript(()=>{window.mediaPlayCalls=0;const play=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(){window.mediaPlayCalls++;return play.call(this);};});
     page.on('pageerror',e=>errors.push(e.message));
-    let publication='DRAFT', wallEnabled=false, signedIn=true, withIntro=true, servedRoot=root;
+    let publication='DRAFT', wallEnabled=false, signedIn=true, withIntro=true, servedRoot=root,failedMedia=false,imageRequests=0;
     const wallDocument=createDocument();
     const row = () => ({entity_id:uid,gamid_handle:'fixture_owner',display_name:'Saved Gamer',bio:'Saved biography',visibility:publication,avatar_media_reference:uid+'/saved.jpg',role_keys:['player'],primary_role_key:'player',role_catalog:roles,education_work_status:'student',institution:'Saved School',field_of_study:'Design',education_work_catalog:[{key:'student',label:'Student'}],account_email:'fixture@example.test',preferred_language:'en'});
     const publicRow = () => ({...row(),intro_derivative_path:withIntro?uid+'/intro.webm':null,public_sections:{discord:{display_name:'Saved Discord',username:'saved_discord',trust_status:'CONNECTED'},steam:{persona_name:'Saved Steam',trust_status:'CONNECTED'},duo:{gamid_handle:'fixture_friend',display_name:'Saved Friend'},crews,my_games:library}});
@@ -40,17 +42,22 @@ try {
     await context.route('**/*',async route => {
       const request=route.request(),url=new URL(request.url()),action=url.pathname.split('/').pop();
       if (url.hostname===SUPA) {
-        calls.push({path:url.pathname,method:request.method(),body:request.postData()});
+        calls.push({path:url.pathname,method:request.method(),body:request.postData(),classicFrame:request.frame().url().includes('classic-preview=owner')});
         if(url.pathname.includes('/rpc/') && (!signedIn || !request.headers().authorization) && action.startsWith('get_my_')) return route.fulfill({status:401,contentType:'application/json',body:'{"message":"AUTH_REQUIRED"}'});
         if(url.pathname.startsWith('/storage/v1/object/authenticated/avatars/')) return route.fulfill({status:200,contentType:'image/jpeg',body:url.pathname.includes('/banner/')?banner:avatar});
         if(url.pathname.startsWith('/functions/v1/profile-banner/')) return route.fulfill({status:200,contentType:'image/jpeg',body:banner});
+        if(mediaReview&&url.pathname.startsWith('/storage/v1/object/sign/intro-media/')){
+          if(request.method()==='POST'){const token='header.'+Buffer.from(JSON.stringify({iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+120})).toString('base64url')+'.fixture';return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({signedURL:'/object/sign/intro-media/'+uid+'/intro.webm?token='+token})});}
+          return route.fulfill({status:failedMedia?404:200,contentType:'video/mp4',body:failedMedia?Buffer.alloc(0):fs.readFileSync(path.join(root,'assets/gamid-intro.mp4')),headers:{'Access-Control-Allow-Origin':CF}});
+        }
+        if(mediaReview&&url.pathname.startsWith('/functions/v1/game-artwork/'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({enabled:true,artwork:{league_of_legends:{icon:'https://cdn2.steamgriddb.com/icon/league.png',grid:'https://cdn2.steamgriddb.com/grid/league.jpg'},saved_game:{icon:'https://cdn2.steamgriddb.com/icon/saved.png',cover:'https://cdn2.steamgriddb.com/grid/saved.jpg'}},myGames:{'League of Legends|':'league_of_legends','Saved Game|':'saved_game'}})});
         const bodies={
           get_my_gamid:[row()],get_my_identity_profile:[row()],get_my_intro:[{transition_key:'fade',active_job_id:'intro-job',active_derivative_path:uid+'/intro.webm',active_state:'ready'}],
           get_my_section_visibility:[{section_key:'education_work',is_public:true}],get_my_about:[about],get_my_banner:[{banner_path:uid+'/banner/saved.jpg'}],
-          get_my_social_links:socials,get_my_connections:[{provider_key:'discord',connected:true,is_public:true,provider_username:'saved_discord',provider_display_name:'Saved Discord',trust_status:'CONNECTED'},{provider_key:'steam',connected:true,is_public:true,provider_display_name:'Saved Steam',trust_status:'CONNECTED'}],
+          get_my_social_links:socials,get_my_connections:[{label:'Discord',provider_key:'discord',connected:true,is_public:true,provider_username:'saved_discord',provider_display_name:'Saved Discord',trust_status:'CONNECTED',provider_avatar_url:mediaReview?'https://cdn.discordapp.com/avatars/1/avatar.png':null},{label:'Steam',provider_key:'steam',connected:true,is_public:true,provider_display_name:'Saved Steam',trust_status:'CONNECTED',provider_avatar_url:mediaReview?'https://avatars.fastly.steamstatic.com/'+'a'.repeat(40)+'_full.jpg':null}],
           get_my_public_games_settings:[{show_my_games:true,show_game_stats:false}],get_my_game_display_settings:[{show_game_playtime:false}],
           get_my_manual_games:library.games.map((g,i)=>({game_key:i?'saved_game':'league_of_legends',display_name:g.name,platforms:[{platform_key:'windows_pc',display_name:'PC'}]})),
-          get_my_favorite_games:['saved_game'],get_my_game_profiles:[],get_my_discovered_games:[],get_my_league_profile:[],get_my_discord_profile_card:[],
+          get_my_favorite_games:['saved_game'],get_my_game_profiles:[],get_my_discovered_games:[],get_my_league_profile:mediaReview?[{game_name:'Saved League',tag_line:'TEST',profile_icon_id:1666,platform_id:'ME1',solo_rank_state:'UNRANKED',is_public:false}]:[],get_my_discord_profile_card:[],
           get_my_duo:[{relation:'DUO',show_public:true,is_published:true,gamid_handle:'fixture_friend',display_name:'Saved Friend'}],
           get_my_crews:[{...crews[0],my_status:'ACTIVE',my_role:'OWNER'}],get_crew_members:[{status:'ACTIVE',is_published:true,gamid_handle:'fixture_friend',display_name:'Saved Friend'}],
           get_public_crew_wall:{crew_name:'Saved Crew',document:null},get_my_wall_visibility:[{published:wallEnabled,is_enabled:wallEnabled}],get_my_crew_wall:[],
@@ -68,9 +75,29 @@ try {
         if(!file.startsWith(path.resolve(servedRoot)+path.sep))throw Error('Unexpected fixture path');
         return route.fulfill({status:200,contentType:({'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml'})[path.extname(file)]||'application/octet-stream',body:fs.readFileSync(file)});
       }
+      if(mediaReview&&['cdn2.steamgriddb.com','avatars.fastly.steamstatic.com','cdn.discordapp.com','opgg-static.akamaized.net'].includes(url.hostname)){imageRequests++;return route.fulfill({status:failedMedia?404:200,contentType:'image/jpeg',body:failedMedia?Buffer.alloc(0):avatar,headers:{'Cache-Control':'no-store'}});}
       return route.abort();
     });
     await page.goto(CF+'/account/');await page.locator('#identityView.is-active').waitFor();
+    if(mediaReview){
+      await page.waitForFunction(()=>document.querySelector('#crewPanel')?.textContent.includes('Saved Crew'));await page.waitForTimeout(reproduce?300:1500);if(!reproduce&&width>=1024)await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview img')?.naturalWidth>0);
+      if(width>=1024){
+        const socialsCard=page.locator('[data-editor-section=socials]'),connectionCard=page.locator('[data-editor-section=connections]');const before=(await socialsCard.boundingBox()).height,followingBefore=await page.locator('[data-editor-section=games]').evaluate(n=>n.getBoundingClientRect().top+window.scrollY);
+        await connectionCard.locator(':scope > .section-toggle').click();await page.locator('[data-editor-section=league] > .section-toggle').click();await page.waitForTimeout(300);
+        const after=(await socialsCard.boundingBox()).height;const stats={width,poster:await page.locator('.desktop-intro-preview img').count(),steam:await page.locator('.connection-card[data-provider=steam] .connection-avatar img').count(),league:await page.locator('.league-card .connection-avatar img').count(),covers:await page.locator('[data-editor-section=games] > .desktop-summary img.game-art').count(),socialsBefore:before,socialsAfter:after,followingBefore,followingAfter:await page.locator('[data-editor-section=games]').evaluate(n=>n.getBoundingClientRect().top+window.scrollY),plays:await page.evaluate(()=>window.mediaPlayCalls)};
+        await page.screenshot({path:path.join(out,`editor-media-${reproduce?'before':'after'}-${width}.png`),fullPage:true});
+        if(!reproduce){assert.equal(stats.poster,1);assert.equal(stats.steam,1);assert.equal(stats.league,1);assert.ok(stats.covers>=2);assert.equal(before,after);assert.equal(stats.plays,0);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(await page.locator('.desktop-intro-preview img').evaluate(n=>n.naturalWidth>0),true);assert.match(await page.locator('.league-card').innerText(),/UNVERIFIED/);
+          for(const [left,right] of [['avatar','intro'],['games','game-display'],['duo','crew']]){const peer=page.locator(`[data-editor-section=${left}]`),opened=page.locator(`[data-editor-section=${right}]`);const height=(await peer.boundingBox()).height;await opened.locator(':scope > .section-toggle').click();assert.equal((await peer.boundingBox()).height,height,'opening a card cannot stretch its row peer');}
+          assert.equal(await page.locator('.desktop-intro-preview img').isVisible(),true,'real thumbnail remains visible in expanded Intro');
+          assert.equal(stats.followingBefore,stats.followingAfter,'opening Connections cannot push the next card in the other column');const tiles=await page.locator('.desktop-editor-grid > .editor-section,.desktop-editor-stack > .editor-section').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height};}));for(let i=0;i<tiles.length;i++)for(let j=i+1;j<tiles.length;j++){const a=tiles[i],b=tiles[j];assert.equal(Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x)>1&&Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y)>1,false,'Desktop cards do not overlap');}
+          if(width===1440){const editorImages=await page.locator('[data-editor-section=games] > .desktop-summary img.game-art').evaluateAll(nodes=>nodes.map(n=>n.src).sort());await page.locator('#previewClassicButton').click();const frame=page.frameLocator('.classic-preview-dialog > iframe');await frame.locator('#desktopHero').waitFor();await frame.locator('#publicGames img.game-art').first().waitFor();const previewImages=await frame.locator('#publicGames img.game-art').evaluateAll(nodes=>nodes.map(n=>n.src).sort());assert.deepEqual(previewImages,editorImages,'Editor and saved private Classic My Games use identical artwork');await page.getByRole('button',{name:'Back to Edit',exact:true}).click();stats.previewArtworkMatches=true;}
+          if(width===1024){await page.setViewportSize({width:390,height:900});assert.equal(await page.locator('.connection-card[data-provider=steam] .connection-avatar img').count(),0);assert.equal(await page.locator('.league-card .connection-avatar img').count(),0);assert.equal(await page.locator('#myGamesSection .game-art').count(),0);await page.setViewportSize({width,height:900});await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview img')?.naturalWidth>0);failedMedia=true;imageRequests=0;await page.reload();await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview')?.textContent.includes('Thumbnail unavailable'));await page.waitForTimeout(300);assert.equal(await page.locator('.desktop-intro-preview img').count(),0);assert.equal(await page.locator('.connection-card[data-provider=steam] .connection-avatar img').count(),0);assert.equal(await page.locator('.league-card .connection-avatar img').count(),0);assert.ok(imageRequests<30,'failed image URLs do not cause an infinite retry/render loop');stats.failuresHandled=true;}
+          assert.equal(calls.some(c=>/\/rpc\/(?:set_|save_|update_|publish|queue_)/.test(c.path)),false,'thumbnail/artwork reads never save or publish');
+        }
+        results.push(stats);
+      }else{assert.equal(calls.some(c=>c.path.includes('/game-artwork/')||c.path.includes('/storage/v1/object/sign/intro-media/')),false);assert.equal(await page.locator('.connection-card[data-provider=steam] .connection-avatar img').count(),0);results.push({width,mobileUnchanged:true});}
+      assert.deepEqual(errors,[]);await context.close();continue;
+    }
     if(width>=1024){await page.waitForFunction(()=>document.querySelector('[data-editor-section=crew] > .desktop-summary')?.textContent.includes('Saved Crew'));assert.match(await page.locator('[data-editor-section=games] > .desktop-summary').innerText(),/Saved Game/);assert.match(await page.locator('[data-editor-section=crew] > .desktop-summary').innerText(),/Saved Crew/);assert.match(await page.locator('[data-editor-section=socials] > .desktop-summary').innerText(),/Instagram\s+Added/);await page.screenshot({path:path.join(out,`editor-populated-${width}.png`),fullPage:true});}
     const openSection=async key=>{const card=page.locator(`[data-editor-section="${key}"]`);for(const parent of await card.evaluate(e=>{const a=[];for(let p=e.parentElement;p;p=p.parentElement)if(p.dataset.editorSection)a.unshift(p.dataset.editorSection);return a;})){const t=page.locator(`[data-editor-section="${parent}"] > .section-toggle`);if(await t.getAttribute('aria-expanded')!=='true')await t.click();}const toggle=card.locator(':scope > .section-toggle');if(await toggle.getAttribute('aria-expanded')!=='true')await toggle.click();};
     const preview=async label=>{
@@ -84,7 +111,7 @@ try {
       assert.equal(await outer.locator('#replayIntroButton').isVisible(),false);assert.equal(await outer.locator('#publicWall').count(),0);
       const mobile=outer.frameLocator('#experienceFrame');assert.equal(await mobile.locator('#introVideo').getAttribute('src'),null);
       const previewCalls=calls.slice(before);
-      assert.equal(previewCalls.some(c=>/get_public_wall|sign.*intro|public-media.*intro|save_|set_|publish|upload\/object/.test(c.path)),false);
+      assert.equal(previewCalls.some(c=>/get_public_wall|save_|set_|publish|upload\/object/.test(c.path)||(c.classicFrame&&/sign.*intro|public-media.*intro/.test(c.path))),false,'Classic frame never requests Intro; Account may capture its independent paused thumbnail');
       await page.screenshot({path:path.join(out,`classic-preview-${width}-${label}.png`)});
       await page.getByRole('button',{name:'Back to Edit',exact:true}).click();await page.locator('.classic-preview-dialog iframe').waitFor({state:'detached'});assert.equal(new URL(page.url()).pathname,'/account/');
       return previewCalls.length;

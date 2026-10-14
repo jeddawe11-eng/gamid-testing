@@ -101,6 +101,10 @@ function stopIntroPreview() {
   document.getElementById("introPreviewFrame").contentWindow?.postMessage({ type:"gamid-intro-preview-stop" }, location.origin);
   pendingPreviewConfig = null; activeIntroUrl = null;
 }
+editor.desktop.configureMedia({principal:()=>identity&&api.userIdFromToken()===introOwner?api.userIdFromToken():null,savedIntro:()=>introSource.resolve(),artwork:()=>api.getMyGameArtwork()});
+window.addEventListener(api.AUTH_SESSION_EVENT,()=>editor.desktop.clearMedia());
+window.addEventListener('storage',event=>{if(event.key==='gamid.testing.auth.session.v1')editor.desktop.clearMedia();});
+window.addEventListener('pagehide',()=>editor.desktop.clearMedia());
 window.addEventListener(api.AUTH_SESSION_EVENT, () => { stopIntroPreview(); introSource.invalidate(); });
 window.addEventListener("storage", event => { if (event.key === "gamid.testing.auth.session.v1") { stopIntroPreview(); introSource.invalidate(); } });
 window.addEventListener("pagehide", () => { stopIntroPreview(); introSource.invalidate(); });
@@ -446,7 +450,7 @@ function isProfileDirty() {
 }
 
 function renderIntroState() {
-  editor.desktop.update({introURL:pendingIntroSource?.url||''});
+  editor.desktop.update({introURL:pendingIntroSource?.url||'',introSavedKey:introAction==='remove'?null:savedIntro?.activeJobId});
   const status = document.getElementById("introFileStatus");
   const summary = document.getElementById("introSectionSummary");
   status.className = "intro-file-status";
@@ -1186,6 +1190,7 @@ async function loadDuo() {
 }
 
 function renderConnections() {
+  editor.desktop.update({connections:connectionRows});
   editor.sections.get("connections").status.textContent=connectionRows?`${connectionRows.filter(row=>row.connected).length} connected accounts`:"Connections unavailable";
   const list = document.getElementById("connectionsList");
   renderGameDisplay();
@@ -1557,6 +1562,7 @@ const MY_GAMES_NOTICES = {
 function libraryItem(row) {
   const item = row.kind === "manual" ? manualGameItem({ element, row, onEdit: () => editManualGame(row.gameKey, row.name) }) : gameItem(row.game, row.manual);
   const key = rowGameKey(row);
+  if(key)item.querySelector('.game-icon')?.setAttribute('data-game-key',key);
   if (key) item.append(favoriteToggle(key, row.kind === "manual" ? row.name : row.game.game_name || row.manual?.name || "this game"));
   return item;
 }
@@ -1648,7 +1654,7 @@ function renderMyGames() {
   view.chip.textContent = shown ? (isGamidPublished() ? "PUBLIC" : "PUBLIC WHEN PUBLISHED") : "PRIVATE";
   view.chip.classList.toggle("is-connected", shown);
   const rows = buildLibraryRows(steamGames, manualGames);
-  editor.desktop.update({gameCount:rows.length,favoriteCount:favoriteKeys.length});
+  editor.desktop.update({gameCount:rows.length,gameKeys:rows.map(rowGameKey).filter(Boolean),favoriteCount:favoriteKeys.length});
   libraryKeys = new Set(rows.map(rowGameKey).filter(Boolean));
   view.status.className = `my-games-status is-${myGamesNotice?.tone || "info"}`;
   if(view.lastNotice!==myGamesNotice){feedbackFor(view.status).show(myGamesNotice?.text||'',{tone:myGamesNotice?.tone==='ok'?'success':'error'});view.lastNotice=myGamesNotice;}
@@ -1885,6 +1891,7 @@ function leagueProfileView(profile) {
 }
 
 function renderLeague() {
+  editor.desktop.update({leagueIcon:leagueProfile?.profile_icon_id});
   clearTimeout(leagueRefreshTimer);
   const container = document.getElementById("leagueCard");
   if (!leagueLoaded) { container.replaceChildren(element("p", "connections-empty", "League of Legends couldn't be loaded right now. Refresh to try again.")); return; }

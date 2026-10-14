@@ -2,6 +2,7 @@
 // confirmed (SteamGridDB's terms describe personal, non-commercial use): this must not be rolled out beyond the TESTING evaluation without his approval.
 //
 //   GET /game-artwork/<handle> -> { provider, configured, enabled, artwork: { <game_key>: { icon?, grid?, hero? } }, myGames: { "<name>|<year>": <game_key> } }
+//   GET /game-artwork/owner/self -> authenticated caller's canonical library plus their existing public Classic targets; private, no-store.
 //
 // What can get artwork is decided by the server for that PUBLIC GamID only (game_artwork_targets): its My Games while My Games is public, League while its
 // League profile is public, and the Crews its public 'crews' section lists - the same data a visitor already sees. Matching never guesses:
@@ -21,7 +22,7 @@ const CDN_URL = /^https:\/\/cdn2\.steamgriddb\.com\/[A-Za-z0-9/._-]{1,200}$/;
 const IMAGE_FILTERS = "types=static&nsfw=false&humor=false&epilepsy=false&limit=1";
 
 export function readGameArtworkEnv(get) {
-  return { supabaseUrl: get("SUPABASE_URL"), serviceKey: get("SUPABASE_SERVICE_ROLE_KEY"), providerKey: get("STEAMGRIDDB_API_KEY") || "" };
+  return { supabaseUrl: get("SUPABASE_URL"), serviceKey: get("SUPABASE_SERVICE_ROLE_KEY"), anonKey:get('SUPABASE_ANON_KEY'), providerKey: get("STEAMGRIDDB_API_KEY") || "" };
 }
 const configured = env => typeof env?.supabaseUrl === "string" && /^https:\/\/[a-z0-9]+\.supabase\.co$/.test(env.supabaseUrl.replace(/\/+$/, "")) && Boolean(env.serviceKey);
 const base = env => env.supabaseUrl.replace(/\/+$/, "");
@@ -61,6 +62,24 @@ async function serviceRpc(fetchImpl, env, name, args) {
 }
 
 class ProviderStop extends Error {}   // timeout / 429 / 5xx / network: stop asking for this request, cache nothing for this game
+
+// Owner editor / owner Classic preview: caller-scoped existing RPCs establish the library.
+// No caller-supplied handle or game keys can select another person's private games.
+async function ownerTargets(fetchImpl,env,bearer){
+ const rpc=async(name,args={})=>{const response=await fetchImpl(`${base(env)}/rest/v1/rpc/${name}`,{method:'POST',headers:{apikey:env.anonKey||env.serviceKey,Authorization:`Bearer ${bearer}`,'Content-Type':'application/json'},body:JSON.stringify(args)});if(!response.ok)throw Error('OWNER_AUTH_REQUIRED');return response.json();};
+ const identity=(await rpc('get_my_identity_profile'))?.[0];if(!HANDLE.test(identity?.gamid_handle||''))throw Error('OWNER_AUTH_REQUIRED');
+ const settings=await serviceRpc(fetchImpl,env,'game_artwork_targets',{candidate_handle:identity.gamid_handle});if(!settings?.enabled)return {enabled:false,games:[]};
+ const [manual,discovered,favorites]=await Promise.all([rpc('get_my_manual_games'),rpc('get_my_discovered_games',{candidate_provider:'steam',candidate_limit:1000,candidate_offset:0}),rpc('get_my_favorite_games')]);
+ const valid=key=>typeof key==='string'&&/^[a-z0-9_-]{1,100}$/.test(key);
+ const owned=new Set([...(Array.isArray(manual)?manual:[]).map(g=>g.game_key),...(Array.isArray(discovered)?discovered:[]).map(g=>g.recognized_game_key)].filter(valid));
+ const publicGames=new Map((Array.isArray(settings.games)?settings.games:[]).filter(g=>valid(g?.game_key)).map(g=>[g.game_key,g]));
+ const allowed=new Set([...owned,...publicGames.keys()]);const favs=new Set((Array.isArray(favorites)?favorites:[]).filter(key=>owned.has(key)));
+ const keys=[...favs,...[...allowed].filter(key=>!favs.has(key))].slice(0,64);if(!keys.length)return {enabled:true,games:[]};
+ const query=new URLSearchParams({select:'game_key,display_name,release_year,game_catalog_provider_ids(provider,external_id)',game_key:`in.(${keys.join(',')})`,is_active:'eq.true'});
+ const response=await fetchImpl(`${base(env)}/rest/v1/game_catalog?${query}`,{headers:{apikey:env.serviceKey,Authorization:`Bearer ${env.serviceKey}`}});if(!response.ok)throw Error('CATALOG_UNAVAILABLE');
+ const catalog=await response.json();if(!Array.isArray(catalog))throw Error('CATALOG_UNAVAILABLE');
+ return {enabled:true,games:catalog.filter(g=>allowed.has(g.game_key)&&typeof g.display_name==='string').map(g=>{const ids=(g.game_catalog_provider_ids||[]).filter(p=>p.provider==='steam'&&/^[0-9]{1,10}$/.test(p.external_id)).map(p=>Number(p.external_id));const purposes=new Set(publicGames.get(g.game_key)?.purposes||[]);if(owned.has(g.game_key))purposes.add('my_games');if(favs.has(g.game_key))purposes.add('favorites');return {game_key:g.game_key,name:g.display_name,year:g.release_year,steam_appid:ids.length?Math.min(...ids):null,purposes:[...purposes]};})};
+}
 
 async function providerGet(fetchImpl, env, path) {
   let response;
@@ -118,21 +137,24 @@ const presentable = row => {
 
 export async function handleGameArtwork({ request, env, fetchImpl = fetch, log = () => {} }) {
   const origin = request.headers.get("origin");
-  const cors = corsFor(origin);
+  const owner=/\/game-artwork\/owner\/self\/?$/.test(new URL(request.url).pathname);
+  const cors = {...corsFor(origin),...(owner?{'Cache-Control':'private, no-store',Vary:'Origin, Authorization'}:{})};
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: { ...cors, "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "apikey, content-type, x-client-info, authorization", "Access-Control-Max-Age": "600" } });
   if (request.method !== "GET") return json({ error: "method_not_allowed" }, 405, cors);
   if (origin && !SITE_ORIGINS.includes(origin)) return json({ error: "origin_not_allowed" }, 403);
+  const bearer=owner?/^Bearer\s+([A-Za-z0-9._~+/=-]+)$/.exec(request.headers.get('authorization')||'')?.[1]:null;
+  if(owner&&!bearer)return json({error:'unauthenticated'},401,cors);
   const empty = extra => json({ provider: PROVIDER, configured: Boolean(env?.providerKey), enabled: false, artwork: {}, myGames: {}, ...extra }, 200, cors);
   if (!configured(env)) return empty({ configured: false });
   const crew = crewFrom(request.url);
   const handle = crew ? null : handleFrom(request.url);
-  if (!handle && !crew) return empty();
+  if (!handle && !crew && !owner) return empty();
   try {
     if ((await serviceRpc(fetchImpl, env, "public_media_hit", { candidate_key: `artwork:${await clientKey(request, env)}`, candidate_limit: LIMITS.perClientPerMinute })) !== true) {
       log("game-artwork", "rate_limited");
       return new Response(null, { status: 429, headers: { ...cors, "Cache-Control": "no-store", "Retry-After": "60" } });
     }
-    const targets = crew ? await serviceRpc(fetchImpl, env, "game_artwork_crew_targets", { candidate_crew: crew }) : await serviceRpc(fetchImpl, env, "game_artwork_targets", { candidate_handle: handle });
+    const targets = owner?await ownerTargets(fetchImpl,env,bearer):crew ? await serviceRpc(fetchImpl, env, "game_artwork_crew_targets", { candidate_crew: crew }) : await serviceRpc(fetchImpl, env, "game_artwork_targets", { candidate_handle: handle });
     const games = Array.isArray(targets?.games) ? targets.games.filter(g => typeof g?.game_key === "string" && typeof g?.name === "string") : [];
     if (!targets?.enabled) return empty();
     // the visitor's page knows My Games rows by title + year only: map them to this GamID's own library keys - only when unique within that library
@@ -140,7 +162,8 @@ export async function handleGameArtwork({ request, env, fetchImpl = fetch, log =
     for (const g of games.filter(g => g.purposes?.includes("my_games"))) { const k = gameRowKey(g.name, g.year); seen.set(k, (seen.get(k) || 0) + 1); myGames[k] = g.game_key; }
     for (const [k, count] of seen) if (count > 1) delete myGames[k];
     const cached = await serviceRpc(fetchImpl, env, "game_artwork_cache_get", { candidate_keys: games.map(g => g.game_key).slice(0, 64) });
-    const byKey = new Map((Array.isArray(cached) ? cached : []).map(row => [row.game_key, row]));
+    const allowedKeys=new Set(games.map(g=>g.game_key));
+    const byKey = new Map((Array.isArray(cached) ? cached : []).filter(row=>allowedKeys.has(row.game_key)).map(row => [row.game_key, row]));
     if (env.providerKey) {
       const fresh = [];
       // favorites, connected games and crews first (few, prominent), then My Games. A cached match that never looked for a cover gets only its cover.
@@ -160,8 +183,9 @@ export async function handleGameArtwork({ request, env, fetchImpl = fetch, log =
     const artwork = {};
     for (const [key, row] of byKey) { const shown = presentable(row); if (shown) artwork[key] = shown; }
     return json({ provider: PROVIDER, configured: Boolean(env.providerKey), enabled: true, artwork, myGames }, 200, cors);
-  } catch {
+  } catch(error) {
     log("game-artwork", "error");
+    if(owner&&error?.message==='OWNER_AUTH_REQUIRED')return json({error:'unauthenticated'},401,cors);
     return empty({ error: "unavailable" });
   }
 }

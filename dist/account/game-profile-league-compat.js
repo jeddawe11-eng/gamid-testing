@@ -5,6 +5,9 @@
 // and owner UI are untouched, and this module is not used to render League anywhere today. It is the ONE place (besides the accepted League adapter and its
 // UI label) that knows the OP.GG source, so the neutral module stays free of it.
 import { DATA_SOURCE_LABELS } from "./game-profile.js";
+// Read-only portrait for the stored profile icon ID from the same accepted snapshot source.
+// This is a static asset, never a provider lookup, login or verification.
+export const leagueIcon=id=>Number.isInteger(id)&&id>=0&&id<=100000?`https://opgg-static.akamaized.net/meta/images/profile_icons/profileIcon${id}.jpg`:null;
 
 export const LEAGUE_LABELS = Object.freeze({
   dataSources: Object.freeze({ ...DATA_SOURCE_LABELS, OPGG_TEMPORARY: "OP.GG (temporary, unofficial)" }),

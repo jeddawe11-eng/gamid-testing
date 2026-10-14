@@ -6,6 +6,7 @@ export const SUPABASE_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co`;
 const STORAGE_UPLOAD_URL = `${SUPABASE_URL}/functions/v1/usage-upload/tus`;
 export const PUBLISHABLE_KEY = "sb_publishable_ovl-uegBzJlWPJcTF_dviw_6uf1aVYg";
 export const AUTH_SESSION_EVENT = "gamid:auth-session-changed";
+export async function getMyGameArtwork(){const owner=currentSession()?.access_token;if(!owner)return null;const result=await request('/functions/v1/game-artwork/owner/self',{token:owner});return currentSession()?.access_token===owner&&result?.enabled?result:null;}
 const SESSION_KEY = "gamid.testing.auth.session.v1";
 // Public, anonymous Edge Function: real media thumbnails / Steam avatars for Wall facades (supabase/functions/_shared/media-poster.js).
 export const MEDIA_POSTER_URL = `${SUPABASE_URL}/functions/v1/media-poster`;

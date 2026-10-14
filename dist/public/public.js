@@ -1,4 +1,4 @@
-import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl, getPublicCrews, getPublicFavoriteGames } from "../account/supabase-client.js";
+import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl, getPublicCrews, getPublicFavoriteGames, getMyGameArtwork } from "../account/supabase-client.js";
 import { createDesktopProfile, crewsEntry, connectedGamesSection, connectedGameItem, favoriteGamesSection, DESKTOP_QUERY } from "./public-desktop.js";
 import { createProfilePanel } from "./profile-panel.js";
 import { createCrewsDirectory } from "./crews-directory.js";
@@ -302,7 +302,7 @@ async function render() {
     deskColumns.right.append(...[desktopView.about, sectionsPanel, deskConnected].filter(Boolean));
   }
   function restoreMobileOrder() { if (deskColumns) replayButton.before(sectionsPanel, gamesBlock); }
-  const artwork = () => (artworkRequest ||= fetchGameArtwork(SUPABASE_URL, identity.gamid_handle));
+  const artwork = () => (artworkRequest ||= ownerPreview ? getMyGameArtwork() : fetchGameArtwork(SUPABASE_URL, identity.gamid_handle));
   frame.addEventListener("load", () => { frameReady = true; sendInitial(); });
   replayButton.addEventListener("click", layout.enterExperience);   // the Intro needs the full viewport again (registered first, so it runs before the config is sent)
   replayButton.addEventListener("click", sendReplay);

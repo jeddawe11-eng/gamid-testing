@@ -182,8 +182,11 @@ test("the catalog import source is documented, keyless and polite: one public ho
 test("no provider integration was started: no Xbox / PlayStation / Riot / Discord / Epic connection code, key, or endpoint in the catalog or manual-game files", () => {
   const files = ["dist/account/manual-games.js", "dist/account/game-platforms.js", "dist/account/game-search.js", "scripts/catalog/wikidata-catalog.mjs", "scripts/catalog/wikidata-export.mjs", "scripts/catalog/platform-map.mjs", "scripts/catalog/print-platform-seed.mjs", migrationPath, "supabase/migrations/20260922000000_game_catalog_platforms_release_years.sql", "supabase/migrations/20260922010000_game_catalog_import_key_fix.sql"];
   for (const path of files) assert.doesNotMatch(read(path), /xbox live|playstation network|psn\b|battle\.net|riot games api|x-api-key|oauth|openid|client_secret|service_role_key/i, path);
-  const supabaseFunctions = walk(join(root, "supabase/functions")).map(path => readFileSync(path, "utf8")).join("\n");
-  assert.doesNotMatch(supabaseFunctions, /game_catalog|entity_game_platforms|search_game_catalog|save_my_manual_game/, "no Edge Function was added or changed for the catalog: it is database-only");
+  // Authorized Desktop media review: the existing artwork function may read catalog metadata
+  // for a caller-scoped library. It cannot edit games or establish provider connections.
+  const supabaseFunctions = walk(join(root, "supabase/functions")).filter(path=>!/[\\/]_shared[\\/]game-artwork\.js$/.test(path)).map(path => readFileSync(path, "utf8")).join("\n");
+  assert.doesNotMatch(supabaseFunctions, /game_catalog|entity_game_platforms|search_game_catalog|save_my_manual_game/, "catalog logic remains database-only outside the explicitly authorized read-only artwork adapter");
+  assert.doesNotMatch(read('supabase/functions/_shared/game-artwork.js'),/entity_game_platforms|search_game_catalog|save_my_manual_game|candidate_steam_id|client_secret|oauth|openid/i);
   assert.doesNotMatch(read("dist/account/account.js") + read("dist/account/manual-games.js"), /marvelrivalsapi|tracker\.gg|game[-_ ]?id[-_ ]?wall/i);
 });
 
