@@ -83,6 +83,8 @@ Rules:
 
 ## Register
 
+2026-10-15: Mazen authorized updates to existing IDEA-0001 (accepted Desktop design and rationale) and REV-0004 (final manual PASS on deployed 1ec1da3); no new IDs or duplicate records. Earlier review and deferral history remains in those records.
+
 | ID | Title | Status | Record |
 |---|---|---|---|
 | DEC-0001 | Implement the approved Profile Editor notes (My Socials, Save All Changes, Account Settings menu) | IMPLEMENTED | [DEC-0001-implement-profile-editor-notes.md](decisions/DEC-0001-implement-profile-editor-notes.md) |
@@ -91,7 +93,7 @@ Rules:
 | DEC-0004 | Discord Profile Card in My Socials from the existing Discord connection | ACCEPTED | [DEC-0004-discord-profile-card.md](decisions/DEC-0004-discord-profile-card.md) |
 | DEC-0005 | Classic Profile desktop redesign (Banner, About Me, desktop layout) | ACCEPTED | [DEC-0005-classic-profile-desktop-redesign.md](decisions/DEC-0005-classic-profile-desktop-redesign.md) |
 | DEC-0006 | Wall Icon Display Option & Icon Group | ACCEPTED | [DEC-0006-wall-icon-display-option-and-icon-group.md](decisions/DEC-0006-wall-icon-display-option-and-icon-group.md) |
-| IDEA-0001 | Profile Editor gaming-dashboard redesign | DEFERRED | [IDEA-0001-profile-editor-dashboard-redesign.md](ideas/IDEA-0001-profile-editor-dashboard-redesign.md) |
+| IDEA-0001 | Profile Editor gaming-dashboard redesign | ACCEPTED | [IDEA-0001-profile-editor-dashboard-redesign.md](ideas/IDEA-0001-profile-editor-dashboard-redesign.md) |
 | IDEA-0002 | Monitor permanent coverage growth and gap detection | DISCUSSION | [IDEA-0002-monitor-coverage-growth.md](ideas/IDEA-0002-monitor-coverage-growth.md) |
 | ISS-0001 | Unified Upload & Add Error UX | FIXED | [ISS-0001-unified-upload-add-error-ux.md](issues/ISS-0001-unified-upload-add-error-ux.md) |
 | ISS-0002 | Wall video limit text says 10 instead of the authoritative 15 | FIXED | [ISS-0002-wall-video-limit-text-stale.md](issues/ISS-0002-wall-video-limit-text-stale.md) |
@@ -112,7 +114,7 @@ Rules:
 | REV-0001 | Mazen manual acceptance checklist items 1 through 6 | COMPLETED | [REV-0001-manual-acceptance-checklist.md](reviews/REV-0001-manual-acceptance-checklist.md) |
 | REV-0002 | CP-01 My Crews panel sizing - Mazen manual acceptance | COMPLETED | [REV-0002-cp01-my-crews-panel-sizing-acceptance.md](reviews/REV-0002-cp01-my-crews-panel-sizing-acceptance.md) |
 | REV-0003 | GR-01 Role Suggestions review inside Gaming Roles - Mazen manual acceptance | COMPLETED | [REV-0003-gr01-role-suggestions-placement-acceptance.md](reviews/REV-0003-gr01-role-suggestions-placement-acceptance.md) |
-| REV-0004 | YOUR GAMID Editor - Mazen desktop manual acceptance (16 tests) | COMPLETED | [REV-0004-your-gamid-editor-desktop-acceptance.md](reviews/REV-0004-your-gamid-editor-desktop-acceptance.md) |
+| REV-0004 | YOUR GAMID Editor - Mazen desktop acceptance (original tests and final redesign) | COMPLETED | [REV-0004-your-gamid-editor-desktop-acceptance.md](reviews/REV-0004-your-gamid-editor-desktop-acceptance.md) |
 | ISS-0013 | Some My Socials icons show initials instead of logos | VERIFIED | [ISS-0013-my-socials-partial-brand-icons.md](issues/ISS-0013-my-socials-partial-brand-icons.md) |
 | ISS-0014 | Desktop Classic Profile could not be scrolled by the user | VERIFIED | [ISS-0014-desktop-classic-profile-cannot-scroll.md](issues/ISS-0014-desktop-classic-profile-cannot-scroll.md) |
 | REV-0005 | My Socials visitor links acceptance | COMPLETED | [REV-0005-my-socials-visitor-links-acceptance.md](reviews/REV-0005-my-socials-visitor-links-acceptance.md) |

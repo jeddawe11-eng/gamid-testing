@@ -1,10 +1,10 @@
 # Desktop Profile Editor redesign (TESTING)
 
-**Current layout:** [PROFILE-EDITOR-PAIRED-ROWS.md](PROFILE-EDITOR-PAIRED-ROWS.md), product `61de622`, supersedes this document's historical column placement and multi-open behavior. The original controls, contracts and media infrastructure described here remain; Desktop now has paired summaries and one full-width editor, while mobile remains unchanged.
+**Current layout: ACCEPTED by Mazen 2026-10-15.** [PROFILE-EDITOR-PAIRED-ROWS.md](PROFILE-EDITOR-PAIRED-ROWS.md), product `61de622`, deployed `1ec1da3`, supersedes this document's historical column placement, multi-open behavior and pending Desktop acceptance statements. Existing IDEA-0001 and REV-0004 record the final design and acceptance. Original controls, contracts and media infrastructure remain; Desktop has paired summaries and one full-width editor, while mobile remains unchanged.
 
 Original redesign checkpoint: `436de5e3cf9990c88c7863996542900018514013`, branch `feature/play-together-notifications`, from verified GitHub / clean local `99874cf8a560a00faa16eb9a924a3bde1e9faed9`. Mazen explicitly authorized implementation and TESTING deployment after review and eight resolved decisions. **PENDING Mazen review and acceptance.**
 
-Current adaptive architecture: [PROFILE-EDITOR-ADAPTIVE-LAYOUT.md](PROFILE-EDITOR-ADAPTIVE-LAYOUT.md), product `e18c695ef5194d0448472da0b434a9fd1097dcdb` (2026-10-15, PENDING Mazen review). This supersedes the original shared-row / full-width placement described historically below.
+Historical adaptive architecture: [PROFILE-EDITOR-ADAPTIVE-LAYOUT.md](PROFILE-EDITOR-ADAPTIVE-LAYOUT.md), product `e18c695ef5194d0448472da0b434a9fd1097dcdb`, later replaced by the accepted paired-row design linked above.
 
 ## Layout
 

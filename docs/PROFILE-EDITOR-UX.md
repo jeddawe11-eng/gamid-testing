@@ -1,6 +1,8 @@
 # Profile Editor independent sections (TESTING)
 
-Status: PENDING_ACCEPTANCE. Product checkpoint: `8ce1616ce4024c0f875f97094dc516c8e62e41a1` on `feature/play-together-notifications`. Started from clean, pushed `6385515aa4f9627e5f6f295efeab07c39538fa44`; main remains `da2e020928f546e6b637f38629fd673b15544c2b`.
+Current Desktop status: **ACCEPTED by Mazen 2026-10-15**, product `61de6220a37922a776cddd19771b10bdac4fde51`, deployed `1ec1da3c934d83b27f025c1d6b1a5a2f20225ff2`; see PROFILE-EDITOR-PAIRED-ROWS.md and REV-0004. Older implementation and acceptance statements below are historical; no new Android real-device acceptance is claimed.
+
+Historical baseline checkpoint: `8ce1616ce4024c0f875f97094dc516c8e62e41a1` on `feature/play-together-notifications`. Started from clean, pushed `6385515aa4f9627e5f6f295efeab07c39538fa44`; main remains `da2e020928f546e6b637f38629fd673b15544c2b`.
 
 ## Inventory and save boundaries
 
