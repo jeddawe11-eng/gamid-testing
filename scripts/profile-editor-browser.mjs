@@ -18,7 +18,7 @@ const CITIES={SA:[{city_id:108410,name:'Riyadh',name_ar:'الرياض',populatio
  await context.route('**/*',async route=>{const url=new URL(route.request().url());
  if(url.hostname==='upvtrczefcvigxdyuylw.supabase.co'){
  if(offline)return route.abort('internetdisconnected');
- let body=[],status=200;const action=url.pathname.split('/').pop();if(url.pathname.includes('/rpc/'))rpcCalls.push({action,data:route.request().postDataJSON()});
+ let body=[],status=200;const action=url.pathname.split('/').pop();if(url.pathname.includes('/rpc/'))rpcCalls.push({action,path:url.pathname,data:route.request().postDataJSON()});
  if(url.pathname==='/auth/v1/token')body={access_token:jwt,refresh_token:'fixture-only',expires_in:3600};
  if(['get_my_gamid','get_my_identity_profile'].includes(action)){if(switchBeforeRead){switchBeforeRead=false;await page.evaluate(()=>{const key='gamid.testing.auth.session.v1';const state=JSON.parse(localStorage.getItem(key));state.access_token='eyJhbGciOiJIUzI1NiJ9.'+btoa(JSON.stringify({sub:'00000000-0000-4000-8000-000000000099',exp:Math.floor(Date.now()/1000)+3600})).replace(/=/g,'')+'.fixture';localStorage.setItem(key,JSON.stringify(state));window.dispatchEvent(new StorageEvent('storage',{key,newValue:JSON.stringify(state)}));});}body=[row];}
  if(url.pathname.startsWith('/functions/v1/usage-upload/object/avatars/')&&url.pathname.includes('/banner/')){if(route.request().method()==='POST'){const buf=route.request().postDataBuffer();bannerUploads.push({path:decodeURIComponent(url.pathname.split('/object/avatars/')[1]),type:route.request().headers()['content-type'],size:buf?.length||0,head:buf?[...buf.subarray(0,3)]:[]});}return route.fulfill({status:200,contentType:'application/json',body:'{}'});}
@@ -64,7 +64,7 @@ const CITIES={SA:[{city_id:108410,name:'Riyadh',name_ar:'الرياض',populatio
   await page.waitForFunction(()=>document.querySelector('#profileDisplayName').value.length>0);await page.waitForTimeout(600);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   await page.screenshot({path:`${out}/editor-collapsed-${width}.png`,fullPage:true,animations:'disabled'});
-  if(width>=1024)await reviewDesktopLayout({page,width,scenario:'functional',out,calls:rpcCalls.map(c=>({path:'/rpc/'+c.action}))});
+  if(width>=1024)await reviewDesktopLayout({page,width,scenario:'functional',out,calls:rpcCalls});
   assert.deepEqual(errors,[]);results.push({width,layout:true,ok:true});await context.close();continue;
  }
  for(const card of await page.locator('#identityView .editor-section').all()){

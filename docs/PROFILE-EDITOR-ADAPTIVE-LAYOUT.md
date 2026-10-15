@@ -1,5 +1,7 @@
 # Adaptive Desktop Profile Editor (TESTING)
 
+**Historical implementation, superseded:** Mazen's later explicit approval selects paired summary rows with one full-width editor. See [PROFILE-EDITOR-PAIRED-ROWS.md](PROFILE-EDITOR-PAIRED-ROWS.md), product `61de622`. The separate-stack and multi-open claims below describe the earlier checkpoint only.
+
 Product `e18c695ef5194d0448472da0b434a9fd1097dcdb`, branch `feature/play-together-notifications`, resumed from verified clean GitHub/local `155e845340ff7c58f91600aa52487424d4473b49`. Mazen authorized reviewing and improving the whole Desktop layout, compacting Intro, moving Duo above Crew in the right column, regression testing and TESTING-only deployment. **PENDING Mazen visual review; not ACCEPTED.**
 
 ## Architecture
