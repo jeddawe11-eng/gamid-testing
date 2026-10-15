@@ -63,13 +63,23 @@ export function createCrewsDirectory({ doc = globalThis.document, panel, handle,
   const h = (tag, cls, text) => { const el = doc.createElement(tag); if (cls) el.className = cls; if (text !== undefined) el.textContent = text; return el; };
   let crews = normalizeCrewDirectory(section).map(crew => ({ ...crew, people: [] }));
   let loaded = false;
+  let shown = 9;
   const paint = () => {
     const grid = h("div", "crew-grid");
     grid.setAttribute("data-count", String(Math.min(crews.length, 3)));   // CP-01: columns per desktop row (public.css)
-    grid.append(...crews.map(crew => crewCard(h, crew, { ownerHandle: handle, pathname, loadAvatar })));
-    return grid;
+    grid.append(...crews.slice(0, shown).map(crew => crewCard(h, crew, { ownerHandle: handle, pathname, loadAvatar })));
+    const content = h("div", "crew-directory"); content.append(grid);
+    if (crews.length > shown) {
+      const more = h("button", "secondary crew-directory-more", crews.length-shown === 1 ? "View remaining Crew" : `View remaining ${crews.length-shown} Crews`); more.type = "button";
+      more.addEventListener("click", () => {
+        const remaining = crews.slice(shown); shown = crews.length;
+        const cards = remaining.map(crew => crewCard(h, crew, { ownerHandle: handle, pathname, loadAvatar })); grid.append(...cards); more.remove(); onRendered(panel.body); cards[0]?.focus?.();
+      }); content.append(more);
+    }
+    return content;
   };
   async function open(opener) {
+    shown = 9;
     const label = `MY CREWS · ${crews.length}`;
     panel.open(label, paint(), opener);
     onRendered(panel.body);

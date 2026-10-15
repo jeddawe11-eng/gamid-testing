@@ -14,6 +14,7 @@ class El {
   constructor(tag) { this.tag = tag; this.children = []; this.attrs = {}; this.className = ""; this._text = ""; this.listeners = {}; this.dataset = {}; this.hidden = false; this.disabled = false; this.classList = { toggle: () => {} }; this.style = { setProperty: () => {} }; }
   setAttribute(name, value) { this.attrs[name] = String(value); }
   append(...nodes) { for (const node of nodes) if (node) { node.parent = this; this.children.push(node); } }
+  prepend(...nodes) { for (const node of nodes) node.parent = this; this.children.unshift(...nodes); }
   replaceChildren(...nodes) { this.children = []; this._text = ""; this.append(...nodes); }
   addEventListener(type, handler) { (this.listeners[type] ||= []).push(handler); }
   get textContent() { return this._text + this.children.map(child => child.textContent).join(""); }
@@ -49,6 +50,7 @@ async function mount(db) {
   message.hidden = true;
   const view = createCrewPanel({ api: db.api, root, message, element, timers: timers() });
   await view.load();
+  await byClass(root, "crew-list-open")[0]?.fire("click");
   return { view, root, message };
 }
 const nameShown = root => byClass(root, "crew-name").map(node => node.textContent);

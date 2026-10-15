@@ -15,6 +15,7 @@ class El {
   constructor(tag) { this.tag = tag; this.children = []; this.attrs = {}; this.className = ""; this._text = ""; this.listeners = {}; this.dataset = {}; this.hidden = false; this.disabled = false; this.classList = { toggle: () => {} }; this.style = { setProperty: () => {} }; }
   setAttribute(name, value) { this.attrs[name] = String(value); }
   append(...nodes) { for (const node of nodes) if (node) { node.parent = this; this.children.push(node); } }
+  prepend(...nodes) { for (const node of nodes) node.parent = this; this.children.unshift(...nodes); }
   replaceChildren(...nodes) { this.children = []; this._text = ""; this.append(...nodes); }
   addEventListener(type, handler) { (this.listeners[type] ||= []).push(handler); }
   get textContent() { return this._text + this.children.map(child => child.textContent).join(""); }
@@ -51,9 +52,23 @@ async function panel(db) {
   message.hidden = true;
   const view = createCrewPanel({ api: db.api, root, message, element, timers: timers() });
   await view.load();
+  await byClass(root, "crew-list-open")[0]?.fire("click");
   return { view, root, message };
 }
 const typeInto = async (input, value) => { input.value = value; await input.fire("input"); };
+
+test("Crew list: only one management region opens; Back restores list and Add Crew reuses the original creation workflow", async () => {
+  const db=fakeApi({crews:[crewRow('c1','lol','First'),crewRow('c2','val','Second')]});
+  const root=element('div'),view=createCrewPanel({api:db.api,root,message:element('p'),element,timers:timers()});await view.load();
+  const visible=()=>byClass(root,'crew-card').filter(n=>!n.hidden);
+  assert.equal(visible().length,0);assert.equal(byClass(root,'crew-list-open').length,2);
+  await byClass(root,'crew-list-open')[0].fire('click');assert.equal(visible().length,1);
+  await buttons(visible()[0],'Back to Crews')[0].fire('click');assert.equal(visible().length,0);
+  await byClass(root,'crew-list-open')[1].fire('click');assert.equal(visible()[0].dataset.crew,'c2');
+  await buttons(visible()[0],'Back to Crews')[0].fire('click');await buttons(root,'+ Add Crew')[0].fire('click');
+  assert.equal(visible().length,0);assert.equal(byClass(root,'crew-create').length,1);assert.match(root.textContent,/CREATE A CREW/);
+  assert.equal(db.calls.length,0,'opening or closing never writes');
+});
 
 // ---------- state ----------
 test("crewState: my ACTIVE Crews (sorted by game) and my INVITATIONS; malformed rows dropped; the limit comes from the server", () => {
@@ -69,7 +84,7 @@ test("crewState: my ACTIVE Crews (sorted by game) and my INVITATIONS; malformed 
 test("owner: create a Crew - pick a game from the existing catalog search, name it (renamable later by its owner: tests/crew-rename.test.js), create; games where I already have a Crew are not offered", async () => {
   const db = fakeApi({ crews: [crewRow("c1", "val", "Zero")], members: { c1: [person("black", { role: "OWNER" })] } });
   const p = await panel(db);
-  await buttons(p.root, "Create a Crew")[0].fire("click");
+  await buttons(p.root, "+ Add Crew")[0].fire("click");
   const search = byClass(p.root, "crew-create")[0];
   await typeInto(all(search, node => node.tag === "input")[0], "leag");
   await all(search, node => node.tag === "form")[0].fire("submit"); await tick();

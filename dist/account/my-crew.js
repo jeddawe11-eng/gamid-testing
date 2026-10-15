@@ -63,6 +63,7 @@ export function renameProblem(value, current) {
 
 export function createCrewPanel({ api, root, message, element, timers = globalThis, gamidUrl = handle => `../@${handle}` }) {
   let state = null;               // null = could not be read
+  let selectedCrew = null;        // presentation only; original management controls/state stay mounted
   const members = new Map();      // crew id -> member rows (ACTIVE Crews only)
   let busy = false;
   let confirm = null;             // { kind: "delete" | "leave" | "remove", crewId, handle? }
@@ -142,6 +143,9 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
 
   function crewCard(crew) {
     const card = element("article", `duo-card crew-card${crew.role === "OWNER" ? " is-owner" : ""}`);
+    card.id = `crew-manage-${crew.id}`;
+    card.hidden = selectedCrew !== crew.id;
+    card.setAttribute("role", "region"); card.setAttribute("aria-label", `${crew.name} management`);
     card.dataset.crew = crew.id;
     card.dataset.gameKey = crew.gameKey;
     const head = element("div", "crew-card-head");
@@ -303,10 +307,8 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
   function createCard() {
     const card = element("article", "duo-card crew-create");
     if (!create.open) {
-      card.append(element("p", "duo-note", state.crews.length ? "Create a Crew for another game." : "You're not in a Crew yet. Create one for a game you play with the same people."));
-      const actions = element("div", "duo-actions");
-      actions.append(button("Create a Crew", "secondary duo-button", () => { create.open = true; render(); }));
-      card.append(actions);
+      if (!state.crews.length) card.append(element("p", "duo-note", "You're not in a Crew yet."));
+      card.append(button("+ Add Crew", "secondary crew-add", () => { selectedCrew = null; create.open = true; render(); root.querySelector?.('.crew-create input')?.focus?.(); }));
       return card;
     }
     card.append(element("p", "eyebrow", "CREATE A CREW"));
@@ -364,8 +366,26 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     if (!state) { root.replaceChildren(element("p", "connections-empty", "My Crew couldn't be loaded right now. Refresh to try again.")); return; }
     const nodes = [];
     for (const crew of state.invitations) nodes.push(invitationCard(crew));
-    for (const crew of state.crews) nodes.push(crewCard(crew));
-    nodes.push(createCard());
+    if (selectedCrew && !state.crews.some(crew => crew.id === selectedCrew)) selectedCrew = null;
+    const list = element("div", "crew-list"); list.hidden = Boolean(selectedCrew) || create.open;
+    for (const crew of state.crews) {
+      const row = button("", "crew-list-open", () => { selectedCrew = crew.id; create.open = false; render(); root.querySelector?.(`#crew-manage-${crew.id} .crew-back`)?.focus?.(); });
+      row.setAttribute("aria-expanded", String(selectedCrew === crew.id)); row.id = `crew-list-${crew.id}`; row.setAttribute("aria-controls", `crew-manage-${crew.id}`);
+      const icon = element("span", "crew-list-icon"); icon.dataset.gameKey = crew.gameKey; icon.textContent = crew.gameName.slice(0,2); icon.setAttribute("aria-hidden", "true");
+      const text = element("span", "crew-list-copy"); text.append(element("strong", "", crew.name), element("span", "", `${crew.gameName} · ${crew.members} / ${crew.max} members`));
+      const arrow = element("span", "crew-list-indicator", "›"); arrow.setAttribute("aria-hidden", "true"); row.append(icon,text,arrow); list.append(row);
+    }
+    if (!create.open) list.append(createCard());
+    nodes.push(list);
+    for (const crew of state.crews) {
+      const card = crewCard(crew);
+      card.prepend(button("Back to Crews", "secondary crew-back", () => { selectedCrew = null; render(); root.querySelector?.(`#crew-list-${crew.id}`)?.focus?.(); }));
+      nodes.push(card);
+    }
+    if (create.open) {
+      const card = createCard(); card.setAttribute("role", "region"); card.setAttribute("aria-label", "Add Crew");
+      card.prepend(button("Back to Crews", "secondary crew-back", () => { create.open = false; render(); root.querySelector?.('.crew-add')?.focus?.(); })); nodes.push(card);
+    }
     root.replaceChildren(...nodes);
   }
 

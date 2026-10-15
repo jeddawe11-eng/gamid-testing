@@ -189,15 +189,16 @@ test("Gaming Roles editor and badges: categories with counts, selected chips + C
 });
 
 test("CP-01 My Crews panel: one, two or three cards per row (never more), at most 19rem each and centred; four or more wrap; the panel fits its cards", async () => {
-  const el = tag => ({ tag, children: [], attrs: {}, className: "", textContent: "", style: {}, setAttribute(k, v) { this.attrs[k] = v; }, append(...n) { this.children.push(...n); }, addEventListener() {} });
+  const el = tag => ({ tag, children: [], attrs: {}, listeners: {}, className: "", textContent: "", style: {}, setAttribute(k, v) { this.attrs[k] = v; }, append(...n) { for(const child of n)child.parent=this;this.children.push(...n); }, addEventListener(k,fn) { this.listeners[k]=fn; }, remove() {this.parent.children=this.parent.children.filter(n=>n!==this);} });
   const doc = { createElement: el };
   const rows = n => Array.from({ length: n }, (_, i) => ({ crew_id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(i).padStart(12, "0")}`, crew_name: `Crew ${i}`, role: "MEMBER", game_key: "valorant", game_name: "Valorant", member_count: 2, members: [] }));
-  for (const [count, cols] of [[1, "1"], [2, "2"], [3, "3"], [4, "3"], [7, "3"]]) {
-    let grid = null;
-    const panel = { open: (label, content) => { grid = content; }, isOpen: () => false, body: {} };
+  for (const [count, cols] of [[0,"0"],[1, "1"], [2, "2"], [3, "3"], [5, "3"], [9, "3"], [10,"3"]]) {
+    let grid = null, content = null;
+    const panel = { open: (label, value) => { content=value;grid=value.children[0]; }, isOpen: () => false, body: {} };
     await createCrewsDirectory({ doc, panel, handle: "black", section: rows(count), api: { getPublicCrews: async () => rows(count) } }).open();
     assert.equal(grid.attrs["data-count"], cols, `${count} Crews`);
-    assert.equal(grid.children.length, count, `${count} cards, each a link to its Crew Wall`);
+    assert.equal(grid.children.length, Math.min(9,count), `${count}: first nine cards, each a link to its Crew Wall`);
+    if(count===10){const more=content.children[1];assert.equal(more.textContent,'View remaining Crew');more.listeners.click();assert.equal(grid.children.length,10);assert.equal(content.children.length,1);assert.match(grid.children[9].href,/000000000009/);}
   }
   const css = read("dist/public/public.css");
   assert.match(css, /\.crew-grid\{--crew-cols:1;display:grid;grid-template-columns:repeat\(var\(--crew-cols\),minmax\(0,19rem\)\);justify-content:center;gap:1rem\}/);

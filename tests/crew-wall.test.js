@@ -19,6 +19,7 @@ class El {
   constructor(tag) { this.tag = tag; this.children = []; this.attrs = {}; this.className = ""; this._text = ""; this.listeners = {}; this.dataset = {}; this.hidden = false; this.disabled = false; this.classList = { toggle: () => {} }; this.style = { setProperty: () => {} }; }
   setAttribute(name, value) { this.attrs[name] = String(value); }
   append(...nodes) { for (const node of nodes) if (node) { node.parent = this; this.children.push(node); } }
+  prepend(...nodes) { for (const node of nodes) node.parent = this; this.children.unshift(...nodes); }
   replaceChildren(...nodes) { this.children = []; this._text = ""; this.append(...nodes); }
   addEventListener(type, handler) { (this.listeners[type] ||= []).push(handler); }
   get textContent() { return this._text + this.children.map(child => child.textContent).join(""); }
@@ -177,6 +178,7 @@ test("My Crew panel: the owner's Crew card carries the Crew Wall box and saves w
   const ownerRoot = element("div");
   const owner = createCrewPanel({ api: api("OWNER"), root: ownerRoot, message: element("p"), element, timers: { setTimeout: () => 1, clearTimeout() {} } });
   await owner.load();
+  await all(ownerRoot, node => node.className.split(' ').includes('crew-list-open'))[0].fire('click');
   const ownerLink = all(ownerRoot, node => node.tag === "a" && node.className.includes("crew-wall-open"))[0];
   assert.equal(ownerLink.href, `../crew/?c=${ID}`);
   assert.equal(ownerLink.target || "_self", "_self", "owner preview opens in the current tab");
@@ -191,6 +193,7 @@ test("My Crew panel: the owner's Crew card carries the Crew Wall box and saves w
   const memberCalls = api("MEMBER");
   const member = createCrewPanel({ api: memberCalls, root: memberRoot, message: element("p"), element, timers: { setTimeout: () => 1, clearTimeout() {} } });
   await member.load();
+  await all(memberRoot, node => node.className.split(' ').includes('crew-list-open'))[0].fire('click');
   assert.doesNotMatch(memberRoot.textContent, /Edit Crew Wall|Publish/);
   const memberLink = all(memberRoot, node => node.tag === "a" && node.textContent === "Open Crew Wall")[0];
   assert.equal(memberLink.href, `../crew/?c=${ID}`);

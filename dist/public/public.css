@@ -325,3 +325,6 @@ button.desk-favorite-card:focus-visible{outline:2px solid var(--cyan);outline-of
 .desk-favorite-cover .game-art{aspect-ratio:2/3}
 button.desk-favorite-card:hover .desk-favorite-cover{border-color:var(--cyan)}
 .desk-favorite-name{font-size:.9rem;font-weight:700;overflow-wrap:anywhere}
+/* Public My Crews: first nine in server order, remaining card explicitly revealed. */
+.crew-directory-more{display:block;margin:1rem auto 0;padding:.8rem 1rem}.crew-directory-more:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+@media(min-width:60rem){.crew-grid{display:flex;flex-wrap:wrap;justify-content:center;width:calc(19rem * var(--crew-cols) + (var(--crew-cols) - 1) * 1rem);max-width:100%}.crew-grid>.crew-card{flex:0 1 calc((100% - (var(--crew-cols) - 1) * 1rem) / var(--crew-cols));max-width:19rem}}

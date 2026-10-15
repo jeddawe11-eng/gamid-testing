@@ -148,3 +148,4 @@
   .desktop-editor-row>.editor-section:not(.desktop-play-static)>.section-panel{padding:20px}
  }
 }
+@media(min-width:1024px){.desktop-editor .desktop-crew-more{grid-column:1/-1;justify-self:center;margin:0;padding:8px 16px;min-height:36px;border:0;background:transparent;text-align:center;color:#c9bcf5}.desktop-editor .desktop-crew-more:focus-visible{outline:2px solid #63e6ff;outline-offset:2px}}

@@ -75,7 +75,7 @@ export function mountDesktopEditor(doc,sections){
   for(const node of photos.keys())if(!node.isConnected)photos.delete(node);
   const crewKeys=[...sections.get('crew').panel.querySelectorAll('.crew-card[data-game-key]')].map(n=>n.dataset.gameKey);
   const owner=media.principal(),signature=owner+'|'+(model.gameKeys||[]).join(',')+'|'+crewKeys.join(',');if(owner&&(model.gameCount>0||crewKeys.length)&&artKey!==signature){artKey=signature;const version=++artGeneration;media.artwork().then(data=>{if(active&&version===artGeneration&&owner===media.principal()){artwork=data;queue();}},()=>{});}
-  if(artwork){const games=sections.get('games').panel;for(const img of games.querySelectorAll('.game-art'))if(failedArt.has(img.src))img.remove();applyGameArtwork(games,safeArtwork());}
+  if(artwork){const games=sections.get('games').panel;for(const img of games.querySelectorAll('.game-art'))if(failedArt.has(img.src))img.remove();applyGameArtwork(games,safeArtwork());const list=sections.get('crew').panel.querySelector('.crew-list');if(list)applyGameArtwork(list,safeArtwork());}
  }
  function safeArtwork(){return {...artwork,artwork:Object.fromEntries(Object.entries(artwork?.artwork||{}).map(([key,images])=>[key,Object.fromEntries(Object.entries(images).filter(([,url])=>!failedArt.has(url)))]))};}
  function move(node,target){if(!node)return;for(const control of node.querySelectorAll('input,select,textarea,button')){if(control.form?.id==='profileForm'&&!formAttrs.has(control)){formAttrs.set(control,control.getAttribute('form'));control.setAttribute('form','profileForm');}}const slot=doc.createComment('desktop editor original position');node.before(slot);slots.push([node,slot]);target.append(node);}
@@ -120,7 +120,7 @@ export function mountDesktopEditor(doc,sections){
      tile.classList.add('desktop-crew-tile');const href=card.querySelector('a.crew-wall-open')?.getAttribute('href');if(href)tile.setAttribute('href',href);
      if(artwork)applyGameArtwork(tile,safeArtwork());children.push(tile);
     }
-    if(crews.length>2)children.push(item(`+${crews.length-2}`,'more crews'));
+    if(crews.length>2){const more=h('button','secondary desktop-crew-more',`+${crews.length-2} more crews`);more.type='button';more.addEventListener('click',()=>reveal('crew',{scroll:true}));children.push(more);}
    }else if(key==='wall'){
     children.push(item('My Wall',sections.get('wall').status.textContent,icon(doc,'wall')));const b=h('button','secondary','Edit My Wall');b.type='button';b.addEventListener('click',()=>reveal('wall',{scroll:true}));children.push(b);
    }

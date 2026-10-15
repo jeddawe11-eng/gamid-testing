@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { createDocument } from '../dist/wall/schema.js';
+import {reviewCrewUX} from './crew-ux-review.mjs';
 import { reviewDesktopLayout, openEditor, assertPairedLayout } from './desktop-layout-review.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.GAMID_BROWSER_MODULE || 'playwright');
@@ -23,14 +24,17 @@ const library = {library_count:2,total_count:2,games:[{name:'League of Legends',
 const about = {about_country_code:'SA',about_city_id:100,about_city_name:'Jeddah',about_location:'Jeddah, Saudi Arabia',about_languages:['ar'],about_genres:['rpg'],show_location:true,show_languages:true,show_genres:true,member_since_year:2024,member_since_date:'2024-03-05',catalogs:{languages:[{code:'ar',label:'Arabic'}],genres:[{key:'rpg',label:'RPG'}],countries:[{code:'SA',name:'Saudi Arabia'}]}};
 const extras = {has_banner:true,member_since_year:2024,member_since_date:'2024-03-05',about_location:about.about_location,about_languages:about.catalogs.languages,about_genres:about.catalogs.genres};
 const socials = [{platform_key:'instagram',kind:'profile',account_id:'fixture.gamer',sort_order:0}];
-const crews = [{crew_id:crewId,crew_name:'Saved Crew',game_key:'league_of_legends',game_name:'League of Legends',role:'OWNER',member_count:2,members:[{handle:'fixture_friend',display_name:'Saved Friend'}]},{crew_id:'00000000-0000-4000-8000-000000000007',crew_name:'Marvel Crew',game_key:'marvel_rivals',game_name:'Marvel Rivals',role:'OWNER',member_count:2,members:[]}];
+const fixtureCrews = [{crew_id:crewId,crew_name:'Saved Crew',game_key:'league_of_legends',game_name:'League of Legends',role:'OWNER',member_count:2,members:[{handle:'fixture_friend',display_name:'Saved Friend'}]},{crew_id:'00000000-0000-4000-8000-000000000007',crew_name:'Marvel Crew',game_key:'marvel_rivals',game_name:'Marvel Rivals',role:'OWNER',member_count:2,members:[]}];
 const browser = await chromium.launch({executablePath:process.env.GAMID_CHROME_PATH || undefined,headless:true});
 const results=[];
-const adaptive=process.argv.includes('--adaptive-layout')||process.argv.includes('--final-layout'),mediaReview=process.argv.includes('--media-review')||adaptive,reproduce=process.argv.includes('--reproduce');
-const widths=adaptive?(process.env.GAMID_ADAPTIVE_WIDTHS||'1024,1152,1280,1440,1920,2560').split(',').map(Number):mediaReview?[1024,1440,1920,390]:[1440,390];
-const runs=widths.flatMap(width=>(adaptive?(process.env.GAMID_ADAPTIVE_SCENARIOS||'empty,populated,rich').split(','):['populated']).map(scenario=>({width,scenario})));
+const crewUX=process.argv.includes('--crew-ux');
+const adaptive=process.argv.includes('--adaptive-layout')||process.argv.includes('--final-layout'),mediaReview=process.argv.includes('--media-review')||adaptive||crewUX,reproduce=process.argv.includes('--reproduce');
+const widths=crewUX?(process.env.GAMID_CREW_WIDTHS||'390,768,1024,1440,1920').split(',').map(Number):adaptive?(process.env.GAMID_ADAPTIVE_WIDTHS||'1024,1152,1280,1440,1920,2560').split(',').map(Number):mediaReview?[1024,1440,1920,390]:[1440,390];
+const runs=widths.flatMap(width=>(crewUX?(process.env.GAMID_CREW_COUNTS||'0,1,2,3,5,9,10').split(','):adaptive?(process.env.GAMID_ADAPTIVE_SCENARIOS||'empty,populated,rich').split(','):['populated']).map(scenario=>({width,scenario})));
 try {
   for (const {width,scenario} of runs) {
+    const crews=crewUX?Array.from({length:Number(scenario)},(_,i)=>({...fixtureCrews[i%2],crew_id:'00000000-0000-4000-8000-'+String(100+i).padStart(12,'0'),crew_name:'Crew '+(i+1),game_key:i<2?fixtureCrews[i].game_key:'fixture_game_'+i,role:i>0&&i===Number(scenario)-1?'MEMBER':'OWNER'})):fixtureCrews;
+    let crewWallModel={stage_count:1,stages_allowed:2,published:false,revision:1,cards:[]};
     const context = await browser.newContext({viewport:{width,height:900},hasTouch:width===390});
     await context.routeWebSocket('**/*',ws=>ws.close());
     const page = await context.newPage(), errors=[], calls=[];
@@ -70,6 +74,14 @@ try {
           get_my_admin_status:false,get_my_unread_notification_count:0,get_my_notifications:[],
           get_my_usage:{storage:{used_bytes:0,quota_bytes:200000000,available_bytes:200000000,enforcement_active:true},media:{},quotas:[]},
         };
+        if(crewUX){
+          bodies.get_my_crews=crews.map(c=>({...c,my_status:'ACTIVE',my_role:c.role}));bodies.get_my_crew_wall=crewWallModel;
+          bodies.search_duo_candidates=[{gamid_handle:'fresh_friend',display_name:'Fresh Friend',is_published:true}];
+          if(action==='rename_crew'){const data=request.postDataJSON();crews.find(c=>c.crew_id===data.candidate_crew).crew_name=data.candidate_name;bodies.rename_crew=true;}
+          if(action==='save_crew_wall'){const data=request.postDataJSON();crewWallModel={...crewWallModel,stage_count:data.candidate_stage_count,cards:data.candidate_cards,revision:crewWallModel.revision+1};bodies.save_crew_wall=crewWallModel.revision;}
+          if(action==='set_crew_wall_published'){crewWallModel={...crewWallModel,published:request.postDataJSON().candidate_published};bodies.set_crew_wall_published=true;}
+          bodies.invite_to_crew=true;
+        }
         if(adaptive){
           if(scenario==='empty'){for(const name of ['get_my_intro','get_my_banner','get_my_social_links','get_my_connections','get_my_manual_games','get_my_favorite_games','get_my_league_profile','get_my_duo','get_my_crews'])bodies[name]=[];bodies.get_my_about=[{...about,about_country_code:null,about_city_id:null,about_city_name:null,about_languages:[],about_genres:[]}];}
           if(scenario==='rich'){
@@ -93,6 +105,7 @@ try {
       return route.abort();
     });
     await page.goto(CF+'/account/');await page.locator('#identityView.is-active').waitFor();
+    if(crewUX){results.push(await reviewCrewUX({page,width,count:Number(scenario),out,calls,setPublic:()=>{publication='PUBLIC';withIntro=false;wallEnabled=false;}}));assert.deepEqual(errors,[]);await context.close();continue;}
     if(adaptive){results.push(await reviewDesktopLayout({page,width,scenario,out,calls,reproduce}));assert.deepEqual(errors,[]);await context.close();continue;}
     if(mediaReview){
       await page.waitForFunction(()=>document.querySelector('#crewPanel')?.textContent.includes('Saved Crew'));await page.waitForTimeout(reproduce?300:1500);if(!reproduce&&width>=1024)await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview img')?.naturalWidth>0);
