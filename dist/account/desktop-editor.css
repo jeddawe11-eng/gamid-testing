@@ -126,13 +126,15 @@
  .desktop-editor [data-editor-section=wall] .desktop-summary-item{display:grid;grid-template-columns:36px minmax(0,1fr);text-align:left;column-gap:12px}.desktop-editor [data-editor-section=wall] .desktop-summary-item svg{grid-row:1/3;width:32px;height:32px;color:#bc9aff}.desktop-editor [data-editor-section=wall] .desktop-summary-item :is(strong,small){grid-column:2}
  .desktop-editor-row>.editor-section>.desktop-about-summary{grid-template-columns:repeat(5,minmax(0,1fr))}
  /* Same renderer and visual layers as public MY CREWS; scoped to owner Desktop summaries. */
- .desktop-editor [data-editor-section=crew]>.desktop-summary{grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:12px}
+ .desktop-editor [data-editor-section=crew]>.desktop-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+ .desktop-editor [data-editor-section=crew]>.desktop-summary:not(:has(>.desktop-crew-tile:nth-child(3))){grid-template-columns:repeat(2,minmax(0,1fr))}
+ .desktop-editor [data-editor-section=crew]>.desktop-summary:not(:has(>.desktop-crew-tile:nth-child(2))){grid-template-columns:minmax(0,1fr)}
  .desktop-editor .desktop-crew-tile{position:relative;display:grid;align-content:end;gap:12px;min-height:144px;margin:0;padding:14px;border:1px solid #ffffff29;border-radius:14px;overflow:hidden;isolation:isolate;color:#fff;text-decoration:none;background:#102238;box-shadow:none}
  .desktop-crew-tile .crew-card-bg{position:absolute;inset:0;z-index:-2;background:linear-gradient(135deg,#3b2a73,#1f4d73)}
  .desktop-crew-tile .game-art-bg{position:absolute;inset:0;background-size:cover;background-position:center}
  .desktop-crew-tile .crew-card-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,#08070e26,#08070ee0 78%)}
- .desktop-crew-tile .crew-card-body{display:flex;align-items:center;gap:12px;min-width:0}
- .desktop-crew-tile .crew-card-icon{position:relative;display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border-radius:10px;overflow:hidden;background:#292245}
+ .desktop-crew-tile .crew-card-body{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
+ .desktop-crew-tile .crew-card-icon{position:relative;display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border-radius:10px;overflow:hidden;background:#292245}
  .desktop-crew-tile .crew-card-icon::before{content:attr(data-initials);font-size:13px}
  .desktop-crew-tile .game-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
  .desktop-crew-tile .crew-card-text{display:grid;gap:4px;min-width:0}.desktop-crew-tile .crew-card-name{font-size:16px;line-height:1.3;overflow-wrap:anywhere}

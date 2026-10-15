@@ -168,6 +168,12 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     card.append(head);
     card.append(element("p", "duo-note crew-count", `${crew.members} / ${crew.max} members${crew.role === "OWNER" && crew.pending ? ` · ${crew.pending} invitation${crew.pending === 1 ? "" : "s"} pending` : ""}${crew.role === "MEMBER" && crew.ownerHandle ? ` · Owner @${crew.ownerHandle}` : ""}`));
 
+    const columns = element("div", "crew-management-columns");
+    const people = element("section", "crew-management-people");
+    people.setAttribute("aria-label", "Crew members and invitations");
+    const wallColumn = element("section", "crew-management-wall");
+    wallColumn.setAttribute("aria-label", "Crew Wall management");
+    people.append(element("h3", "crew-members-title", "Members"));
     const list = element("div", "crew-members");
     const rows = members.get(crew.id) ?? [];
     for (const person of rows.filter(row => row.status === "ACTIVE")) {
@@ -179,11 +185,14 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
         list.append(warning(removeWarning(crew, person.gamid_handle), "Remove", () => act(() => api.removeCrewMember(crew.id, person.gamid_handle), `Removed @${person.gamid_handle} from ${crew.name}.`)));
       }
     }
-    card.append(list);
+    people.append(list);
+    columns.append(people);
+    card.append(columns);
 
     if (crew.role === "OWNER") {
       const wall = walls.get(crew.id) ?? null;
-      card.append(renderCrewWallBox({
+      columns.append(wallColumn);
+      wallColumn.append(renderCrewWallBox({
         crew, wall, members: rows, element, button, editing: editingWall.has(crew.id),
         onToggleEdit: () => { if (editingWall.has(crew.id)) editingWall.delete(crew.id); else editingWall.add(crew.id); render(); },
         save: (cards, stageCount = wall.stageCount) => act(() => api.saveCrewWall(crew.id, stageCount, cards, wall.revision), "Crew Wall saved."),
@@ -194,7 +203,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
         const box = element("div", "crew-pending");
         box.append(element("p", "eyebrow", "INVITATIONS SENT"));
         for (const person of pending) box.append(personRow(person, button("Cancel invite", "text-button duo-button", () => act(() => api.cancelCrewInvite(crew.id, person.gamid_handle), `Cancelled the invitation to @${person.gamid_handle}.`))));
-        card.append(box);
+        people.append(box);
       }
       const entry = invite.get(crew.id) ?? { query: "", results: null };
       const full = crew.members + crew.pending >= crew.max;
@@ -210,7 +219,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
       submit.type = "submit"; submit.disabled = busy || full;
       form.append(label, submit);
       form.addEventListener("submit", event => { event?.preventDefault?.(); searchInvite(crew); });
-      card.append(form);
+      people.append(form);
       if (entry.results && !full) {
         const results = element("div", "duo-results");
         if (!entry.results.length) results.append(element("p", "connections-empty", "No GamID found."));
@@ -220,7 +229,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
           results.append(personRow({ ...person, gamid_handle: handle }, already.has(handle) ? element("span", "duo-tag", "IN CREW / INVITED")
             : button("Invite", "secondary duo-button", () => act(async () => { await api.inviteToCrew(crew.id, handle); invite.delete(crew.id); }, `Invited @${handle} to ${crew.name}.`))));
         }
-        card.append(results);
+        people.append(results);
       }
       if (confirm?.kind === "delete" && confirm.crewId === crew.id) card.append(warning(deleteWarning(crew), "Delete Crew", () => act(() => api.deleteCrew(crew.id), `${crew.name} was deleted.`)));
       else { const actions = element("div", "duo-actions"); actions.append(button("Delete Crew", "text-button danger duo-button", () => { confirm = { kind: "delete", crewId: crew.id }; render(); })); card.append(actions); }
@@ -379,12 +388,12 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     nodes.push(list);
     for (const crew of state.crews) {
       const card = crewCard(crew);
-      card.prepend(button("Back to Crews", "secondary crew-back", () => { selectedCrew = null; render(); root.querySelector?.(`#crew-list-${crew.id}`)?.focus?.(); }));
+      card.prepend(button("Back to All Crews", "secondary crew-back", () => { selectedCrew = null; render(); root.querySelector?.(`#crew-list-${crew.id}`)?.focus?.(); }));
       nodes.push(card);
     }
     if (create.open) {
       const card = createCard(); card.setAttribute("role", "region"); card.setAttribute("aria-label", "Add Crew");
-      card.prepend(button("Back to Crews", "secondary crew-back", () => { create.open = false; render(); root.querySelector?.('.crew-add')?.focus?.(); })); nodes.push(card);
+      card.prepend(button("Back to All Crews", "secondary crew-back", () => { create.open = false; render(); root.querySelector?.('.crew-add')?.focus?.(); })); nodes.push(card);
     }
     root.replaceChildren(...nodes);
   }

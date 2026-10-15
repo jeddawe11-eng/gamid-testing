@@ -112,7 +112,7 @@ export function mountDesktopEditor(doc,sections){
     const person=source.querySelector('.is-duo .duo-person');if(person){const summary=item(person.querySelector('strong')?.textContent||'My Duo',person.querySelector('.duo-handle')?.textContent,thumbnail(person.querySelector('.duo-avatar')));summary.classList.add('desktop-duo-summary');children.push(summary);const badge=source.querySelector('.is-duo .identity-rel-badge-text');if(badge)children.push(h('small','desktop-summary-note',badge.textContent.trim()));}
    }else if(key==='crew'){
     const crews=[...source.querySelectorAll('.crew-card[data-crew]')];
-    for(const card of crews.slice(0,2)){
+    for(const card of crews.slice(0,3)){
      // Reuse the actual public directory renderer, with the owner's already-loaded Crew rows.
      // Avatar URLs are only the existing public-avatar loader's Blob URLs; no new member reads.
      const people=[...card.querySelectorAll('.crew-members > .crew-person')].map(row=>({name:row.querySelector('.duo-names strong')?.textContent||'Member',avatarPath:row.querySelector('.crew-avatar img')?.src||null}));
@@ -120,7 +120,7 @@ export function mountDesktopEditor(doc,sections){
      tile.classList.add('desktop-crew-tile');const href=card.querySelector('a.crew-wall-open')?.getAttribute('href');if(href)tile.setAttribute('href',href);
      if(artwork)applyGameArtwork(tile,safeArtwork());children.push(tile);
     }
-    if(crews.length>2){const more=h('button','secondary desktop-crew-more',`+${crews.length-2} more crews`);more.type='button';more.addEventListener('click',()=>reveal('crew',{scroll:true}));children.push(more);}
+    if(crews.length>3){const more=h('button','secondary desktop-crew-more',`+${crews.length-3} more crews`);more.type='button';more.addEventListener('click',()=>reveal('crew',{scroll:true}));children.push(more);}
    }else if(key==='wall'){
     children.push(item('My Wall',sections.get('wall').status.textContent,icon(doc,'wall')));const b=h('button','secondary','Edit My Wall');b.type='button';b.addEventListener('click',()=>reveal('wall',{scroll:true}));children.push(b);
    }

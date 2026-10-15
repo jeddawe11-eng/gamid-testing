@@ -3,3 +3,26 @@
 .crew-list-copy{display:grid;gap:5px;flex:1;min-width:0;overflow-wrap:anywhere}.crew-list-copy>span{font-size:.8rem;color:#c4c4d5}.crew-list-indicator{font-size:22px;color:#c8b3ec}
 .crew-list-icon{position:relative;display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:9px;background:#292245;overflow:hidden;font-size:12px}.crew-list-icon .game-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .crew-list-open:focus-visible,.crew-add:focus-visible,.crew-back:focus-visible{outline:2px solid #63e6ff;outline-offset:3px}.crew-create:has(.crew-add){margin:0;padding:4px;border:0;background:none}.crew-add{width:100%;margin:0}.crew-back{margin:0 0 14px}
+
+/* One real management form, grouped into independent columns on Desktop. */
+#crewPanel .crew-back{display:inline-flex;align-items:center;justify-content:center;gap:8px;justify-self:start;min-height:44px;width:auto;padding:10px 18px;border:1px solid #a277ed;border-radius:10px;background:#24173b;color:#f4ecff;font-weight:700}
+.crew-management-columns{display:grid;gap:20px;align-items:start;min-width:0}
+.crew-management-people,.crew-management-wall{display:grid;gap:16px;min-width:0;align-content:start}
+.crew-management-people{container:crew-people / inline-size}
+.crew-members-title{margin:0;font-size:1rem;color:#eee9ff}
+#crewPanel .crew-members{grid-template-columns:minmax(0,1fr);align-items:start}
+#crewPanel .crew-members>.crew-person{display:grid;grid-template-columns:36px minmax(0,1fr);gap:8px;padding:10px;border:1px solid #ffffff18;border-radius:10px;background:#ffffff04;align-items:center}
+#crewPanel .crew-members .crew-avatar{width:36px;height:36px}
+#crewPanel .crew-members .duo-names{min-width:0;font-size:.85rem}
+#crewPanel .crew-person .duo-names :is(strong,.duo-handle){overflow-wrap:anywhere}
+#crewPanel .crew-members .crew-person>:is(.duo-button,.duo-tag){grid-column:2;justify-self:start;margin:0;max-width:100%}
+#crewPanel .crew-members .duo-warning{grid-column:1/-1}
+#crewPanel .crew-wall-box{padding-top:0;border-top:0;min-width:0}
+#crewPanel .crew-management-people :is(.crew-pending,.crew-invite,.duo-results){min-width:0}
+#crewPanel .crew-management-columns+.duo-actions,#crewPanel .crew-management-columns+.duo-warning{padding-top:16px;border-top:1px solid #ffffff20}
+@container crew-people (min-width:300px){#crewPanel .crew-members{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container crew-people (min-width:540px){#crewPanel .crew-members{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:1024px){
+ #crewPanel .crew-management-columns:has(>.crew-management-wall){grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+ #crewPanel .crew-management-wall{padding:16px;border:1px solid #ffffff20;border-radius:12px;background:#ffffff03}
+}

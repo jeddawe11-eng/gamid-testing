@@ -63,9 +63,9 @@ test("Crew list: only one management region opens; Back restores list and Add Cr
   const visible=()=>byClass(root,'crew-card').filter(n=>!n.hidden);
   assert.equal(visible().length,0);assert.equal(byClass(root,'crew-list-open').length,2);
   await byClass(root,'crew-list-open')[0].fire('click');assert.equal(visible().length,1);
-  await buttons(visible()[0],'Back to Crews')[0].fire('click');assert.equal(visible().length,0);
+  await buttons(visible()[0],'Back to All Crews')[0].fire('click');assert.equal(visible().length,0);
   await byClass(root,'crew-list-open')[1].fire('click');assert.equal(visible()[0].dataset.crew,'c2');
-  await buttons(visible()[0],'Back to Crews')[0].fire('click');await buttons(root,'+ Add Crew')[0].fire('click');
+  await buttons(visible()[0],'Back to All Crews')[0].fire('click');await buttons(root,'+ Add Crew')[0].fire('click');
   assert.equal(visible().length,0);assert.equal(byClass(root,'crew-create').length,1);assert.match(root.textContent,/CREATE A CREW/);
   assert.equal(db.calls.length,0,'opening or closing never writes');
 });

@@ -28,6 +28,7 @@ const fixtureCrews = [{crew_id:crewId,crew_name:'Saved Crew',game_key:'league_of
 const browser = await chromium.launch({executablePath:process.env.GAMID_CHROME_PATH || undefined,headless:true});
 const results=[];
 const crewUX=process.argv.includes('--crew-ux');
+const crewMemberCount=Number(process.env.GAMID_CREW_MEMBERS||2);
 const adaptive=process.argv.includes('--adaptive-layout')||process.argv.includes('--final-layout'),mediaReview=process.argv.includes('--media-review')||adaptive||crewUX,reproduce=process.argv.includes('--reproduce');
 const widths=crewUX?(process.env.GAMID_CREW_WIDTHS||'390,768,1024,1440,1920').split(',').map(Number):adaptive?(process.env.GAMID_ADAPTIVE_WIDTHS||'1024,1152,1280,1440,1920,2560').split(',').map(Number):mediaReview?[1024,1440,1920,390]:[1440,390];
 const runs=widths.flatMap(width=>(crewUX?(process.env.GAMID_CREW_COUNTS||'0,1,2,3,5,9,10').split(','):adaptive?(process.env.GAMID_ADAPTIVE_SCENARIOS||'empty,populated,rich').split(','):['populated']).map(scenario=>({width,scenario})));
@@ -76,6 +77,8 @@ try {
         };
         if(crewUX){
           bodies.get_my_crews=crews.map(c=>({...c,my_status:'ACTIVE',my_role:c.role}));bodies.get_my_crew_wall=crewWallModel;
+          for(const c of bodies.get_my_crews)c.member_count=crewMemberCount;
+          bodies.get_crew_members=Array.from({length:crewMemberCount},(_,i)=>({status:'ACTIVE',role:i?'MEMBER':'OWNER',is_published:i%2===0,gamid_handle:i===0?'fixture_owner':i===1?'fixture_friend':`fixture_player_${i}`,display_name:crewMemberCount===15?`Player ${i+1} With A Long Display Name`:(i?'Saved Friend':'Saved Gamer'),avatar_media_reference:uid+'/member.jpg'}));
           bodies.search_duo_candidates=[{gamid_handle:'fresh_friend',display_name:'Fresh Friend',is_published:true}];
           if(action==='rename_crew'){const data=request.postDataJSON();crews.find(c=>c.crew_id===data.candidate_crew).crew_name=data.candidate_name;bodies.rename_crew=true;}
           if(action==='save_crew_wall'){const data=request.postDataJSON();crewWallModel={...crewWallModel,stage_count:data.candidate_stage_count,cards:data.candidate_cards,revision:crewWallModel.revision+1};bodies.save_crew_wall=crewWallModel.revision;}
@@ -105,7 +108,7 @@ try {
       return route.abort();
     });
     await page.goto(CF+'/account/');await page.locator('#identityView.is-active').waitFor();
-    if(crewUX){results.push(await reviewCrewUX({page,width,count:Number(scenario),out,calls,setPublic:()=>{publication='PUBLIC';withIntro=false;wallEnabled=false;}}));assert.deepEqual(errors,[]);await context.close();continue;}
+    if(crewUX){results.push(await reviewCrewUX({page,width,count:Number(scenario),memberCount:crewMemberCount,out,calls,setPublic:()=>{publication='PUBLIC';withIntro=false;wallEnabled=false;}}));assert.deepEqual(errors,[]);await context.close();continue;}
     if(adaptive){results.push(await reviewDesktopLayout({page,width,scenario,out,calls,reproduce}));assert.deepEqual(errors,[]);await context.close();continue;}
     if(mediaReview){
       await page.waitForFunction(()=>document.querySelector('#crewPanel')?.textContent.includes('Saved Crew'));await page.waitForTimeout(reproduce?300:1500);if(!reproduce&&width>=1024)await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview img')?.naturalWidth>0);

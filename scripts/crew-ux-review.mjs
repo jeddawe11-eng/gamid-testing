@@ -1,13 +1,15 @@
 // Browser UX coverage with the caller's fully intercepted backend only.
 import assert from 'node:assert/strict';import path from 'node:path';
 import {openEditor} from './desktop-layout-review.mjs';
-export async function reviewCrewUX({page,width,count,out,calls,setPublic}){
+export async function reviewCrewUX({page,width,count,memberCount=2,out,calls,setPublic}){
  const owner=page.locator('#crewPanel'),management=owner.locator('.crew-card:not([hidden])');
  await page.waitForFunction(n=>document.querySelectorAll('#crewPanel .crew-list-open').length===n,count);
  assert.equal(await management.count(),0);assert.equal(await owner.locator('.crew-create input').count(),0);
- if(width>=1024){assert.equal(await page.locator('.desktop-crew-tile').count(),Math.min(2,count));
-  const more=page.locator('.desktop-crew-more');assert.equal(await more.count(),count>2?1:0);
-  if(count>2){assert.equal(await more.textContent(),`+${count-2} more crews`);await more.focus();await more.press('Enter');assert.ok(await owner.isVisible());}
+ if(width>=1024){assert.equal(await page.locator('.desktop-crew-tile').count(),Math.min(3,count));
+  const tiles=await page.locator('.desktop-crew-tile').evaluateAll(nodes=>nodes.map(n=>({y:n.getBoundingClientRect().y,overflow:n.scrollWidth>n.clientWidth+2})));
+  assert.ok(tiles.every(t=>Math.abs(t.y-tiles[0].y)<2&&!t.overflow),'up to three balanced summaries share one row without overflow');
+  const more=page.locator('.desktop-crew-more');assert.equal(await more.count(),count>3?1:0);
+  if(count>3){assert.equal(await more.textContent(),`+${count-3} more crews`);await more.focus();await more.press('Enter');assert.ok(await owner.isVisible());}
  }
  await openEditor(page,'bio');await page.locator('#profileBio').fill('Crew UX unrelated draft');await openEditor(page,'crew');
  assert.equal(await owner.locator('.crew-list-open').count(),count);
@@ -16,12 +18,26 @@ export async function reviewCrewUX({page,width,count,out,calls,setPublic}){
   await owner.locator('.crew-list-open').first().focus();await owner.locator('.crew-list-open').first().press('Enter');assert.equal(await management.count(),1);
   assert.ok(await management.locator('.crew-members').isVisible());assert.ok(await management.locator('a.crew-wall-open').isVisible());
   assert.ok(await management.getByRole('button',{name:'Delete Crew',exact:true}).isVisible());
-  await management.getByRole('button',{name:'Back to Crews',exact:true}).click();assert.equal(await management.count(),0);
+  assert.equal(await management.locator('.crew-members>.crew-person').count(),memberCount);
+  const geometry=await management.evaluate(n=>{const people=n.querySelector('.crew-management-people').getBoundingClientRect(),wall=n.querySelector('.crew-management-wall').getBoundingClientRect();const members=[...n.querySelectorAll('.crew-members>.crew-person')].map(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width};});return {people:{x:people.x,y:people.y,w:people.width,bottom:people.bottom},wall:{x:wall.x,y:wall.y,w:wall.width},members,overflow:[...n.querySelectorAll('.crew-person,.crew-management-columns')].some(el=>el.scrollWidth>el.clientWidth+2)};});
+  if(width>=1024){assert.ok(geometry.wall.x>=geometry.people.x+geometry.people.w+20,'independent Desktop columns');assert.ok(Math.abs(geometry.people.y-geometry.wall.y)<2,'columns start aligned');}else assert.ok(geometry.wall.y>=geometry.people.bottom,'mobile stacks original content');
+  assert.equal(geometry.overflow,false,'member names/actions do not overflow');
+  const firstRow=geometry.members.filter(m=>Math.abs(m.y-geometry.members[0].y)<2).length;
+  assert.equal(firstRow,Math.min(memberCount,geometry.people.w>=540?3:geometry.people.w>=300?2:1));
+  if(memberCount===15)await page.screenshot({path:path.join(out,`crew-members-15-${width}.png`),fullPage:true});
+  // Navigation keeps the original controller's rename and invite drafts without writes.
+  await management.getByRole('button',{name:/Edit the name of/}).click();await management.getByRole('textbox',{name:'Crew name',exact:true}).fill('Unsubmitted Crew name');
+  if(memberCount<15)await management.locator('.crew-invite input').fill('Unsubmitted invite');
+  await management.getByRole('button',{name:'Back to All Crews',exact:true}).click();assert.equal(await management.count(),0);
   assert.equal(await owner.locator('.crew-list-open').first().evaluate(n=>n===document.activeElement),true);
-  if(count>1){await owner.locator('#crew-list-00000000-0000-4000-8000-'+String(100+count-1).padStart(12,'0')).click();assert.equal(await management.count(),1);assert.equal(await management.getByRole('button',{name:'Delete Crew',exact:true}).count(),0);assert.ok(await management.getByRole('button',{name:'Leave Crew',exact:true}).isVisible());await management.getByRole('button',{name:'Back to Crews',exact:true}).click();}
+  await owner.locator('.crew-list-open').first().click();assert.equal(await management.getByRole('textbox',{name:'Crew name',exact:true}).inputValue(),'Unsubmitted Crew name');
+  if(memberCount<15)assert.equal(await management.locator('.crew-invite input').inputValue(),'Unsubmitted invite');
+  await management.locator('.crew-rename').getByRole('button',{name:'Cancel',exact:true}).click();
+  await management.getByRole('button',{name:'Back to All Crews',exact:true}).click();
+  if(count>1){await owner.locator('#crew-list-00000000-0000-4000-8000-'+String(100+count-1).padStart(12,'0')).click();assert.equal(await management.count(),1);assert.equal(await management.getByRole('button',{name:'Delete Crew',exact:true}).count(),0);assert.ok(await management.getByRole('button',{name:'Leave Crew',exact:true}).isVisible());await management.getByRole('button',{name:'Back to All Crews',exact:true}).click();}
  }
  await owner.getByRole('button',{name:'+ Add Crew',exact:true}).click();assert.equal(await management.count(),0);assert.equal(await owner.locator('.crew-create').count(),1);
- await owner.locator('.crew-create input').fill('Draft game query');await owner.locator('.crew-create').getByRole('button',{name:'Back to Crews',exact:true}).click();
+ await owner.locator('.crew-create input').fill('Draft game query');await owner.locator('.crew-create').getByRole('button',{name:'Back to All Crews',exact:true}).click();
  await owner.getByRole('button',{name:'+ Add Crew',exact:true}).click();assert.equal(await owner.locator('.crew-create input').inputValue(),'Draft game query');await owner.locator('.crew-create').getByRole('button',{name:'Cancel',exact:true}).click();
  assert.equal(await page.locator('#profileBio').inputValue(),'Crew UX unrelated draft');
  assert.equal(calls.filter(c=>/\/rpc\/(?:rename_|create_|invite_|remove_|delete_|set_|save_)/.test(c.path)).length,before,'opening/closing never writes');
@@ -38,7 +54,7 @@ export async function reviewCrewUX({page,width,count,out,calls,setPublic}){
   await current.getByRole('button',{name:'Remove',exact:true}).click();assert.ok(await current.getByRole('alert').isVisible());await current.getByRole('button',{name:'Cancel',exact:true}).click();
   await current.getByRole('button',{name:'Delete Crew',exact:true}).click();assert.ok(await current.getByRole('alert').isVisible());await current.getByRole('button',{name:'Cancel',exact:true}).click();
   const invite=current.locator('.crew-invite');await invite.getByRole('searchbox').fill('friend');await invite.getByRole('button',{name:'Search',exact:true}).click();await current.getByRole('button',{name:'Invite',exact:true}).click();
-  await current.getByRole('button',{name:'Back to Crews',exact:true}).click();assert.equal(await page.locator('#profileBio').inputValue(),'Crew UX unrelated draft');
+  await current.getByRole('button',{name:'Back to All Crews',exact:true}).click();assert.equal(await page.locator('#profileBio').inputValue(),'Crew UX unrelated draft');
  }
  if(width===1440&&count>2){await page.locator('[data-editor-section=crew] > .section-toggle').click();await page.screenshot({path:path.join(out,`crew-owner-collapsed-${count}.png`),fullPage:true});}
  // Public MY CREWS entry is Desktop-only; open it there, then exercise existing responsive dialog.
