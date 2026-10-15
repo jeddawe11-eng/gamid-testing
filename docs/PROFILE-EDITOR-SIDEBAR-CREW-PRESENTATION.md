@@ -10,6 +10,8 @@ Two equal editing columns, original full-width expanded details below their pair
 
 ## Crew summaries
 
+Current Crew navigation follow-up: [MY-CREW-UX.md](MY-CREW-UX.md), product `7ab1278`, adds a centered more-Crews action, compact owner list/single management region and nine-plus-one public directory presentation. This later UX is PENDING owner review; the section below describes the earlier `35842e9` presentation checkpoint.
+
 The actual public MY CREWS `crewCard` renderer from `public/crews-directory.js` is reused in Desktop summaries. Styling of its artwork, dark gradient, game icon, name/game/member count and small member faces is scoped to `.desktop-crew-tile`; public files and public layout are unchanged. Up to two existing summary entries remain, with the existing count for additional Crews. Inner tiles use available width naturally and stack when narrow.
 
 `my-crew.js` adds only a presentation `data-game-key` attribute to existing live Crew cards. The Desktop adapter reads those existing loaded cards and their member rows; avatar images reuse only Blob URLs already supplied by the existing public-avatar loader. No new member fetch, permission, provider service, upload, save, publication or business logic is added. Existing navigation URLs are reused and the existing unsaved-navigation confirmation remains effective.

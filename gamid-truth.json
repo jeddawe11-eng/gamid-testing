@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-15",
+  "updated": "2026-10-16",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -632,6 +632,31 @@
       ],
       "checkpoint": "a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7",
       "record": "PROJECT_HANDOFF.md §33, §37, §38; migrations 20261011100000_classic_profile_consolidated.sql and 20261011200000_roles_favorites_crews.sql; final acceptance by Mazen 2026-10-13, including the existing member invitation flow (PROJECT_HANDOFF.md §56)"
+    },
+    {
+      "id": "crew-ux-navigation",
+      "name": "My Crew compact owner management and nine-plus-one public directory navigation",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/account/",
+        "/@<handle>"
+      ],
+      "checkpoint": "7ab1278f94c36c265df1d47b4388ab1db418c3dd",
+      "contracts": [
+        {
+          "id": "owner-crew-selection",
+          "rule": "My Crew keeps its first two artwork summary cards and uses a centered +N more crews action to open the existing editor. The owner editor presents a compact list of all active Crews; selecting one shows only that Crew management region. Back returns to the list and restores focus without resetting unrelated Profile Editor drafts. Original management fields and actions, confirmations, errors, ownership and member permissions remain; navigating never saves, publishes, invites or deletes."
+        },
+        {
+          "id": "owner-crew-creation-entry",
+          "rule": "+ Add Crew opens the existing creation workflow in its own region, separately from Crew management. Back preserves that creation draft; the original Cancel explicitly clears it. Existing server validation, one ACTIVE Crew per game, membership maximum, member capacity and Crew Wall stage policy remain unchanged."
+        },
+        {
+          "id": "public-crews-nine-and-remainder",
+          "rule": "The public My Crews directory initially displays the first nine eligible Crews in unchanged server order. If a tenth exists, View remaining Crew reveals that same approved card, moves focus to its existing Crew Wall link and keeps it fully accessible. Desktop has at most three centered, unstretched cards per row, yielding 3+3+3 for nine; existing tablet two-column and phone one-column behavior remains. No change to membership limits, public eligibility, public-member avatars, reliable artwork, fallback or navigation gates."
+        }
+      ],
+      "record": "docs/MY-CREW-UX.md; PROJECT_HANDOFF.md §65. Mazen authorized implementation and TESTING deployment; new UX awaits his visual acceptance. Accepted base my-crew, crew-rename, my-crews-view, your-gamid-editor and public-gamid-profile remain separately recorded with their original accepted checkpoints and limits."
     },
     {
       "id": "game-artwork-provisional",

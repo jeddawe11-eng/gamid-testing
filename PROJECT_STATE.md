@@ -4,7 +4,7 @@
 
 This file is an index and a continuation pointer. It is **not** an authoritative source. Every fact here points to the source that owns it, and **that source wins** whenever the two disagree.
 
-Last reviewed: 2026-10-15.
+Last reviewed: 2026-10-16.
 
 ## 1. Mandatory entry order
 
@@ -52,7 +52,7 @@ Snapshot from 2026-10-11; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** `35842e9e44cab1adc82c57a50f506916405f8d76` (targeted Desktop sidebar and Crew presentation; `docs/PROFILE-EDITOR-SIDEBAR-CREW-PRESENTATION.md`, `PROJECT_HANDOFF.md` §64; PENDING Mazen visual review). Accepted editing behavior remains product `61de622`, IDEA-0001 / REV-0004.
+- **Latest product commit:** `7ab1278f94c36c265df1d47b4388ab1db418c3dd` (Crew owner list/single management and public nine-plus-one directory; `docs/MY-CREW-UX.md`, `PROJECT_HANDOFF.md` §65, Truth `crew-ux-navigation`; PENDING Mazen visual acceptance). Prior accepted base capabilities and limits remain unchanged.
 - **Previous editor product:** `41aa90692c164d9675698131f561b285cdc8b736` (saved owner Classic preview; `PROJECT_HANDOFF.md` §57; TESTING deployment `7aa0133`, run `38427825018`; PENDING owner acceptance).
 - **Previous product commit:** `4b56646e782eefadcc173b64e8aa59f0fab37cd9` (ISS-0011 Intro storage lifecycle and reservation release; ISS-0012 clear refusal; `PROJECT_HANDOFF.md` §42; deployed as head `72896d6`, run `38145293680`; PENDING manual acceptance). Before it: `a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7` (ISS-0007 Avatar validation, My Crews panel sizing CP-01, Role Suggestions review inside Gaming Roles GR-01; `PROJECT_HANDOFF.md` §38; migration `20261011220000` applied; `usage-upload` v8; deployed by run `38128281601`). Mazen's manual checks passed: CP-01 (REV-0002), GR-01 (REV-0003) and an Avatar save for ISS-0007 (which stays FIXED until his security acceptance); the capabilities `your-gamid-editor`, `my-crews-view` and `gaming-roles-categories` remain PENDING_ACCEPTANCE in Truth.
   - **ISS-0009 is VERIFIED and Truth `visitor-media-access` is ACCEPTED** (Mazen, 2026-10-11, including the documented residual possibility of unknown historical signed URLs; `PROJECT_HANDOFF.md` §30, §38–§40). The known pre-fix synthetic URL was closed by deleting its object (§39).
@@ -105,7 +105,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-15):** Targeted Desktop sidebar width, centered proportions and rich Crew summaries implemented at `35842e9e44cab1adc82c57a50f506916405f8d76`; see `docs/PROFILE-EDITOR-SIDEBAR-CREW-PRESENTATION.md` and `PROJECT_HANDOFF.md` §64. New presentation awaits Mazen visual review; prior Editor and Public Profile acceptance remain intact. No Product Memory saving, Production or main merge. TESTING source `ff5fff9d6a1e7ba609822243a3e7efe4cc632174` deployed successfully by run `38736570261`; stop for owner visual review.
+**Latest continuation (2026-10-16):** Crew UX navigation implemented at `7ab1278f94c36c265df1d47b4388ab1db418c3dd` on the authorized feature branch, resumed from `1485d43`. See Truth `crew-ux-navigation` (PENDING_ACCEPTANCE), `docs/MY-CREW-UX.md` and `PROJECT_HANDOFF.md` §65. Completed validation is recorded in technical docs; deploy TESTING only through the established workflow, then stop for Mazen visual review. No Product Memory saving, Production or main merge.
 
 **Previous continuation (Desktop Editor acceptance, 2026-10-15):** Mazen manually accepted the deployed Desktop Profile Editor and authorized Product Memory saving. Truth `your-gamid-editor` is ACCEPTED for the implemented Desktop layout and editing behavior, product `61de6220a37922a776cddd19771b10bdac4fde51`, TESTING source `1ec1da3c934d83b27f025c1d6b1a5a2f20225ff2`, verified delivery checkpoint `446ba095578299c46f32547ac0f8bd6339e9c0ad`. Sources: [`docs/PROFILE-EDITOR-PAIRED-ROWS.md`](docs/PROFILE-EDITOR-PAIRED-ROWS.md), `PROJECT_HANDOFF.md` §62, existing IDEA-0001 and REV-0004. Acceptance-only documentation updates; no redeploy, functionality change or main merge. Stop after recording acceptance. Historical pending Desktop statements below are superseded; no new Android real-device acceptance or unrelated issue verification is implied.
 
