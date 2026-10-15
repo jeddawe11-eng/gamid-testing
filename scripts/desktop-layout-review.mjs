@@ -39,6 +39,17 @@ export async function assertPairedLayout(page){
 export async function reviewDesktopLayout({page,width,scenario,out,calls}){
  const keys=['avatar','intro','banner','about-group','connections','socials','games','game-display','duo','wall','crew'];
  await page.waitForTimeout(600);if(scenario!=='empty')await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview img')?.naturalWidth>0);await assertPairedLayout(page);
+ if(process.argv.includes('--final-layout')){
+  const sizes=await page.evaluate(()=>{const box=document.querySelector('.account-shell').getBoundingClientRect();return {side:document.querySelector('.desktop-editor-side').getBoundingClientRect().width,main:document.querySelector('.desktop-editor-main').getBoundingClientRect().width,center:Math.abs(box.left-(innerWidth-box.right)),zoom:visualViewport.scale};});
+  assert.equal(sizes.zoom,1);assert.ok(sizes.center<1);assert.ok(sizes.main>=736);assert.equal(sizes.side,width>=1592?488:width<=1279?208:Math.max(208,width-1104));
+  if(scenario==='empty')assert.equal(await page.locator('.desktop-crew-tile').count(),0);
+  if(scenario==='populated'){
+   await page.waitForFunction(()=>document.querySelectorAll('.desktop-crew-tile .crew-card-face img').length===2);
+   assert.equal(await page.locator('.desktop-crew-tile').count(),2);
+   for(const game of ['league_of_legends','marvel_rivals']){const bg=page.locator(`.desktop-crew-tile [data-game-bg=${game}] .game-art-bg`);assert.ok(await bg.count());assert.match(await bg.getAttribute('style'),/steamgriddb/);}
+   if(width===1440){const accept=dialog=>dialog.accept();page.on('dialog',accept);await page.locator('.desktop-crew-tile').first().click();await page.waitForURL(/\/crew\/\?c=/);await page.goBack();page.off('dialog',accept);await page.locator('#identityView.is-active').waitFor();await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview img')?.naturalWidth>0);await assertPairedLayout(page);}
+  }
+ }
  await page.screenshot({path:path.join(out,`paired-collapsed-${width}-${scenario}.png`),fullPage:true,animations:'disabled'});
  await page.evaluate(()=>window.pairedDraftNode=document.querySelector('#profileBio'));
  for(const key of keys){

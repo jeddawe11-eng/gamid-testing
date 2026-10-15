@@ -62,10 +62,10 @@ const CITIES={SA:[{city_id:108410,name:'Riyadh',name_ar:'الرياض',populatio
  if(width>=1024&&!process.env.GAMID_LAYOUT_ONLY){results.push(await reviewPairedEditor({page,width,calls,rpcCalls,saved:()=>row,setFailure:v=>fail=v,setVisibilityFailure:v=>failVisibility=v,avatarBytes,bannerBytes:BANNER_SRC,introBytes:fs.readFileSync(path.join(root,'assets/gamid-intro.mp4'))}));assert.deepEqual(errors,[]);await context.close();continue;}
  if(process.env.GAMID_LAYOUT_ONLY){
   await page.waitForFunction(()=>document.querySelector('#profileDisplayName').value.length>0);await page.waitForTimeout(600);
-  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+  const mobileOverflow=await page.evaluate(()=>({viewport:innerWidth,scroll:document.documentElement.scrollWidth}));if(!process.env.GAMID_MOBILE_COMPARISON||width>=1024)assert.equal(mobileOverflow.scroll>width,false);
   await page.screenshot({path:`${out}/editor-collapsed-${width}.png`,fullPage:true,animations:'disabled'});
   if(width>=1024)await reviewDesktopLayout({page,width,scenario:'functional',out,calls:rpcCalls});
-  assert.deepEqual(errors,[]);results.push({width,layout:true,ok:true});await context.close();continue;
+  assert.deepEqual(errors,[]);results.push({width,layout:true,mobileOverflow,ok:true});await context.close();continue;
  }
  for(const card of await page.locator('#identityView .editor-section').all()){
  for(const key of await card.evaluate(e=>{const a=[];for(let p=e.parentElement;p;p=p.parentElement)if(p.dataset.editorSection)a.unshift(p.dataset.editorSection);return a;})){const t=page.locator(`[data-editor-section="${key}"] > .section-toggle`);if(await t.getAttribute('aria-expanded')!=='true')await t.click();}

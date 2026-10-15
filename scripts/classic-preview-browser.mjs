@@ -23,10 +23,10 @@ const library = {library_count:2,total_count:2,games:[{name:'League of Legends',
 const about = {about_country_code:'SA',about_city_id:100,about_city_name:'Jeddah',about_location:'Jeddah, Saudi Arabia',about_languages:['ar'],about_genres:['rpg'],show_location:true,show_languages:true,show_genres:true,member_since_year:2024,member_since_date:'2024-03-05',catalogs:{languages:[{code:'ar',label:'Arabic'}],genres:[{key:'rpg',label:'RPG'}],countries:[{code:'SA',name:'Saudi Arabia'}]}};
 const extras = {has_banner:true,member_since_year:2024,member_since_date:'2024-03-05',about_location:about.about_location,about_languages:about.catalogs.languages,about_genres:about.catalogs.genres};
 const socials = [{platform_key:'instagram',kind:'profile',account_id:'fixture.gamer',sort_order:0}];
-const crews = [{crew_id:crewId,crew_name:'Saved Crew',game_key:'league_of_legends',game_name:'League of Legends',role:'OWNER',member_count:2,members:[{handle:'fixture_friend',display_name:'Saved Friend'}]}];
+const crews = [{crew_id:crewId,crew_name:'Saved Crew',game_key:'league_of_legends',game_name:'League of Legends',role:'OWNER',member_count:2,members:[{handle:'fixture_friend',display_name:'Saved Friend'}]},{crew_id:'00000000-0000-4000-8000-000000000007',crew_name:'Marvel Crew',game_key:'marvel_rivals',game_name:'Marvel Rivals',role:'OWNER',member_count:2,members:[]}];
 const browser = await chromium.launch({executablePath:process.env.GAMID_CHROME_PATH || undefined,headless:true});
 const results=[];
-const adaptive=process.argv.includes('--adaptive-layout'),mediaReview=process.argv.includes('--media-review')||adaptive,reproduce=process.argv.includes('--reproduce');
+const adaptive=process.argv.includes('--adaptive-layout')||process.argv.includes('--final-layout'),mediaReview=process.argv.includes('--media-review')||adaptive,reproduce=process.argv.includes('--reproduce');
 const widths=adaptive?(process.env.GAMID_ADAPTIVE_WIDTHS||'1024,1152,1280,1440,1920,2560').split(',').map(Number):mediaReview?[1024,1440,1920,390]:[1440,390];
 const runs=widths.flatMap(width=>(adaptive?(process.env.GAMID_ADAPTIVE_SCENARIOS||'empty,populated,rich').split(','):['populated']).map(scenario=>({width,scenario})));
 try {
@@ -53,7 +53,7 @@ try {
           if(request.method()==='POST'){const token='header.'+Buffer.from(JSON.stringify({iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+120})).toString('base64url')+'.fixture';return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({signedURL:'/object/sign/intro-media/'+uid+'/intro.webm?token='+token})});}
           return route.fulfill({status:failedMedia?404:200,contentType:'video/mp4',body:failedMedia?Buffer.alloc(0):fs.readFileSync(path.join(root,'assets/gamid-intro.mp4')),headers:{'Access-Control-Allow-Origin':CF}});
         }
-        if(mediaReview&&url.pathname.startsWith('/functions/v1/game-artwork/'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({enabled:true,artwork:{league_of_legends:{icon:'https://cdn2.steamgriddb.com/icon/league.png',grid:'https://cdn2.steamgriddb.com/grid/league.jpg'},saved_game:{icon:'https://cdn2.steamgriddb.com/icon/saved.png',cover:'https://cdn2.steamgriddb.com/grid/saved.jpg'}},myGames:{'League of Legends|':'league_of_legends','Saved Game|':'saved_game'}})});
+        if(mediaReview&&url.pathname.startsWith('/functions/v1/game-artwork/'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({enabled:true,artwork:{marvel_rivals:{hero:'https://cdn2.steamgriddb.com/hero/marvel.jpg',icon:'https://cdn2.steamgriddb.com/icon/marvel.png'},league_of_legends:{hero:'https://cdn2.steamgriddb.com/hero/league.jpg',icon:'https://cdn2.steamgriddb.com/icon/league.png',grid:'https://cdn2.steamgriddb.com/grid/league.jpg'},saved_game:{icon:'https://cdn2.steamgriddb.com/icon/saved.png',cover:'https://cdn2.steamgriddb.com/grid/saved.jpg'}},myGames:{'League of Legends|':'league_of_legends','Saved Game|':'saved_game'}})});
         const bodies={
           get_my_gamid:[row()],get_my_identity_profile:[row()],get_my_intro:[{transition_key:'fade',active_job_id:'intro-job',active_derivative_path:uid+'/intro.webm',active_state:'ready'}],
           get_my_section_visibility:[{section_key:'education_work',is_public:true}],get_my_about:[about],get_my_banner:[{banner_path:uid+'/banner/saved.jpg'}],
@@ -62,7 +62,7 @@ try {
           get_my_manual_games:library.games.map((g,i)=>({game_key:i?'saved_game':'league_of_legends',display_name:g.name,platforms:[{platform_key:'windows_pc',display_name:'PC'}]})),
           get_my_favorite_games:['saved_game'],get_my_game_profiles:[],get_my_discovered_games:[],get_my_league_profile:mediaReview?[{game_name:'Saved League',tag_line:'TEST',profile_icon_id:1666,platform_id:'ME1',solo_rank_state:'UNRANKED',is_public:false}]:[],get_my_discord_profile_card:[],
           get_my_duo:[{relation:'DUO',show_public:true,is_published:true,gamid_handle:'fixture_friend',display_name:'Saved Friend'}],
-          get_my_crews:[{...crews[0],my_status:'ACTIVE',my_role:'OWNER'}],get_crew_members:[{status:'ACTIVE',is_published:true,gamid_handle:'fixture_friend',display_name:'Saved Friend'}],
+          get_my_crews:crews.map(c=>({...c,my_status:'ACTIVE',my_role:'OWNER'})),get_crew_members:[{status:'ACTIVE',is_published:true,gamid_handle:'fixture_friend',display_name:'Saved Friend',avatar_media_reference:uid+'/member.jpg'}],
           get_public_crew_wall:{crew_name:'Saved Crew',document:null},get_my_wall_visibility:[{published:wallEnabled,is_enabled:wallEnabled}],get_my_crew_wall:[],
           get_public_identity:publication==='PUBLIC'?[publicRow()]:[],get_public_profile_extras:publication==='PUBLIC'?[extras]:[],get_public_social_links:publication==='PUBLIC'?socials:[],
           get_public_my_games:publication==='PUBLIC'?[library]:[],get_public_favorite_games:publication==='PUBLIC'?[{game_key:'saved_game',name:'Saved Game'}]:[],get_public_crews:publication==='PUBLIC'?crews:[],

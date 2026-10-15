@@ -143,6 +143,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
   function crewCard(crew) {
     const card = element("article", `duo-card crew-card${crew.role === "OWNER" ? " is-owner" : ""}`);
     card.dataset.crew = crew.id;
+    card.dataset.gameKey = crew.gameKey;
     const head = element("div", "crew-card-head");
     const titles = element("div", "crew-titles");
     titles.append(element("p", "eyebrow crew-game", crew.gameName.toUpperCase()));

@@ -3,6 +3,7 @@
 import { SOCIAL_PLATFORMS, socialIcon, socialBrandMark, renderPublicSocials } from './socials.js';
 import { createIntroPoster,providerAvatar,leagueIcon } from './editor-media.js';
 import { applyGameArtwork } from '../public/game-artwork.js';
+import { crewCard as directoryCrewCard } from '../public/crews-directory.js';
 
 const paths={
  avatar:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M5 22v-3a7 7 0 0 1 14 0v3M21 3v4m-2-2h4',
@@ -29,7 +30,7 @@ function icon(doc,key){
 }
 export function mountDesktopEditor(doc,sections){
  const root=doc.getElementById('identityView'),win=doc.defaultView,mq=win.matchMedia('(min-width: 1024px)');
- const h=(tag,cls,text)=>{const n=doc.createElement(tag);n.className=cls;if(text!==undefined)n.textContent=text;return n;};
+ const h=(tag,cls,text)=>{const n=doc.createElement(tag);n.className=cls||'';if(text!==undefined)n.textContent=text;return n;};
  const shell=h('div','desktop-editor-layout'),side=h('aside','desktop-editor-side'),main=h('div','desktop-editor-main'),grid=h('div','desktop-editor-grid');
  const sideIdentity=h('div','desktop-editor-identity');
  const rowPlan=[['avatar','intro'],['banner','about-group'],['connections','socials'],['games','game-display'],['play','duo'],['wall','crew']];
@@ -72,9 +73,11 @@ export function mountDesktopEditor(doc,sections){
   for(const row of sections.get('connections').panel.querySelectorAll('.connection-card[data-provider]')){const provider=row.dataset.provider;const data=model.connections?.find(r=>r.provider_key===provider&&r.connected);decoratePhoto(row.querySelector('.connection-avatar'),providerAvatar(provider,data?.provider_avatar_url));}
   decoratePhoto(sections.get('league').panel.querySelector('.connection-avatar'),leagueIcon(model.leagueIcon));
   for(const node of photos.keys())if(!node.isConnected)photos.delete(node);
-  const owner=media.principal(),signature=owner+'|'+(model.gameKeys||[]).join(',');if(owner&&model.gameCount>0&&artKey!==signature){artKey=signature;const version=++artGeneration;media.artwork().then(data=>{if(active&&version===artGeneration&&owner===media.principal()){artwork=data;queue();}},()=>{});}
-  if(artwork){const games=sections.get('games').panel;for(const img of games.querySelectorAll('.game-art'))if(failedArt.has(img.src))img.remove();const safe={...artwork,artwork:Object.fromEntries(Object.entries(artwork.artwork||{}).map(([key,images])=>[key,Object.fromEntries(Object.entries(images).filter(([,url])=>!failedArt.has(url)))]))};applyGameArtwork(games,safe);}
+  const crewKeys=[...sections.get('crew').panel.querySelectorAll('.crew-card[data-game-key]')].map(n=>n.dataset.gameKey);
+  const owner=media.principal(),signature=owner+'|'+(model.gameKeys||[]).join(',')+'|'+crewKeys.join(',');if(owner&&(model.gameCount>0||crewKeys.length)&&artKey!==signature){artKey=signature;const version=++artGeneration;media.artwork().then(data=>{if(active&&version===artGeneration&&owner===media.principal()){artwork=data;queue();}},()=>{});}
+  if(artwork){const games=sections.get('games').panel;for(const img of games.querySelectorAll('.game-art'))if(failedArt.has(img.src))img.remove();applyGameArtwork(games,safeArtwork());}
  }
+ function safeArtwork(){return {...artwork,artwork:Object.fromEntries(Object.entries(artwork?.artwork||{}).map(([key,images])=>[key,Object.fromEntries(Object.entries(images).filter(([,url])=>!failedArt.has(url)))]))};}
  function move(node,target){if(!node)return;for(const control of node.querySelectorAll('input,select,textarea,button')){if(control.form?.id==='profileForm'&&!formAttrs.has(control)){formAttrs.set(control,control.getAttribute('form'));control.setAttribute('form','profileForm');}}const slot=doc.createComment('desktop editor original position');node.before(slot);slots.push([node,slot]);target.append(node);}
  function associate(){if(!active)return;for(const key of ['avatar','intro','name','bio','roles','education'])for(const control of sections.get(key).panel.querySelectorAll('input,select,textarea,button')){if(!control.form&&!control.closest('form')&&!formAttrs.has(control)){formAttrs.set(control,control.getAttribute('form'));control.setAttribute('form','profileForm');}}}
  function thumbnail(node){const n=h('div','desktop-mini-image');if(node){n.style.backgroundImage=node.style.backgroundImage;const initial=()=>(node.textContent.trim()||node.closest('.game-item')?.querySelector('.game-name')?.textContent||'?').slice(0,2);const img=node.querySelector('.game-art')||node.querySelector('img');if(img&&!failedArt.has(img.src)){const c=img.cloneNode();c.removeAttribute('id');c.alt='';c.addEventListener('error',()=>{c.remove();n.textContent=initial();},{once:true});n.append(c);}else n.textContent=node.style.backgroundImage?'':initial();}return n;}
@@ -108,7 +111,16 @@ export function mountDesktopEditor(doc,sections){
    }else if(key==='duo'){
     const person=source.querySelector('.is-duo .duo-person');if(person){const summary=item(person.querySelector('strong')?.textContent||'My Duo',person.querySelector('.duo-handle')?.textContent,thumbnail(person.querySelector('.duo-avatar')));summary.classList.add('desktop-duo-summary');children.push(summary);const badge=source.querySelector('.is-duo .identity-rel-badge-text');if(badge)children.push(h('small','desktop-summary-note',badge.textContent.trim()));}
    }else if(key==='crew'){
-    const crews=[...source.querySelectorAll('.crew-card')];for(const card of crews.slice(0,2))children.push(item(card.querySelector('.crew-name')?.textContent||'Crew',[card.querySelector('.crew-game')?.textContent,card.querySelector('.crew-count')?.textContent].filter(Boolean).join(' · ')));if(crews.length>2)children.push(item(`+${crews.length-2}`,'more crews'));
+    const crews=[...source.querySelectorAll('.crew-card[data-crew]')];
+    for(const card of crews.slice(0,2)){
+     // Reuse the actual public directory renderer, with the owner's already-loaded Crew rows.
+     // Avatar URLs are only the existing public-avatar loader's Blob URLs; no new member reads.
+     const people=[...card.querySelectorAll('.crew-members > .crew-person')].map(row=>({name:row.querySelector('.duo-names strong')?.textContent||'Member',avatarPath:row.querySelector('.crew-avatar img')?.src||null}));
+     const tile=directoryCrewCard(h,{id:card.dataset.crew,name:card.querySelector('.crew-name')?.textContent||'Crew',gameKey:card.dataset.gameKey,gameName:card.querySelector('.crew-game')?.textContent||'',members:parseInt(card.querySelector('.crew-count')?.textContent,10)||0,people},{ownerHandle:model.handle,pathname:win.location.pathname,loadAvatar:url=>url});
+     tile.classList.add('desktop-crew-tile');const href=card.querySelector('a.crew-wall-open')?.getAttribute('href');if(href)tile.setAttribute('href',href);
+     if(artwork)applyGameArtwork(tile,safeArtwork());children.push(tile);
+    }
+    if(crews.length>2)children.push(item(`+${crews.length-2}`,'more crews'));
    }else if(key==='wall'){
     children.push(item('My Wall',sections.get('wall').status.textContent,icon(doc,'wall')));const b=h('button','secondary','Edit My Wall');b.type='button';b.addEventListener('click',()=>reveal('wall',{scroll:true}));children.push(b);
    }
