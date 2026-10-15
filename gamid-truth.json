@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-14",
+  "updated": "2026-10-15",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -54,7 +54,7 @@
       "surfaces": [
         "/account/"
       ],
-      "checkpoint": "0dd59a91b947571d5579c8ed61be5c94cb9dffc0",
+      "checkpoint": "e18c695ef5194d0448472da0b434a9fd1097dcdb",
       "limits": {
         "avatarMinSidePx": 16,
         "avatarMaxSidePx": 1024
@@ -90,14 +90,14 @@
         },
         {
           "id": "profile-desktop-dashboard",
-          "rule": "From 1024px the Account Profile Editor uses a wide owner dashboard with YOUR GAMID saved Classic Preview, separate publication, Share, My Wall and saved profile summary in its sidebar. About Me contains five independently expandable original sections: About Me (Location, Languages, Favorite Genres), Gaming Roles, Education & Work, Bio and Identity; Identity fields occur once and the permanent handle remains read-only. Other editor cards show real collapsed visual summaries and can expand independently; Play Together is static navigation on Desktop. Original controls, per-section saves, Save All, drafts including Avatar and Intro, workflow action boundaries, visibility rules and limits are preserved. Below 1024px the original mobile/smaller-width layout is retained. Desktop cards have independent natural heights and community cards flow in separate column stacks; expanding one column does not stretch or move cards in the other."
+          "rule": "From 1024px the Account Profile Editor uses a wide owner dashboard with saved Classic Preview, separate publication, Share, My Wall and saved profile summary in a responsive sidebar. Every main card uses one stable two-column natural flow: Avatar, Banner, About Me, My Games, Game Display and static Play Together on the left; Your Intro, Connections, My Socials, My Duo and My Crew on the right, with Crew immediately below Duo. Card heights are independent; there are no shared-height rows, fixed card heights or absolute card positioning. Controls respond to their card width, summaries wrap with bounded media and concise text, and expanded content remains complete. About Me contains five independently expandable original sections: About Me (Location, Languages, Favorite Genres), Gaming Roles, Education & Work, Bio and Identity; Identity fields occur once and the permanent handle remains read-only. Original controls, per-section saves, Save All, drafts including Avatar and Intro, workflow action boundaries, visibility rules and limits are preserved. Below 1024px the original mobile/smaller-width layout is retained."
         },
         {
           "id": "profile-desktop-media",
           "rule": "From 1024px the owner editor captures a real paused video frame for existing saved Intro videos and local selections, using the existing authenticated 120-second Intro source lease or the local file. Thumbnail generation never plays Intro, saves, uploads or publishes; its Blob image is memory-only and released on replacement, removal, owner changes and Desktop teardown. Stored Steam avatars and available League prototype profile-icon IDs supply images without provider refresh or verification claims. Unavailable videos/images retain explicit fallback states. Smaller-width presentation remains unchanged."
         }
       ],
-      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23, §38 (ISS-0007), §41 and §44 (ISS-0010); desktop manual acceptance by Mazen 2026-10-11 (16 tests, Product Memory REV-0004) - Android Chrome acceptance still outstanding, so the capability stays PENDING_ACCEPTANCE; original Slice 3A: §3; docs/CLASSIC-PROFILE-OWNER-PREVIEW.md; PROJECT_HANDOFF.md §57 (saved owner Classic preview, PENDING Mazen acceptance); docs/PROFILE-EDITOR-DESKTOP-REDESIGN.md; PROJECT_HANDOFF.md §58 (Mazen-authorized Desktop redesign, PENDING acceptance); docs/PROFILE-EDITOR-MEDIA-REVIEW.md; PROJECT_HANDOFF.md §59 (Desktop media presentation, PENDING acceptance)"
+      "record": "docs/PROFILE-EDITOR-UX.md; PROJECT_HANDOFF.md §20, §23, §38 (ISS-0007), §41 and §44 (ISS-0010); desktop manual acceptance by Mazen 2026-10-11 (16 tests, Product Memory REV-0004) - Android Chrome acceptance still outstanding, so the capability stays PENDING_ACCEPTANCE; original Slice 3A: §3; docs/CLASSIC-PROFILE-OWNER-PREVIEW.md; PROJECT_HANDOFF.md §57 (saved owner Classic preview, PENDING Mazen acceptance); docs/PROFILE-EDITOR-DESKTOP-REDESIGN.md; PROJECT_HANDOFF.md §58 (Mazen-authorized Desktop redesign, PENDING acceptance); docs/PROFILE-EDITOR-MEDIA-REVIEW.md; PROJECT_HANDOFF.md §59 (Desktop media presentation, PENDING acceptance); docs/PROFILE-EDITOR-ADAPTIVE-LAYOUT.md; PROJECT_HANDOFF.md §60 (adaptive Desktop layout, PENDING Mazen acceptance)"
     },
     {
       "id": "my-socials",

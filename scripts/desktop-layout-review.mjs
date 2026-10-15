@@ -14,10 +14,11 @@ export async function reviewDesktopLayout({page,width,scenario,out,calls,reprodu
   for(let i=0;i<cards.length;i++)for(let j=i+1;j<cards.length;j++){const a=cards[i],b=cards[j];assert.equal(Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x)>1&&Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y)>1,false,`no overlap ${a.key}/${b.key}`);}
   const gaps=await page.locator('.desktop-editor-stack').evaluateAll(stacks=>stacks.flatMap(stack=>[...stack.children].slice(1).map((n,i)=>{const a=stack.children[i].getBoundingClientRect(),b=n.getBoundingClientRect();return b.top-a.bottom;})));
   assert.ok(gaps.every(g=>g>=11&&g<=17),'one consistent responsive stack gap');assert.ok(Math.max(...gaps)-Math.min(...gaps)<1,'all stack gaps share the same spacing token');
-  const escaped=await page.locator('.desktop-editor-main .section-panel :is(input,select,textarea,button)').evaluateAll(nodes=>nodes.filter(n=>{const r=n.getBoundingClientRect(),p=n.closest('.editor-section').getBoundingClientRect();return r.width>0&&r.height>0&&(r.left<p.left-2||r.right>p.right+2);}).map(n=>n.id||n.className));assert.deepEqual(escaped,[],'visible controls remain inside their card');
+  const escaped=await page.locator('.desktop-editor .section-panel :is(input,select,textarea,button)').evaluateAll(nodes=>nodes.filter(n=>{const r=n.getBoundingClientRect(),p=n.closest('.editor-section').getBoundingClientRect();return r.width>0&&r.height>0&&(r.left<p.left-2||r.right>p.right+2);}).map(n=>n.id||n.className));assert.deepEqual(escaped,[],'visible controls remain inside their card, including sidebar actions');
  }
  await page.waitForFunction(()=>document.querySelector('[data-editor-section=crew] > .desktop-summary')?.textContent.trim().length>0);
  if(scenario!=='empty')await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview img')?.naturalWidth>0);
+ await page.waitForFunction(()=>[...document.querySelectorAll('.desktop-editor-main .desktop-summary img')].every(n=>n.complete&&n.naturalWidth>0));
  await page.waitForTimeout(150);
  if(reproduce){await page.screenshot({path:path.join(out,`adaptive-before-${width}-${scenario}.png`),fullPage:true});return {width,scenario,reproduced:true,avatar:await rect('avatar'),intro:await rect('intro')};}
  await check();
@@ -38,6 +39,7 @@ export async function reviewDesktopLayout({page,width,scenario,out,calls,reprodu
  // Multiple expanded sections, all nested editors and original controls remain accessible.
  for(const key of ['avatar','banner','about-group','socials','games','intro','connections','game-display','duo','crew','about','roles','education','bio','name','league'])await open(key);
  for(const toggle of await page.locator('.role-category-toggle[aria-expanded=false]').all())await toggle.click();
+ const beforeSidebar=await geometry();for(const key of ['share','wall'])await open(key);await check();assert.deepEqual(await geometry(),beforeSidebar,'expanding sidebar controls cannot shift main cards');
  await check();
  await page.locator('#profileBio').fill('Layout review unsaved draft');await page.evaluate(()=>window.layoutDraftNode=document.querySelector('#profileBio'));
  await page.screenshot({path:path.join(out,`adaptive-expanded-${width}-${scenario}.png`),fullPage:true,animations:'disabled'});

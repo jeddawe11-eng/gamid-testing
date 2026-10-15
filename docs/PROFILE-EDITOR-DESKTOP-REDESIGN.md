@@ -1,13 +1,15 @@
 # Desktop Profile Editor redesign (TESTING)
 
-Product checkpoint: `436de5e3cf9990c88c7863996542900018514013`, branch `feature/play-together-notifications`, from verified GitHub / clean local `99874cf8a560a00faa16eb9a924a3bde1e9faed9`. Mazen explicitly authorized implementation and TESTING deployment after review and eight resolved decisions. **PENDING Mazen review and acceptance.**
+Original redesign checkpoint: `436de5e3cf9990c88c7863996542900018514013`, branch `feature/play-together-notifications`, from verified GitHub / clean local `99874cf8a560a00faa16eb9a924a3bde1e9faed9`. Mazen explicitly authorized implementation and TESTING deployment after review and eight resolved decisions. **PENDING Mazen review and acceptance.**
+
+Current adaptive architecture: [PROFILE-EDITOR-ADAPTIVE-LAYOUT.md](PROFILE-EDITOR-ADAPTIVE-LAYOUT.md), product `e18c695ef5194d0448472da0b434a9fd1097dcdb` (2026-10-15, PENDING Mazen review). This supersedes the original shared-row / full-width placement described historically below.
 
 ## Layout
 
 Desktop starts at **1024 CSS pixels**. `desktop-editor.js` moves the existing live section cards and save controls into a wide layout and records original-position slots to restore them below 1024px. `desktop-editor.css` is a media-qualified stylesheet. No alternate app or backend exists. Authentication / onboarding are unchanged.
 
 - Sidebar: YOUR GAMID, saved Classic Preview, publication, Share, My Wall and saved profile summary (name, handle, Avatar, bio, opted-in Location and saved Socials). No drafts are shown in this saved summary; Classic Preview remains the actual existing renderer above Account.
-- Editing area: heading / Save All; paired Avatar and Intro; full-width Banner; full-width About Me; independent community columns (Socials, My Games, My Duo / Connections, Game Display, My Crew); static Play Together navigation. The owner's final authorization allows this ordering.
+- Editing area: heading / Save All; one column plan for all main cards. Left: Avatar, Banner, About Me, My Games, Game Display, Play Together. Right: Intro, Connections, My Socials, My Duo, My Crew. Duo and Crew are adjacent in the right column. Original live controls and restoration slots remain.
 - About Me contains exactly five independently expandable sections: About Me (Location, Languages, Favorite Genres), Gaming Roles, Education & Work, Bio, Identity. Fields occur once, inside this group. Original per-section saves remain; no group save is invented. Failed Save All and notification destinations reveal ancestor panels.
 - Collapsed summaries show real Avatar, Banner, Intro state / transition, 12 Socials with Added / Not added, connection names / states, available game icons / fallback initials / counts, display flags, current Duo / actual badge and Crew names / games / member counts. Empty / loading / error states stay explicit. Reference account data, durations, art, verification or relationships are never seeded.
 - Cards keep independent natural heights. Community cards flow in separate columns so expanding Connections does not stretch My Socials or push My Games. Images retain aspect ratio. Avatar is never mirrored. Banner remains 1920x320 (6:1). Sidebar proportions and spacing adapt from 1024px upward.

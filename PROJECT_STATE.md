@@ -4,7 +4,7 @@
 
 This file is an index and a continuation pointer. It is **not** an authoritative source. Every fact here points to the source that owns it, and **that source wins** whenever the two disagree.
 
-Last reviewed: 2026-10-14.
+Last reviewed: 2026-10-15.
 
 ## 1. Mandatory entry order
 
@@ -52,7 +52,7 @@ Snapshot from 2026-10-11; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** `0dd59a91b947571d5579c8ed61be5c94cb9dffc0` (Desktop Profile Editor media and independent card presentation; `PROJECT_HANDOFF.md` §59; PENDING Mazen review and acceptance). Previous Desktop redesign: `436de5e`, §58.
+- **Latest product commit:** `e18c695ef5194d0448472da0b434a9fd1097dcdb` (unified adaptive Desktop Profile Editor layout; `PROJECT_HANDOFF.md` §60; PENDING Mazen visual review and acceptance). Previous media product: `0dd59a9`, §59; previous Desktop redesign: `436de5e`, §58.
 - **Previous editor product:** `41aa90692c164d9675698131f561b285cdc8b736` (saved owner Classic preview; `PROJECT_HANDOFF.md` §57; TESTING deployment `7aa0133`, run `38427825018`; PENDING owner acceptance).
 - **Previous product commit:** `4b56646e782eefadcc173b64e8aa59f0fab37cd9` (ISS-0011 Intro storage lifecycle and reservation release; ISS-0012 clear refusal; `PROJECT_HANDOFF.md` §42; deployed as head `72896d6`, run `38145293680`; PENDING manual acceptance). Before it: `a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7` (ISS-0007 Avatar validation, My Crews panel sizing CP-01, Role Suggestions review inside Gaming Roles GR-01; `PROJECT_HANDOFF.md` §38; migration `20261011220000` applied; `usage-upload` v8; deployed by run `38128281601`). Mazen's manual checks passed: CP-01 (REV-0002), GR-01 (REV-0003) and an Avatar save for ISS-0007 (which stays FIXED until his security acceptance); the capabilities `your-gamid-editor`, `my-crews-view` and `gaming-roles-categories` remain PENDING_ACCEPTANCE in Truth.
   - **ISS-0009 is VERIFIED and Truth `visitor-media-access` is ACCEPTED** (Mazen, 2026-10-11, including the documented residual possibility of unknown historical signed URLs; `PROJECT_HANDOFF.md` §30, §38–§40). The known pre-fix synthetic URL was closed by deleting its object (§39).
