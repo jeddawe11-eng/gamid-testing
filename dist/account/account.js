@@ -1150,6 +1150,7 @@ async function loadCrew() {
   }
 }
 function revealEditorSection(node){
+ const key=node?.closest('[data-editor-section]')?.dataset.editorSection;if(key&&editor.desktop.reveal(key))return;
  for(let card=node?.closest('[data-editor-section]');card;card=card.parentElement?.closest('[data-editor-section]')){
   const section=editor.sections.get(card.dataset.editorSection);if(section){section.panel.hidden=false;section.toggle.setAttribute('aria-expanded','true');}
  }
@@ -2394,6 +2395,7 @@ for(const [key,{button}] of editor.saves)button.addEventListener('click',()=>sav
 const sectionTitle=key=>editor.sections.get(key)?.toggle.querySelector('strong')?.textContent?.trim()||key;
 function revealSection(key){
  const section=editor.sections.get(key);if(!section)return;
+ if(editor.desktop.reveal(key,{scroll:true}))return;
  for(let node=section.card;node;node=node.parentElement){const owner=node.dataset?.editorSection&&editor.sections.get(node.dataset.editorSection);if(owner&&owner.toggle.getAttribute('aria-expanded')!=='true')owner.toggle.click();}
  section.card.scrollIntoView?.({block:'center'});
 }

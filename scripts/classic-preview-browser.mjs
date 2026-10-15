@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { createDocument } from '../dist/wall/schema.js';
-import { reviewDesktopLayout } from './desktop-layout-review.mjs';
+import { reviewDesktopLayout, openEditor, assertPairedLayout } from './desktop-layout-review.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.GAMID_BROWSER_MODULE || 'playwright');
 const jpeg = require('jpeg-js');
@@ -97,14 +97,13 @@ try {
     if(mediaReview){
       await page.waitForFunction(()=>document.querySelector('#crewPanel')?.textContent.includes('Saved Crew'));await page.waitForTimeout(reproduce?300:1500);if(!reproduce&&width>=1024)await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview img')?.naturalWidth>0);
       if(width>=1024){
-        const socialsCard=page.locator('[data-editor-section=socials]'),connectionCard=page.locator('[data-editor-section=connections]');const before=(await socialsCard.boundingBox()).height,followingBefore=await page.locator('[data-editor-section=games]').evaluate(n=>n.getBoundingClientRect().top+window.scrollY);
+        const socialsCard=page.locator('[data-editor-section=socials]'),connectionCard=page.locator('[data-editor-section=connections]');const before=(await socialsCard.locator(':scope > .desktop-summary').boundingBox()).height,followingBefore=0;
         await connectionCard.locator(':scope > .section-toggle').click();await page.locator('[data-editor-section=league] > .section-toggle').click();await page.waitForTimeout(300);
-        const after=(await socialsCard.boundingBox()).height;const stats={width,poster:await page.locator('.desktop-intro-preview img').count(),steam:await page.locator('.connection-card[data-provider=steam] .connection-avatar img').count(),league:await page.locator('.league-card .connection-avatar img').count(),covers:await page.locator('[data-editor-section=games] > .desktop-summary img.game-art').count(),socialsBefore:before,socialsAfter:after,followingBefore,followingAfter:await page.locator('[data-editor-section=games]').evaluate(n=>n.getBoundingClientRect().top+window.scrollY),plays:await page.evaluate(()=>window.mediaPlayCalls)};
+        const after=(await socialsCard.locator(':scope > .desktop-summary').boundingBox()).height;const stats={width,poster:await page.locator('.desktop-intro-preview img').count(),steam:await page.locator('.connection-card[data-provider=steam] .connection-avatar img').count(),league:await page.locator('.league-card .connection-avatar img').count(),covers:await page.locator('[data-editor-section=games] > .desktop-summary img.game-art').count(),socialsBefore:before,socialsAfter:after,followingBefore,followingAfter:await page.locator('[data-editor-section=games]').evaluate(n=>n.getBoundingClientRect().top+window.scrollY),plays:await page.evaluate(()=>window.mediaPlayCalls)};
         await page.screenshot({path:path.join(out,`editor-media-${reproduce?'before':'after'}-${width}.png`),fullPage:true});
         if(!reproduce){assert.equal(stats.poster,1);assert.equal(stats.steam,1);assert.equal(stats.league,1);assert.ok(stats.covers>=2);assert.equal(before,after);assert.equal(stats.plays,0);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(await page.locator('.desktop-intro-preview img').evaluate(n=>n.naturalWidth>0),true);assert.match(await page.locator('.league-card').innerText(),/UNVERIFIED/);
-          for(const [left,right] of [['avatar','intro'],['games','game-display'],['duo','crew']]){const peer=page.locator(`[data-editor-section=${left}]`),opened=page.locator(`[data-editor-section=${right}]`);const height=(await peer.boundingBox()).height;await opened.locator(':scope > .section-toggle').click();assert.equal((await peer.boundingBox()).height,height,'opening a card cannot stretch its row peer');}
-          assert.equal(await page.locator('.desktop-intro-preview img').isVisible(),true,'real thumbnail remains visible in expanded Intro');
-          assert.equal(stats.followingBefore,stats.followingAfter,'opening Connections cannot push the next card in the other column');const tiles=await page.locator('.desktop-editor-grid > .editor-section,.desktop-editor-stack > .editor-section').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height};}));for(let i=0;i<tiles.length;i++)for(let j=i+1;j<tiles.length;j++){const a=tiles[i],b=tiles[j];assert.equal(Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x)>1&&Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y)>1,false,'Desktop cards do not overlap');}
+          for(const key of ['avatar','intro','games','game-display','duo','crew']){await openEditor(page,key);await assertPairedLayout(page);}
+          assert.equal(await page.locator('.desktop-intro-preview img').isVisible(),true);
           if(width===1440){const editorImages=await page.locator('[data-editor-section=games] > .desktop-summary img.game-art').evaluateAll(nodes=>nodes.map(n=>n.src).sort());await page.locator('#previewClassicButton').click();const frame=page.frameLocator('.classic-preview-dialog > iframe');await frame.locator('#desktopHero').waitFor();await frame.locator('#publicGames img.game-art').first().waitFor();const previewImages=await frame.locator('#publicGames img.game-art').evaluateAll(nodes=>nodes.map(n=>n.src).sort());assert.deepEqual(previewImages,editorImages,'Editor and saved private Classic My Games use identical artwork');await page.getByRole('button',{name:'Back to Edit',exact:true}).click();stats.previewArtworkMatches=true;}
           if(width===1024){await page.setViewportSize({width:390,height:900});assert.equal(await page.locator('.connection-card[data-provider=steam] .connection-avatar img').count(),0);assert.equal(await page.locator('.league-card .connection-avatar img').count(),0);assert.equal(await page.locator('#myGamesSection .game-art').count(),0);await page.setViewportSize({width,height:900});await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview img')?.naturalWidth>0);failedMedia=true;imageRequests=0;await page.reload();await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview')?.textContent.includes('Thumbnail unavailable'));await page.waitForTimeout(300);assert.equal(await page.locator('.desktop-intro-preview img').count(),0);assert.equal(await page.locator('.connection-card[data-provider=steam] .connection-avatar img').count(),0);assert.equal(await page.locator('.league-card .connection-avatar img').count(),0);assert.ok(imageRequests<30,'failed image URLs do not cause an infinite retry/render loop');stats.failuresHandled=true;}
           assert.equal(calls.some(c=>/\/rpc\/(?:set_|save_|update_|publish|queue_)/.test(c.path)),false,'thumbnail/artwork reads never save or publish');
@@ -132,14 +131,13 @@ try {
       return previewCalls.length;
     };
     await preview('private-no-edits');
-    await openSection('name');await openSection('bio');await openSection('intro');await openSection('avatar');
-    await page.locator('#profileDisplayName').fill('UNSAVED NAME');await page.locator('#profileBio').fill('UNSAVED BIO');await page.locator('#introTransition').selectOption('split');
+    await openSection('name');await page.locator('#profileDisplayName').fill('UNSAVED NAME');await openSection('bio');await page.locator('#profileBio').fill('UNSAVED BIO');await openSection('intro');await page.locator('#introTransition').selectOption('split');await openSection('avatar');
     await page.locator('#profileAvatarInput').setInputFiles({name:'draft.jpg',mimeType:'image/jpeg',buffer:avatar});
     await page.locator('#avatarCropDialog[open]').waitFor();await page.locator('#applyAvatarCrop').click();await page.locator('#avatarCropDialog').waitFor({state:'hidden'});
     const avatarDraft=await page.locator('#profileAvatarThumbnail').evaluate(e=>e.style.backgroundImage);
     assert.match(avatarDraft,/blob:/);assert.equal(await page.locator('[data-profile-save=avatar]').isEnabled(),true);
     // A real local file exercises the existing Intro validation and local Blob draft.
-    await page.locator('#introVideoInput').setInputFiles(path.join(root,'assets/gamid-intro.mp4'));
+    await openSection('intro');await page.locator('#introVideoInput').setInputFiles(path.join(root,'assets/gamid-intro.mp4'));
     await page.locator('#introFileStatus').filter({hasText:'ready to upload'}).waitFor();
     const introDraft=await page.locator('#introFileStatus').textContent();
     for(const state of [{label:'wall-unpublished',public:'DRAFT',wall:false},{label:'wall-disabled',public:'PUBLIC',wall:false},{label:'wall-enabled',public:'PUBLIC',wall:true}]) {
