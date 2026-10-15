@@ -641,11 +641,11 @@
         "/account/",
         "/@<handle>"
       ],
-      "checkpoint": "7ab1278f94c36c265df1d47b4388ab1db418c3dd",
+      "checkpoint": "fcbf081b0b7446427d0d2c1462ae24dea4b97c14",
       "contracts": [
         {
           "id": "owner-crew-selection",
-          "rule": "My Crew keeps its first two artwork summary cards and uses a centered +N more crews action to open the existing editor. The owner editor presents a compact list of all active Crews; selecting one shows only that Crew management region. Back returns to the list and restores focus without resetting unrelated Profile Editor drafts. Original management fields and actions, confirmations, errors, ownership and member permissions remain; navigating never saves, publishes, invites or deletes."
+          "rule": "On Desktop, My Crew shows up to its first three artwork summary cards in one balanced row. For four or more Crews, a centered +X more crews action opens the complete existing Crew list. Selecting a Crew shows only its management region; the prominent Back to All Crews control restores the full list and focus, preserving Crew rename/invitation drafts and unrelated Profile Editor drafts. Original management fields, actions, confirmations, errors, ownership and member permissions remain; navigating never saves, publishes, invites or deletes."
         },
         {
           "id": "owner-crew-creation-entry",
@@ -654,9 +654,13 @@
         {
           "id": "public-crews-nine-and-remainder",
           "rule": "The public My Crews directory initially displays the first nine eligible Crews in unchanged server order. If a tenth exists, View remaining Crew reveals that same approved card, moves focus to its existing Crew Wall link and keeps it fully accessible. Desktop has at most three centered, unstretched cards per row, yielding 3+3+3 for nine; existing tablet two-column and phone one-column behavior remains. No change to membership limits, public eligibility, public-member avatars, reliable artwork, fallback or navigation gates."
+        },
+        {
+          "id": "owner-crew-management-layout",
+          "rule": "At Desktop widths of 1024px or more, owner Crew management groups Members and invitations in one column and the existing Crew Wall controls in an independent adjacent column, with destructive management controls separate below. Member cards adapt to one, two or three columns according to available width, up to the existing 15-member capacity, retaining authorized avatars, names, handles and role-specific actions. On smaller screens management stacks vertically; no unrelated mobile redesign, permission, privacy, save behavior or authoritative limit changes."
         }
       ],
-      "record": "docs/MY-CREW-UX.md; PROJECT_HANDOFF.md §65. Mazen authorized implementation and TESTING deployment; new UX awaits his visual acceptance. Accepted base my-crew, crew-rename, my-crews-view, your-gamid-editor and public-gamid-profile remain separately recorded with their original accepted checkpoints and limits."
+      "record": "docs/MY-CREW-UX.md; PROJECT_HANDOFF.md §65–§66. Mazen authorized navigation and final polish implementation and TESTING deployment; new UX awaits his visual acceptance. Accepted base my-crew, crew-rename, my-crews-view, your-gamid-editor and public-gamid-profile remain separately recorded with their original accepted checkpoints and limits."
     },
     {
       "id": "game-artwork-provisional",
