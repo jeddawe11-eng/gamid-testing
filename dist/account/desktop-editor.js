@@ -31,7 +31,9 @@ export function mountDesktopEditor(doc,sections){
  const root=doc.getElementById('identityView'),win=doc.defaultView,mq=win.matchMedia('(min-width: 1024px)');
  const h=(tag,cls,text)=>{const n=doc.createElement(tag);n.className=cls;if(text!==undefined)n.textContent=text;return n;};
  const shell=h('div','desktop-editor-layout'),side=h('aside','desktop-editor-side'),main=h('div','desktop-editor-main'),grid=h('div','desktop-editor-grid');
+ const sideIdentity=h('div','desktop-editor-identity');
  const columns=h('div','desktop-editor-columns'),leftColumn=h('div','desktop-editor-stack'),rightColumn=h('div','desktop-editor-stack');columns.append(leftColumn,rightColumn);
+ const columnPlan=[[leftColumn,['avatar','banner','about-group','games','game-display','play']],[rightColumn,['intro','connections','socials','duo','crew']]];
  const head=h('div','desktop-editor-heading'),copy=h('div','');copy.append(h('h3','','Edit Profile Information'),h('p','','Customize your GamID. Changes are saved only when you choose Save.'));head.append(copy);main.append(head,grid);shell.append(side,main);
  const group=h('section','editor-section desktop-about-group');group.dataset.editorSection='about-group';
  const toggle=h('button','section-toggle');toggle.type='button';toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls','desktop-about-panel');
@@ -55,7 +57,7 @@ export function mountDesktopEditor(doc,sections){
  function move(node,target){if(!node)return;for(const control of node.querySelectorAll('input,select,textarea,button')){if(control.form?.id==='profileForm'&&!formAttrs.has(control)){formAttrs.set(control,control.getAttribute('form'));control.setAttribute('form','profileForm');}}const slot=doc.createComment('desktop editor original position');node.before(slot);slots.push([node,slot]);target.append(node);}
  function associate(){if(!active)return;for(const key of ['avatar','intro','name','bio','roles','education'])for(const control of sections.get(key).panel.querySelectorAll('input,select,textarea,button')){if(!control.form&&!control.closest('form')&&!formAttrs.has(control)){formAttrs.set(control,control.getAttribute('form'));control.setAttribute('form','profileForm');}}}
  function thumbnail(node){const n=h('div','desktop-mini-image');if(node){n.style.backgroundImage=node.style.backgroundImage;const initial=()=>(node.textContent.trim()||node.closest('.game-item')?.querySelector('.game-name')?.textContent||'?').slice(0,2);const img=node.querySelector('.game-art')||node.querySelector('img');if(img&&!failedArt.has(img.src)){const c=img.cloneNode();c.removeAttribute('id');c.alt='';c.addEventListener('error',()=>{c.remove();n.textContent=initial();},{once:true});n.append(c);}else n.textContent=node.style.backgroundImage?'':initial();}return n;}
- function item(label,detail,visual){const n=h('div','desktop-summary-item');if(visual)n.append(visual);n.append(h('strong','',label),h('small','',detail??'Not added'));return n;}
+ function item(label,detail,visual){const n=h('div','desktop-summary-item');if(visual)n.append(visual);const name=h('strong','',label),description=h('small','',detail??'Not added');name.title=label;description.title=detail??'Not added';n.append(name,description);return n;}
  function render(){
   if(!active)return;
   decorateMedia();
@@ -85,7 +87,7 @@ export function mountDesktopEditor(doc,sections){
    }else if(key==='duo'){
     const person=source.querySelector('.is-duo .duo-person');if(person){const summary=item(person.querySelector('strong')?.textContent||'My Duo',person.querySelector('.duo-handle')?.textContent,thumbnail(person.querySelector('.duo-avatar')));summary.classList.add('desktop-duo-summary');children.push(summary);const badge=source.querySelector('.is-duo .identity-rel-badge-text');if(badge)children.push(h('small','desktop-summary-note',badge.textContent.trim()));}
    }else if(key==='crew'){
-    for(const card of source.querySelectorAll('.crew-card'))children.push(item(card.querySelector('.crew-name')?.textContent||'Crew',[card.querySelector('.crew-game')?.textContent,card.querySelector('.crew-count')?.textContent].filter(Boolean).join(' · ')));
+    const crews=[...source.querySelectorAll('.crew-card')];for(const card of crews.slice(0,3))children.push(item(card.querySelector('.crew-name')?.textContent||'Crew',[card.querySelector('.crew-game')?.textContent,card.querySelector('.crew-count')?.textContent].filter(Boolean).join(' · ')));if(crews.length>3)children.push(h('p','desktop-summary-note',`${crews.length} crews · Open to see all`));
    }
    if(!children.length)children.push(h('p','desktop-summary-note',sections.get(key).status.textContent));box.replaceChildren(...children);
   }
@@ -97,13 +99,16 @@ export function mountDesktopEditor(doc,sections){
  function enable(){
   if(active)return;active=true;root.classList.add('desktop-editor');root.append(shell);
   for(const platform of SOCIAL_PLATFORMS){const mark=socialBrandMark(platform.key);if(mark)root.style.setProperty(`--desktop-${platform.key}-mark`,mark);}
-  for(const node of [root.querySelector(':scope > .eyebrow'),root.querySelector(':scope > h2'),root.querySelector(':scope > .lede'),root.querySelector('.classic-preview-entry'),root.querySelector('.gamid-publication'),sections.get('share').card,sections.get('wall').card])move(node,side);side.append(savedCard);
+  side.prepend(sideIdentity);for(const node of [root.querySelector(':scope > .eyebrow'),root.querySelector(':scope > h2'),root.querySelector(':scope > .lede')])move(node,sideIdentity);
+  for(const node of [root.querySelector('.classic-preview-entry'),root.querySelector('.gamid-publication'),sections.get('share').card,sections.get('wall').card])move(node,side);side.append(savedCard);
   move(doc.getElementById('saveAllBar'),head);
-  for(const key of ['avatar','intro','banner'])move(sections.get(key).card,grid);grid.append(group);
+  grid.append(columns);
   sections.set('about-group',{card:group,panel,toggle,status:title.querySelector('small')});
   for(const key of nested)move(sections.get(key).card,panel);
-  grid.append(columns);for(const key of ['socials','games','duo'])move(sections.get(key).card,leftColumn);for(const key of ['connections','game-display','crew'])move(sections.get(key).card,rightColumn);
-  move(sections.get('play').card,grid);sections.get('play').card.classList.add('desktop-play-static');
+  // One stable column flow for every card, not a mixture of shared rows and stacks.
+  // Original nodes keep their slots; restoring mobile never depends on this Desktop order.
+  for(const [column,keys] of columnPlan)for(const key of keys){if(key==='about-group')column.append(group);else move(sections.get(key).card,column);}
+  sections.get('play').card.classList.add('desktop-play-static');
   const playGlyph=h('span','section-icon desktop-play-glyph');playGlyph.append(icon(doc,'games'));sections.get('play').panel.querySelector('.play-together-entry').prepend(playGlyph);added.push(playGlyph);
   for(const [key,s] of sections){if(key==='about-group')continue;const old=s.toggle.querySelector('.section-icon');if(old){oldIcons.set(old,[...old.childNodes]);old.replaceChildren(icon(doc,key));}}
   for(const [key,summary] of summaries){const s=sections.get(key);s.toggle.after(summary);added.push(summary);}

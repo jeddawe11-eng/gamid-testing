@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
 import { createDocument } from '../dist/wall/schema.js';
+import { reviewDesktopLayout } from './desktop-layout-review.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.GAMID_BROWSER_MODULE || 'playwright');
 const jpeg = require('jpeg-js');
@@ -25,9 +26,11 @@ const socials = [{platform_key:'instagram',kind:'profile',account_id:'fixture.ga
 const crews = [{crew_id:crewId,crew_name:'Saved Crew',game_key:'league_of_legends',game_name:'League of Legends',role:'OWNER',member_count:2,members:[{handle:'fixture_friend',display_name:'Saved Friend'}]}];
 const browser = await chromium.launch({executablePath:process.env.GAMID_CHROME_PATH || undefined,headless:true});
 const results=[];
-const mediaReview=process.argv.includes('--media-review'),reproduce=process.argv.includes('--reproduce');
+const adaptive=process.argv.includes('--adaptive-layout'),mediaReview=process.argv.includes('--media-review')||adaptive,reproduce=process.argv.includes('--reproduce');
+const widths=adaptive?(process.env.GAMID_ADAPTIVE_WIDTHS||'1024,1152,1280,1440,1920,2560').split(',').map(Number):mediaReview?[1024,1440,1920,390]:[1440,390];
+const runs=widths.flatMap(width=>(adaptive?(process.env.GAMID_ADAPTIVE_SCENARIOS||'empty,populated,rich').split(','):['populated']).map(scenario=>({width,scenario})));
 try {
-  for (const width of (mediaReview?[1024,1440,1920,390]:[1440,390])) {
+  for (const {width,scenario} of runs) {
     const context = await browser.newContext({viewport:{width,height:900},hasTouch:width===390});
     await context.routeWebSocket('**/*',ws=>ws.close());
     const page = await context.newPage(), errors=[], calls=[];
@@ -35,7 +38,7 @@ try {
     page.on('pageerror',e=>errors.push(e.message));
     let publication='DRAFT', wallEnabled=false, signedIn=true, withIntro=true, servedRoot=root,failedMedia=false,imageRequests=0;
     const wallDocument=createDocument();
-    const row = () => ({entity_id:uid,gamid_handle:'fixture_owner',display_name:'Saved Gamer',bio:'Saved biography',visibility:publication,avatar_media_reference:uid+'/saved.jpg',role_keys:['player'],primary_role_key:'player',role_catalog:roles,education_work_status:'student',institution:'Saved School',field_of_study:'Design',education_work_catalog:[{key:'student',label:'Student'}],account_email:'fixture@example.test',preferred_language:'en'});
+    const row = () => ({entity_id:uid,gamid_handle:'fixture_owner',display_name:'Saved Gamer',bio:'Saved biography',visibility:publication,avatar_media_reference:adaptive&&scenario==='empty'?null:uid+'/saved.jpg',role_keys:['player'],primary_role_key:'player',role_catalog:roles,education_work_status:'student',institution:'Saved School',field_of_study:'Design',education_work_catalog:[{key:'student',label:'Student'}],account_email:'fixture@example.test',preferred_language:'en'});
     const publicRow = () => ({...row(),intro_derivative_path:withIntro?uid+'/intro.webm':null,public_sections:{discord:{display_name:'Saved Discord',username:'saved_discord',trust_status:'CONNECTED'},steam:{persona_name:'Saved Steam',trust_status:'CONNECTED'},duo:{gamid_handle:'fixture_friend',display_name:'Saved Friend'},crews,my_games:library}});
     const jwt = 'eyJhbGciOiJIUzI1NiJ9.'+Buffer.from(JSON.stringify({sub:uid,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.fixture';
     await context.addInitScript(({jwt}) => localStorage.setItem('gamid.testing.auth.session.v1',JSON.stringify({access_token:jwt,refresh_token:'fixture-only',expires_at:Math.floor(Date.now()/1000)+3600})),{jwt});
@@ -67,6 +70,17 @@ try {
           get_my_admin_status:false,get_my_unread_notification_count:0,get_my_notifications:[],
           get_my_usage:{storage:{used_bytes:0,quota_bytes:200000000,available_bytes:200000000,enforcement_active:true},media:{},quotas:[]},
         };
+        if(adaptive){
+          if(scenario==='empty'){for(const name of ['get_my_intro','get_my_banner','get_my_social_links','get_my_connections','get_my_manual_games','get_my_favorite_games','get_my_league_profile','get_my_duo','get_my_crews'])bodies[name]=[];bodies.get_my_about=[{...about,about_country_code:null,about_city_id:null,about_city_name:null,about_languages:[],about_genres:[]}];}
+          if(scenario==='rich'){
+            bodies.get_my_manual_games=Array.from({length:14},(_,i)=>({game_key:i===0?'league_of_legends':i===1?'saved_game':`fixture_game_${i}`,display_name:`Game ${i+1}: A Very Long Edition Name With Additional Expansions and Platforms`,platforms:[{platform_key:'windows_pc',display_name:'PC'},{platform_key:'playstation_5',display_name:'PlayStation 5'}]}));
+            bodies.get_my_crews=Array.from({length:10},(_,i)=>({...crews[0],crew_id:`00000000-0000-4000-8000-${String(i+100).padStart(12,'0')}`,crew_name:`Crew ${i+1}: Players Across the World With A Long Name`,game_key:`fixture_game_${i}`,game_name:`Game ${i+1}: Long Subtitle`,my_status:'ACTIVE',my_role:'OWNER',member_count:15}));
+            bodies.get_crew_members=Array.from({length:15},(_,i)=>({status:'ACTIVE',is_published:true,gamid_handle:`fixture_player_${i}`,display_name:`Player ${i+1} With A Long Display Name`}));
+            bodies.get_my_social_links=['instagram','youtube','tiktok','twitch','kick','x','snapchat','discord','facebook','spotify','soundcloud','vimeo'].map((platform_key,i)=>({platform_key,kind:'profile',account_id:platform_key==='discord'?'123456789012345678':'fixture.gamer',sort_order:i}));
+            for(const c of bodies.get_my_connections){c.provider_display_name='A Long Provider Display Name With Extra Details';c.provider_username='long_provider_username_'.repeat(3);}
+            bodies.get_my_duo=[{...bodies.get_my_duo[0],display_name:'A Long Duo Display Name With More Characters'}];
+          }
+        }
         return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(bodies[action]??[])});
       }
       if (url.origin===CF) {
@@ -75,10 +89,11 @@ try {
         if(!file.startsWith(path.resolve(servedRoot)+path.sep))throw Error('Unexpected fixture path');
         return route.fulfill({status:200,contentType:({'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml'})[path.extname(file)]||'application/octet-stream',body:fs.readFileSync(file)});
       }
-      if(mediaReview&&['cdn2.steamgriddb.com','avatars.fastly.steamstatic.com','cdn.discordapp.com','opgg-static.akamaized.net'].includes(url.hostname)){imageRequests++;return route.fulfill({status:failedMedia?404:200,contentType:'image/jpeg',body:failedMedia?Buffer.alloc(0):avatar,headers:{'Cache-Control':'no-store'}});}
+      if(mediaReview&&['cdn2.steamgriddb.com','avatars.fastly.steamstatic.com','cdn.discordapp.com','opgg-static.akamaized.net'].includes(url.hostname)){imageRequests++;return route.fulfill({status:failedMedia?404:200,contentType:'image/jpeg',body:failedMedia?Buffer.alloc(0):adaptive&&scenario==='rich'?jpg(url.pathname.includes('league')?40:320,url.pathname.includes('league')?240:60):avatar,headers:{'Cache-Control':'no-store'}});}
       return route.abort();
     });
     await page.goto(CF+'/account/');await page.locator('#identityView.is-active').waitFor();
+    if(adaptive){results.push(await reviewDesktopLayout({page,width,scenario,out,calls,reproduce}));assert.deepEqual(errors,[]);await context.close();continue;}
     if(mediaReview){
       await page.waitForFunction(()=>document.querySelector('#crewPanel')?.textContent.includes('Saved Crew'));await page.waitForTimeout(reproduce?300:1500);if(!reproduce&&width>=1024)await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview img')?.naturalWidth>0);
       if(width>=1024){

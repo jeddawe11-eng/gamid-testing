@@ -62,7 +62,9 @@ const CITIES={SA:[{city_id:108410,name:'Riyadh',name_ar:'الرياض',populatio
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   await page.screenshot({path:`${out}/editor-collapsed-${width}.png`,fullPage:true,animations:'disabled'});
   if(width>=1024){
-   assert.equal(await page.locator('.desktop-editor-grid > .editor-section:not(.desktop-play-static) > .section-toggle[aria-expanded=true]').count(),0);
+   assert.equal(await page.locator('.desktop-editor-stack > .editor-section:not(.desktop-play-static) > .section-toggle[aria-expanded=true]').count(),0);
+   assert.equal(await page.locator('.desktop-editor-stack > .editor-section').count(),11);
+   assert.equal(await page.locator('[data-editor-section=duo]').evaluate(n=>n.nextElementSibling?.dataset.editorSection),'crew');
    assert.equal(await page.locator('.desktop-about-group > .section-panel > .editor-section').count(),5);
    assert.equal(await page.locator('#profileDisplayName').count(),1);assert.equal(await page.locator('#profileDisplayName').evaluate(n=>n.form.id),'profileForm');
    assert.equal(await page.locator('input[name=gamingRole]').first().evaluate(n=>n.form?.id),'profileForm','catalog-created role fields keep their original form ownership');
