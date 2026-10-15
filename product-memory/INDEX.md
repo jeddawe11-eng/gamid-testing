@@ -83,6 +83,8 @@ Rules:
 
 ## Register
 
+2026-10-15: REV-0001 item 4 now records Mazen's final Public GamID Profile PASS and ACCEPTED; no further manual testing required for that acceptance. Existing review reused; ID counters unchanged.
+
 2026-10-15: Mazen authorized updates to existing IDEA-0001 (accepted Desktop design and rationale) and REV-0004 (final manual PASS on deployed 1ec1da3); no new IDs or duplicate records. Earlier review and deferral history remains in those records.
 
 | ID | Title | Status | Record |

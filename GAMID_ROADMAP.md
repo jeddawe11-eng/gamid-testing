@@ -2,6 +2,8 @@
 
 # GamID Product Roadmap
 
+**Public GamID Profile final acceptance (Mazen, 2026-10-15): PASS and ACCEPTED on TESTING. No further manual testing is required for this acceptance; future issues are tracked separately.** Truth `public-gamid-profile`, REV-0001 item 4 and PROJECT_HANDOFF.md §63 supersede earlier pending statements for this capability. Implementation checkpoints are unchanged.
+
 This is the readable product roadmap. `PROJECT_HANDOFF.md` is the authoritative technical continuation document.
 
 Nothing marked **Approved direction**, **Idea only**, or **Requires Mazen approval** is implementation authorization.
@@ -33,8 +35,8 @@ The current entity is **SOLO**. Team, Organization, and Company are future direc
 | YOUR GAMID editor | **Implemented, not formally accepted** |
 | Gaming Roles + Education & Work | **Implemented and accepted** |
 | Intro Identity Integration | **Implemented, not formally accepted** |
-| Public GamID Profile — Slice 1/2 (Foundation + Public-Safe Data) | **Implemented, not formally accepted** |
-| Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions) | **Implemented, not formally accepted** |
+| Public GamID Profile — Slice 1/2 (Foundation + Public-Safe Data) | **ACCEPTED by Mazen 2026-10-15** |
+| Public GamID Profile — Slice 2/2 (Public Experience + Intro/Transitions) | **ACCEPTED by Mazen 2026-10-15** |
 | Permanent Public GamID URL + QR + Sharing | **Implemented, not formally accepted** |
 | Play Together complete milestone | **Implemented, TESTING technical validation complete; awaiting Mazen manual acceptance** |
 
