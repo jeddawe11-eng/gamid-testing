@@ -47,3 +47,11 @@ GamID Truth: UPDATED — unified Desktop column order, card-width adaptation, in
 Product Memory: PROPOSED — a decision linked to IDEA-0001 for stable natural columns, compact summary/full editor separation and card-width responsive rules. No Product Memory record/index saved; separate explicit approval is required.
 
 Deploy through the existing exact-ref/expected-SHA Cloudflare TESTING workflow only after successful checks, verify deployed files/screenshots, then STOP for Mazen review.
+
+## TESTING deployment confirmation (2026-10-15)
+
+[Cloudflare TESTING run 38668586693](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38668586693) **SUCCESS**, exact deployed source `43be3cbdd7dcbabdc04cc1a93f5b92bbd6f27ab7`. Existing workflow reran the complete build and smoke checks; no backend deployment or configuration change. Nine served frontend files match committed source after normal HTML stamping and line-ending normalization.
+
+Deployed adaptive matrix **18/18 PASS**, including all six widths, all three content cases, sidebar actions, ten independently growing main cards, all expanded sections, decoded images, identical draft node across resize, no mutations/playback and no overlap/control overflow. Deployed layout suite **6/6 PASS**, media suite **4/4 PASS**, Classic Preview **2/2 PASS**. Deployed 390 / 1023 screenshots are byte-identical to archived `155e845`. Existing functional saves/uploads/drafts regressions passed locally at 1024 / 1280 / 390, with no errors or overflow. Full build: **1909 PASS / one existing opt-in SKIP / zero failures**.
+
+Delivery screenshots are isolated fixtures on the deployed frontend: collapsed empty/populated/rich states at 1024–2560, fully expanded pages, plus readable Connections/Crew details at 1024 / 1440. No real account data or acceptance is claimed. The final delivery-confirmation commit is documentation-only; running frontend remains `43be3cb`. **STOP for Mazen visual review; not ACCEPTED.**
