@@ -56,6 +56,7 @@ export async function reviewDesktopLayout({page,width,scenario,out,calls}){
  await openEditor(page,'intro');await openEditor(page,'name');assert.equal(await page.locator('#profileDisplayName').inputValue(),'Layout draft');
  await openEditor(page,'bio');assert.equal(await page.locator('#profileBio').inputValue(),'Layout review unsaved draft');
  await openEditor(page,'connections');await assertPairedLayout(page);
+ if(scenario!=='empty')await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview img')?.naturalWidth>0);
  await page.screenshot({path:path.join(out,`paired-expanded-${width}-${scenario}.png`),fullPage:true,animations:'disabled'});
  await page.setViewportSize({width:390,height:900});await page.waitForFunction(()=>!document.querySelector('.desktop-editor-layout'));
  await openEditor(page,'name');await openEditor(page,'bio');assert.ok(await page.locator('#profileDisplayName').isVisible());assert.ok(await page.locator('#profileBio').isVisible(),'mobile keeps independent sections');
