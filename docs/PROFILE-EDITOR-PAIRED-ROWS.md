@@ -4,6 +4,8 @@ Implementation checkpoint: `61de6220a37922a776cddd19771b10bdac4fde51`, authorize
 
 ## Current Desktop contract
 
+Targeted presentation follow-up: [PROFILE-EDITOR-SIDEBAR-CREW-PRESENTATION.md](PROFILE-EDITOR-SIDEBAR-CREW-PRESENTATION.md), product `35842e9`, widens the sidebar and reuses rich Crew directory tiles. Those new visual improvements await Mazen review; the accepted single-open editing behavior described here is unchanged.
+
 At 1024px and above, two equal workspace columns use six paired summary rows:
 
 | Row | Left | Right |
