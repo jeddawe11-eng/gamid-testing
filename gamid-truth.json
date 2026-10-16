@@ -641,7 +641,7 @@
         "/account/",
         "/@<handle>"
       ],
-      "checkpoint": "fcbf081b0b7446427d0d2c1462ae24dea4b97c14",
+      "checkpoint": "0f386d379e811d14afcc043a11601d7f459bd402",
       "contracts": [
         {
           "id": "owner-crew-selection",
@@ -657,10 +657,14 @@
         },
         {
           "id": "owner-crew-management-layout",
-          "rule": "At Desktop widths of 1024px or more, owner Crew management groups Members and invitations in one column and the existing Crew Wall controls in an independent adjacent column, with destructive management controls separate below. Member cards adapt to one, two or three columns according to available width, up to the existing 15-member capacity, retaining authorized avatars, names, handles and role-specific actions. On smaller screens management stacks vertically; no unrelated mobile redesign, permission, privacy, save behavior or authoritative limit changes."
+          "rule": "The selected Crew management follows Mazen's approved reference: Back to All Crews above an aligned two-column Desktop workspace, Crew identity and compact Members section on the wider left, the original Crew Wall with existing canonical game artwork preview on the right, and Delete Crew centered below. At widths of 1024px or more Members has four columns, yielding 4+4+4+3 for the existing maximum of 15. Smaller screens stack the containers and adapt the member grid. Names/handles keep their full underlying text and titles when compact visual labels wrap or truncate. Header Add a GamID opens the existing invite/search workflow; no individual Remove buttons remain on member cards. No unrelated section, save, publication, privacy, permission or authoritative limit change."
+        },
+        {
+          "id": "owner-crew-member-selection-removal",
+          "rule": "Only a current owner can open Remove a GamID beside the Members heading. Its small modal lists active removable non-owner members with the existing authorized avatars, names, handles and checkboxes. It shows the selected count, disables Remove Now when empty, and requires a separate explicit confirmation before calling the existing per-member membership-removal RPC for each selected member. Requests run sequentially, stop on first failure, refresh server state and retain still-valid remaining selections for retry without repeating successful removals; the operation is not atomic. Owner and invited/inactive rows are excluded. Native modal focus containment, Escape/Cancel and safe dismissal when the Desktop/mobile layout breakpoint changes do not save or remove anyone. Server ownership and membership authorization remain authoritative."
         }
       ],
-      "record": "docs/MY-CREW-UX.md; PROJECT_HANDOFF.md §65–§66. Mazen authorized navigation and final polish implementation and TESTING deployment; new UX awaits his visual acceptance. Accepted base my-crew, crew-rename, my-crews-view, your-gamid-editor and public-gamid-profile remain separately recorded with their original accepted checkpoints and limits."
+      "record": "docs/MY-CREW-UX.md; PROJECT_HANDOFF.md §65–§67. Mazen authorized the attached reference design, selection/confirmation removal UI and TESTING-only implementation; PENDING his visual acceptance. Accepted base my-crew, crew-rename, my-crews-view, your-gamid-editor and public-gamid-profile records/checkpoints and existing limits remain unchanged."
     },
     {
       "id": "game-artwork-provisional",
