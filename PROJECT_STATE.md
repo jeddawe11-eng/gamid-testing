@@ -27,6 +27,8 @@ Conversation memory is helpful context, but it is **not** an authoritative proje
 
 **Profile Banner and About Me acceptance (Mazen, 2026-10-11):** Both `profile-banner` and `about-me` were separately confirmed fully accepted by Mazen on TESTING. Truth marks each ACCEPTED; Product Memory DEC-0005 records both confirmations. Historical PENDING_ACCEPTANCE notes below are superseded for these capabilities.
 
+**Steam & League acceptance (Mazen, 2026-10-16):** Truth steam-my-games is ACCEPTED after his real TESTING library/My Games check. League-prototype is ACCEPTED AS PROTOTYPE ONLY (status ACCEPTED), retaining manual Riot ID, unofficial temporary OP.GG, private/unverified data and no official Riot authentication/verification; no successful real-account manual test is claimed. Existing checkpoints preserved. Source: PROJECT_HANDOFF.md §69 and REV-0001 items 5/6. Earlier pending/key-missing statements for these capabilities are historical and superseded.
+
 ## 2. Environment and safety
 
 - **TESTING** is the working environment. Truth: `environment: TESTING`, `production: NOT_RELEASED`.
@@ -105,7 +107,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-16):** Mazen explicitly accepted the latest My Crew design/functionality deployed on TESTING `c81ad33a38b101e7f77f76ce8eb5ca6a03850c36` and authorized the approved Product Memory save. Truth crew-ux-navigation is ACCEPTED, preserving implementation `0f386d379e811d14afcc043a11601d7f459bd402`. Existing IDEA-0001 and INDEX updated; technical acceptance: docs/MY-CREW-UX.md and PROJECT_HANDOFF.md §68. Documentation-only acceptance recording; no code changes, redeploy, Production or main merge. STOP after recording acceptance.
+**Latest continuation (2026-10-16):** Steam My Games accepted on Mazen's real TESTING discovery/My Games result; League accepted only as the existing private/unverified unofficial prototype, without a claimed real-account manual test or official Riot integration. Truth statuses ACCEPTED, existing implementation checkpoints preserved. Existing REV-0001 and INDEX updated with explicit save authorization; see PROJECT_HANDOFF.md §69. Documentation-only; no secrets accessed, code/deployment/migration changes, Production or main merge. STOP after acceptance recording.
 
 **Previous continuation (Desktop Editor acceptance, 2026-10-15):** Mazen manually accepted the deployed Desktop Profile Editor and authorized Product Memory saving. Truth `your-gamid-editor` is ACCEPTED for the implemented Desktop layout and editing behavior, product `61de6220a37922a776cddd19771b10bdac4fde51`, TESTING source `1ec1da3c934d83b27f025c1d6b1a5a2f20225ff2`, verified delivery checkpoint `446ba095578299c46f32547ac0f8bd6339e9c0ad`. Sources: [`docs/PROFILE-EDITOR-PAIRED-ROWS.md`](docs/PROFILE-EDITOR-PAIRED-ROWS.md), `PROJECT_HANDOFF.md` §62, existing IDEA-0001 and REV-0004. Acceptance-only documentation updates; no redeploy, functionality change or main merge. Stop after recording acceptance. Historical pending Desktop statements below are superseded; no new Android real-device acceptance or unrelated issue verification is implied.
 
@@ -128,10 +130,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
   - CP-01 (REV-0002) is now covered by the final acceptance of My Crews (2026-10-13, §56); GR-01 (REV-0003) by the final acceptance of Gaming Roles (§53).
   - ISS-0007: Mazen's Avatar save passed; the issue stays FIXED until his explicit security acceptance (§38–§39).
   - YOUR GAMID Editor (`your-gamid-editor`): Mazen passed all 16 desktop tests and accepted the tested desktop functionality (REV-0004, §41). **Android Chrome real-device acceptance is still outstanding**, so the capability stays PENDING_ACCEPTANCE.
-- **Awaiting Mazen's acceptance:** every capability Truth marks PENDING_ACCEPTANCE (7 today), notably:
-  - Profile Editor: `your-gamid-editor` (Android Chrome still to test; desktop accepted; `docs/PROFILE-EDITOR-UX.md`; handoff §20, §22–§24);
-  - Classic Profile: `public-gamid-profile`, `game-artwork-provisional` (§31–§38);
-  - Other: `steam-my-games`, `league-prototype`, `game-catalog-manual-games`, `landing-page` (the full list is in Truth).
+- **Awaiting Mazen's acceptance (current Truth):** game-catalog-manual-games, game-artwork-provisional and landing-page. Steam My Games and the League prototype are accepted within their respective scopes (§69); the full list remains authoritative in Truth.
 - **Open conditions:**
   - SteamGridDB's written permission for distribution / commercial use is still outstanding, so artwork stays TESTING-only, with no Production / public release (§33–§35; `docs/GAME-ARTWORK-STEAMGRIDDB.md`).
   - The Discord Profile Card (ACCEPTED, §27) still needs a privacy policy for the Discord application.

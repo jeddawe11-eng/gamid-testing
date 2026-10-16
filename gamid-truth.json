@@ -289,16 +289,16 @@
     {
       "id": "steam-my-games",
       "name": "Steam My Games discovery (official Steam Web API, owner-triggered, private)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "checkpoint": "aa4aa5e03ecaff15f50d86b03ebb8313a6641b95",
-      "record": "PROJECT_HANDOFF.md §3, §7n"
+      "record": "PROJECT_HANDOFF.md §3, §7n, §69; Product Memory REV-0001 item 5. Mazen explicitly accepted Steam My Games on TESTING 2026-10-16 after his real connected-account library discovery and My Games check. Owner-triggered private discovery scope, provenance and implementation checkpoint preserved; discovery is not game/account verification."
     },
     {
       "id": "league-prototype",
       "name": "League of Legends card (manual Riot ID, temporary unofficial adapter, private)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "checkpoint": "44c7a4455f40088572d165a6de453b73491d6500",
-      "record": "PROJECT_HANDOFF.md §7j"
+      "record": "PROJECT_HANDOFF.md §7j, §69; Product Memory REV-0001 item 6. ACCEPTED AS PROTOTYPE ONLY by Mazen 2026-10-16: manual Riot ID, temporary unofficial OP.GG adapter, private unverified account data and existing limitations. No official Riot authentication, RSO/API integration or verification, and no successful real-account manual test is claimed by this acceptance. Existing implementation checkpoint and separate privacy/visibility contracts preserved."
     },
     {
       "id": "game-catalog-manual-games",

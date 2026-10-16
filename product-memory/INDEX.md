@@ -83,6 +83,8 @@ Rules:
 
 ## Register
 
+2026-10-16: REV-0001 items 5 and 6 reconciled with Mazen's explicit STEAM & LEAGUE FINAL ACCEPTANCE and save authorization: Steam real library discovery/My Games manually accepted; League accepted only as the existing private unverified unofficial prototype, with no claimed real-account manual test or official Riot integration. Existing review reused; ID counters unchanged.
+
 2026-10-16: Mazen explicitly accepted the latest My Crew design/functionality on TESTING c81ad33 and authorized saving the approved proposal. Existing IDEA-0001 updated with the Crew rationale, current implementation/deployment checkpoints and final acceptance; original Desktop acceptance/history retained. No new records or IDs.
 
 2026-10-15: REV-0001 item 4 now records Mazen's final Public GamID Profile PASS and ACCEPTED; no further manual testing required for that acceptance. Existing review reused; ID counters unchanged.
