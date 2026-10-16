@@ -43,6 +43,7 @@ export function renderCrewWallBox({ crew, wall, members, element, button, editin
   box.append(head);
   if (!wall) { box.append(element("p", "duo-note", "The Crew Wall couldn't be loaded. Refresh to try again.")); return box; }
   box.append(element("p", "duo-note crew-wall-usage", `Stages ${wall.stageCount} / ${wall.allowed} used · ${wall.cards.length} member card${wall.cards.length === 1 ? "" : "s"}`));
+  const artwork = element("div", "crew-wall-art"); artwork.dataset.gameBg = crew.gameKey; artwork.setAttribute("aria-hidden", "true"); box.append(artwork);
   const links = element("div", "duo-actions");
   const open = element("a", "secondary duo-button crew-wall-open", wall.published ? "Open Crew Wall" : "Preview Crew Wall");
   open.href = crewWallHrefFor(crew.id);

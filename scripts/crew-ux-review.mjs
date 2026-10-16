@@ -21,13 +21,24 @@ export async function reviewCrewUX({page,width,count,memberCount=2,out,calls,set
   assert.equal(await management.locator('.crew-members>.crew-person').count(),memberCount);
   const geometry=await management.evaluate(n=>{const people=n.querySelector('.crew-management-people').getBoundingClientRect(),wall=n.querySelector('.crew-management-wall').getBoundingClientRect();const members=[...n.querySelectorAll('.crew-members>.crew-person')].map(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width};});return {people:{x:people.x,y:people.y,w:people.width,bottom:people.bottom},wall:{x:wall.x,y:wall.y,w:wall.width},members,overflow:[...n.querySelectorAll('.crew-person,.crew-management-columns')].some(el=>el.scrollWidth>el.clientWidth+2)};});
   if(width>=1024){assert.ok(geometry.wall.x>=geometry.people.x+geometry.people.w+20,'independent Desktop columns');assert.ok(Math.abs(geometry.people.y-geometry.wall.y)<2,'columns start aligned');}else assert.ok(geometry.wall.y>=geometry.people.bottom,'mobile stacks original content');
-  assert.equal(geometry.overflow,false,'member names/actions do not overflow');
+  if(geometry.overflow){await owner.screenshot({path:path.join(out,`crew-overflow-${width}.png`)});throw Error('Crew overflow '+JSON.stringify(await management.evaluate(n=>[...n.querySelectorAll('*')].filter(el=>el.scrollWidth>el.clientWidth+2).map(el=>({cls:el.className,w:el.clientWidth,scroll:el.scrollWidth,text:el.textContent.slice(0,70)})))));}
   const firstRow=geometry.members.filter(m=>Math.abs(m.y-geometry.members[0].y)<2).length;
-  assert.equal(firstRow,Math.min(memberCount,geometry.people.w>=540?3:geometry.people.w>=300?2:1));
-  if(memberCount===15)await page.screenshot({path:path.join(out,`crew-members-15-${width}.png`),fullPage:true});
+  assert.equal(firstRow,Math.min(memberCount,width>=1024?4:geometry.people.w-38>=310?2:1));
+  if(width>=1024&&memberCount===15)assert.deepEqual(Object.values(Object.groupBy(geometry.members,m=>Math.round(m.y))).map(row=>row.length),[4,4,4,3]);
+  assert.equal(await management.locator('.crew-members button').count(),0,'member cards have no individual removal actions');
+  if(memberCount===15){await owner.screenshot({path:path.join(out,`crew-members-15-${width}.png`)});}
+  await management.getByRole('button',{name:'Remove a GamID',exact:true}).click();
+  const dialog=owner.getByRole('dialog',{name:'Remove a GamID',exact:true});await dialog.waitFor();
+  assert.equal(await dialog.getByRole('checkbox').count(),memberCount-1);assert.equal(await dialog.getByRole('checkbox',{name:'Select @fixture_owner',exact:true}).count(),0);
+  assert.ok(await dialog.getByRole('button',{name:'Remove Now',exact:true}).isDisabled());
+  if(memberCount>1){await dialog.getByRole('checkbox').first().check();assert.equal(await dialog.locator('.crew-remove-count').textContent(),'1 selected');await dialog.getByRole('button',{name:'Remove Now',exact:true}).click();assert.ok(await dialog.getByRole('button',{name:'Confirm Removal',exact:true}).isVisible());await dialog.getByRole('button',{name:'Cancel',exact:true}).click();assert.ok(await dialog.getByRole('checkbox').first().isChecked());}
+  if(width===1440&&memberCount===15)await dialog.screenshot({path:path.join(out,'crew-remove-dialog.png')});
+  for(let i=0;i<memberCount+4;i++){await page.keyboard.press('Tab');assert.ok(await dialog.evaluate(n=>n.contains(document.activeElement)),'native dialog traps keyboard focus '+JSON.stringify({width,i,state:await page.evaluate(()=>({active:document.activeElement?.outerHTML.slice(0,500),dialogs:[...document.querySelectorAll('dialog')].map(n=>({cls:n.className,open:n.open,modal:n.matches(':modal')}))}))}));}
+  await page.keyboard.press('Escape');assert.equal(await dialog.count(),0);assert.ok(await management.getByRole('button',{name:'Remove a GamID',exact:true}).evaluate(n=>n===document.activeElement));
+  if(width===1024&&count===4&&memberCount===15){await management.getByRole('button',{name:'Remove a GamID',exact:true}).click();await page.setViewportSize({width:1023,height:900});await dialog.waitFor({state:'detached'});await page.setViewportSize({width,height:900});await openEditor(page,'crew');assert.equal(await management.count(),1,'responsive transition keeps selected Crew without a stray non-modal dialog');}
   // Navigation keeps the original controller's rename and invite drafts without writes.
   await management.getByRole('button',{name:/Edit the name of/}).click();await management.getByRole('textbox',{name:'Crew name',exact:true}).fill('Unsubmitted Crew name');
-  if(memberCount<15)await management.locator('.crew-invite input').fill('Unsubmitted invite');
+  if(memberCount<15){await management.getByRole('button',{name:'Add a GamID',exact:true}).click();await management.locator('.crew-invite input').fill('Unsubmitted invite');}
   await management.getByRole('button',{name:'Back to All Crews',exact:true}).click();assert.equal(await management.count(),0);
   assert.equal(await owner.locator('.crew-list-open').first().evaluate(n=>n===document.activeElement),true);
   await owner.locator('.crew-list-open').first().click();assert.equal(await management.getByRole('textbox',{name:'Crew name',exact:true}).inputValue(),'Unsubmitted Crew name');
@@ -51,10 +62,19 @@ export async function reviewCrewUX({page,width,count,memberCount=2,out,calls,set
   await current.getByRole('button',{name:'Edit Crew Wall',exact:true}).click();await current.getByRole('button',{name:'Add Stage 2',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('#crewPanel .crew-card:not([hidden])')?.textContent.includes('Stages 2 / 2'));
   await current.getByRole('button',{name:'Publish',exact:true}).click();await current.getByRole('button',{name:'Unpublish',exact:true}).waitFor();await current.getByRole('button',{name:'Unpublish',exact:true}).click();await current.getByRole('button',{name:'Publish',exact:true}).waitFor();
-  await current.getByRole('button',{name:'Remove',exact:true}).click();assert.ok(await current.getByRole('alert').isVisible());await current.getByRole('button',{name:'Cancel',exact:true}).click();
   await current.getByRole('button',{name:'Delete Crew',exact:true}).click();assert.ok(await current.getByRole('alert').isVisible());await current.getByRole('button',{name:'Cancel',exact:true}).click();
-  const invite=current.locator('.crew-invite');await invite.getByRole('searchbox').fill('friend');await invite.getByRole('button',{name:'Search',exact:true}).click();await current.getByRole('button',{name:'Invite',exact:true}).click();
+  const invite=current.locator('.crew-invite');await current.getByRole('button',{name:'Add a GamID',exact:true}).click();if(memberCount<15){await invite.getByRole('searchbox').fill('friend');await invite.getByRole('button',{name:'Search',exact:true}).click();await current.getByRole('button',{name:'Invite',exact:true}).click();}else assert.ok(await invite.getByRole('searchbox').isDisabled());
   await current.getByRole('button',{name:'Back to All Crews',exact:true}).click();assert.equal(await page.locator('#profileBio').inputValue(),'Crew UX unrelated draft');
+ }
+ if(width===1440&&count===4&&memberCount===15){
+  await owner.locator('.crew-list-open').first().click();await management.getByRole('button',{name:'Remove a GamID',exact:true}).click();const modal=owner.getByRole('dialog');
+  await modal.getByRole('checkbox').nth(0).check();await modal.getByRole('checkbox').nth(1).check();assert.equal(await modal.locator('.crew-remove-count').textContent(),'2 selected');
+  const prior=calls.filter(c=>c.path.endsWith('/remove_crew_member')).length;
+  await modal.getByRole('button',{name:'Remove Now',exact:true}).click();assert.equal(calls.filter(c=>c.path.endsWith('/remove_crew_member')).length,prior);
+  await modal.getByRole('button',{name:'Confirm Removal',exact:true}).click();await modal.waitFor({state:'detached'});
+  await page.waitForFunction(()=>document.querySelectorAll('#crewPanel .crew-card:not([hidden]) .crew-members>.crew-person').length===13);
+  assert.equal(calls.filter(c=>c.path.endsWith('/remove_crew_member')).length,prior+2);assert.ok(await management.locator('.crew-members').getByText('Saved Gamer',{exact:true}).count()||await management.locator('.crew-members').getByText('Player 1 With A Long Display Name',{exact:true}).count());
+  await management.getByRole('button',{name:'Back to All Crews',exact:true}).click();
  }
  if(width===1440&&count>2){await page.locator('[data-editor-section=crew] > .section-toggle').click();await page.screenshot({path:path.join(out,`crew-owner-collapsed-${count}.png`),fullPage:true});}
  // Public MY CREWS entry is Desktop-only; open it there, then exercise existing responsive dialog.

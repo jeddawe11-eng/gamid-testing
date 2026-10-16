@@ -64,6 +64,11 @@ export function renameProblem(value, current) {
 export function createCrewPanel({ api, root, message, element, timers = globalThis, gamidUrl = handle => `../@${handle}` }) {
   let state = null;               // null = could not be read
   let selectedCrew = null;        // presentation only; original management controls/state stay mounted
+  let removal = null;             // owner-only dialog: { crewId, selected: Set, confirming, error }
+  let dialogNode = null;          // keep the native modal mounted while its contents change
+  let stopModalLayout = null;
+  const content = element("div", "crew-panel-content");
+  const inviting = new Set();     // the original invite workflow, revealed by Add a GamID
   const members = new Map();      // crew id -> member rows (ACTIVE Crews only)
   let busy = false;
   let confirm = null;             // { kind: "delete" | "leave" | "remove", crewId, handle? }
@@ -77,7 +82,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
   const feedback = createTransientMessage(message, { timers });
   const say = (text, tone = "error") => feedback.show(text, { tone });
 
-  const button = (text, className, onClick, disabled = false) => { const node = element("button", className, text); node.type = "button"; node.disabled = disabled || busy; node.addEventListener("click", onClick); return node; };
+  const button = (text, className, onClick, disabled = false) => { const node = element("button", className, text); node.type = "button"; node.disabled = disabled || busy; if (/crew-back|crew-add-member|crew-remove-members|crew-delete/.test(className)) node.setAttribute("aria-label", text); node.addEventListener("click", onClick); return node; };
   function avatarNode(person) {
     const box = element("div", "duo-avatar crew-avatar");
     box.textContent = (person.display_name || person.gamid_handle || "G").replace(/^@/, "").charAt(0).toUpperCase() || "G";
@@ -93,9 +98,10 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
   function personRow(person, extra = null) {
     const row = element("div", "duo-person crew-person");
     const names = element("div", "duo-names");
-    names.append(element("strong", "", person.display_name || `@${person.gamid_handle}`));
+    const display = element("strong", "", person.display_name || `@${person.gamid_handle}`); display.title = display.textContent; names.append(display);
     if (person.is_published) { const link = element("a", "duo-handle", `@${person.gamid_handle}`); link.href = gamidUrl(person.gamid_handle); link.target = "_blank"; link.rel = "noopener"; names.append(link); }
     else names.append(element("span", "duo-handle", `@${person.gamid_handle}`));
+    for (const handle of names.children) if (handle !== display) handle.title = `@${person.gamid_handle}`;
     row.append(avatarNode(person), names);
     if (extra) row.append(extra);
     return row;
@@ -120,6 +126,76 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     busy = false;
     render();
     say(...outcome);
+  }
+
+  const removable = crew => crew?.role === "OWNER" ? (members.get(crew.id) ?? []).filter(person => person.status === "ACTIVE" && person.role !== "OWNER" && person.gamid_handle !== crew.ownerHandle && isHandle(person.gamid_handle)) : [];
+  function closeRemoval() {
+    if (busy) return;
+    const id = removal?.crewId; removal = null; render();
+    root.querySelector?.(`#crew-manage-${id} .crew-remove-members`)?.focus?.();
+  }
+  async function removeSelected(crew) {
+    if (busy || !removal?.confirming || removal.crewId !== crew.id) return;
+    const current = state?.crews.find(item => item.id === crew.id);
+    const handles = removable(current).filter(person => removal.selected.has(person.gamid_handle)).map(person => person.gamid_handle);
+    if (!handles.length) return;
+    const dialogState = removal;
+    busy = true; render();
+    let removed = 0, error = null;
+    // Existing per-member RPCs: this is deliberately not an atomic batch or a new permission.
+    for (const handle of handles) {
+      try { await api.removeCrewMember(crew.id, handle); dialogState.selected.delete(handle); removed++; }
+      catch (failure) { error = failure; break; }
+    }
+    await load(); busy = false;
+    if (removal === dialogState) {
+      removal.confirming = false;
+      removal.error = error ? `${removed ? `${removed} removed. ` : ""}${crewErrorText(error)} Remaining selections have not been removed.` : "";
+      if (!error) removal = null;
+    }
+    render();
+    if (!error) { say(`Removed ${removed} member${removed === 1 ? "" : "s"} from ${crew.name}.`, "success"); root.querySelector?.(`#crew-manage-${crew.id} .crew-remove-members`)?.focus?.(); }
+    else if (!removal) say(crewErrorText(error));
+  }
+  function removalDialog(crew) {
+    const dialog = element("dialog", "crew-remove-dialog");
+    dialog.setAttribute("aria-label", "Remove a GamID");
+    dialog.append(element("h3", "", "Remove a GamID"));
+    const cancel = () => closeRemoval();
+    dialog.addEventListener("cancel", event => { event.preventDefault(); cancel(); });
+    dialog.addEventListener("keydown", event => {
+      if (event.key !== "Tab") return;
+      const controls = [...dialog.querySelectorAll('input:not([disabled]),button:not([disabled])')];
+      const first = controls[0], last = controls.at(-1), active = dialog.ownerDocument.activeElement;
+      if (!first) { event.preventDefault(); dialog.focus(); return; }
+      if (event.shiftKey && active === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && active === last) { event.preventDefault(); first?.focus(); }
+    });
+    if (removal.error) { const error = element("p", "crew-remove-error", removal.error); error.setAttribute("role", "alert"); dialog.append(error); }
+    if (removal.confirming) {
+      const handles = removable(crew).filter(person => removal.selected.has(person.gamid_handle)).map(person => `@${person.gamid_handle}`);
+      dialog.append(element("p", "crew-remove-confirm", `Remove ${handles.length} member${handles.length === 1 ? "" : "s"} from ${crew.name}? They can only rejoin through a new invitation.`), element("p", "crew-remove-handles", handles.join(", ")));
+      const actions = element("div", "duo-actions");
+      actions.append(button("Cancel", "secondary duo-button", () => { removal.confirming = false; render(); }), button(busy ? "Removing…" : "Confirm Removal", "primary danger-fill duo-button", () => removeSelected(crew)));
+      dialog.append(actions);
+    } else {
+      dialog.append(element("p", "duo-note", "Choose members to remove. The Crew owner cannot be removed."));
+      const list = element("div", "crew-remove-list");
+      const count = element("p", "crew-remove-count", `${removal.selected.size} selected`); count.setAttribute("aria-live", "polite");
+      const next = button("Remove Now", "primary danger-fill duo-button", () => { if (removal.selected.size) { removal.confirming = true; render(); } }, !removal.selected.size);
+      for (const person of removable(crew)) {
+        const row = element("label", "crew-remove-choice");
+        const input = element("input"); input.type = "checkbox"; input.checked = removal.selected.has(person.gamid_handle); input.disabled = busy;
+        input.setAttribute("aria-label", `Select @${person.gamid_handle}`);
+        const names = element("span", "duo-names"); names.append(element("strong", "", person.display_name || person.gamid_handle), element("span", "duo-handle", `@${person.gamid_handle}`));
+        input.addEventListener("change", () => { if (input.checked) removal.selected.add(person.gamid_handle); else removal.selected.delete(person.gamid_handle); count.textContent = `${removal.selected.size} selected`; next.disabled = !removal.selected.size || busy; });
+        row.append(avatarNode(person), names, input); list.append(row);
+      }
+      if (!removable(crew).length) list.append(element("p", "duo-note", "No removable members."));
+      const actions = element("div", "duo-actions"); actions.append(button("Cancel", "secondary duo-button", cancel), next);
+      dialog.append(list, count, actions);
+    }
+    return dialog;
   }
 
   async function searchInvite(crew) {
@@ -165,29 +241,38 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
       titles.append(line);
     }
     head.append(titles, element("span", `crew-role${crew.role === "OWNER" ? " is-owner" : ""}`, crew.role === "OWNER" ? "OWNER" : "MEMBER"));
-    card.append(head);
-    card.append(element("p", "duo-note crew-count", `${crew.members} / ${crew.max} members${crew.role === "OWNER" && crew.pending ? ` · ${crew.pending} invitation${crew.pending === 1 ? "" : "s"} pending` : ""}${crew.role === "MEMBER" && crew.ownerHandle ? ` · Owner @${crew.ownerHandle}` : ""}`));
+    const identity = element("div", "crew-identity");
+    const art = element("span", "crew-identity-art", crew.gameName.slice(0,2)); art.dataset.gameBg = crew.gameKey; art.setAttribute("aria-hidden", "true");
+    const identityCopy = element("div", "crew-identity-copy");
+    identityCopy.append(head, element("p", "duo-note crew-count", `${crew.members} / ${crew.max} members${crew.role === "OWNER" && crew.pending ? ` · ${crew.pending} invitation${crew.pending === 1 ? "" : "s"} pending` : ""}${crew.role === "MEMBER" && crew.ownerHandle ? ` · Owner @${crew.ownerHandle}` : ""}`));
+    identity.append(art, identityCopy);
 
     const columns = element("div", "crew-management-columns");
     const people = element("section", "crew-management-people");
     people.setAttribute("aria-label", "Crew members and invitations");
     const wallColumn = element("section", "crew-management-wall");
     wallColumn.setAttribute("aria-label", "Crew Wall management");
-    people.append(element("h3", "crew-members-title", "Members"));
+    people.append(identity);
+    const membersHead = element("div", "crew-members-head");
+    membersHead.append(element("h3", "crew-members-title", `Members (${crew.members} / ${crew.max})`));
+    if (crew.role === "OWNER") {
+      const controls = element("div", "crew-members-controls");
+      controls.append(button("Add a GamID", "secondary duo-button crew-add-member", () => { inviting.add(crew.id); render(); root.querySelector?.(`#crew-manage-${crew.id} .crew-invite input`)?.focus?.(); }), button("Remove a GamID", "secondary danger duo-button crew-remove-members", () => { removal = { crewId: crew.id, selected: new Set(), confirming: false, error: "" }; render(); }));
+      membersHead.append(controls);
+    }
+    people.append(membersHead);
     const list = element("div", "crew-members");
     const rows = members.get(crew.id) ?? [];
     for (const person of rows.filter(row => row.status === "ACTIVE")) {
       const isOwnerRow = person.role === "OWNER";
       let extra = isOwnerRow ? element("span", "duo-tag", "OWNER") : null;
-      if (!isOwnerRow && crew.role === "OWNER") extra = button("Remove", "text-button danger duo-button", () => { confirm = { kind: "remove", crewId: crew.id, handle: person.gamid_handle }; render(); });
       list.append(personRow(person, extra));
-      if (confirm?.kind === "remove" && confirm.crewId === crew.id && confirm.handle === person.gamid_handle) {
-        list.append(warning(removeWarning(crew, person.gamid_handle), "Remove", () => act(() => api.removeCrewMember(crew.id, person.gamid_handle), `Removed @${person.gamid_handle} from ${crew.name}.`)));
-      }
     }
     people.append(list);
     columns.append(people);
-    card.append(columns);
+    const frame = element("div", "crew-management-frame");
+    frame.append(button("Back to All Crews", "secondary crew-back", () => { selectedCrew = null; render(); root.querySelector?.(`#crew-list-${crew.id}`)?.focus?.(); }), columns);
+    card.append(frame);
 
     if (crew.role === "OWNER") {
       const wall = walls.get(crew.id) ?? null;
@@ -208,6 +293,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
       const entry = invite.get(crew.id) ?? { query: "", results: null };
       const full = crew.members + crew.pending >= crew.max;
       const form = element("form", "duo-search crew-invite");
+      form.hidden = !inviting.has(crew.id);
       form.setAttribute("role", "search");
       const label = element("label", "duo-search-label");
       label.append(element("span", "", full ? `This Crew is full (${crew.max}).` : "Invite a GamID"));
@@ -232,7 +318,7 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
         people.append(results);
       }
       if (confirm?.kind === "delete" && confirm.crewId === crew.id) card.append(warning(deleteWarning(crew), "Delete Crew", () => act(() => api.deleteCrew(crew.id), `${crew.name} was deleted.`)));
-      else { const actions = element("div", "duo-actions"); actions.append(button("Delete Crew", "text-button danger duo-button", () => { confirm = { kind: "delete", crewId: crew.id }; render(); })); card.append(actions); }
+      else { const actions = element("div", "duo-actions crew-management-actions"); actions.append(button("Delete Crew", "text-button danger duo-button crew-delete", () => { confirm = { kind: "delete", crewId: crew.id }; render(); })); card.append(actions); }
     } else if (confirm?.kind === "leave" && confirm.crewId === crew.id) {
       card.append(warning(leaveWarning(crew), "Leave Crew", () => act(() => api.leaveCrew(crew.id), `You left ${crew.name}.`)));
     } else {
@@ -372,7 +458,9 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
   }
 
   function render() {
-    if (!state) { root.replaceChildren(element("p", "connections-empty", "My Crew couldn't be loaded right now. Refresh to try again.")); return; }
+    if (content.parentNode !== root) root.replaceChildren(content);
+    if (!removal || !state) { stopModalLayout?.(); stopModalLayout = null; dialogNode?.close?.(); dialogNode?.remove?.(); dialogNode = null; }
+    if (!state) { content.replaceChildren(element("p", "connections-empty", "My Crew couldn't be loaded right now. Refresh to try again.")); return; }
     const nodes = [];
     for (const crew of state.invitations) nodes.push(invitationCard(crew));
     if (selectedCrew && !state.crews.some(crew => crew.id === selectedCrew)) selectedCrew = null;
@@ -388,14 +476,27 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     nodes.push(list);
     for (const crew of state.crews) {
       const card = crewCard(crew);
-      card.prepend(button("Back to All Crews", "secondary crew-back", () => { selectedCrew = null; render(); root.querySelector?.(`#crew-list-${crew.id}`)?.focus?.(); }));
       nodes.push(card);
     }
     if (create.open) {
       const card = createCard(); card.setAttribute("role", "region"); card.setAttribute("aria-label", "Add Crew");
       card.prepend(button("Back to All Crews", "secondary crew-back", () => { create.open = false; render(); root.querySelector?.('.crew-add')?.focus?.(); })); nodes.push(card);
     }
-    root.replaceChildren(...nodes);
+    content.replaceChildren(...nodes);
+    if (removal && selectedCrew === removal.crewId) {
+      const crew = state.crews.find(item => item.id === removal.crewId && item.role === "OWNER");
+      if (crew) {
+        const next = removalDialog(crew);
+        if (!dialogNode) {
+          dialogNode = next; dialogNode.tabIndex = -1; root.append(dialogNode); dialogNode.showModal?.();
+          const layout = root.ownerDocument?.defaultView?.matchMedia('(min-width:1024px)');
+          // The existing Desktop editor moves original panels at this breakpoint.
+          // Dismiss the selection safely before a disconnected dialog becomes non-modal.
+          if (layout) { const dismiss = () => { removal = null; render(); }; layout.addEventListener('change', dismiss); stopModalLayout = () => layout.removeEventListener('change', dismiss); }
+        }
+        else { dialogNode.replaceChildren(...next.children); (dialogNode.querySelector?.('input:not([disabled]),button:not([disabled])') ?? dialogNode).focus?.(); }
+      }
+    }
   }
 
   async function read() {
@@ -416,7 +517,12 @@ export function createCrewPanel({ api, root, message, element, timers = globalTh
     for (const id of [...renames.keys()]) if (!state.crews.some(crew => crew.id === id && crew.role === "OWNER")) renames.delete(id);
     for (const id of [...invite.keys()]) if (!state.crews.some(crew => crew.id === id && crew.role === "OWNER")) invite.delete(id);
     if (confirm && !state.crews.some(crew => crew.id === confirm.crewId)) confirm = null;
-    if (confirm?.kind === "remove" && !(members.get(confirm.crewId) ?? []).some(row => row.gamid_handle === confirm.handle && row.status === "ACTIVE")) confirm = null;
+    for (const id of [...inviting]) if (!state.crews.some(crew => crew.id === id && crew.role === "OWNER")) inviting.delete(id);
+    if (removal) {
+      const crew = state.crews.find(item => item.id === removal.crewId && item.role === "OWNER");
+      if (!crew) removal = null;
+      else { const allowed = new Set(removable(crew).map(person => person.gamid_handle)); for (const handle of removal.selected) if (!allowed.has(handle)) removal.selected.delete(handle); if (!removal.selected.size) removal.confirming = false; }
+    }
   }
 
   async function load() {

@@ -14,7 +14,8 @@ const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8"
 class El {
   constructor(tag) { this.tag = tag; this.children = []; this.attrs = {}; this.className = ""; this._text = ""; this.listeners = {}; this.dataset = {}; this.hidden = false; this.disabled = false; this.classList = { toggle: () => {} }; this.style = { setProperty: () => {} }; }
   setAttribute(name, value) { this.attrs[name] = String(value); }
-  append(...nodes) { for (const node of nodes) if (node) { node.parent = this; this.children.push(node); } }
+  append(...nodes) { for (const node of nodes) if (node) { node.parent = this; node.parentNode = this; this.children.push(node); } }
+  remove() { if (this.parentNode) this.parentNode.children = this.parentNode.children.filter(node => node !== this); this.parentNode = null; }
   prepend(...nodes) { for (const node of nodes) node.parent = this; this.children.unshift(...nodes); }
   replaceChildren(...nodes) { this.children = []; this._text = ""; this.append(...nodes); }
   addEventListener(type, handler) { (this.listeners[type] ||= []).push(handler); }
@@ -116,16 +117,49 @@ test("owner: invite through GamID search (nobody is added without accepting), se
   assert.deepEqual(db.calls.find(call => call[0] === "inviteToCrew").slice(1), ["c1", "fresh"], "an invitation - the server adds nobody until they accept");
   await buttons(p.root, "Cancel invite")[0].fire("click"); await tick();
   assert.deepEqual(db.calls.find(call => call[0] === "cancelCrewInvite").slice(1), ["c1", "newbie"]);
-  await buttons(p.root, "Remove")[0].fire("click");
-  assert.match(p.root.textContent, /Remove @zshot from Night Raiders\?/);
+  await buttons(p.root, "Remove a GamID")[0].fire("click");
+  const choice = all(p.root, node => node.type === "checkbox")[0]; choice.checked = true; await choice.fire("change");
+  await buttons(p.root, "Remove Now")[0].fire("click");
+  assert.match(p.root.textContent, /Remove 1 member from Night Raiders\?/);
   assert.equal(db.calls.some(call => call[0] === "removeCrewMember"), false, "nothing removed before confirming");
-  await buttons(p.root, "Remove").at(-1).fire("click"); await tick();
+  await buttons(p.root, "Confirm Removal")[0].fire("click"); await tick();
   assert.deepEqual(db.calls.find(call => call[0] === "removeCrewMember").slice(1), ["c1", "zshot"]);
   await buttons(p.root, "Delete Crew")[0].fire("click");
   assert.match(p.root.textContent, /Delete Night Raiders\? Every member leaves and pending invitations are cancelled/);
   await buttons(p.root, "Delete Crew").at(-1).fire("click"); await tick();
   assert.deepEqual(db.calls.find(call => call[0] === "deleteCrew").slice(1), ["c1"]);
   assert.equal(buttons(p.root, "Leave Crew").length, 0, "the owner has no Leave (V1: delete instead)");
+});
+
+test("owner removal dialog: only active non-owners, selected count, no empty action, cancel before confirmation and multiple original RPCs", async () => {
+  const db=fakeApi({crews:[crewRow('c1','lol','First')],members:{c1:[person('black',{role:'OWNER'}),person('alpha'),person('beta'),person('waiting',{status:'INVITED'})]}});
+  const p=await panel(db);assert.equal(buttons(p.root,'Remove').length,0,'no per-member removal buttons');
+  await buttons(p.root,'Remove a GamID')[0].fire('click');
+  let choices=all(p.root,n=>n.type==='checkbox');assert.deepEqual(choices.map(n=>n.attrs['aria-label']),['Select @alpha','Select @beta']);
+  assert.equal(buttons(p.root,'Remove Now')[0].disabled,true);await buttons(p.root,'Remove Now')[0].fire('click');assert.equal(buttons(p.root,'Confirm Removal').length,0);
+  for(const input of choices){input.checked=true;await input.fire('change');}
+  assert.match(byClass(p.root,'crew-remove-count')[0].textContent,/2 selected/);
+  await buttons(p.root,'Remove Now')[0].fire('click');assert.equal(db.calls.length,0);
+  await buttons(byClass(p.root,'crew-remove-dialog')[0],'Cancel')[0].fire('click');assert.equal(all(p.root,n=>n.type==='checkbox').filter(n=>n.checked).length,2);
+  await buttons(p.root,'Remove Now')[0].fire('click');await buttons(p.root,'Confirm Removal')[0].fire('click');
+  assert.deepEqual(db.calls,[['removeCrewMember','c1','alpha'],['removeCrewMember','c1','beta']]);assert.equal(byClass(p.root,'crew-remove-dialog').length,0);
+});
+
+test("owner removal dialog: partial failure retains remaining selections and retry never repeats successful removals", async () => {
+  const db=fakeApi({crews:[crewRow('c1','lol','First')],members:{c1:[person('black',{role:'OWNER'}),person('alpha'),person('beta'),person('gamma')]}});
+  let fail=true;db.api.removeCrewMember=async(id,handle)=>{db.calls.push(['removeCrewMember',id,handle]);if(handle==='beta'&&fail)throw {message:'NETWORK_ERROR'};db.members[id]=db.members[id].filter(p=>p.gamid_handle!==handle);};
+  const p=await panel(db);await buttons(p.root,'Remove a GamID')[0].fire('click');for(const input of all(p.root,n=>n.type==='checkbox')){input.checked=true;await input.fire('change');}
+  await buttons(p.root,'Remove Now')[0].fire('click');await buttons(p.root,'Confirm Removal')[0].fire('click');
+  assert.match(byClass(p.root,'crew-remove-error')[0].textContent,/1 removed.*Remaining selections/);assert.equal(all(p.root,n=>n.type==='checkbox').filter(n=>n.checked).length,2);
+  assert.deepEqual(db.calls.map(c=>c[2]),['alpha','beta']);fail=false;
+  await buttons(p.root,'Remove Now')[0].fire('click');await buttons(p.root,'Confirm Removal')[0].fire('click');assert.deepEqual(db.calls.map(c=>c[2]),['alpha','beta','beta','gamma']);
+});
+
+test("removal dialog refresh: stale selections are pruned and loss of ownership closes the modal without writes", async () => {
+  const db=fakeApi({crews:[crewRow('c1','lol','First')],members:{c1:[person('black',{role:'OWNER'}),person('alpha')]}});
+  const p=await panel(db);await buttons(p.root,'Remove a GamID')[0].fire('click');let input=all(p.root,n=>n.type==='checkbox')[0];input.checked=true;await input.fire('change');
+  db.members.c1=[person('black',{role:'OWNER'})];await p.view.refresh();assert.equal(buttons(p.root,'Remove Now')[0].disabled,true);
+  db.crews[0].my_role='MEMBER';await p.view.refresh();assert.equal(byClass(p.root,'crew-remove-dialog').length,0);assert.equal(buttons(p.root,'Remove a GamID').length,0);assert.deepEqual(db.calls,[]);
 });
 
 test("owner: a full Crew cannot invite (the server enforces it too)", async () => {

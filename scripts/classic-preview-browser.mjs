@@ -36,6 +36,7 @@ try {
   for (const {width,scenario} of runs) {
     const crews=crewUX?Array.from({length:Number(scenario)},(_,i)=>({...fixtureCrews[i%2],crew_id:'00000000-0000-4000-8000-'+String(100+i).padStart(12,'0'),crew_name:'Crew '+(i+1),game_key:i<2?fixtureCrews[i].game_key:'fixture_game_'+i,role:i>0&&i===Number(scenario)-1?'MEMBER':'OWNER'})):fixtureCrews;
     let crewWallModel={stage_count:1,stages_allowed:2,published:false,revision:1,cards:[]};
+    const removedMembers=new Map();
     const context = await browser.newContext({viewport:{width,height:900},hasTouch:width===390});
     await context.routeWebSocket('**/*',ws=>ws.close());
     const page = await context.newPage(), errors=[], calls=[];
@@ -77,8 +78,10 @@ try {
         };
         if(crewUX){
           bodies.get_my_crews=crews.map(c=>({...c,my_status:'ACTIVE',my_role:c.role}));bodies.get_my_crew_wall=crewWallModel;
-          for(const c of bodies.get_my_crews)c.member_count=crewMemberCount;
+          for(const c of bodies.get_my_crews)c.member_count=crewMemberCount-(removedMembers.get(c.crew_id)?.size||0);
           bodies.get_crew_members=Array.from({length:crewMemberCount},(_,i)=>({status:'ACTIVE',role:i?'MEMBER':'OWNER',is_published:i%2===0,gamid_handle:i===0?'fixture_owner':i===1?'fixture_friend':`fixture_player_${i}`,display_name:crewMemberCount===15?`Player ${i+1} With A Long Display Name`:(i?'Saved Friend':'Saved Gamer'),avatar_media_reference:uid+'/member.jpg'}));
+          if(action==='get_crew_members')bodies.get_crew_members=bodies.get_crew_members.filter(p=>!removedMembers.get(request.postDataJSON().candidate_crew)?.has(p.gamid_handle));
+          if(action==='remove_crew_member'){const data=request.postDataJSON();const removed=removedMembers.get(data.candidate_crew)||new Set();removed.add(data.candidate_handle);removedMembers.set(data.candidate_crew,removed);bodies.remove_crew_member=true;}
           bodies.search_duo_candidates=[{gamid_handle:'fresh_friend',display_name:'Fresh Friend',is_published:true}];
           if(action==='rename_crew'){const data=request.postDataJSON();crews.find(c=>c.crew_id===data.candidate_crew).crew_name=data.candidate_name;bodies.rename_crew=true;}
           if(action==='save_crew_wall'){const data=request.postDataJSON();crewWallModel={...crewWallModel,stage_count:data.candidate_stage_count,cards:data.candidate_cards,revision:crewWallModel.revision+1};bodies.save_crew_wall=crewWallModel.revision;}
