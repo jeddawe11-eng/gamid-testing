@@ -636,7 +636,7 @@
     {
       "id": "crew-ux-navigation",
       "name": "My Crew compact owner management and nine-plus-one public directory navigation",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/account/",
         "/@<handle>"
@@ -664,7 +664,7 @@
           "rule": "Only a current owner can open Remove a GamID beside the Members heading. Its small modal lists active removable non-owner members with the existing authorized avatars, names, handles and checkboxes. It shows the selected count, disables Remove Now when empty, and requires a separate explicit confirmation before calling the existing per-member membership-removal RPC for each selected member. Requests run sequentially, stop on first failure, refresh server state and retain still-valid remaining selections for retry without repeating successful removals; the operation is not atomic. Owner and invited/inactive rows are excluded. Native modal focus containment, Escape/Cancel and safe dismissal when the Desktop/mobile layout breakpoint changes do not save or remove anyone. Server ownership and membership authorization remain authoritative."
         }
       ],
-      "record": "docs/MY-CREW-UX.md; PROJECT_HANDOFF.md §65–§67. Mazen authorized the attached reference design, selection/confirmation removal UI and TESTING-only implementation; PENDING his visual acceptance. Accepted base my-crew, crew-rename, my-crews-view, your-gamid-editor and public-gamid-profile records/checkpoints and existing limits remain unchanged."
+      "record": "docs/MY-CREW-UX.md; PROJECT_HANDOFF.md §65–§68; Product Memory IDEA-0001. Mazen explicitly approved the latest My Crew design and functionality deployed on TESTING c81ad33a38b101e7f77f76ce8eb5ca6a03850c36 on 2026-10-16 (GAMID — FINAL MY CREW ACCEPTANCE), and separately authorized saving the relevant Product Memory proposal. Implementation checkpoint and approved contracts/limits preserved; accepted base capability records unchanged."
     },
     {
       "id": "game-artwork-provisional",

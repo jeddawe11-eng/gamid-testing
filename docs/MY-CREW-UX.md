@@ -1,6 +1,6 @@
 # My Crew owner navigation and public directory (TESTING)
 
-Current reference-design product `0f386d379e811d14afcc043a11601d7f459bd402`, authorized branch `feature/play-together-notifications`, from verified clean GitHub/local `7f171fa777fec9420476a35f7084bcdce2f54cbf`. Prior polish product `fcbf081` and navigation product `7ab1278` are historical below. **New Crew UX PENDING Mazen visual acceptance.** Accepted base contracts remain separately accepted.
+Current reference-design product `0f386d379e811d14afcc043a11601d7f459bd402`, authorized branch `feature/play-together-notifications`, from verified clean GitHub/local `7f171fa777fec9420476a35f7084bcdce2f54cbf`. Prior polish product `fcbf081` and navigation product `7ab1278` are historical below. **Crew UX ACCEPTED by Mazen 2026-10-16 on TESTING `c81ad33`; see final acceptance below.** Accepted base contracts remain separately accepted.
 
 ## Owner flow
 
@@ -50,7 +50,7 @@ Desktop rows have at most three cards, each at most 19rem wide and with original
 
 Browser services and writes are intercepted fixture responses, including provider images. Neutral fixture artwork is not Mazen's live account content. No Crew region or public directory horizontal overflow occurred. The previous whole Account 768px overflow (80px, documented in the prior sidebar task) is outside this Crew task; unchanged account.css is retained. No physical-device or other-browser manual acceptance is claimed.
 
-## Governance
+## Governance (implementation history; final acceptance below supersedes pending status)
 
 Truth adds `crew-ux-navigation` as PENDING_ACCEPTANCE to record the new owner single-Crew/list/Add flow and public nine-plus-reveal contract. Accepted base capability records, checkpoints, limits and statuses remain untouched. Membership maximum remains 10, active owned-Crew members 15, one ACTIVE Crew per game and existing Crew Wall stage limits unchanged. No backend, migration, infrastructure or Production changes; no main merge.
 
@@ -73,3 +73,11 @@ Product `0f386d379e811d14afcc043a11601d7f459bd402`. Full build: 1914 tests, 1913
 Truth crew-ux-navigation UPDATED with current four-column reference layout and selected-removal contracts/checkpoint, remains PENDING_ACCEPTANCE. Product Memory PROPOSED outside the records only, separate save approval required. No backend/infrastructure, Production or main merge.
 
 TESTING delivery (2026-10-16): source `c81ad33a38b101e7f77f76ce8eb5ca6a03850c36`, [workflow 38855728905](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/38855728905) SUCCESS. [TESTING Account](https://gamid-testing-static.gamid.workers.dev/account/). Fourteen served frontend files verified exact with the expected asset stamp, including crew-wall-panel.js and the scoped Crew stylesheet. Post-deploy isolated browser cases PASS: four 15-member cases (390/1024/1440/1920), including four-column geometry, native selection/confirmation/keyboard/focus, responsive modal dismissal and actual mocked removal of two non-owner members only after explicit confirmation; three original functional cases (1024/1440/390), including independent saves, Save All, errors/retry and Avatar/Intro drafts. All backend traffic/writes intercepted; no real account mutation. Final delivery documentation leaves deployed dist unchanged; no redeployment needed. Product Memory proposal prepared outside repository records; no record or INDEX saved. **STOP for Mazen visual review; PENDING_ACCEPTANCE, not ACCEPTED.**
+
+## Final My Crew acceptance (2026-10-16)
+
+Mazen explicitly approved the latest My Crew design and functionality deployed on TESTING `c81ad33a38b101e7f77f76ce8eb5ca6a03850c36` in GAMID — FINAL MY CREW ACCEPTANCE, and separately authorized saving the relevant approved Product Memory proposal. Truth crew-ux-navigation is now ACCEPTED, preserving implementation checkpoint `0f386d379e811d14afcc043a11601d7f459bd402`, existing contracts and limits. This covers the implemented Crew reference layout, four-column members, original navigation/drafts, Add/Invite and confirmed owner-only member-selection removal; prior pending statements above and in §65–§67 are historical and superseded for this capability. Other accepted base records remain unchanged.
+
+Verified before writing: clean local/GitHub feature/play-together-notifications at 7edbf253164c45d1a33eb210aece7ab30970b32e; workflow 38855728905 SUCCESS for c81ad33; fourteen currently served TESTING files exact; implementation/deployed dist trees identical. Updated existing Product Memory IDEA-0001 and INDEX with rationale, prior testing evidence and final approval, preserving original Desktop acceptance/history; no duplicate or new IDs. This task records the explicit owner outcome and prior implementation evidence, without rerunning functional/manual tests. No product code, tests, deployment files, redeployment, Production access or main merge changes.
+
+Acceptance-recording validation: Truth/Product Memory tests 37/37 PASS, zero failures; Product Memory validator PASS for 32 existing records, unchanged ID counters; whitespace/diff check PASS. Only six documentation/acceptance files changed. Product, test, workflow, backend and infrastructure files remain unchanged.

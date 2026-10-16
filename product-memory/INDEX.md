@@ -83,6 +83,8 @@ Rules:
 
 ## Register
 
+2026-10-16: Mazen explicitly accepted the latest My Crew design/functionality on TESTING c81ad33 and authorized saving the approved proposal. Existing IDEA-0001 updated with the Crew rationale, current implementation/deployment checkpoints and final acceptance; original Desktop acceptance/history retained. No new records or IDs.
+
 2026-10-15: REV-0001 item 4 now records Mazen's final Public GamID Profile PASS and ACCEPTED; no further manual testing required for that acceptance. Existing review reused; ID counters unchanged.
 
 2026-10-15: Mazen authorized updates to existing IDEA-0001 (accepted Desktop design and rationale) and REV-0004 (final manual PASS on deployed 1ec1da3); no new IDs or duplicate records. Earlier review and deferral history remains in those records.
