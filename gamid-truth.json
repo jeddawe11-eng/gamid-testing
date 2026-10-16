@@ -303,12 +303,12 @@
     {
       "id": "game-catalog-manual-games",
       "name": "Canonical Game Catalog + manual game add / edit / remove",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "limits": {
         "manualGamesPerIdentity": 300
       },
       "checkpoint": "b4a93b5d9f0b948c3d706e5fc2cbef665c74e63e",
-      "record": "PROJECT_HANDOFF.md §7t, §7u"
+      "record": "PROJECT_HANDOFF.md §7t, §7u; PROJECT_HANDOFF.md §70; Product Memory REV-0008. Mazen explicitly confirmed personal manual TESTING testing and final acceptance on 2026-10-16 in FINAL ACCEPTANCE OF REMAINING FEATURES. Existing implementation checkpoint, scope, contracts and limits preserved."
     },
     {
       "id": "public-my-games",
@@ -669,7 +669,7 @@
     {
       "id": "game-artwork-provisional",
       "name": "Game artwork from SteamGridDB on TESTING (all accounts; provisional)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/@<handle>",
         "/account/"
@@ -694,7 +694,7 @@
         }
       ],
       "checkpoint": "0dd59a91b947571d5579c8ed61be5c94cb9dffc0",
-      "record": "PROJECT_HANDOFF.md §33-§35, §37; docs/GAME-ARTWORK-STEAMGRIDDB.md; supabase/functions/game-artwork; migration 20261011160000_artwork_environment_wide.sql; PROJECT_HANDOFF.md §59; docs/PROFILE-EDITOR-MEDIA-REVIEW.md"
+      "record": "PROJECT_HANDOFF.md §33-§35, §37; docs/GAME-ARTWORK-STEAMGRIDDB.md; supabase/functions/game-artwork; migration 20261011160000_artwork_environment_wide.sql; PROJECT_HANDOFF.md §59; docs/PROFILE-EDITOR-MEDIA-REVIEW.md; PROJECT_HANDOFF.md §70; Product Memory REV-0008. Mazen explicitly confirmed personal manual TESTING testing and final acceptance on 2026-10-16 in FINAL ACCEPTANCE OF REMAINING FEATURES. Acceptance is of the current implemented provisional scope only; provisional designation, TESTING-only restrictions, outstanding written-permission condition and all existing contracts/limits remain unchanged."
     },
     {
       "id": "notifications",
@@ -859,12 +859,12 @@
     {
       "id": "landing-page",
       "name": "Root landing page",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/"
       ],
       "checkpoint": "3cb0cde7f474cbe7efd194623c6c02853c3de365",
-      "record": "PROJECT_HANDOFF.md §7k"
+      "record": "PROJECT_HANDOFF.md §7k; PROJECT_HANDOFF.md §70; Product Memory REV-0008. Mazen explicitly confirmed personal manual TESTING testing and final acceptance on 2026-10-16 in FINAL ACCEPTANCE OF REMAINING FEATURES. Existing implementation checkpoint, scope, contracts and limits preserved."
     }
   ]
 }

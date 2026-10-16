@@ -79,9 +79,11 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0006 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0007 |
+| REV | Reviews | reviews/ | REV-0008 |
 
 ## Register
+
+2026-10-16: Mazen explicitly confirmed personal manual TESTING testing and final approval of Canonical Game Catalog/manual games, current provisional SteamGridDB artwork and the current root Landing Page. New scoped REV-0008 records all three (no existing acceptance review covers them as a whole); prior reviews remain unchanged. Artwork restrictions/provisional designation preserved; no PENDING_ACCEPTANCE capabilities remain in the resulting Truth snapshot.
 
 2026-10-16: REV-0001 items 5 and 6 reconciled with Mazen's explicit STEAM & LEAGUE FINAL ACCEPTANCE and save authorization: Steam real library discovery/My Games manually accepted; League accepted only as the existing private unverified unofficial prototype, with no claimed real-account manual test or official Riot integration. Existing review reused; ID counters unchanged.
 
@@ -126,3 +128,4 @@ Rules:
 | REV-0005 | My Socials visitor links acceptance | COMPLETED | [REV-0005-my-socials-visitor-links-acceptance.md](reviews/REV-0005-my-socials-visitor-links-acceptance.md) |
 | REV-0006 | My Socials Spotify, SoundCloud and Vimeo - Mazen acceptance | COMPLETED | [REV-0006-my-socials-spotify-soundcloud-vimeo-acceptance.md](reviews/REV-0006-my-socials-spotify-soundcloud-vimeo-acceptance.md) |
 | REV-0007 | Favorite Games - Mazen final acceptance | COMPLETED | [REV-0007-favorite-games-final-acceptance.md](reviews/REV-0007-favorite-games-final-acceptance.md) |
+| REV-0008 | Remaining catalog, provisional artwork and landing - Mazen final TESTING acceptance | COMPLETED | [REV-0008-remaining-features-final-acceptance.md](reviews/REV-0008-remaining-features-final-acceptance.md) |

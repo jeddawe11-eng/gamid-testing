@@ -29,6 +29,8 @@ Conversation memory is helpful context, but it is **not** an authoritative proje
 
 **Steam & League acceptance (Mazen, 2026-10-16):** Truth steam-my-games is ACCEPTED after his real TESTING library/My Games check. League-prototype is ACCEPTED AS PROTOTYPE ONLY (status ACCEPTED), retaining manual Riot ID, unofficial temporary OP.GG, private/unverified data and no official Riot authentication/verification; no successful real-account manual test is claimed. Existing checkpoints preserved. Source: PROJECT_HANDOFF.md §69 and REV-0001 items 5/6. Earlier pending/key-missing statements for these capabilities are historical and superseded.
 
+**Final remaining-features acceptance (Mazen, 2026-10-16):** Canonical Game Catalog/manual add-edit-remove, current provisional SteamGridDB artwork and current root Landing Page were personally tested and explicitly approved on TESTING. Truth marks all three ACCEPTED with existing implementation checkpoints/contracts preserved. Artwork remains provisional and TESTING-only, with the written-permission/release conditions unchanged. No PENDING_ACCEPTANCE capabilities remain in Truth; unimplemented work, outstanding conditions and release/merge authorization remain separate. See PROJECT_HANDOFF.md §70 and REV-0008.
+
 ## 2. Environment and safety
 
 - **TESTING** is the working environment. Truth: `environment: TESTING`, `production: NOT_RELEASED`.
@@ -107,7 +109,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-16):** Steam My Games accepted on Mazen's real TESTING discovery/My Games result; League accepted only as the existing private/unverified unofficial prototype, without a claimed real-account manual test or official Riot integration. Truth statuses ACCEPTED, existing implementation checkpoints preserved. Existing REV-0001 and INDEX updated with explicit save authorization; see PROJECT_HANDOFF.md §69. Documentation-only; no secrets accessed, code/deployment/migration changes, Production or main merge. STOP after acceptance recording.
+**Latest continuation (2026-10-16):** Mazen personally tested and accepted the three remaining TESTING features: game-catalog-manual-games, game-artwork-provisional (current provisional scope only) and landing-page. Existing implementation checkpoints/contracts preserved; no PENDING_ACCEPTANCE capabilities remain in Truth. Acceptance saved in REV-0008 and INDEX, technical reconciliation in PROJECT_HANDOFF.md §70 and docs/GAME-ARTWORK-STEAMGRIDDB.md. Documentation-only; no code/migration/deployment changes, Production or main merge. STOP after recording acceptance.
 
 **Previous continuation (Desktop Editor acceptance, 2026-10-15):** Mazen manually accepted the deployed Desktop Profile Editor and authorized Product Memory saving. Truth `your-gamid-editor` is ACCEPTED for the implemented Desktop layout and editing behavior, product `61de6220a37922a776cddd19771b10bdac4fde51`, TESTING source `1ec1da3c934d83b27f025c1d6b1a5a2f20225ff2`, verified delivery checkpoint `446ba095578299c46f32547ac0f8bd6339e9c0ad`. Sources: [`docs/PROFILE-EDITOR-PAIRED-ROWS.md`](docs/PROFILE-EDITOR-PAIRED-ROWS.md), `PROJECT_HANDOFF.md` §62, existing IDEA-0001 and REV-0004. Acceptance-only documentation updates; no redeploy, functionality change or main merge. Stop after recording acceptance. Historical pending Desktop statements below are superseded; no new Android real-device acceptance or unrelated issue verification is implied.
 
@@ -130,7 +132,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
   - CP-01 (REV-0002) is now covered by the final acceptance of My Crews (2026-10-13, §56); GR-01 (REV-0003) by the final acceptance of Gaming Roles (§53).
   - ISS-0007: Mazen's Avatar save passed; the issue stays FIXED until his explicit security acceptance (§38–§39).
   - YOUR GAMID Editor (`your-gamid-editor`): Mazen passed all 16 desktop tests and accepted the tested desktop functionality (REV-0004, §41). **Android Chrome real-device acceptance is still outstanding**, so the capability stays PENDING_ACCEPTANCE.
-- **Awaiting Mazen's acceptance (current Truth):** game-catalog-manual-games, game-artwork-provisional and landing-page. Steam My Games and the League prototype are accepted within their respective scopes (§69); the full list remains authoritative in Truth.
+- **Awaiting Mazen's acceptance (current Truth, 2026-10-16):** none. The final three registered capabilities were explicitly accepted (§70; REV-0008); provisional/release conditions and unimplemented roadmap work remain separate.
 - **Open conditions:**
   - SteamGridDB's written permission for distribution / commercial use is still outstanding, so artwork stays TESTING-only, with no Production / public release (§33–§35; `docs/GAME-ARTWORK-STEAMGRIDDB.md`).
   - The Discord Profile Card (ACCEPTED, §27) still needs a privacy policy for the Discord application.
