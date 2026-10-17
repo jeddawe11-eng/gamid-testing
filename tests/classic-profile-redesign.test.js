@@ -76,9 +76,13 @@ test("public desktop profile: only at >= 80rem without a published Wall, Intro f
   const page = read("dist/public/public.js"), desk = read("dist/public/public-desktop.js"), css = read("dist/public/public.css");
   assert.match(desk, /export const DESKTOP_QUERY = "\(min-width: 80rem\)";/);
   assert.match(page, /if \(!wall\) \{\n    desktopView = createDesktopProfile\(/, "never when a published, enabled Wall replaces the profile");
-  assert.match(page, /config = wall \? \{ \.\.\.built, hostReveal: true \} : built;\n  if \(desktopActive\(\)\) config = \{ \.\.\.config, hostReveal: true \};/);
-  assert.match(page, /if \(!wall && desktopActive\(\)\) showDesktop\(event\.data\.state\);\n      if \(wall\) showWall\(event\.data\.state\);/);
-  assert.match(page, /config: \{ \.\.\.config, hostReveal: false, videoUrl: "" \}/, "crossing back below the breakpoint redraws the accepted frame profile without replaying the Intro");
+  assert.match(page, /config = wall \? \{ \.\.\.built, hostReveal: true \} : built;\n  if \(hostProfile\(\)\) config = \{ \.\.\.config, hostReveal: true \};/);   // Mobile Public Visitor V2 (Mazen 2026-10-17): the page draws the Classic Profile at every width (desktop layout from 80rem, Mobile V2 below)
+  assert.match(page, /if \(!wall && hostProfile\(\)\) showProfile\(event\.data\.state\);\n      if \(wall\) showWall\(event\.data\.state\);/);   // Mobile Public Visitor V2 (Mazen 2026-10-17): the page draws the Classic Profile at every width (desktop layout from 80rem, Mobile V2 below)
+  assert.match(page, /if \(desktopQuery\?\.matches\) \{ hideMobile\(\); showDesktop\(state\); \}/, "the desktop layout itself is still only at DESKTOP_QUERY widths");
+  // Mobile Public Visitor V2 (Mazen 2026-10-17): crossing the breakpoint switches the page's own Classic Profile between the desktop layout and Mobile V2 in place
+  // (the frame keeps hostReveal) - still without replaying the Intro or re-sending its config.
+  assert.match(page, /if \(!config \|\| lastState !== "profile"\) return;\n      sectionsPanel\.hidden = !hasDeskSide;\n      showProfile\("profile"\);\n    \}\);/, "crossing the breakpoint switches the layout in place without replaying the Intro");
+  assert.doesNotMatch(page, /hostReveal: false/, "the page's Classic Profile never asks the frame to draw its own profile again");
   assert.match(page, /node\("section", "public-section public-section-discord"\)/);
   assert.match(css, /html\.is-public-desktop \.public-section-discord\{display:none\}/);
   assert.match(css, /\.desk-only\{display:none\}/, "desktop-only elements never show below the breakpoint");

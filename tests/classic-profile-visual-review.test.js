@@ -161,8 +161,8 @@ test("MY CREWS sits beneath My Duo inside the sections panel; the desktop sideba
   assert.ok(sections.indexOf("if (duo) blocks.push(duo);") < sections.indexOf("if (crew) blocks.push(crew);"));
   assert.ok(sections.indexOf("if (crew) blocks.push(crew);") < sections.indexOf("const discord = sections?.discord;"));
   assert.match(sections, /return blocks\.length - \(crew \? 1 : 0\);/, "it is not counted as a section the mobile panel shows");
-  assert.match(page, /if \(desktopActive\(\)\) sectionsPanel\.hidden = !hasDeskSide \|\| event\.data\.state !== "profile";/);
-  assert.match(page, /sectionsPanel\.hidden = desktopActive\(\) \? !hasDeskSide : !hasSections;/, "and again when the width crosses the breakpoint");
+  assert.match(page, /if \(hostProfile\(\)\) sectionsPanel\.hidden = !hasDeskSide \|\| event\.data\.state !== "profile";/);   // Mobile Public Visitor V2 (Mazen 2026-10-17): the page draws the Classic Profile at every width (desktop layout from 80rem, Mobile V2 below)
+  assert.match(page, /if \(!config \|\| lastState !== "profile"\) return;\n      sectionsPanel\.hidden = !hasDeskSide;\n      showProfile\("profile"\);/, "and again when the width crosses the breakpoint (same panel contents on both sides of it)");   // Mobile Public Visitor V2 (Mazen 2026-10-17): the page draws the Classic Profile at every width (desktop layout from 80rem, Mobile V2 below)
   assert.match(page, /hasDeskSide = \[\.\.\.sectionsPanel\.children\]\.some\(block => !block\.matches\("\.public-section-discord, \.public-section-league"\)\);/);
   assert.match(page, /classList\.toggle\("desk-has-side", hasDeskSide\)/);
 });

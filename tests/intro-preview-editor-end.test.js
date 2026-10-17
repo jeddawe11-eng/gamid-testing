@@ -70,7 +70,7 @@ test("ISS-0010: the public visitor Intro is unchanged - it still reveals the Wal
   const pub = read("dist/public/public.js");
   assert.doesNotMatch(pub, /intro-preview-host|createEditorPreviewEnd|closeIntroPreview/);
   assert.match(pub, /config = wall \? \{ \.\.\.built, hostReveal: true \} : built;/);
-  assert.match(pub, /if \(desktopActive\(\)\) config = \{ \.\.\.config, hostReveal: true \};/);
-  assert.match(pub, /if \(!wall && desktopActive\(\)\) showDesktop\(event\.data\.state\);/);
+  assert.match(pub, /if \(hostProfile\(\)\) config = \{ \.\.\.config, hostReveal: true \};/);   // Mobile Public Visitor V2 (Mazen 2026-10-17): the page draws the Classic Profile at every width (desktop layout from 80rem, Mobile V2 below)
+  assert.match(pub, /if \(!wall && hostProfile\(\)\) showProfile\(event\.data\.state\);/);   // Mobile Public Visitor V2 (Mazen 2026-10-17): the page draws the Classic Profile at every width (desktop layout from 80rem, Mobile V2 below)
   assert.match(pub, /if \(wall\) showWall\(event\.data\.state\);/);
 });

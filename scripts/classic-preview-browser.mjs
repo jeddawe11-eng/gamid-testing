@@ -146,7 +146,8 @@ try {
       await page.locator('#previewClassicButton').click();await page.locator('.classic-preview-dialog[open]').waitFor();
       const outer=page.frameLocator('.classic-preview-dialog > iframe');
       if(width>=1280){await outer.locator('#desktopHero').waitFor();assert.match(await outer.locator('#desktopHero').innerText(),/Saved Gamer.*fixture_owner.*Player.*Saved biography/s);assert.match(await outer.locator('#desktopAbout').innerText(),/Jeddah.*Arabic.*RPG/s);assert.ok(await outer.locator('.public-crew-card').isVisible());}
-      else {const mobile=outer.frameLocator('#experienceFrame');await mobile.locator('#previewName').filter({hasText:'Saved Gamer'}).waitFor();assert.equal(await mobile.locator('#previewBio').textContent(),'Saved biography');}
+      // Mobile Public Visitor V2 (2026-10-17): below 80rem the page draws the same Classic Profile in one column (html.is-public-mobile), not the frame's card
+      else {await outer.locator('html.is-public-mobile #desktopHero').waitFor();assert.match(await outer.locator('#desktopHero').innerText(),/Saved Gamer.*fixture_owner.*Player.*Saved biography/s);assert.match(await outer.locator('#desktopAbout').innerText(),/Jeddah.*Arabic.*RPG/s);assert.ok(await outer.locator('.public-crew-card').isVisible());}
       assert.ok(await outer.getByRole('link',{name:/My Duo: Saved Friend/}).isVisible());assert.ok(await outer.locator('#publicGames').isVisible());assert.match(await outer.locator('#publicGames').innerText(),/Saved Game/);
       assert.ok(await outer.locator('.public-social[href="https://www.instagram.com/fixture.gamer/"]').isVisible());
       assert.equal(await outer.locator('#replayIntroButton').isVisible(),false);assert.equal(await outer.locator('#publicWall').count(),0);

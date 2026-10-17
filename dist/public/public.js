@@ -9,9 +9,10 @@ import { createIntroSourceResolver } from "../account/intro-source.js";
 import { createFlowLayout } from "../flow-layout.js";
 import { normalizeLibrary, renderGamesPreview, createGamesLibrary } from "./public-games.js";
 import { preparePublicWall, createPublicWallView } from "./public-wall.js";
-import { backHandle, crewIdFromSearch } from "./identity-link.js";
+import { backHandle, crewIdFromSearch, normalizeCrews, crewWallHref } from "./identity-link.js";
 import { createVisitorNav } from "./visitor-nav.js";
 import { duoSection } from "./public-duo.js";
+import { adaptSocials, mobileStats, revealSection } from "./public-mobile.js";
 import * as ownerApi from '../account/supabase-client.js';
 import { createOwnerClassicSource } from '../account/classic-profile-source.js';
 
@@ -185,6 +186,9 @@ async function render() {
   let desktopView = null, lastState = null;
   const desktopQuery = typeof matchMedia === "function" ? matchMedia(DESKTOP_QUERY) : null;
   const desktopActive = () => Boolean(desktopView && desktopQuery?.matches);
+  // Mobile Public Visitor V2: without a published Wall the page draws the Classic Profile at EVERY width - the desktop layout at DESKTOP_QUERY widths, one mobile-first
+  // column below (html.is-public-mobile). The Intro frame then only plays the Intro (hostReveal) and its transition reveals the page's profile.
+  const hostProfile = () => Boolean(desktopView);
 
   // Layout mode. While the Intro plays (and before anything is known) the stage is a full-viewport overlay ("experience"). Once the profile shows, the page becomes
   // ordinary document flow ("flow"): the iframe takes exactly the height the profile inside it reports, so the profile, the provider panel and Replay Intro are simply
@@ -254,12 +258,12 @@ async function render() {
       requestMeasure();
       replayButton.hidden = !hasIntro || event.data.state !== "profile";
       sectionsPanel.hidden = !hasSections || event.data.state !== "profile";
-      if (desktopActive()) sectionsPanel.hidden = !hasDeskSide || event.data.state !== "profile";   // the desktop sidebar shows what it holds on desktop
+      if (hostProfile()) sectionsPanel.hidden = !hasDeskSide || event.data.state !== "profile";   // the page's Classic Profile shows what the panel holds there (every width)
       gamesBlock.hidden = !hasGames || event.data.state !== "profile";
       if (event.data.state !== "profile") gamesLibrary?.close();
       layout.setProfileShowing(event.data.state === "profile");
       lastState = event.data.state;
-      if (!wall && desktopActive()) showDesktop(event.data.state);
+      if (!wall && hostProfile()) showProfile(event.data.state);
       if (wall) showWall(event.data.state);
       visitorNav?.setIntroState(event.data.state);
     }
@@ -301,7 +305,32 @@ async function render() {
     deskColumns.left.append(...[desktopView.hero, deskFavorites, gamesBlock].filter(Boolean));
     deskColumns.right.append(...[desktopView.about, sectionsPanel, deskConnected].filter(Boolean));
   }
-  function restoreMobileOrder() { if (deskColumns) replayButton.before(sectionsPanel, gamesBlock); }
+  function restoreMobileOrder() { if (deskColumns || mobColumn) replayButton.before(sectionsPanel, gamesBlock); }
+  // the page's Classic Profile at the current width: the accepted desktop layout at DESKTOP_QUERY widths, Mobile Public Visitor V2 below
+  function showProfile(state) {
+    if (desktopQuery?.matches) { hideMobile(); showDesktop(state); }
+    else { if (document.documentElement.classList.contains("is-public-desktop")) hideDesktop(); showMobile(state); }
+  }
+  // Mobile Public Visitor V2: the same components in ONE column - hero (with its stats row), Socials / My Duo / My Crews / Steam, About Me, Favorite Games,
+  // Connected Games, My Games - then Replay Intro. Like the desktop, the frame stays on top only during the Intro's reveal transition.
+  let mobColumn = null;
+  function showMobile(state) {
+    const root = document.documentElement;
+    if (state === "profile" || state === "transitioning") {
+      if (!mobColumn) { mobColumn = node("div", "mob-col"); replayButton.before(mobColumn); }
+      mobColumn.append(...[desktopView.hero, sectionsPanel, desktopView.about, deskFavorites, deskConnected, gamesBlock].filter(Boolean));
+      root.classList.add("is-public-mobile"); desktopView.show(); if (deskConnected) deskConnected.hidden = false; if (deskFavorites) deskFavorites.hidden = false;
+      artwork().then(data => { applyGameArtwork(gamesBlock, data); if (deskConnected) applyGameArtwork(deskConnected, data); if (deskFavorites) applyGameArtwork(deskFavorites, data); });
+      root.classList.toggle("is-public-mobile-reveal", state === "transitioning");
+      experienceWrap.hidden = state === "profile";
+    } else { hideMobile(); experienceWrap.hidden = false; }
+  }
+  function hideMobile() {
+    const root = document.documentElement;
+    if (!root.classList.contains("is-public-mobile")) return;
+    desktopView?.hide(); if (deskConnected) deskConnected.hidden = true; if (deskFavorites) deskFavorites.hidden = true; restoreMobileOrder();
+    root.classList.remove("is-public-mobile", "is-public-mobile-reveal");
+  }
   const artwork = () => (artworkRequest ||= ownerPreview ? getMyGameArtwork() : fetchGameArtwork(SUPABASE_URL, identity.gamid_handle));
   frame.addEventListener("load", () => { frameReady = true; sendInitial(); });
   replayButton.addEventListener("click", layout.enterExperience);   // the Intro needs the full viewport again (registered first, so it runs before the config is sent)
@@ -374,7 +403,7 @@ async function render() {
       mount: modal => document.body.append(modal),
       lockScroll: locked => document.documentElement.classList.toggle("is-games-open", locked),
       // View all games: the same cached artwork as the compact list (desktop only; the tiles are hidden below 1280 px)
-      onRowsRendered: list => { if (desktopActive()) artwork().then(data => applyGameArtwork(list, data)); },
+      onRowsRendered: list => { if (hostProfile()) artwork().then(data => applyGameArtwork(list, data)); },
     });
     renderGamesPreview({ element: node, container: gamesBlock, library: gamesPreview, onOpenGame: (game, opener) => gamesLibrary.openGame(game, opener), onViewAll: opener => gamesLibrary.openLibrary(opener) });
     hasGames = true;
@@ -437,18 +466,23 @@ async function render() {
     document.documentElement.classList.toggle("desk-has-games", hasGames);
     // the width crossed the desktop breakpoint: the next Intro uses the matching mode; when the profile is showing, switch it now (to mobile: the frame draws its accepted
     // profile again - no Intro replay; to desktop: the frame is hidden and the desktop profile shows)
+    // the width crossed DESKTOP_QUERY: the page's profile switches between the desktop layout and Mobile V2 in place - no Intro replay, the frame stays hidden
     desktopQuery?.addEventListener?.("change", () => {
-      if (!config) return;
-      config = { ...config, hostReveal: desktopActive() };
-      if (lastState !== "profile") return;
-      sectionsPanel.hidden = desktopActive() ? !hasDeskSide : !hasSections;
-      if (desktopActive()) showDesktop("profile");
-      else { hideDesktop(); experienceWrap.hidden = false; frame.contentWindow?.postMessage({ type: "gamid-intro-preview", config: { ...config, hostReveal: false, videoUrl: "" } }, location.origin); }
+      if (!config || lastState !== "profile") return;
+      sectionsPanel.hidden = !hasDeskSide;
+      showProfile("profile");
     });
+    // Mobile V2: the hero's stats row (games, Crews, Duo - only real public counts) and the adaptive My Socials icons
+    const publicCrews = normalizeCrews(identity.public_sections?.crews).filter(crew => crewWallHref(crew.id));
+    const duoBlock = sectionsPanel.querySelector(".public-duo:not(.public-crew)");
+    const stats = mobileStats({ doc: document, gamesCount: hasGames ? gamesPreview.libraryCount : 0, crewsCount: publicCrews.length, hasDuo: Boolean(duoBlock),
+      onGames: () => revealSection(gamesBlock), onCrews: opener => openCrews?.(opener), onDuo: () => revealSection(duoBlock) });
+    if (stats) desktopView.hero.querySelector(".desk-identity")?.after(stats);
+    adaptSocials(sectionsPanel.querySelector(".public-socials"));
   }
   // with a published Wall the Intro frame shows no profile card and stays transparent (hostReveal): its transition reveals the Wall behind it
   config = wall ? { ...built, hostReveal: true } : built;
-  if (desktopActive()) config = { ...config, hostReveal: true };   // the same for the desktop profile
+  if (hostProfile()) config = { ...config, hostReveal: true };   // the same for the page's Classic Profile (desktop layout and Mobile V2)
   if (visitorNav) config = { ...config, hostSkip: true };   // the frame hides its own Skip: the visitor's Skip Intro sits beside Back
   hasIntro = Boolean(config.videoUrl);
   sendInitial();

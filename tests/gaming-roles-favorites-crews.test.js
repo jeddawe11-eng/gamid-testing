@@ -159,7 +159,7 @@ test("Classic Profile: two independent columns (left hero / favorites / My Games
   const page = read("dist/public/public.js"), css = read("dist/public/public.css");
   assert.match(page, /deskColumns\.left\.append\(\.\.\.\[desktopView\.hero, deskFavorites, gamesBlock\]\.filter\(Boolean\)\);/);
   assert.match(page, /deskColumns\.right\.append\(\.\.\.\[desktopView\.about, sectionsPanel, deskConnected\]\.filter\(Boolean\)\);/);
-  assert.match(page, /function restoreMobileOrder\(\) \{ if \(deskColumns\) replayButton\.before\(sectionsPanel, gamesBlock\); \}/, "mobile gets its accepted order back");
+  assert.match(page, /function restoreMobileOrder\(\) \{ if \(deskColumns \|\| mobColumn\) replayButton\.before\(sectionsPanel, gamesBlock\); \}/, "the panel and My Games get their page order back when a layout is left");   // Mobile Public Visitor V2 (Mazen 2026-10-17): the page draws the Classic Profile at every width (desktop layout from 80rem, Mobile V2 below)
   assert.match(css, /html\.is-public-desktop \.public-shell\{display:grid;grid-template-columns:minmax\(0,1\.75fr\) minmax\(19rem,1fr\);grid-template-areas:"left right" "replay replay";/);
   assert.match(css, /\.desk-col\{display:none\}/, "the columns exist only on the desktop profile");
   assert.match(css, /\.desk-favorites-list\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\);/);

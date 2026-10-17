@@ -276,7 +276,7 @@ test("no automatic MY CREW: the public page appends nothing below the Wall - My 
   assert.deepEqual(page.match(/crewsEntry\([^)]*\)/g), ["crewsEntry(sections?.crews, { onOpen: opener => openCrews?.(opener)"], "the sections panel is the only place it is drawn");
   assert.match(page, /sectionsPanel\.hidden = true; gamesBlock\.hidden = true;   \/\/ the Wall IS the profile body/, "a published Wall hides the panel that holds it");
   assert.match(read("dist/public/public-desktop.js"), /h\("section", "public-section public-duo public-crew desk-only"\)/);
-  assert.deepEqual(css.match(/[^{}]*public-crew[^{}]*\{/g).map(s => s.trim()), ["html.is-public-desktop .public-crew.desk-only{", ".public-crew-card{"], "shown only by the desktop Classic Profile (the entry's own rule styles an element inside that desk-only block)");
+  assert.deepEqual(css.match(/[^{}]*public-crew[^{}]*\{/g).map(s => s.trim()), ["html.is-public-desktop .public-crew.desk-only{", ".public-crew-card{", "html.is-public-mobile .public-crew.desk-only{"], "shown by the Classic Profile only (desktop layout and, since 2026-10-17, Mobile Public Visitor V2) - never below a published Wall");
 });
 
 // ---------- 10. My Duo unchanged ----------
