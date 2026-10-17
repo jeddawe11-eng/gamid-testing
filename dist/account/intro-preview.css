@@ -38,3 +38,22 @@ html.host-reveal .profile{visibility:hidden}
 html.host-skip .skip{display:none}
 /* each secondary Gaming Role is its own badge (the container itself draws nothing) */
 #previewSecondaryRoles{display:contents}
+/* Mobile landscape hint (intro-landscape.js). Bottom-left above the progress bar: clear of Tap to play (centre), Skip and the host's
+   Back / Skip group (top-right) and the editor's Return to editor (bottom-right). One ~3 s showing per presentation, never looping. */
+.landscape-hint{position:absolute;z-index:11;left:max(1rem,env(safe-area-inset-left));bottom:calc(max(1.3rem,env(safe-area-inset-bottom)) + .9rem);width:52px;height:52px;margin:0;padding:0;display:grid;place-items:center;border:1px solid rgba(255,255,255,.35);border-radius:16px;background:rgba(5,5,10,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;cursor:pointer;opacity:0;transition:opacity .4s ease;-webkit-tap-highlight-color:transparent}
+.landscape-hint[hidden]{display:none}
+.landscape-hint.is-showing{opacity:1}
+.landscape-hint.is-showing.is-leaving{opacity:0}
+.landscape-hint svg{width:36px;height:36px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.landscape-hint .landscape-arc{stroke:var(--cyan,#5fe4ff)}
+.landscape-hint .landscape-phone{transform-box:fill-box;transform-origin:center;transition:none}
+.landscape-hint.is-showing .landscape-phone{animation:landscape-turn 2.6s cubic-bezier(.45,0,.25,1) .2s both}
+@keyframes landscape-turn{0%{transform:rotate(0deg)}45%,100%{transform:rotate(90deg)}}
+.landscape-exit{position:absolute;z-index:12;top:max(1rem,env(safe-area-inset-top));left:max(1rem,env(safe-area-inset-left));min-height:44px;margin:0;padding:.6rem .95rem;border:1px solid rgba(255,255,255,.35);border-radius:999px;background:rgba(5,5,10,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:.78rem;font-weight:750;cursor:pointer}
+.landscape-exit[hidden]{display:none}
+.landscape-hint:focus-visible,.landscape-exit:focus-visible{outline:2px solid var(--cyan,#5fe4ff);outline-offset:2px}
+/* Fullscreen wraps the existing Intro layer: same video, same ambient glow, same Skip / Tap to play / progress */
+.intro-layer:fullscreen{width:100vw;height:100vh;background:#05050a}
+.intro-layer:-webkit-full-screen{width:100vw;height:100vh;background:#05050a}
+/* Reduced motion: a static landscape phone that simply appears and goes */
+@media(prefers-reduced-motion:reduce){.landscape-hint,.landscape-hint.is-showing.is-leaving{transition:none}.landscape-hint.is-showing .landscape-phone{animation:none;transform:rotate(90deg)}}

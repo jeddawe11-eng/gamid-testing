@@ -146,5 +146,15 @@ export async function reviewMobileDeck({page,width,scenario,out,calls,full=true,
  await page.locator('#previewClassicButton').click();await page.locator('.classic-preview-dialog[open]').waitFor();await page.getByRole('button',{name:'Back to Edit',exact:true}).click();await page.locator('.classic-preview-dialog iframe').waitFor({state:'detached'});
  await deckOpen(page,'bio');assert.equal(await page.locator('#profileBio').inputValue(),'Kept through Classic Preview');await deckClose(page);
  result.drafts=true;
+ // Intro Preview from the Intro sheet (ISS-0010 contract): Return to editor and the frame's own Skip both come back to the editor; the landscape hint never starts playback.
+ for(const leave of ['return','skip']){
+  await deckOpen(page,'intro');await page.locator('#previewIntroButton').click();await page.locator('#introPreviewDialog[open]').waitFor();
+  const intro=page.frameLocator('#introPreviewFrame');await intro.locator('#introVideo').evaluate(v=>v.readyState>=1||new Promise(r=>v.addEventListener('loadedmetadata',r,{once:true})));
+  result.introHint=await intro.locator('#landscapeHint').isVisible();
+  if(leave==='return')await page.locator('#closeIntroPreview').click();else await intro.locator('#skipButton').click();
+  await page.locator('#introPreviewDialog').waitFor({state:'hidden'});assert.ok(await page.locator('.deck-sheet-body [data-editor-section=intro].deck-open').isVisible(),'back in the Intro editor after '+leave);
+  await deckClose(page);
+ }
+ result.introPreview=true;
  return result;
 }
