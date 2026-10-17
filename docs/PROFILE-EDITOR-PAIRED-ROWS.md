@@ -4,6 +4,8 @@ Implementation checkpoint: `61de6220a37922a776cddd19771b10bdac4fde51`, authorize
 
 ## Current Desktop contract
 
+Below 1024px, since 2026-10-17: after this editor restores the original DOM, the Mobile V2 Profile Deck takes over ([PROFILE-EDITOR-MOBILE-V2.md](PROFILE-EDITOR-MOBILE-V2.md), PENDING_ACCEPTANCE). The Desktop contract below is unchanged.
+
 Targeted presentation follow-up: [PROFILE-EDITOR-SIDEBAR-CREW-PRESENTATION.md](PROFILE-EDITOR-SIDEBAR-CREW-PRESENTATION.md), product `35842e9`, widens the sidebar and reuses rich Crew directory tiles. Those new visual improvements await Mazen review; the accepted single-open editing behavior described here is unchanged.
 
 At 1024px and above, two equal workspace columns use six paired summary rows:

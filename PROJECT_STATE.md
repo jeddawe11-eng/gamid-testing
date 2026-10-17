@@ -4,7 +4,7 @@
 
 This file is an index and a continuation pointer. It is **not** an authoritative source. Every fact here points to the source that owns it, and **that source wins** whenever the two disagree.
 
-Last reviewed: 2026-10-16.
+Last reviewed: 2026-10-17.
 
 ## 1. Mandatory entry order
 
@@ -56,7 +56,8 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** `0f386d379e811d14afcc043a11601d7f459bd402` (Approved Crew reference, four-column Desktop member grid and confirmed selection removal, retaining summaries/list/public directory; `docs/MY-CREW-UX.md`, `PROJECT_HANDOFF.md` §67, Truth `crew-ux-navigation`; ACCEPTED by Mazen 2026-10-16 (§68)). Prior accepted base capabilities and limits remain unchanged.
+- **Latest product commit:** `a0c7c95580e7e3375aa095fdc62de520059236ac` (Mobile V2 Profile Deck below 1024px; `docs/PROFILE-EDITOR-MOBILE-V2.md`, `PROJECT_HANDOFF.md` §71; Truth `your-gamid-editor-mobile` PENDING_ACCEPTANCE).
+- **Previous product commit:** `0f386d379e811d14afcc043a11601d7f459bd402` (Approved Crew reference, four-column Desktop member grid and confirmed selection removal, retaining summaries/list/public directory; `docs/MY-CREW-UX.md`, `PROJECT_HANDOFF.md` §67, Truth `crew-ux-navigation`; ACCEPTED by Mazen 2026-10-16 (§68)). Prior accepted base capabilities and limits remain unchanged.
 - **Previous editor product:** `41aa90692c164d9675698131f561b285cdc8b736` (saved owner Classic preview; `PROJECT_HANDOFF.md` §57; TESTING deployment `7aa0133`, run `38427825018`; PENDING owner acceptance).
 - **Previous product commit:** `4b56646e782eefadcc173b64e8aa59f0fab37cd9` (ISS-0011 Intro storage lifecycle and reservation release; ISS-0012 clear refusal; `PROJECT_HANDOFF.md` §42; deployed as head `72896d6`, run `38145293680`; PENDING manual acceptance). Before it: `a1d2eebd5355f8c2ad9c4d7d398348fa0d167cc7` (ISS-0007 Avatar validation, My Crews panel sizing CP-01, Role Suggestions review inside Gaming Roles GR-01; `PROJECT_HANDOFF.md` §38; migration `20261011220000` applied; `usage-upload` v8; deployed by run `38128281601`). Mazen's manual checks passed: CP-01 (REV-0002), GR-01 (REV-0003) and an Avatar save for ISS-0007 (which stays FIXED until his security acceptance); the capabilities `your-gamid-editor`, `my-crews-view` and `gaming-roles-categories` remain PENDING_ACCEPTANCE in Truth.
   - **ISS-0009 is VERIFIED and Truth `visitor-media-access` is ACCEPTED** (Mazen, 2026-10-11, including the documented residual possibility of unknown historical signed URLs; `PROJECT_HANDOFF.md` §30, §38–§40). The known pre-fix synthetic URL was closed by deleting its object (§39).
@@ -109,7 +110,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-16):** Mazen personally tested and accepted the three remaining TESTING features: game-catalog-manual-games, game-artwork-provisional (current provisional scope only) and landing-page. Existing implementation checkpoints/contracts preserved; no PENDING_ACCEPTANCE capabilities remain in Truth. Acceptance saved in REV-0008 and INDEX, technical reconciliation in PROJECT_HANDOFF.md §70 and docs/GAME-ARTWORK-STEAMGRIDDB.md. Documentation-only; no code/migration/deployment changes, Production or main merge. STOP after recording acceptance.
+**Latest continuation (2026-10-17, Mobile V2):** Mazen authorized implementing and deploying to TESTING the Mobile V2 "Profile Deck" (below 1024px: identity hero, section chips, six group cards, one editor at a time in a sheet, sticky Save All bar). Product `a0c7c95580e7e3375aa095fdc62de520059236ac`; Truth `your-gamid-editor-mobile` is PENDING_ACCEPTANCE. The accepted Desktop editor is unchanged. Details and evidence are in [`docs/PROFILE-EDITOR-MOBILE-V2.md`](docs/PROFILE-EDITOR-MOBILE-V2.md) and `PROJECT_HANDOFF.md` §71. **Next:** Mazen's Android Emulator review and acceptance decision. Arabic / RTL is deliberately out of scope: ten languages are planned as a separate localization task.
+
+**Previous continuation (2026-10-16):** Mazen personally tested and accepted the three remaining TESTING features: game-catalog-manual-games, game-artwork-provisional (current provisional scope only) and landing-page. Existing implementation checkpoints/contracts preserved; no PENDING_ACCEPTANCE capabilities remain in Truth. Acceptance saved in REV-0008 and INDEX, technical reconciliation in PROJECT_HANDOFF.md §70 and docs/GAME-ARTWORK-STEAMGRIDDB.md. Documentation-only; no code/migration/deployment changes, Production or main merge. STOP after recording acceptance.
 
 **Previous continuation (Desktop Editor acceptance, 2026-10-15):** Mazen manually accepted the deployed Desktop Profile Editor and authorized Product Memory saving. Truth `your-gamid-editor` is ACCEPTED for the implemented Desktop layout and editing behavior, product `61de6220a37922a776cddd19771b10bdac4fde51`, TESTING source `1ec1da3c934d83b27f025c1d6b1a5a2f20225ff2`, verified delivery checkpoint `446ba095578299c46f32547ac0f8bd6339e9c0ad`. Sources: [`docs/PROFILE-EDITOR-PAIRED-ROWS.md`](docs/PROFILE-EDITOR-PAIRED-ROWS.md), `PROJECT_HANDOFF.md` §62, existing IDEA-0001 and REV-0004. Acceptance-only documentation updates; no redeploy, functionality change or main merge. Stop after recording acceptance. Historical pending Desktop statements below are superseded; no new Android real-device acceptance or unrelated issue verification is implied.
 
@@ -132,7 +135,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
   - CP-01 (REV-0002) is now covered by the final acceptance of My Crews (2026-10-13, §56); GR-01 (REV-0003) by the final acceptance of Gaming Roles (§53).
   - ISS-0007: Mazen's Avatar save passed; the issue stays FIXED until his explicit security acceptance (§38–§39).
   - YOUR GAMID Editor (`your-gamid-editor`): Mazen passed all 16 desktop tests and accepted the tested desktop functionality (REV-0004, §41). **Android Chrome real-device acceptance is still outstanding**, so the capability stays PENDING_ACCEPTANCE.
-- **Awaiting Mazen's acceptance (current Truth, 2026-10-16):** none. The final three registered capabilities were explicitly accepted (§70; REV-0008); provisional/release conditions and unimplemented roadmap work remain separate.
+- **Awaiting Mazen's acceptance (current Truth, 2026-10-17):** `your-gamid-editor-mobile` (Mobile V2 Profile Deck, §71). Everything else registered was accepted by 2026-10-16 (§70; REV-0008); provisional/release conditions and unimplemented roadmap work remain separate.
 - **Open conditions:**
   - SteamGridDB's written permission for distribution / commercial use is still outstanding, so artwork stays TESTING-only, with no Production / public release (§33–§35; `docs/GAME-ARTWORK-STEAMGRIDDB.md`).
   - The Discord Profile Card (ACCEPTED, §27) still needs a privacy policy for the Discord application.

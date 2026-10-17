@@ -3483,3 +3483,32 @@ Artwork remains PROVISIONAL / TESTING-only. Existing reliable matching/fallbacks
 No PENDING_ACCEPTANCE capabilities remain in the resulting Truth snapshot; this does not accept unimplemented roadmap directions, resolve unrelated issues or authorize release/merge. New scoped Product Memory REV-0008 and INDEX record the three decisions; existing DIS-0002/REV-0007 were checked but do not cover these capabilities as a whole, so they are preserved without duplicate/expanded acceptance. Verified clean local/GitHub feature/play-together-notifications at ad9ed7bc0af077bb6d2bcbcc8589e9e031d9171f and all three original implementation ancestors before edits. Documentation/acceptance only: no product/test code, migrations, deployment, Production access or main merge. No new functional/manual tests run by the agent.
 
 Acceptance-recording validation: Truth/Product Memory tests 37/37 PASS, zero failures; Product Memory validator PASS for 33 records (one necessary scoped REV-0008, no duplicates); only the REV counter advances from 0007 to 0008. Truth comparison confirms only the three authorized status/acceptance references changed, all checkpoints/contracts/limits preserved and PENDING_ACCEPTANCE count zero. Whitespace check PASS. Only seven documentation/acceptance files changed; product, test, migration and deployment files unchanged.
+
+## 71. Mobile V2: the Profile Deck (2026-10-17)
+
+Mazen authorized implementation and TESTING deployment of Mobile V2 ("GAMID — IMPLEMENT MOBILE V2: THE PROFILE DECK"), using the 11-board Profile Deck proposal and its recommended choices as the baseline. He wants to try it in his Android Emulator before final acceptance. Arabic / RTL was excluded: ten languages come later as one coordinated task.
+
+Product `a0c7c95580e7e3375aa095fdc62de520059236ac` on feature/play-together-notifications, from verified clean `82c3cd6`:
+
+- **What it is.** Below 1024px YOUR GAMID is now an identity hero, sticky section chips and six group cards following the Desktop pairs. One live editor at a time opens in a full-screen sheet (centred from 600px; About Me parts as tabs). A sticky bar holds the original Save All while anything is unsaved.
+- **Drafts.** Back, Escape and Android / browser Back keep drafts. Crossing 1024px keeps every draft and the open editor.
+- **Dialogs and layout.** Confirmations become bottom sheets below 600px. The 760–879px two-column overflow is gone.
+- **How it is built.** It is a presentation layer (`mobile-editor.js` / `mobile-editor.css`) that moves the original section cards with restoration slots, like the Desktop editor. Saves, uploads, workflow actions, contracts, limits and privacy are unchanged. No backend, migration or infrastructure change.
+- **Desktop.** `desktop-editor.js` / `.css` are untouched, and the Desktop editor is pixel-identical at 1024, 1280 and 1440.
+
+Full contract, behavior and evidence: [docs/PROFILE-EDITOR-MOBILE-V2.md](docs/PROFILE-EDITOR-MOBILE-V2.md).
+
+**Validation:**
+
+- **Build:** 1917 tests, 1916 PASS, one opt-in SKIP, zero failures.
+- **Mobile and tablet:** the deck review passes 24 cases (360, 375, 390, 430, 600, 768, 820 and 1023px × populated / rich / empty), with the full draft, save, boundary, Back, dialog and preview flow at every width.
+- **Desktop regression:** the paired editor at 1024 and 1440, media review, Crew UX (35 cases) and Classic preview pass; 9 of 9 screenshots are byte-identical to the starting checkpoint.
+- **Pre-existing test failure:** the old 390px path of `profile-editor-browser.mjs` was already failing at `82c3cd6`. Mobile coverage moved to `classic-preview-browser.mjs --mobile-deck`.
+- **Scope of testing:** all backend traffic was mocked; no real or protected account was used. Chrome headless only; no Android device or Emulator test is claimed.
+
+**Truth: UPDATED.**
+
+- New capability `your-gamid-editor-mobile`, PENDING_ACCEPTANCE (checkpoint `a0c7c95`; contracts `profile-mobile-deck`, `profile-mobile-sheet`, `profile-mobile-save-bar`, `profile-mobile-boundary`).
+- `your-gamid-editor` stays ACCEPTED with its checkpoint unchanged. Only the below-1024px wording of `profile-independent-sections`, `profile-save-all`, `profile-desktop-dashboard` and `profile-desktop-media` was reconciled, to point to Mobile V2.
+
+No Product Memory record was created or changed. **STOP for Mazen's Android Emulator review; PENDING_ACCEPTANCE, not ACCEPTED.**
