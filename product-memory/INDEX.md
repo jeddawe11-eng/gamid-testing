@@ -79,9 +79,11 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0006 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0009 |
+| REV | Reviews | reviews/ | REV-0010 |
 
 ## Register
+
+2026-10-17: Mazen explicitly approved saving the final Mobile Public Visitor V2 acceptance already recorded in Truth (public-profile-mobile-v2 ACCEPTED, product ace0982, TESTING 2889d3b). New scoped REV-0010; owner Mobile V2 and Intro landscape hint remain PENDING_ACCEPTANCE. No product changes.
 
 2026-10-17: Mazen manually verified the Mobile V2 visual parity fixes (Intro thumbnail, My Games and My Crew artwork, other parity-audit corrections; product 15e204d, TESTING 4786c59) with his real account in the Android Emulator, confirmed all are correct, and approved saving. New scoped REV-0009; overall Mobile V2 (Truth your-gamid-editor-mobile) remains PENDING_ACCEPTANCE. IDEA-0001 and REV-0004 (Desktop) are unchanged.
 
@@ -132,3 +134,4 @@ Rules:
 | REV-0007 | Favorite Games - Mazen final acceptance | COMPLETED | [REV-0007-favorite-games-final-acceptance.md](reviews/REV-0007-favorite-games-final-acceptance.md) |
 | REV-0008 | Remaining catalog, provisional artwork and landing - Mazen final TESTING acceptance | COMPLETED | [REV-0008-remaining-features-final-acceptance.md](reviews/REV-0008-remaining-features-final-acceptance.md) |
 | REV-0009 | Mobile V2 visual parity fixes - Mazen manual acceptance (Android Emulator) | COMPLETED | [REV-0009-mobile-v2-visual-fixes-acceptance.md](reviews/REV-0009-mobile-v2-visual-fixes-acceptance.md) |
+| REV-0010 | Mobile Public Visitor V2 - Mazen final acceptance | COMPLETED | [REV-0010-mobile-public-visitor-v2-final-acceptance.md](reviews/REV-0010-mobile-public-visitor-v2-final-acceptance.md) |
