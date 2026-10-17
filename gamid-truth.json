@@ -268,7 +268,7 @@
           "rule": "Tapping the hint puts the existing Intro layer (same video, ambient background and controls) in fullscreen, then tries a landscape orientation lock where the browser grants it; a refused lock keeps fullscreen and manual rotation. It never plays, pauses, seeks, reloads or replaces the video: a paused Intro stays paused until Play, and a playing one keeps its position, volume and mute. Exit fullscreen, system Back, Skip, a stop and the Intro end leave fullscreen and release the lock; the end transition runs after fullscreen has closed. Without the Fullscreen API the hint is only a manual-rotation cue. Intro remains click-to-play; the Intro iframes allow fullscreen."
         }
       ],
-      "record": "docs/INTRO-LANDSCAPE-HINT.md; PROJECT_HANDOFF.md §74. Implementation 30653d1; checkpoint c3113d0 only restores the player markup's LF line endings. Implemented under Mazen's task of 2026-10-17; on TESTING, awaiting his manual acceptance. Forced rotation is not universal on mobile browsers."
+      "record": "docs/INTRO-LANDSCAPE-HINT.md; PROJECT_HANDOFF.md §74. Implementation 30653d1; checkpoint c3113d0 only restores the player markup's LF line endings. Implemented under Mazen's task of 2026-10-17; deployed to TESTING as d10ca52e5d20e6d6745e726945a931ca4ba71af9 (run 39013335904), awaiting his manual acceptance. Forced rotation is not universal on mobile browsers."
     },
     {
       "id": "intro-derivative-f2",

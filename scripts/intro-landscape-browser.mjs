@@ -19,7 +19,7 @@ async function open(viewport,{mobile=true,reducedMotion='no-preference'}={}){
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.addInitScript(()=>{window.__plays=0;const p=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(){window.__plays++;return p.call(this);};});
  await page.goto(CF+'/__test/host.html');await page.evaluate(()=>window.ready);
- const frame=page.frames().find(f=>f.url().includes('intro-preview.html'));
+ const frame=page.frames().find(f=>f.url().includes('/account/intro-preview'));   // TESTING serves it without .html
  return {context,page,frame,errors};
 }
 const rect=(frame,sel)=>frame.locator(sel).evaluate(n=>{const r=n.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom};});

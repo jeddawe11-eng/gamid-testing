@@ -3620,3 +3620,16 @@ Details: [docs/INTRO-LANDSCAPE-HINT.md](docs/INTRO-LANDSCAPE-HINT.md).
 **Truth: UPDATED.** New capability `intro-landscape-hint` PENDING_ACCEPTANCE (checkpoint `c3113d0`, contracts `intro-landscape-hint-display` and `intro-landscape-fullscreen`). `intro-identity` and every other capability are unchanged.
 
 No Product Memory change.
+
+TESTING delivery: source `d10ca52e5d20e6d6745e726945a931ca4ba71af9` (product `c3113d0`), [workflow 39013335904](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39013335904) SUCCESS. Ten served files match the commit exactly (Intro player HTML / JS / CSS, `intro-landscape.js`, both host pages, `styles.css`, `video-fit.js`, Mobile V2 and Desktop editors). The `--live` hint review passes 8 of 8.
+
+**Real-device check (Android Emulator `Medium_Phone`, Chrome 154, deployed public Intro of @black as a read-only visitor, in new tabs; nothing played, saved or signed in):**
+
+- **Verified:**
+  - landscape Intro with manual "Tap to play" and no autoplay;
+  - the hint appears bottom-left about 2.3 s after opening, with the phone in portrait, turned to landscape by about 3.8 s, and gone by 6.1 s;
+  - no overlap with Tap to play, Skip or the progress bar.
+- **Not verified:** fullscreen / orientation lock on the device. The single scripted tap landed in the hint's final fade, and the page did not enter fullscreen. Whether the tap came after the hint's dismissal could not be established: the emulator then exited, and was not relaunched.
+- **Leftovers:** eleven small screenshot files (`/sdcard/gamid-*.png`) and a few @black tabs remain in that emulator's Chrome.
+
+**STOP for Mazen's manual acceptance; PENDING_ACCEPTANCE, not ACCEPTED.**

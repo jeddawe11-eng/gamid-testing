@@ -81,3 +81,10 @@ Nothing else changed in the player. It keeps its single `<video>`, its contain-f
   - **Also:** reduced motion (static 90°, no animation), phone already in landscape (no hint) and Desktop (no hint).
   - **Limit:** headless Chrome cannot rotate, so the orientation lock stayed portrait there, which exercises the refused-lock path.
 - **Regression (`--mobile-deck`):** now also opens Preview Intro from the Intro sheet and checks that Return to editor and the frame's Skip both return to the editor.
+
+## TESTING delivery and device check
+
+- **Deployment:** source `d10ca52e5d20e6d6745e726945a931ca4ba71af9`, [workflow 39013335904](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39013335904) SUCCESS. Served files are exact, and the `--live` hint review passes 8 of 8.
+- **Android Emulator (Chrome 154), real device:**
+  - **Verified:** manual Tap to play; the hint appears, turns from portrait to landscape and is gone after its window; layout clear of every control.
+  - **Not verified (needs Mazen):** tap → fullscreen / orientation lock. The one scripted tap fell in the fade, and the result was inconclusive.
