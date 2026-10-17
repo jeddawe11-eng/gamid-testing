@@ -3580,7 +3580,7 @@ He explicitly approved saving the result.
 
 ## 74. Mobile Intro landscape rotation hint (2026-10-17)
 
-Mazen authorized implementing, testing and deploying to TESTING a TikTok-inspired animated phone-rotation hint for the mobile Intro player ("GAMID — MOBILE INTRO LANDSCAPE ROTATION HINT"). Product `30653d1678a9cd319d5e31ac94ec729bb1648341` on feature/play-together-notifications, from verified clean `a765099`.
+Mazen authorized implementing, testing and deploying to TESTING a TikTok-inspired animated phone-rotation hint for the mobile Intro player ("GAMID — MOBILE INTRO LANDSCAPE ROTATION HINT"). Product `30653d1678a9cd319d5e31ac94ec729bb1648341` on feature/play-together-notifications, from verified clean `a765099`. Follow-up `c3113d0e887ee12878fdd9ec6e09501728c72749` only restores LF line endings in `intro-preview.html`; the content is unchanged.
 
 **Where it lives.** The shared Intro player `account/intro-preview.html` / `.js` is used by the public visitor Intro and the editor's Preview Intro. The editor's Intro thumbnail is unchanged.
 
@@ -3617,6 +3617,6 @@ Details: [docs/INTRO-LANDSCAPE-HINT.md](docs/INTRO-LANDSCAPE-HINT.md).
 - **Mobile V2 deck:** 36 cases PASS, now including Preview Intro → Return to editor / Skip.
 - **Desktop:** 12 of 12 screenshots are byte-identical to `82c3cd6`. The paired editor, Classic preview, media review and Crew UX (35 cases) pass.
 
-**Truth: UPDATED.** New capability `intro-landscape-hint` PENDING_ACCEPTANCE (checkpoint `30653d1`, contracts `intro-landscape-hint-display` and `intro-landscape-fullscreen`). `intro-identity` and every other capability are unchanged.
+**Truth: UPDATED.** New capability `intro-landscape-hint` PENDING_ACCEPTANCE (checkpoint `c3113d0`, contracts `intro-landscape-hint-display` and `intro-landscape-fullscreen`). `intro-identity` and every other capability are unchanged.
 
 No Product Memory change.

@@ -1,6 +1,6 @@
 # Mobile Intro landscape rotation hint (TESTING)
 
-Mazen's task "GAMID — MOBILE INTRO LANDSCAPE ROTATION HINT" (2026-10-17): a TikTok-inspired animated phone that turns from portrait to landscape, inviting the viewer to watch a horizontal Intro in landscape fullscreen. Branch `feature/play-together-notifications`; product checkpoint `30653d1678a9cd319d5e31ac94ec729bb1648341`. **PENDING_ACCEPTANCE** (Truth `intro-landscape-hint`).
+Mazen's task "GAMID — MOBILE INTRO LANDSCAPE ROTATION HINT" (2026-10-17): a TikTok-inspired animated phone that turns from portrait to landscape, inviting the viewer to watch a horizontal Intro in landscape fullscreen. Branch `feature/play-together-notifications`; product checkpoint `c3113d0e887ee12878fdd9ec6e09501728c72749` (implementation `30653d1`; `c3113d0` restores LF line endings in `intro-preview.html`, with no content change). **PENDING_ACCEPTANCE** (Truth `intro-landscape-hint`).
 
 ## Where it lives
 

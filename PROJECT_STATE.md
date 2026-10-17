@@ -56,7 +56,7 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** `30653d1678a9cd319d5e31ac94ec729bb1648341` (mobile Intro landscape hint, §74; Truth `intro-landscape-hint` PENDING_ACCEPTANCE).
+- **Latest product commit:** `c3113d0e887ee12878fdd9ec6e09501728c72749` (mobile Intro landscape hint, implemented at `30653d1`, §74; Truth `intro-landscape-hint` PENDING_ACCEPTANCE).
 - **Previous product commit:** `15e204dcc8e324de3d32efc1e747b041424f45aa` (Mobile V2 visual parity fixes, `PROJECT_HANDOFF.md` §72), on top of `a0c7c95580e7e3375aa095fdc62de520059236ac` (Mobile V2 Profile Deck below 1024px; `docs/PROFILE-EDITOR-MOBILE-V2.md`, §71). Truth `your-gamid-editor-mobile` is PENDING_ACCEPTANCE.
 - **Previous product commit:** `0f386d379e811d14afcc043a11601d7f459bd402` (Approved Crew reference, four-column Desktop member grid and confirmed selection removal, retaining summaries/list/public directory; `docs/MY-CREW-UX.md`, `PROJECT_HANDOFF.md` §67, Truth `crew-ux-navigation`; ACCEPTED by Mazen 2026-10-16 (§68)). Prior accepted base capabilities and limits remain unchanged.
 - **Previous editor product:** `41aa90692c164d9675698131f561b285cdc8b736` (saved owner Classic preview; `PROJECT_HANDOFF.md` §57; TESTING deployment `7aa0133`, run `38427825018`; PENDING owner acceptance).
@@ -113,7 +113,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-17, mobile Intro landscape hint):** Mazen's task added a brief animated phone-rotation hint to the shared Intro player, shown for landscape Intros on portrait phones. Tapping it gives landscape fullscreen, with a manual-rotation fallback. Product `30653d1678a9cd319d5e31ac94ec729bb1648341`; Truth `intro-landscape-hint` is PENDING_ACCEPTANCE (`docs/INTRO-LANDSCAPE-HINT.md`, `PROJECT_HANDOFF.md` §74). **Next:** Mazen's manual acceptance on Android. Overall Mobile V2 also remains PENDING_ACCEPTANCE.
+**Latest continuation (2026-10-17, mobile Intro landscape hint):** Mazen's task added a brief animated phone-rotation hint to the shared Intro player, shown for landscape Intros on portrait phones. Tapping it gives landscape fullscreen, with a manual-rotation fallback. Product `c3113d0e887ee12878fdd9ec6e09501728c72749` (implementation `30653d1`); Truth `intro-landscape-hint` is PENDING_ACCEPTANCE (`docs/INTRO-LANDSCAPE-HINT.md`, `PROJECT_HANDOFF.md` §74). **Next:** Mazen's manual acceptance on Android. Overall Mobile V2 also remains PENDING_ACCEPTANCE.
 
 **Previous continuation (2026-10-17, Mobile V2 visual fixes accepted):** Mazen manually verified the Mobile V2 visual parity fixes with his real account in the Android Emulator: TESTING `4786c59`, product `15e204d`; Intro thumbnail, My Games and My Crew artwork and the other parity corrections. He confirmed all are correct ("كلها صحيحة"). This is recorded in Product Memory REV-0009 and `PROJECT_HANDOFF.md` §73. **Only the visual fixes are accepted:** overall Mobile V2 (Truth `your-gamid-editor-mobile`) remains PENDING_ACCEPTANCE. **Next:** Mazen's decision on final acceptance of the overall Mobile V2 editor. The animated Intro rotation icon is not authorized.
 
