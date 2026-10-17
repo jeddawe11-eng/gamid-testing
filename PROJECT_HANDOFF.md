@@ -3692,3 +3692,60 @@ Chrome's native fullscreen security notice is acknowledged as a browser-controll
 **Truth: UPDATED** (record text only). `intro-landscape-hint` stays PENDING_ACCEPTANCE; Truth has no provisional status. The checkpoint (`77cfe4f`), contracts and every other capability are unchanged.
 
 Documentation only: no Intro code change, no attempt to suppress the browser notice, no deployment. No Product Memory change.
+
+## 77. Mobile Public Visitor V2 (2026-10-17)
+
+Mazen's task "GAMID — PROVISIONAL INTRO ACCEPTANCE + MOBILE PUBLIC VISITOR V2", Phase 2. Product `ace098218bef771cd5b34afff2a9681cb4afb4b3` on feature/play-together-notifications, from verified clean `e71779c`. Phase 1 is recorded in §76.
+
+Below 1280px, without a published, enabled Wall, `/@handle` now draws the Classic Profile itself, in one mobile-first column, using the desktop's own components and exactly the public data the server already sends:
+
+- the hero, with a stats row of real public counts: games when public, Crews, Duo;
+- adaptive My Socials with brand marks (a connected Discord without a link inside it);
+- My Duo, My Crews, Steam;
+- About Me;
+- Favorite Games (a swipe row on phones, four columns from 600px);
+- Connected Games (League);
+- My Games with tiles;
+- Replay Intro.
+
+**Intro, Wall and Desktop.**
+
+- **Intro:** the frame only plays the Intro and reveals the page profile (hostReveal), as on the desktop. Skip, Back / Skip Intro, Replay and the landscape hint are unchanged.
+- **Wall and breakpoint:** a published Wall still replaces the profile, and crossing 1280px switches layouts in place with no replay.
+- **Desktop:** the CSS is untouched; the desktop marks were copied, not moved.
+- **Backend:** no backend, RPC, visibility, privacy or data-contract change.
+- **Full detail:** the design, the Desktop → Mobile parity checklist and the adaptive-icon table are in [docs/PUBLIC-VISITOR-MOBILE-V2.md](docs/PUBLIC-VISITOR-MOBILE-V2.md).
+
+**Validation:**
+
+- **Build:** 1930 tests, 1929 PASS, one opt-in SKIP, zero failures, including the new `tests/public-mobile-v2.test.js`.
+- **Updated guard tests.** Six pinned the former "mobile visitor untouched" wiring; they now assert the Mobile V2 contract with dated notes and keep their desktop assertions:
+  - `classic-profile-redesign`;
+  - `classic-profile-visual-review`;
+  - `intro-preview-editor-end`;
+  - `gaming-roles-favorites-crews`;
+  - `wall-crews-block`;
+  - the `classic-preview-browser.mjs` 390px Classic Preview branch.
+- **`scripts/public-mobile-browser.mjs`:** all PASS, with synthetic data and mocked anonymous reads.
+  - **Rich profile** at 320, 360, 375, 390, 430, 600, 768, 1023, 1024 and 1152px:
+    - every section present;
+    - no overflow;
+    - 44px touch targets;
+    - brand marks without letters.
+  - **Socials:** 1 / 2 / 3 / 5 / 8 / 12 accounts at 320 / 390 / 768 (size never grows with more accounts, rows balanced).
+  - **Interactions:** stats, My Crews, Favorite / Connected / My Games details, links.
+  - **Crossing:** 390 → 1440 → 390 without a replay.
+  - **Other scenarios:** empty profile, Intro → Skip → Replay, published Wall, reduced motion.
+- **Desktop:** 1280 / 1440 / 1920 are byte-identical to `e71779c` in 3 of 3 runs, with raster images masked: Chrome's image rasterisation varies by one colour unit between runs, measured inside the cover images.
+- **Other suites:** Crew UX (35), media review, the Desktop editor, the owner Mobile V2 deck, the Intro hint suite and Classic preview pass.
+
+**Truth: UPDATED.**
+
+- New `public-profile-mobile-v2` PENDING_ACCEPTANCE (checkpoint `ace0982`; contracts `public-mobile-layout`, `public-mobile-intro`, `public-mobile-socials`).
+- The mobile clauses of accepted contracts now point to it, with their desktop clauses and statuses unchanged:
+  - `classic-profile-desktop`: `desktop-my-crew`, `desktop-connected-games`, `desktop-social-marks`, `desktop-preserves`, `desktop-discord`;
+  - `about-me`: `about-me-display`;
+  - `favorite-games`: `favorite-games-public`;
+  - `my-socials`: `socials-public-display`.
+
+Product Memory: proposal only, not saved. **STOP for Mazen's manual acceptance.**

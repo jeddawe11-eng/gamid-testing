@@ -56,7 +56,8 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** `77cfe4fb90d51e321e3954ac10bcc6cdfb62f4d3` (Intro landscape hint 6-second refinement, §75), on top of `c3113d0e887ee12878fdd9ec6e09501728c72749` (mobile Intro landscape hint, implemented at `30653d1`, §74; Truth `intro-landscape-hint` PENDING_ACCEPTANCE).
+- **Latest product commit:** `ace098218bef771cd5b34afff2a9681cb4afb4b3` (Mobile Public Visitor V2, §77; Truth `public-profile-mobile-v2` PENDING_ACCEPTANCE).
+- **Previous product commit:** `77cfe4fb90d51e321e3954ac10bcc6cdfb62f4d3` (Intro landscape hint 6-second refinement, §75), on top of `c3113d0e887ee12878fdd9ec6e09501728c72749` (mobile Intro landscape hint, implemented at `30653d1`, §74; Truth `intro-landscape-hint` PENDING_ACCEPTANCE).
 - **Previous product commit:** `15e204dcc8e324de3d32efc1e747b041424f45aa` (Mobile V2 visual parity fixes, `PROJECT_HANDOFF.md` §72), on top of `a0c7c95580e7e3375aa095fdc62de520059236ac` (Mobile V2 Profile Deck below 1024px; `docs/PROFILE-EDITOR-MOBILE-V2.md`, §71). Truth `your-gamid-editor-mobile` is PENDING_ACCEPTANCE.
 - **Previous product commit:** `0f386d379e811d14afcc043a11601d7f459bd402` (Approved Crew reference, four-column Desktop member grid and confirmed selection removal, retaining summaries/list/public directory; `docs/MY-CREW-UX.md`, `PROJECT_HANDOFF.md` §67, Truth `crew-ux-navigation`; ACCEPTED by Mazen 2026-10-16 (§68)). Prior accepted base capabilities and limits remain unchanged.
 - **Previous editor product:** `41aa90692c164d9675698131f561b285cdc8b736` (saved owner Classic preview; `PROJECT_HANDOFF.md` §57; TESTING deployment `7aa0133`, run `38427825018`; PENDING owner acceptance).
@@ -115,7 +116,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-17, Intro hint provisionally approved):** Mazen provisionally approved the Intro landscape hint refinement after his Emulator review (§76): the hint, 6 s timing and landscape fullscreen are correct, and Chrome's notice is a browser limitation. Truth `intro-landscape-hint` stays PENDING_ACCEPTANCE because this is not final acceptance. **Next:** Mobile Public Visitor V2 (`/@handle`), per Mazen's task of the same day.
+**Latest continuation (2026-10-17, Mobile Public Visitor V2):** below 1280px `/@handle` now draws the Classic Profile in one mobile-first column, with the desktop components and the same public data (§77, `docs/PUBLIC-VISITOR-MOBILE-V2.md`). Product `ace098218bef771cd5b34afff2a9681cb4afb4b3`; Truth `public-profile-mobile-v2` is PENDING_ACCEPTANCE. **Next:** Mazen's manual visual and functional acceptance.
+
+**Previous continuation (2026-10-17, Intro hint provisionally approved):** Mazen provisionally approved the Intro landscape hint refinement after his Emulator review (§76): the hint, 6 s timing and landscape fullscreen are correct, and Chrome's notice is a browser limitation. Truth `intro-landscape-hint` stays PENDING_ACCEPTANCE because this is not final acceptance. **Next:** Mobile Public Visitor V2 (`/@handle`), per Mazen's task of the same day.
 
 **Previous continuation (2026-10-17, Intro landscape hint refinements):** Following Mazen's Emulator test (hint, tap → landscape fullscreen and video confirmed), the hint now shows for 6 s (fade from 5.5 s, still tappable). Chrome's "To exit full screen" notice is browser-owned and cannot be suppressed by the site; this is documented. Product `77cfe4fb90d51e321e3954ac10bcc6cdfb62f4d3`; Truth `intro-landscape-hint` is still PENDING_ACCEPTANCE (`PROJECT_HANDOFF.md` §75). **Next:** Mazen's manual verification.
 
@@ -150,7 +153,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
   - CP-01 (REV-0002) is now covered by the final acceptance of My Crews (2026-10-13, §56); GR-01 (REV-0003) by the final acceptance of Gaming Roles (§53).
   - ISS-0007: Mazen's Avatar save passed; the issue stays FIXED until his explicit security acceptance (§38–§39).
   - YOUR GAMID Editor (`your-gamid-editor`): Mazen passed all 16 desktop tests and accepted the tested desktop functionality (REV-0004, §41). **Android Chrome real-device acceptance is still outstanding**, so the capability stays PENDING_ACCEPTANCE.
-- **Awaiting Mazen's acceptance (current Truth, 2026-10-17):** `intro-landscape-hint` (§74) and `your-gamid-editor-mobile` (Mobile V2 Profile Deck, §71–§73; its visual parity fixes were manually accepted on 2026-10-17, REV-0009, but the overall capability is still pending). Everything else registered was accepted by 2026-10-16 (§70; REV-0008); provisional/release conditions and unimplemented roadmap work remain separate.
+- **Awaiting Mazen's acceptance (current Truth, 2026-10-17):** `public-profile-mobile-v2` (§77), `intro-landscape-hint` (§74) and `your-gamid-editor-mobile` (Mobile V2 Profile Deck, §71–§73; its visual parity fixes were manually accepted on 2026-10-17, REV-0009, but the overall capability is still pending). Everything else registered was accepted by 2026-10-16 (§70; REV-0008); provisional/release conditions and unimplemented roadmap work remain separate.
 - **Open conditions:**
   - SteamGridDB's written permission for distribution / commercial use is still outstanding, so artwork stays TESTING-only, with no Production / public release (§33–§35; `docs/GAME-ARTWORK-STEAMGRIDDB.md`).
   - The Discord Profile Card (ACCEPTED, §27) still needs a privacy policy for the Discord application.
