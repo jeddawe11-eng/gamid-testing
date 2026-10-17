@@ -51,7 +51,8 @@ test('the landscape hint is offered only for landscape videos on a portrait touc
   assert.equal(landscapeHintEligible({ ...base, coarse: false }), false, 'desktop pointer');
 });
 
-test('the hint shows once per presentation, fades before 3 seconds and is gone at 3 seconds', () => {
+test('the hint shows once per presentation, stays 6 seconds (fading from 5.5 s) and is gone at 6 seconds', () => {
+  assert.equal(HINT_MS, 6000);assert.equal(HINT_FADE_MS, 500);
   const { win, hint, controller } = world();
   assert.equal(controller.show(1), true);
   assert.equal(hint.hidden, false);assert.ok(hint.classList.contains('is-showing'));
@@ -73,6 +74,12 @@ test('tapping the hint enters fullscreen and locks landscape; Exit leaves fullsc
   assert.equal(calls.exit, 1);assert.equal(calls.unlock, 1);assert.equal(controller.active, false);assert.equal(exit.hidden, true);
   const source = read('dist/account/intro-landscape.js');
   assert.doesNotMatch(source, /\.play\(|\.pause\(|currentTime|\.src\b|\.load\(/, 'the hint never plays, pauses, seeks or reloads the Intro');
+});
+
+test('the hint is still tappable while it fades', async () => {
+  const { win, hint, calls, controller } = world();
+  controller.show(1);win.advance(HINT_MS - HINT_FADE_MS + 200);assert.ok(hint.classList.contains('is-leaving'));assert.equal(hint.hidden, false);
+  hint.click();await flush();assert.equal(calls.request, 1);assert.equal(controller.active, true);
 });
 
 test('a refused orientation lock keeps fullscreen and playback working, and an external exit cleans up', async () => {

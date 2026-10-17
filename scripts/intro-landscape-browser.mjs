@@ -31,9 +31,11 @@ try{
   const height=width>=768?1024:Math.round(width*2.16);
   const {context,page,frame,errors}=await open({width,height});
   const row={width};
-  // 1. Landscape clip: the hint appears, rotates portrait -> landscape, stays clear of every control and is gone after ~3 s. Play stays manual.
+  // 1. Landscape clip: the hint appears, rotates portrait -> landscape, stays clear of every control and is gone after ~6 s (fade from 5.5 s). Play stays manual.
   await present(page,frame,[640,360]);
   const hint=frame.locator('#landscapeHint');await hint.waitFor({state:'visible',timeout:3000});const shownAt=Date.now();
+  // The generated clip lasts 4 s and the Intro's end correctly removes the hint; pausing keeps the presentation open for the 6 s window (real Intros run up to 30 s).
+  await frame.evaluate(()=>document.getElementById('introVideo').pause());
   const h=await rect(frame,'#landscapeHint');assert.ok(h.w>=48&&h.h>=48,'touch target');
   // Tap to play is only shown when the browser refuses the start (phones); show it briefly to check the geometry against it too.
   await frame.evaluate(()=>{document.getElementById('previewStart').hidden=false;});
@@ -42,7 +44,10 @@ try{
   assert.equal(await frame.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'no horizontal overflow');
   await page.waitForTimeout(1500);const angle=await frame.locator('#landscapeHint .landscape-phone').evaluate(n=>{const m=new DOMMatrix(getComputedStyle(n).transform);return Math.round(Math.atan2(m.b,m.a)*180/Math.PI);});assert.equal(angle,90,'the phone has turned to landscape');
   await page.screenshot({path:path.join(out,`intro-hint-${width}.png`)});
-  await hint.waitFor({state:'hidden',timeout:3000});row.visibleMs=Date.now()-shownAt;assert.ok(row.visibleMs>=2500&&row.visibleMs<=3800,'about 3 seconds: '+row.visibleMs);
+  const fadeAt=await frame.waitForFunction(()=>document.getElementById('landscapeHint').classList.contains('is-leaving'),null,{timeout:7000,polling:50}).then(()=>Date.now()-shownAt);assert.ok(fadeAt>=5200&&fadeAt<=6200,'fully visible until ~5.5 s: '+fadeAt);row.fadeAtMs=fadeAt;
+  await hint.waitFor({state:'hidden',timeout:3000});row.visibleMs=Date.now()-shownAt;assert.ok(row.visibleMs>=5700&&row.visibleMs<=6900,'about 6 seconds: '+row.visibleMs);
+  // Still tappable while fading: a tap in the last half second enters fullscreen.
+  await present(page,frame,[640,360]);await hint.waitFor({state:'visible'});await frame.evaluate(()=>document.getElementById('introVideo').pause());await frame.waitForFunction(()=>document.getElementById('landscapeHint').classList.contains('is-leaving'),null,{timeout:7000,polling:50});await hint.tap();await frame.waitForFunction(()=>document.fullscreenElement?.id==='introLayer');await frame.locator('#landscapeExit').tap();await frame.waitForFunction(()=>!document.fullscreenElement);row.tappableWhileFading=true;
   // 2. Paused: a new presentation shows the hint again; tapping it enters fullscreen without starting playback; Exit returns to the portrait Intro.
   // (Playwright's evaluate counts as a user gesture, so this harness cannot reproduce a phone's refused start: the paused state is set explicitly.)
   await present(page,frame,[640,360]);await hint.waitFor({state:'visible'});await frame.evaluate(()=>document.getElementById('introVideo').pause());const plays=await page.evaluate(()=>window.__plays);const before=await video(frame);
@@ -70,13 +75,13 @@ try{
   // 6. Portrait and square clips never get the hint.
   for(const shape of [[360,640],[480,480]]){await present(page,frame,shape);await page.waitForTimeout(1200);assert.equal(await hint.isVisible(),false,'no hint for '+shape.join('x'));}
   // 7. Rapid replays never stack hints or timers.
-  for(let i=0;i<3;i++){await present(page,frame,[640,360]);}await hint.waitFor({state:'visible'});await page.waitForTimeout(3300);assert.equal(await hint.isVisible(),false,'one hint, gone after its 3 seconds');
+  for(let i=0;i<3;i++){await present(page,frame,[640,360]);}await hint.waitFor({state:'visible'});await frame.evaluate(()=>document.getElementById('introVideo').pause());await page.waitForTimeout(6300);assert.equal(await hint.isVisible(),false,'one hint, gone after its 6 seconds');
   assert.deepEqual(errors,[]);results.push({...row,landscape:true,pausedFullscreen:true,playingFullscreen:true,skip:true,endInFullscreen:true,portraitSquareNoHint:true,noTimerLeak:true});await context.close();
  }
- // Reduced motion: a static landscape phone, still gone after ~3 s.
- {const {context,page,frame,errors}=await open({width:390,height:844},{reducedMotion:'reduce'});await present(page,frame,[640,360]);const hint=frame.locator('#landscapeHint');await hint.waitFor({state:'visible'});
+ // Reduced motion: a static landscape phone, still gone after ~6 s.
+ {const {context,page,frame,errors}=await open({width:390,height:844},{reducedMotion:'reduce'});await present(page,frame,[640,360]);const hint=frame.locator('#landscapeHint');await hint.waitFor({state:'visible'});await frame.evaluate(()=>document.getElementById('introVideo').pause());
   const style=await frame.locator('#landscapeHint .landscape-phone').evaluate(n=>({animation:getComputedStyle(n).animationName,angle:(m=>Math.round(Math.atan2(m.b,m.a)*180/Math.PI))(new DOMMatrix(getComputedStyle(n).transform))}));assert.equal(style.animation,'none');assert.equal(style.angle,90,JSON.stringify(await frame.locator('#landscapeHint .landscape-phone').evaluate(n=>{const c=getComputedStyle(n);return {t:c.transform,tr:c.transition,anim:c.animation};})));
-  await hint.waitFor({state:'hidden',timeout:4000});assert.deepEqual(errors,[]);results.push({reducedMotion:true,...style});await context.close();}
+  await page.waitForTimeout(4500);assert.ok(await hint.isVisible(),'still shown at 4.5 s');await hint.waitFor({state:'hidden',timeout:3500});assert.deepEqual(errors,[]);results.push({reducedMotion:true,...style});await context.close();}
  // Phone already in landscape, and desktop: no hint; the player is otherwise unchanged.
  for(const [viewport,mobile,label] of [[{width:844,height:390},true,'mobile-landscape'],[{width:1440,height:900},false,'desktop']]){const {context,page,frame,errors}=await open(viewport,{mobile});await present(page,frame,[640,360]);await page.waitForTimeout(1500);assert.equal(await frame.locator('#landscapeHint').isVisible(),false,label);assert.equal(await frame.locator('#landscapeExit').isVisible(),false);assert.deepEqual(errors,[]);results.push({[label]:'no hint'});await context.close();}
 }finally{await browser.close();}

@@ -39,8 +39,8 @@ html.host-skip .skip{display:none}
 /* each secondary Gaming Role is its own badge (the container itself draws nothing) */
 #previewSecondaryRoles{display:contents}
 /* Mobile landscape hint (intro-landscape.js). Bottom-left above the progress bar: clear of Tap to play (centre), Skip and the host's
-   Back / Skip group (top-right) and the editor's Return to editor (bottom-right). One ~3 s showing per presentation, never looping. */
-.landscape-hint{position:absolute;z-index:11;left:max(1rem,env(safe-area-inset-left));bottom:calc(max(1.3rem,env(safe-area-inset-bottom)) + .9rem);width:52px;height:52px;margin:0;padding:0;display:grid;place-items:center;border:1px solid rgba(255,255,255,.35);border-radius:16px;background:rgba(5,5,10,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;cursor:pointer;opacity:0;transition:opacity .4s ease;-webkit-tap-highlight-color:transparent}
+   Back / Skip group (top-right) and the editor's Return to editor (bottom-right). One ~6 s showing per presentation (fade from 5.5 s), never looping. */
+.landscape-hint{position:absolute;z-index:11;left:max(1rem,env(safe-area-inset-left));bottom:calc(max(1.3rem,env(safe-area-inset-bottom)) + .9rem);width:52px;height:52px;margin:0;padding:0;display:grid;place-items:center;border:1px solid rgba(255,255,255,.35);border-radius:16px;background:rgba(5,5,10,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;cursor:pointer;opacity:0;transition:opacity .5s ease;-webkit-tap-highlight-color:transparent}
 .landscape-hint[hidden]{display:none}
 .landscape-hint.is-showing{opacity:1}
 .landscape-hint.is-showing.is-leaving{opacity:0}

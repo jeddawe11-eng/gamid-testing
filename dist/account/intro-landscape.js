@@ -1,7 +1,8 @@
 // Mobile Intro landscape hint: a brief phone-rotation cue for landscape Intro videos on portrait touch screens.
 // It never plays, pauses, seeks or reloads the video: fullscreen wraps the existing Intro layer (same <video>, same ambient canvas).
-export const HINT_MS = 3000;
-export const HINT_FADE_MS = 400;
+// Mazen 2026-10-17: six seconds in all, so it stays comfortably tappable; fully visible for 5.5 s, then a 0.5 s fade (still tappable) and gone.
+export const HINT_MS = 6000;
+export const HINT_FADE_MS = 500;
 export const LANDSCAPE_RATIO = 1.2;   // 4:3 and wider count as landscape; square and portrait clips never get the hint
 
 // Shown only when every input is known: a touch-first (coarse pointer) screen held in portrait and a clearly landscape video.
