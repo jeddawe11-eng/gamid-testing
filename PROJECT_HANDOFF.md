@@ -3748,4 +3748,6 @@ Below 1280px, without a published, enabled Wall, `/@handle` now draws the Classi
   - `favorite-games`: `favorite-games-public`;
   - `my-socials`: `socials-public-display`.
 
+TESTING delivery: source `2889d3b44197751efe16617736b514117d3875da` (product `ace0982`), [workflow 39025962088](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39025962088) SUCCESS. Ten served files match the commit exactly (public page, `public.js`, `public-mobile.js`, `public.css`, `public-desktop.js`, the Intro player and the owner editors), and `/@black` serves the new page. The `--live` review (served frontend, mocked backend) passes at 320, 390, 430, 768 and 1023px, plus interactions, crossing, empty, Intro, Wall and reduced motion. This note is documentation only; the deployed `dist` is unchanged.
+
 Product Memory: proposal only, not saved. **STOP for Mazen's manual acceptance.**

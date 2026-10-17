@@ -644,7 +644,7 @@
           "rule": "My Socials icons adapt to their number: one to three accounts are large (80 / 76 / 72px at most), more accounts get gradually smaller icons in balanced rows (8 as 4 + 4, 12 as 6 + 6) that wrap naturally on narrow phones; from six accounts the size is also bounded by five-in-a-row, so it never grows with more accounts; every icon is at least 44px and shows its recognisable mark; links open in a new tab without referrer."
         }
       ],
-      "record": "docs/PUBLIC-VISITOR-MOBILE-V2.md; PROJECT_HANDOFF.md §77. Implemented under Mazen's task of 2026-10-17 (Mobile Public Visitor V2); on TESTING, awaiting his manual visual and functional acceptance. The accepted desktop layout (classic-profile-desktop) is unchanged; its, About Me's, Favorite Games' and My Socials' former 'mobile unchanged / not shown' clauses now point here."
+      "record": "docs/PUBLIC-VISITOR-MOBILE-V2.md; PROJECT_HANDOFF.md §77. Implemented under Mazen's task of 2026-10-17 (Mobile Public Visitor V2); deployed to TESTING as 2889d3b44197751efe16617736b514117d3875da (run 39025962088), awaiting his manual visual and functional acceptance. The accepted desktop layout (classic-profile-desktop) is unchanged; its, About Me's, Favorite Games' and My Socials' former 'mobile unchanged / not shown' clauses now point here."
     },
     {
       "id": "favorite-games",

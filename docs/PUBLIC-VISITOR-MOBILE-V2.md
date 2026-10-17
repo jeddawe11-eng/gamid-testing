@@ -106,3 +106,10 @@ Measured sizes (px; rows in brackets when more than one):
   - **Desktop:** 1280 / 1440 / 1920 screenshots compared with the starting `dist`.
 
 Chrome headless with mobile emulation only.
+
+## TESTING delivery
+
+- **Deployment:** source `2889d3b44197751efe16617736b514117d3875da`, [workflow 39025962088](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39025962088) SUCCESS, at <https://gamid-testing-static.gamid.workers.dev/@black>.
+- **Served files:** exact.
+- **Post-deploy review:** the live review passes at 320, 390, 430, 768 and 1023px.
+- **Status:** awaiting Mazen's manual visual and functional acceptance.
