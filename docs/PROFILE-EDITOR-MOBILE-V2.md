@@ -177,3 +177,5 @@ All tests used Chrome headless with mocked data.
 - **Post-deploy review:** the live review passes at 320, 390, 430, 768 and 1023px × populated / failed media.
 - **Desktop:** byte-identical at 1024 and 1440.
 - **Status:** awaiting Mazen's manual verification.
+
+**Manual acceptance of the visual fixes (2026-10-17):** Mazen verified the visual parity fixes (TESTING `4786c59`, product `15e204d`) with his real account in the Android Emulator and confirmed all are correct (Product Memory REV-0009). That covers the Intro thumbnail, My Games and My Crew artwork in the summaries and editors, and the other corrections in the audit table above. Only the visual fixes are accepted: the overall Mobile V2 editor (Truth `your-gamid-editor-mobile`) remains PENDING_ACCEPTANCE.

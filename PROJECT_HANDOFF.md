@@ -3559,3 +3559,21 @@ Intentional mobile adaptations, the shared accepted Crew stylesheet, and games o
 - `your-gamid-editor` stays ACCEPTED. Only the below-1024px sentence of `profile-desktop-media` that this branch had written now points to Mobile V2 media; the Desktop clauses and checkpoint are unchanged.
 
 No Product Memory change. TESTING delivery: source `4786c5914f7dc8c42deb0d0f3da2f4430d4bd9e0`, [workflow 39007625520](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39007625520) SUCCESS. Twelve served files match the checkpoint exactly: the Account files, `editor-media.js`, `crew-editor.css`, the public artwork and Crew renderers, and `index.html` with stamp `4786c59`. The `--mobile-deck --live` review (served frontend, mocked backend) passes at 320, 390, 430, 768 and 1023 × populated / failed media. Desktop at 1024 and 1440 is byte-identical to `82c3cd6`. This note is documentation only; the deployed `dist` is unchanged. **STOP for Mazen's manual verification; PENDING_ACCEPTANCE, not ACCEPTED.**
+
+## 73. Mobile V2 visual fixes: Mazen's manual acceptance (2026-10-17)
+
+Mazen manually verified the Mobile V2 visual parity fixes from §72 (product `15e204dcc8e324de3d32efc1e747b041424f45aa`, TESTING `4786c5914f7dc8c42deb0d0f3da2f4430d4bd9e0`, run 39007625520). He used his real account in the Android Emulator and confirmed "كلها صحيحة" ("all of them are correct"). This covers:
+
+- the actual saved Intro thumbnail;
+- My Games artwork in the summary and editor;
+- My Crew artwork in the summary and editor;
+- the other parity-audit corrections.
+
+He explicitly approved saving the result.
+
+**Records:**
+
+- **Product Memory:** new scoped review REV-0009 (ACCEPTANCE, PASS, reviewer Mazen) and the INDEX Register. No existing record covered Mobile V2; IDEA-0001 and REV-0004 stay Desktop-scoped and unchanged.
+- **Truth:** in `your-gamid-editor-mobile`, only the record text changed, now noting this acceptance. Its status stays PENDING_ACCEPTANCE; its checkpoint, contracts and limits are unchanged. Every other capability is unchanged, including `your-gamid-editor` (ACCEPTED, Desktop).
+
+**Scope:** documentation and Product Memory only. No test was rerun by the agent, and no device details were supplied or invented. No product code, backend, database, infrastructure, deployment, merge or Production access. The animated Intro rotation icon is not authorized. **Overall Mobile V2 is not accepted.**

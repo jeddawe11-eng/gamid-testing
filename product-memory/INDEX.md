@@ -79,9 +79,11 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0006 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0008 |
+| REV | Reviews | reviews/ | REV-0009 |
 
 ## Register
+
+2026-10-17: Mazen manually verified the Mobile V2 visual parity fixes (Intro thumbnail, My Games and My Crew artwork, other parity-audit corrections; product 15e204d, TESTING 4786c59) with his real account in the Android Emulator, confirmed all are correct, and approved saving. New scoped REV-0009; overall Mobile V2 (Truth your-gamid-editor-mobile) remains PENDING_ACCEPTANCE. IDEA-0001 and REV-0004 (Desktop) are unchanged.
 
 2026-10-16: Mazen explicitly confirmed personal manual TESTING testing and final approval of Canonical Game Catalog/manual games, current provisional SteamGridDB artwork and the current root Landing Page. New scoped REV-0008 records all three (no existing acceptance review covers them as a whole); prior reviews remain unchanged. Artwork restrictions/provisional designation preserved; no PENDING_ACCEPTANCE capabilities remain in the resulting Truth snapshot.
 
@@ -129,3 +131,4 @@ Rules:
 | REV-0006 | My Socials Spotify, SoundCloud and Vimeo - Mazen acceptance | COMPLETED | [REV-0006-my-socials-spotify-soundcloud-vimeo-acceptance.md](reviews/REV-0006-my-socials-spotify-soundcloud-vimeo-acceptance.md) |
 | REV-0007 | Favorite Games - Mazen final acceptance | COMPLETED | [REV-0007-favorite-games-final-acceptance.md](reviews/REV-0007-favorite-games-final-acceptance.md) |
 | REV-0008 | Remaining catalog, provisional artwork and landing - Mazen final TESTING acceptance | COMPLETED | [REV-0008-remaining-features-final-acceptance.md](reviews/REV-0008-remaining-features-final-acceptance.md) |
+| REV-0009 | Mobile V2 visual parity fixes - Mazen manual acceptance (Android Emulator) | COMPLETED | [REV-0009-mobile-v2-visual-fixes-acceptance.md](reviews/REV-0009-mobile-v2-visual-fixes-acceptance.md) |
