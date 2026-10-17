@@ -45,3 +45,9 @@ Mazen's task "GAMID — My Wall Desktop Visual Redesign — Phase 1" (2026-10-18
 - Fidelity is by styling alone: the frames are thin gold borders with corner marks rather than the reference's ornate, illustrated frames, the corners of controls are rounded rather than chamfered, and the background is gradients, not artwork (no Riot assets or art were used).
 - The reference's extra controls above are absent because they are not existing features.
 - The reference's wall artwork is illustrative and not part of the editor.
+
+## TESTING delivery
+
+- **Deployment:** source `716b4e74df33b9bd50ee2f802dea2442f69a001a`, [workflow 39044158099](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39044158099) SUCCESS (full project validation and the deployed-site smoke check passed), at <https://gamid-testing-static.gamid.workers.dev/wall-editor/> (it needs the owner's login).
+- **Served files:** `wall-editor/editor-desktop.css`, `editor.css` and `index.html` are byte-identical to the commit. The editor itself was not opened with a real account (real accounts are protected); the visual checks above ran on the local lab.
+- **Status:** awaiting Mazen's visual review. Phase 2 is not started and not authorized.

@@ -3787,3 +3787,17 @@ Mazen explicitly accepted the currently deployed Intro landscape hint and fullsc
 **Truth: UPDATED.** `intro-landscape-hint` PENDING_ACCEPTANCE → ACCEPTED; its record notes the final acceptance and the Chrome notice limitation. Checkpoint, contracts and limits unchanged; nothing else changed.
 
 **Product Memory: SAVED** (Mazen's approval, 2026-10-17): new REV-0011, Register row and REV counter in `product-memory/INDEX.md`. **STOP.**
+
+## 80. My Wall Desktop Visual Redesign, Phase 1 (2026-10-18)
+
+Mazen authorized Phase 1 of a fantasy-gaming visual redesign of the **desktop** Wall Editor (viewport 900px and wider), following his reference image: the outer shell, the editor's interface icons and the Add panel. Details, scope, validation and deviations: [`docs/WALL-EDITOR-DESKTOP-REDESIGN.md`](docs/WALL-EDITOR-DESKTOP-REDESIGN.md).
+
+- **Product:** `716b4e74df33b9bd50ee2f802dea2442f69a001a`. New `dist/wall-editor/editor-desktop.css`, linked with `media="(min-width: 900px)"`; one supporting line in Add (`index.html`) and one hiding rule below 900px (`editor.css`). No JavaScript, behavior, data, Properties, Layers, stage, renderer, mobile or public change.
+- **TESTING:** source `716b4e74df33b9bd50ee2f802dea2442f69a001a`, run `39044158099`, served files exact. Backend unchanged.
+- **Validation:** `npm run build` 1938 tests, 1937 passed, 1 skipped, 0 failed; new `tests/wall-editor-desktop-ui.test.js` (8 tests); 16 phone / tablet editor states byte-identical to `HEAD`; one 27-step scripted session identical on both builds; no overflow or clipping from 900×700 to 2560×1440.
+- **Not invented:** the reference's zoom, Guides / Snap, stage thumbnail strip, canvas-size label, Add search and header stage tabs are not existing features and are not added.
+- **Status:** awaiting Mazen's visual review. Phase 2 is not authorized.
+
+**Truth: NO CHANGE REQUIRED** (cosmetic only; no capability, status, limit, contract or checkpoint changed).
+
+Product Memory: proposal only, not saved. **STOP for Mazen's visual review.**

@@ -56,7 +56,7 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** `ace098218bef771cd5b34afff2a9681cb4afb4b3` (Mobile Public Visitor V2, §77; Truth `public-profile-mobile-v2` ACCEPTED by Mazen 2026-10-17, §78).
+- **Latest product commit:** `716b4e74df33b9bd50ee2f802dea2442f69a001a` (My Wall Desktop Visual Redesign Phase 1, §80; cosmetic, no Truth change; awaiting Mazen's visual review). Previous product commit: `ace098218bef771cd5b34afff2a9681cb4afb4b3` (Mobile Public Visitor V2, §77; Truth `public-profile-mobile-v2` ACCEPTED by Mazen 2026-10-17, §78).
 - **Previous product commit:** `77cfe4fb90d51e321e3954ac10bcc6cdfb62f4d3` (Intro landscape hint 6-second refinement, §75), on top of `c3113d0e887ee12878fdd9ec6e09501728c72749` (mobile Intro landscape hint, implemented at `30653d1`, §74; Truth `intro-landscape-hint` ACCEPTED by Mazen 2026-10-17, §79).
 - **Previous product commit:** `15e204dcc8e324de3d32efc1e747b041424f45aa` (Mobile V2 visual parity fixes, `PROJECT_HANDOFF.md` §72), on top of `a0c7c95580e7e3375aa095fdc62de520059236ac` (Mobile V2 Profile Deck below 1024px; `docs/PROFILE-EDITOR-MOBILE-V2.md`, §71). Truth `your-gamid-editor-mobile` is PENDING_ACCEPTANCE.
 - **Previous product commit:** `0f386d379e811d14afcc043a11601d7f459bd402` (Approved Crew reference, four-column Desktop member grid and confirmed selection removal, retaining summaries/list/public directory; `docs/MY-CREW-UX.md`, `PROJECT_HANDOFF.md` §67, Truth `crew-ux-navigation`; ACCEPTED by Mazen 2026-10-16 (§68)). Prior accepted base capabilities and limits remain unchanged.
@@ -76,7 +76,8 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `2889d3b44197751efe16617736b514117d3875da`** (successful run `39025962088`, Mobile Public Visitor V2, product `ace0982`, `PROJECT_HANDOFF.md` §77; ACCEPTED by Mazen 2026-10-17, §78). Backend unchanged.
+- **TESTING serves `716b4e74df33b9bd50ee2f802dea2442f69a001a`** (successful run `39044158099`, My Wall Desktop Visual Redesign Phase 1, `PROJECT_HANDOFF.md` §80; awaiting Mazen's visual review). Backend unchanged.
+- **Previously served `2889d3b44197751efe16617736b514117d3875da`** (successful run `39025962088`, Mobile Public Visitor V2, product `ace0982`, `PROJECT_HANDOFF.md` §77; ACCEPTED by Mazen 2026-10-17, §78). Backend unchanged.
 - **Previously served `be6fa4ba93aa40c006b514eb45b7475112d0c0aa`** (successful run `39021570794`, Intro landscape hint 6-second refinement, product `77cfe4f`, `PROJECT_HANDOFF.md` §75; ACCEPTED by Mazen 2026-10-17, §79). Backend unchanged.
 - **Previously served `d10ca52e5d20e6d6745e726945a931ca4ba71af9`** (successful run `39013335904`, mobile Intro landscape hint, product `c3113d0`, `PROJECT_HANDOFF.md` §74; PENDING_ACCEPTANCE). Backend unchanged.
 - **Previously served `4786c5914f7dc8c42deb0d0f3da2f4430d4bd9e0`** (successful run `39007625520`, Mobile V2 visual parity fixes, product `15e204d`, `PROJECT_HANDOFF.md` §72; PENDING_ACCEPTANCE). Backend unchanged.
@@ -117,7 +118,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-17, Intro landscape hint accepted):** Mazen gave final acceptance of the Intro landscape hint and fullscreen behavior exactly as implemented (§79, REV-0011), superseding the provisional approval. Truth `intro-landscape-hint` is ACCEPTED; checkpoint `77cfe4f`, contracts and TESTING `2889d3b` unchanged. Chrome's fullscreen notice stays a browser limitation (it shows the origin; a shorter future domain shortens the address only). Documentation only. **Next:** Mazen's next task.
+**Latest continuation (2026-10-18, My Wall Desktop Visual Redesign Phase 1):** Mazen authorized Phase 1 of the desktop Wall Editor redesign (fantasy-gaming shell, one original icon family, the Add panel); product `716b4e74df33b9bd50ee2f802dea2442f69a001a` on TESTING (run `39044158099`), desktop only (900px and wider), no behavior or data change, phone and tablet byte-identical (§80, `docs/WALL-EDITOR-DESKTOP-REDESIGN.md`). Truth unchanged. **Next:** Mazen's visual review; Phase 2 is not authorized.
+
+**Previous continuation (2026-10-17, Intro landscape hint accepted):** Mazen gave final acceptance of the Intro landscape hint and fullscreen behavior exactly as implemented (§79, REV-0011), superseding the provisional approval. Truth `intro-landscape-hint` is ACCEPTED; checkpoint `77cfe4f`, contracts and TESTING `2889d3b` unchanged. Chrome's fullscreen notice stays a browser limitation (it shows the origin; a shorter future domain shortens the address only). Documentation only. **Next:** Mazen's next task.
 
 **Previous continuation (2026-10-17, Mobile Public Visitor V2 accepted):** Mazen gave final acceptance of Mobile Public Visitor V2 (§78): Truth `public-profile-mobile-v2` is ACCEPTED, with checkpoint `ace0982`, its contracts and TESTING `2889d3b` unchanged. Documentation only. `intro-landscape-hint` stays PENDING_ACCEPTANCE under its provisional approval (Chrome's fullscreen notice documented as a browser limitation), and `your-gamid-editor-mobile` stays PENDING_ACCEPTANCE. **Next:** Mazen's next task.
 
