@@ -24,12 +24,15 @@
  .deck-hero-banner-image,.deck-banner-thumb{display:block;width:100%;height:100%;overflow:hidden}
  .deck-hero-banner-image :is(img,canvas),.deck-banner-thumb :is(img,canvas){display:block;width:100%;height:100%;object-fit:cover}
  .deck-hero-body{display:grid;gap:12px;padding:0 14px 14px;min-width:0}
- .deck-hero-identity{display:flex;align-items:flex-end;gap:12px;min-width:0;margin-block-start:-30px}
+ /* Only the Avatar overlaps the Banner; the name block starts below it, so no text sits on the picture */
+ .deck-hero-identity{display:flex;align-items:flex-start;gap:12px;min-width:0;margin-block-start:-30px}
  .deck-hero-avatar{flex:0 0 68px;width:68px;height:68px;border-radius:50%;border:3px solid #090d16;background:linear-gradient(135deg,#62e7ff,#8b5dff) center/cover no-repeat;display:grid;place-items:center;font-size:26px;font-weight:900;color:#0b0912}
  .deck-hero-avatar[style*="url"]{color:transparent}
- .deck-hero-names{display:grid;gap:1px;min-width:0;padding-block-end:4px}
+ .deck-hero-names{display:grid;gap:1px;min-width:0;padding-block-start:36px}
  .deck-hero-name{font-size:18px;font-weight:900;line-height:1.3;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
  .deck-hero-handle{font-size:13px;color:var(--deck-muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+ .deck-hero-location{font-size:12px;color:#c9c4d6;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+ .deck-hero-bio{margin:0;font-size:13px;line-height:1.5;color:#c9c4d6;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
  .deck-hero .gamid-publication{margin:0;padding:10px 12px;border:1px solid var(--deck-line);border-radius:14px;background:#0d0c15;display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;min-width:0}
  .deck-hero .gamid-publication>span{font-size:12px;color:var(--deck-muted)}
  .deck-hero .visibility-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
@@ -74,8 +77,41 @@
  .deck-avatar-thumb{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#62e7ff,#8b5dff) center/cover no-repeat;display:grid;place-items:center;overflow:hidden;font-weight:900;color:#0b0912}
  .deck-avatar-thumb[style*="url"]{color:transparent}
  .deck-avatar-thumb img,.deck-thumb img,.deck-cover img,.deck-person-avatar img{width:100%;height:100%;object-fit:cover;display:block}
- .deck-intro-tile{aspect-ratio:16/9;max-height:72px;border-radius:12px;background:linear-gradient(140deg,#1d2e4a,#2a1647 60%,#0e3b45);display:grid;place-items:center;color:#f7f5ff}
+ .deck-intro-tile{position:relative;aspect-ratio:16/9;width:100%;max-width:240px;border-radius:12px;overflow:hidden;background:linear-gradient(140deg,#1d2e4a,#2a1647 60%,#0e3b45);display:grid;place-items:center;align-content:center;gap:4px;color:#f7f5ff}
  .deck-intro-tile svg{width:26px;height:26px}
+ .deck-intro-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+ .deck-intro-tile small{position:relative;padding-inline:8px;font-size:11px;line-height:1.3;text-align:center;color:#c9c4d6}
+
+ /* Live panels get the same artwork overlay as on Desktop: the picture covers the initials, which stay underneath as the fallback */
+ .mobile-deck .game-icon{position:relative;overflow:hidden}
+ .mobile-deck .game-icon .game-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+ .deck-provider-photo{width:100%;height:100%;object-fit:cover;display:block}
+ .deck-row-photo{flex:0 0 28px;width:28px;height:28px;border-radius:50%;overflow:hidden;display:grid;place-items:center;align-self:center;background:#1c1828;color:var(--deck-cyan);font-size:11px;font-weight:900}
+ .deck-row-photo img{width:100%;height:100%;object-fit:cover;display:block}
+ .deck-row:has(.deck-row-photo){align-items:center}
+ .deck-row:has(.deck-row-photo) small{margin-inline-start:auto}
+ .deck-game{display:grid;gap:4px;min-width:0;justify-items:center;text-align:center}
+ .deck-game small{width:100%;font-size:10px;line-height:1.25;color:#c9c4d6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+ .deck-game .deck-cover{width:100%}
+ .deck-duo-badge{color:#7be3ff}
+
+ /* My Crew summary: the Desktop rich directory tiles */
+ .deck-crew-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:8px;min-width:0}
+ .deck-layout .deck-crew-tile{position:relative;display:grid;align-content:end;gap:10px;min-height:128px;min-width:0;margin:0;padding:12px;border:1px solid #ffffff29;border-radius:14px;overflow:hidden;isolation:isolate;color:#fff;text-decoration:none;background:#102238;box-shadow:none;text-align:start}
+ .deck-crew-tile .crew-card-bg{position:absolute;inset:0;z-index:-2;background:linear-gradient(135deg,#3b2a73,#1f4d73)}
+ .deck-crew-tile .game-art-bg{position:absolute;inset:0;background-size:cover;background-position:center}
+ .deck-crew-tile .crew-card-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,#08070e26,#08070ee0 78%)}
+ .deck-crew-tile .crew-card-body{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
+ .deck-crew-tile .crew-card-icon{position:relative;display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;border-radius:9px;overflow:hidden;background:#292245}
+ .deck-crew-tile .crew-card-icon::before{content:attr(data-initials);font-size:12px}
+ .deck-crew-tile .game-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+ .deck-crew-tile .crew-card-text{display:grid;gap:3px;min-width:0;max-width:100%}
+ .deck-crew-tile .crew-card-name{font-size:14px;line-height:1.3;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ .deck-crew-tile :is(.crew-card-game,.crew-card-count){font-size:11px;color:#d9d4e6;overflow-wrap:anywhere}
+ .deck-crew-tile .crew-card-members{display:flex;align-items:center;flex-wrap:wrap}
+ .deck-crew-tile .crew-card-face{display:grid;place-items:center;width:26px;height:26px;margin-inline-end:-5px;border-radius:50%;overflow:hidden;border:2px solid #0b0a12;background:linear-gradient(145deg,#4d2eb1,#3bcbe7);font-size:10px}
+ .deck-crew-tile .crew-card-face img{width:100%;height:100%;object-fit:cover}
+ .deck-crew-tile .crew-card-face.is-more{background:#1c1828}
  .deck-banner-thumb{aspect-ratio:6/1;height:auto;border-radius:12px;background:linear-gradient(110deg,#2a1647,#0e3b45)}
  .deck-marks{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
  .deck-mark{width:34px;height:34px;border-radius:50%;background:#1b1a2a;display:grid;place-items:center;overflow:hidden}
@@ -86,7 +122,7 @@
  .deck-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;min-width:0;padding:8px 10px;border-radius:10px;background:#0d0c15}
  .deck-row strong{flex:0 1 auto;max-width:60%;font-size:13px;font-weight:700;min-width:min(7.5em,45%);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
  .deck-row small{font-size:11px;color:var(--deck-muted);text-align:end;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
- .deck-covers{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;max-width:320px}
+ .deck-covers{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;max-width:360px;align-items:start}
  .deck-cover{aspect-ratio:1;border-radius:10px;background:#1b1a2a center/cover no-repeat;display:grid;place-items:center;overflow:hidden;font-size:11px;font-weight:800;color:var(--deck-muted)}
  .deck-thumb{width:32px;height:32px;border-radius:50%;background:#1b1a2a center/cover no-repeat;overflow:hidden}
  .deck-chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -175,6 +211,7 @@
   .deck-group-grid,.deck-group[data-deck-group=media] .deck-group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .deck-group[data-deck-group=play] .deck-play-slot,.deck-group[data-deck-group=about] .deck-about-card,.deck-group[data-deck-group=wall] [data-deck-card=wall]{grid-column:1/-1}
   .deck-hero-identity{margin-block-start:-36px}
+  .deck-hero-names{padding-block-start:42px}
   .deck-hero-avatar{flex-basis:84px;width:84px;height:84px}
   .deck-sheet{padding:24px;background:rgba(3,2,8,.68);align-items:center;justify-content:center}
   .deck-sheet-panel{max-width:640px;height:100%;max-height:960px;border:1px solid #363049;border-radius:20px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.6)}

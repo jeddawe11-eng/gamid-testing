@@ -2,6 +2,10 @@
 // recreating a draft, control or save path) and restores the exact original DOM when the width reaches 1024px.
 // Deck = identity hero, section chips, six group cards with summaries; one editor at a time in a full-screen sheet.
 import { SOCIAL_PLATFORMS, socialIcon } from './socials.js';
+// The same owner-only media sources as the Desktop editor: authenticated Intro lease frame, allow-listed provider photos, game-artwork.
+import { createIntroPoster, providerAvatar, leagueIcon } from './editor-media.js';
+import { applyGameArtwork } from '../public/game-artwork.js';
+import { crewCard as directoryCrewCard } from '../public/crews-directory.js';
 
 const paths={
  avatar:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M5 22v-3a7 7 0 0 1 14 0v3M21 3v4m-2-2h4',
@@ -54,9 +58,10 @@ export function mountMobileEditor(doc,sections,{onLeave=()=>{}}={}){
  const deck=h('div','deck-layout'),hero=h('section','deck-hero'),nav=h('nav','deck-nav'),groupsBox=h('div','deck-groups');
  nav.setAttribute('aria-label','YOUR GAMID sections');
  const heroBanner=h('div','deck-hero-banner'),heroBody=h('div','deck-hero-body'),heroTop=h('div','deck-hero-identity'),heroAvatar=h('span','deck-hero-avatar'),heroNames=h('div','deck-hero-names'),heroName=h('strong','deck-hero-name'),heroHandle=h('span','deck-hero-handle'),heroTitle=h('div','deck-hero-title'),heroStatus=h('div','deck-hero-status'),heroActions=h('div','deck-hero-actions');
- heroAvatar.setAttribute('aria-hidden','true');heroNames.append(heroName,heroHandle);heroTop.append(heroAvatar,heroNames);
+ const heroLocation=h('span','deck-hero-location'),heroBio=h('p','deck-hero-bio');heroLocation.hidden=true;heroBio.hidden=true;
+ heroAvatar.setAttribute('aria-hidden','true');heroNames.append(heroName,heroHandle,heroLocation);heroTop.append(heroAvatar,heroNames);
  const shareButton=h('button','secondary deck-share-button');shareButton.type='button';shareButton.append(svg('share'),h('span','','Share'));shareButton.dataset.deckOpen='share';
- heroBody.append(heroTop,heroStatus,heroActions);hero.append(heroBanner,heroBody);hero.setAttribute('aria-label','Your GamID');
+ heroBody.append(heroTop,heroBio,heroStatus,heroActions);hero.append(heroBanner,heroBody);hero.setAttribute('aria-label','Your GamID');
  const chips=new Map(),groupNodes=new Map(),cards=new Map(),aboutRows=new Map();
  for(const group of DECK_GROUPS){
   const chip=h('a','deck-chip',group.chip);chip.href='#deck-'+group.id;chip.dataset.deckGroup=group.id;chips.set(group.id,chip);nav.append(chip);
@@ -94,7 +99,32 @@ export function mountMobileEditor(doc,sections,{onLeave=()=>{}}={}){
  function move(node,target){if(!node)return;for(const control of node.querySelectorAll('input,select,textarea,button')){if(control.form?.id==='profileForm'&&!formAttrs.has(control)){formAttrs.set(control,control.getAttribute('form'));control.setAttribute('form','profileForm');}}const slot=doc.createComment('mobile deck original position');node.before(slot);slots.push([node,slot]);target.append(node);}
  // Controls added later inside the profile form sections (role choices, Intro inputs) keep their form ownership too.
  function associate(){if(!active)return;for(const key of ['avatar','intro','name','bio','roles','education'])for(const control of sections.get(key)?.panel.querySelectorAll('input,select,textarea,button')||[]){if(!control.form&&!control.closest('form')&&!formAttrs.has(control)){formAttrs.set(control,control.getAttribute('form'));control.setAttribute('form','profileForm');}}}
- function thumb(node,cls='deck-thumb'){const n=h('span',cls);n.setAttribute('aria-hidden','true');if(!node){n.textContent='?';return n;}const img=node.querySelector('img');if(node.style.backgroundImage)n.style.backgroundImage=node.style.backgroundImage;else if(img?.src&&img.complete&&img.naturalWidth){const c=img.cloneNode();c.removeAttribute('id');c.alt='';n.append(c);}else n.textContent=(node.textContent.trim()||node.closest('.game-item')?.querySelector('.game-name')?.textContent||'?').slice(0,2);return n;}
+ // A summary copy of a live thumbnail: its picture (artwork, provider photo) when there is one, otherwise the same initials.
+ function thumb(node,cls='deck-thumb'){
+  const n=h('span',cls);n.setAttribute('aria-hidden','true');if(!node){n.textContent='?';return n;}
+  const initial=()=>(node.textContent.trim()||node.closest('.game-item')?.querySelector('.game-name')?.textContent||node.closest('.connection-head')?.querySelector('strong')?.textContent||'?').slice(0,2);
+  if(node.style.backgroundImage){n.style.backgroundImage=node.style.backgroundImage;return n;}
+  const img=node.querySelector('.game-art')||node.querySelector('img'),src=img?.getAttribute('src');
+  if(src&&!failedArt.has(img.src)&&!failedPhotos.has(img.src)){const c=img.cloneNode();c.removeAttribute('id');c.className='';c.alt='';c.addEventListener('error',()=>{c.remove();n.textContent=initial();},{once:true});n.append(c);}
+  else n.textContent=initial();
+  return n;
+ }
+ // Media: identical sources, guards and fallbacks to desktop-editor.js, active only while the deck is.
+ let media=null,poster=null,artwork=null,artKey=null,artGeneration=0;const failedArt=new Set(),failedPhotos=new Set(),photos=new Map();const crewTiles=new Map();
+ function decoratePhoto(node,url){if(!node||!url||failedPhotos.has(url))return;if(!photos.has(node))photos.set(node,[...node.childNodes]);let img=node.querySelector('img');const fail=()=>{if(!active)return;failedPhotos.add(url);node.textContent=(node.closest('.connection-head')?.querySelector('strong')?.textContent||'?').slice(0,1);queue();};if(img?.getAttribute('src')===url){if(!img.dataset.deckGuard){img.dataset.deckGuard='true';img.addEventListener('error',fail,{once:true});}if(img.complete&&!img.naturalWidth)fail();return;}img=h('img','deck-provider-photo');img.dataset.deckGuard='true';img.alt='';img.referrerPolicy='no-referrer';img.addEventListener('error',fail,{once:true});img.src=url;node.replaceChildren(img);}
+ function restorePhotos(){for(const [node,children] of photos)if(node.isConnected)node.replaceChildren(...children);photos.clear();}
+ function safeArtwork(){return {...artwork,artwork:Object.fromEntries(Object.entries(artwork?.artwork||{}).map(([key,images])=>[key,Object.fromEntries(Object.entries(images).filter(([,url])=>!failedArt.has(url)))]))};}
+ function decorateMedia(){
+  if(!media)return;poster?.update({enabled:active,savedKey:model.introSavedKey,localURL:model.introURL});
+  for(const row of sections.get('connections')?.panel.querySelectorAll('.connection-card[data-provider]')||[]){const provider=row.dataset.provider;const data=model.connections?.find(r=>r.provider_key===provider&&r.connected);decoratePhoto(row.querySelector('.connection-avatar'),providerAvatar(provider,data?.provider_avatar_url));}
+  decoratePhoto(sections.get('league')?.panel.querySelector('.connection-avatar'),leagueIcon(model.leagueIcon));
+  for(const node of photos.keys())if(!node.isConnected)photos.delete(node);
+  const crewPanel=sections.get('crew')?.panel,crewKeys=[...crewPanel?.querySelectorAll('.crew-card[data-game-key]')||[]].map(n=>n.dataset.gameKey);
+  const owner=media.principal(),signature=owner+'|'+(model.gameKeys||[]).join(',')+'|'+crewKeys.join(',');
+  if(owner&&(model.gameCount>0||crewKeys.length)&&artKey!==signature){artKey=signature;const version=++artGeneration;media.artwork().then(data=>{if(active&&version===artGeneration&&owner===media.principal()){artwork=data;queue();}},()=>{});}
+  if(artwork){const games=sections.get('games')?.panel;if(games){for(const img of games.querySelectorAll('.game-art'))if(failedArt.has(img.src))img.remove();applyGameArtwork(games,safeArtwork());}const list=crewPanel?.querySelector('.crew-list');if(list)applyGameArtwork(list,safeArtwork());for(const columns of crewPanel?.querySelectorAll('.crew-management-columns')||[])applyGameArtwork(columns,safeArtwork());}
+ }
+ function clearMedia({restore=true}={}){poster?.clear();artGeneration++;artKey=null;artwork=null;crewTiles.clear();if(restore)restorePhotos();}
  function bannerVisual(cls,{saved=false}={}){
   const frame=sections.get('banner')?.panel.querySelector('.banner-frame'),box=h('span',cls);box.setAttribute('aria-hidden','true');if(!frame)return box;
   const img=frame.querySelector('.banner-saved'),canvas=frame.querySelector('canvas');
@@ -108,25 +138,43 @@ export function mountMobileEditor(doc,sections,{onLeave=()=>{}}={}){
   card.node.hidden=s.card.hidden;card.pill.hidden=!isDirty(key);card.detail.textContent=statusText(key);
   const v=[];
   if(key==='avatar')v.push(thumb(doc.getElementById('profileAvatarThumbnail'),'deck-avatar-thumb'));
-  else if(key==='intro'){const tile=h('span','deck-intro-tile');tile.setAttribute('aria-hidden','true');tile.append(svg('intro'));v.push(tile);}
+  else if(key==='intro'){
+   // The Desktop paused-frame thumbnail; without one, the same loading / unavailable fallbacks.
+   const tile=h('span','deck-intro-tile'),state=poster?.state;tile.setAttribute('aria-hidden','true');
+   if(state?.url){const img=h('img','');img.src=state.url;img.alt='';tile.append(img);tile.classList.add('has-poster');}else tile.append(svg('intro'));
+   if(state?.status==='loading')tile.append(h('small','','Preparing thumbnail…'));else if(state?.status==='unavailable')tile.append(h('small','','Thumbnail unavailable'));
+   v.push(tile);
+  }
   else if(key==='banner')v.push(bannerVisual('deck-banner-thumb'));
   else if(key==='socials'){const draft=model.socials||[];const added=SOCIAL_PLATFORMS.filter(p=>draft.some(r=>r.platform===p.key));const marks=h('span','deck-marks');for(const p of added.slice(0,8)){const m=h('span','deck-mark');m.append(socialIcon(doc,p.key));m.title=p.label;marks.append(m);}if(added.length>8)marks.append(h('span','deck-mark deck-more','+'+(added.length-8)));v.push(marks,h('span','deck-note',`${added.length} of ${SOCIAL_PLATFORMS.length} platforms added`));}
-  else if(key==='connections'){const list=h('span','deck-rows');for(const row of s.panel.querySelectorAll('.connection-card[data-provider] .connection-head')){const label=row.querySelector('strong')?.textContent.trim()||'Account';const state=[row.querySelector('.connection-name')?.textContent,row.querySelector('.connection-chip')?.textContent].filter(Boolean).map(t=>t.trim()).join(' · ');const line=h('span','deck-row');line.append(h('strong','',label),h('small','',state||'Not connected'));list.append(line);}const league=sections.get('league');if(league&&!league.card.hidden){const line=h('span','deck-row'),state=statusText('league');line.append(h('strong','',title('league')),h('small','',state&&state!==title('league')?state:'Prototype'));list.append(line);}v.push(list);}
-  else if(key==='games'){const rows=[...s.panel.querySelectorAll('.game-library .game-item')];const strip=h('span','deck-covers');for(const row of rows.slice(0,4))strip.append(thumb(row.querySelector('.game-icon'),'deck-cover'));const total=model.gameCount??rows.length;if(total>4)strip.append(h('span','deck-cover deck-more','+'+(total-4)));if(rows.length)v.push(strip);v.push(h('span','deck-note',`${total} game${total===1?'':'s'} · ${model.favoriteCount??s.panel.querySelectorAll('.favorite-toggle.is-on').length}/4 favorites`));}
+  else if(key==='connections'){const list=h('span','deck-rows');for(const row of s.panel.querySelectorAll('.connection-card[data-provider] .connection-head')){const label=row.querySelector('strong')?.textContent.trim()||'Account';const state=[row.querySelector('.connection-name')?.textContent,row.querySelector('.connection-chip')?.textContent].filter(Boolean).map(t=>t.trim()).join(' · ');const line=h('span','deck-row');line.append(thumb(row.querySelector('.connection-avatar'),'deck-row-photo'),h('strong','',label),h('small','',state||'Not connected'));list.append(line);}const league=sections.get('league');if(league&&!league.card.hidden){const line=h('span','deck-row'),state=statusText('league');line.append(thumb(league.panel.querySelector('.connection-avatar'),'deck-row-photo'),h('strong','',title('league')),h('small','',state&&state!==title('league')?state:'Prototype'));list.append(line);}v.push(list);}
+  else if(key==='games'){const rows=[...s.panel.querySelectorAll('.game-library .game-item')];const strip=h('span','deck-covers');for(const row of rows.slice(0,4)){const cover=h('span','deck-game'),name=row.querySelector('.game-name')?.textContent.trim()||'Game',label=h('small','',name);label.title=name;cover.append(thumb(row.querySelector('.game-icon'),'deck-cover'),label);strip.append(cover);}const total=model.gameCount??rows.length;if(total>4){const more=h('span','deck-game');more.append(h('span','deck-cover deck-more','+'+(total-4)),h('small','','more'));strip.append(more);}if(rows.length)v.push(strip);v.push(h('span','deck-note',`${total} game${total===1?'':'s'} · ${model.favoriteCount??s.panel.querySelectorAll('.favorite-toggle.is-on').length}/4 favorites`));}
   else if(key==='game-display'){const list=h('span','deck-chips');for(const sw of s.panel.querySelectorAll('[role="switch"]'))list.append(chip(`${(sw.getAttribute('aria-label')||'Visibility').replace(/ on my GamID/i,'')} ${sw.getAttribute('aria-checked')==='true'?'ON':'OFF'}`,sw.getAttribute('aria-checked')==='true'));if(list.childElementCount)v.push(list);}
-  else if(key==='duo'){const person=s.panel.querySelector('.is-duo .duo-person');if(person){const line=h('span','deck-person');line.append(thumb(person.querySelector('.duo-avatar'),'deck-person-avatar'),h('strong','',person.querySelector('strong')?.textContent.trim()||'My Duo'),h('small','',person.querySelector('.duo-handle')?.textContent.trim()||''));v.push(line);}}
-  else if(key==='crew'){const crews=[...s.panel.querySelectorAll('.crew-card[data-crew]')];const list=h('span','deck-rows');for(const crew of crews.slice(0,2)){const line=h('span','deck-row');line.append(h('strong','',crew.querySelector('.crew-name')?.textContent.trim()||'Crew'),h('small','',[crew.querySelector('.crew-game')?.textContent,crew.querySelector('.crew-count')?.textContent].filter(Boolean).map(t=>t.trim()).join(' · ')));list.append(line);}if(crews.length)v.push(list);if(crews.length>2)v.push(h('span','deck-note',`+${crews.length-2} more Crew${crews.length-2===1?'':'s'}`));}
+  else if(key==='duo'){const person=s.panel.querySelector('.is-duo .duo-person');if(person){const line=h('span','deck-person');line.append(thumb(person.querySelector('.duo-avatar'),'deck-person-avatar'),h('strong','',person.querySelector('strong')?.textContent.trim()||'My Duo'),h('small','',person.querySelector('.duo-handle')?.textContent.trim()||''));v.push(line);const badge=s.panel.querySelector('.is-duo .identity-rel-badge-text')?.textContent.trim();if(badge)v.push(h('span','deck-note deck-duo-badge',badge));}}
+  else if(key==='crew'){
+   // The Desktop summary's rich directory tiles (same renderer, already-loaded rows, game artwork), as plain content of the card button.
+   const crews=[...s.panel.querySelectorAll('.crew-card[data-crew]')];const tiles=h('span','deck-crew-tiles');
+   for(const crew of crews.slice(0,2)){const people=[...crew.querySelectorAll('.crew-members > .crew-person')].map(row=>({name:row.querySelector('.duo-names strong')?.textContent||'Member',avatarPath:row.querySelector('.crew-avatar img')?.src||null}));
+    const data={id:crew.dataset.crew,name:crew.querySelector('.crew-name')?.textContent||'Crew',gameKey:crew.dataset.gameKey,gameName:crew.querySelector('.crew-game')?.textContent||'',members:parseInt(crew.querySelector('.crew-count')?.textContent,10)||0,people};
+    // An unchanged tile is reused: rebuilding would request its (possibly failed) background artwork again on every refresh.
+    const signature=JSON.stringify([data,model.handle]);let tile=crewTiles.get(data.id);if(tile?.dataset.signature!==signature){tile=directoryCrewCard(h,data,{ownerHandle:model.handle,pathname:win.location.pathname,loadAvatar:url=>url});tile.removeAttribute('href');tile.removeAttribute('aria-label');tile.classList.add('deck-crew-tile');tile.dataset.signature=signature;crewTiles.set(data.id,tile);}
+    if(artwork)applyGameArtwork(tile,safeArtwork());tiles.append(tile);}
+   if(crews.length)v.push(tiles);if(crews.length>2)v.push(h('span','deck-note',`+${crews.length-2} more Crew${crews.length-2===1?'':'s'}`));}
   else if(key==='wall'){const state=doc.getElementById('wallState')?.textContent.trim();if(state)card.detail.textContent=state;}
   card.visual.replaceChildren(...v);card.visual.hidden=!v.length;
  }
  function render(){
-  if(!active)return;associate();
+  if(!active)return;associate();decorateMedia();
   heroName.textContent=model.name||'Your GamID';heroHandle.textContent=model.handle?'@'+model.handle:'';
+  // The saved profile, like the Desktop sidebar card: saved location and bio.
+  heroLocation.textContent=model.location||'';heroLocation.hidden=!model.location;heroBio.textContent=model.bio||'';heroBio.hidden=!model.bio;
   heroAvatar.style.backgroundImage=model.avatar?`url("${model.avatar}")`:'';heroAvatar.textContent=model.avatar?'':(model.name||model.handle||'G').slice(0,1).toUpperCase();
   heroBanner.replaceChildren(bannerVisual('deck-hero-banner-image',{saved:true}));
   heroStatus.dataset.action=(doc.getElementById('visibilityToggle')?.textContent||'').trim().toLowerCase();
   for(const key of cards.keys())renderCard(key);
   for(const [part,{detail,pill}] of aboutRows){detail.textContent=statusText(part);pill.hidden=!isDirty(part);}
+  // About Me shows its values (Location, Languages, Genres), as the Desktop summary does.
+  const about=sections.get('about')?.panel;if(about){const location=[...about.querySelectorAll('.about-location input')].map(i=>i.value).filter(Boolean).join(', ');const checked=label=>[...about.querySelectorAll(`[data-about-group="${label}"] input:checked`)].map(i=>i.closest('label')?.textContent.trim()).filter(Boolean).join(', ');const values=[location,checked('Languages'),checked('Favorite Genres')].filter(Boolean).join(' · ');if(values)aboutRows.get('about').detail.textContent=values;}
   const named=DIRTY_ORDER.filter(isDirty).map(title);
   const saveAll=doc.getElementById('saveAllButton'),feedback=doc.getElementById('saveAllFeedback');
   const running=saveAll?.textContent.trim()==='Saving…',shown=feedback&&!feedback.hidden;
@@ -150,9 +198,10 @@ export function mountMobileEditor(doc,sections,{onLeave=()=>{}}={}){
   sheetTitle.focus({preventScroll:true});queue();return true;
  }
  function collapse(){if(!openKey)return;if(openKey==='about-group'){for(const key of DECK_NESTED){sections.get(key)?.card.classList.remove('deck-open');expanded(key,false);const s=sections.get(key);s?.panel.removeAttribute('role');s?.panel.removeAttribute('aria-labelledby');}}else{sections.get(openKey)?.card.classList.remove('deck-open');expanded(openKey,false);if(openKey==='connections')expanded('league',false);}}
- function close({fromHistory=false,restoreFocus=true}={}){
+ // keepHistory: a teardown (Desktop takes over, sign-out) never calls history.back(), whose asynchronous traversal could cancel a navigation that follows.
+ function close({fromHistory=false,restoreFocus=true,keepHistory=false}={}){
   if(!openKey)return;const key=openKey;collapse();openKey=null;sheet.hidden=true;tabs.hidden=true;doc.documentElement.classList.remove('deck-sheet-open');setInert(false);
-  if(pushed&&!fromHistory&&win.history.state?.gamidDeckSheet){pushed=false;win.history.back();}pushed=false;
+  if(pushed&&!fromHistory&&!keepHistory&&win.history.state?.gamidDeckSheet){pushed=false;win.history.back();}pushed=false;
   if(restoreFocus){const target=(trigger?.isConnected&&trigger)||deck.querySelector(`[data-deck-open="${key}"]`);target?.focus?.({preventScroll:false});}trigger=null;queue();
  }
  back.addEventListener('click',()=>close());
@@ -195,7 +244,9 @@ export function mountMobileEditor(doc,sections,{onLeave=()=>{}}={}){
   if(pendingOpen){const key=pendingOpen;pendingOpen=null;open(key);}
  }
  function disable(){
-  if(!active)return;const leaving=openKey==='about-group'?openPart:openKey;close({restoreFocus:false});spy?.disconnect();active=false;
+  if(!active)return;const leaving=openKey==='about-group'?openPart:openKey;close({restoreFocus:false,keepHistory:true});spy?.disconnect();active=false;
+  // Hand the panels back as Desktop expects them (it adds its own artwork and photos): no thumbnail, provider photo or My Games art left behind.
+  clearMedia();for(const image of sections.get('games')?.panel.querySelectorAll('.game-art')||[])image.remove();
   for(const [node,slot] of slots.reverse())slot.replaceWith(node);slots=[];shareButton.remove();deck.remove();root.classList.remove('mobile-deck');
   sections.get('play')?.card.classList.remove('deck-play-static');
   for(const [control,value] of formAttrs){if(value===null)control.removeAttribute('form');else control.setAttribute('form',value);}formAttrs.clear();
@@ -211,12 +262,16 @@ export function mountMobileEditor(doc,sections,{onLeave=()=>{}}={}){
  const saveAllBar=doc.getElementById('saveAllBar');if(saveAllBar)new win.MutationObserver(queue).observe(saveAllBar,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden','disabled']});
  const wallState=doc.getElementById('wallState');if(wallState)new win.MutationObserver(queue).observe(wallState,{childList:true,characterData:true,subtree:true});
  root.addEventListener('input',queue);root.addEventListener('change',queue);
+ // A game image that fails is never retried (no render loop); its initials stay.
+ root.addEventListener('error',event=>{if(active&&event.target.matches?.('img.game-art')){failedArt.add(event.target.src);queue();}},true);
  return {
   get active(){return active;},
   reveal(key){if(!active)return false;if(key==='play'){groupNodes.get('play')?.section.scrollIntoView({block:'start'});return true;}return open(key);},
   close:()=>close(),
-  update(next){model={...model,...next};if(next&&!next.handle&&'handle' in next&&openKey)close({restoreFocus:false});queue();},
-  setAbout(){queue();},
-  clearMedia(){queue();},
+  update(next){model={...model,...next};if(next&&!next.handle&&'handle' in next&&openKey)close({restoreFocus:false,keepHistory:true});queue();},
+  configureMedia(config){media=config;poster=createIntroPoster({resolveSaved:config.savedIntro,principal:config.principal,onChange:()=>queue()});queue();},
+  // Sign-out / session change: drop every derived image; without an owner the Intro and provider inputs are forgotten too.
+  clearMedia(){clearMedia();failedPhotos.clear();failedArt.clear();if(!media?.principal()){model.introSavedKey=null;model.introURL=null;model.connections=null;model.leagueIcon=null;}queue();},
+  setAbout(row){const country=row?.catalogs?.countries?.find(c=>(c.country_code||c.code)===row.about_country_code);model.location=row?.show_location?[row.about_city_name,country?.name||country?.label||row.about_country_code||row.legacy_location].filter(Boolean).join(', '):'';queue();},
  };
 }

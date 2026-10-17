@@ -65,7 +65,7 @@ export function mountProfileEditor(doc) {
  desktopEditor=mountDesktopEditor(doc,sections);
  const desktop={
   reveal:(key,options)=>desktopEditor.reveal(key,options)||mobile.reveal(key,options),
-  configureMedia:config=>desktopEditor.configureMedia(config),
+  configureMedia:config=>{desktopEditor.configureMedia(config);mobile.configureMedia(config);},
   clearMedia:()=>{desktopEditor.clearMedia();mobile.clearMedia();},
   update:next=>{desktopEditor.update(next);mobile.update(next);},
   setAbout:row=>{desktopEditor.setAbout(row);mobile.setAbout(row);},

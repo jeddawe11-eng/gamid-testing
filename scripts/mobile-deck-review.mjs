@@ -31,15 +31,49 @@ async function smallTargets(page){
  return page.evaluate(()=>[...document.querySelectorAll('.deck-layout :is(button,a,select,input[type=checkbox])')].filter(e=>{const r=e.getBoundingClientRect();if(!r.width||e.closest('[hidden]')||getComputedStyle(e).visibility==='hidden')return false;if(e.closest('.deck-sheet-body'))return false;return r.height<40||r.width<40;}).map(e=>({tag:e.tagName,cls:String(e.className).slice(0,50),text:e.textContent.trim().slice(0,30),w:Math.round(e.getBoundingClientRect().width),h:Math.round(e.getBoundingClientRect().height)})));
 }
 
-export async function reviewMobileDeck({page,width,scenario,out,calls,full=true}){
+// Same media as the Desktop summaries: Intro paused frame, provider photos, game and Crew artwork; fallbacks when the images fail.
+async function reviewMedia(page,{scenario,imageRequests,out,width}){
+ const count=selector=>page.locator(selector).count();
+ if(scenario==='populated'||scenario==='rich'){
+  await page.waitForFunction(()=>document.querySelector('[data-deck-card=intro] .deck-intro-tile img')?.naturalWidth>0,null,{timeout:20000});
+  // The rich fixture's Crews use games without artwork: their tiles keep the gradient and initials (no source image to show).
+  if(scenario==='populated')await page.waitForFunction(()=>document.querySelectorAll('[data-deck-card=crew] .deck-crew-tile .game-art-bg').length>0,null,{timeout:10000}).catch(async error=>{throw Error('Crew tile artwork missing: '+await page.evaluate(()=>document.querySelector('[data-deck-card=crew]')?.outerHTML.slice(0,1500)+' || list: '+document.querySelector('#crewPanel')?.outerHTML.slice(0,800)));});
+  if(scenario==='populated'){await page.locator('[data-deck-card=crew]').scrollIntoViewIfNeeded();await page.waitForFunction(()=>document.querySelectorAll('[data-deck-card=crew] .crew-card-icon .game-art').length===2,null,{timeout:10000}).catch(async()=>{throw Error('Crew tile icons: '+await page.evaluate(()=>[...document.querySelectorAll('[data-deck-card=crew] .crew-card-icon')].map(n=>n.outerHTML).join(' | ')));});}
+  assert.ok(await count('[data-deck-card=connections] .deck-row-photo img')>=3,'Discord, Steam and League photos in the Connections summary');
+  if(scenario==='populated'){assert.ok(await count('[data-deck-card=games] .deck-cover img')>=2,'game artwork in the My Games summary');assert.ok(await count('#myGamesSection .game-icon .game-art')>=2,'game artwork in the live My Games editor');}
+  else assert.ok(await count('[data-deck-card=games] .deck-cover img')>=1,'artwork where the server matched it; initials elsewhere');
+  if(scenario==='populated')assert.ok(await count('#crewPanel .crew-list-icon .game-art')>=1,'Crew game artwork in the live My Crew editor');
+  if(scenario==='populated'){await deckOpen(page,'crew');await page.locator('#crewPanel .crew-list-open').first().click();await page.locator('#crewPanel .crew-management-columns').first().waitFor();await page.waitForFunction(()=>document.querySelector('#crewPanel .crew-management-columns .game-art-bg, #crewPanel .crew-management-columns .game-art'));await page.screenshot({path:path.join(out,'deck-sheet-crew-manage-'+width+'.png'),animations:'disabled'});await deckClose(page);}
+  else assert.ok(await count('[data-deck-card=crew] .deck-crew-tile')>=1);
+  const art=await page.locator('#myGamesSection .game-icon .game-art').first().evaluate(n=>{const s=getComputedStyle(n);return {position:s.position,fit:s.objectFit};}).catch(()=>null);
+  if(art)assert.deepEqual(art,{position:'absolute',fit:'cover'},'artwork covers its initials');
+ }
+ if(scenario==='failed'){
+  await page.waitForFunction(()=>/Thumbnail unavailable/.test(document.querySelector('[data-deck-card=intro]')?.textContent),null,{timeout:20000});await page.waitForTimeout(1500);
+  assert.equal(await count('[data-deck-card=intro] .deck-intro-tile img'),0);await deckOpen(page,'games');await page.waitForTimeout(1500);assert.equal(await count('#myGamesSection .game-art'),0,'failed artwork leaves initials (lazy images fail once opened)');await deckClose(page);
+  await page.locator('[data-deck-card=games]').scrollIntoViewIfNeeded();await page.locator('[data-deck-card=crew]').scrollIntoViewIfNeeded();await page.waitForTimeout(1500);
+  assert.equal(await count('[data-deck-card=games] .deck-cover img'),0,'summary copies of failed artwork fall back to initials once loaded');await deckOpen(page,'crew');await page.waitForTimeout(1500);assert.equal(await count('#crewPanel .crew-list-icon .game-art'),0);await deckClose(page);
+  assert.match(await page.locator('[data-deck-card=games] .deck-cover').first().innerText(),/\S/,'initials remain');
+  // No retry loop: once the page is idle, failed images are not requested again (each request is uncached in this fixture).
+  const idle=imageRequests();await page.waitForTimeout(3000);assert.equal(imageRequests()-idle,0,'failed images are not retried while idle');
+ }
+ if(scenario==='empty')assert.equal(await count('[data-deck-card=intro] .deck-intro-tile img'),0);
+ assert.equal(await page.evaluate(()=>window.mediaPlayCalls),0,'thumbnails never play the Intro');
+}
+
+export async function reviewMobileDeck({page,width,scenario,out,calls,full=true,imageRequests=()=>0}){
  const result={width,scenario};
  await page.locator('#identityView.mobile-deck').waitFor();
+ // GAMID_DECK_CAPTURE=<label>: evidence screenshots only (e.g. before/after with GAMID_DECK_ROOT), no assertions.
+ if(process.env.GAMID_DECK_CAPTURE){const label=process.env.GAMID_DECK_CAPTURE;await page.waitForTimeout(8000);await page.screenshot({path:path.join(out,`${label}-deck-${scenario}-${width}.png`),fullPage:true,animations:'disabled'});for(const key of ['games','crew','connections']){await deckOpen(page,key);await page.waitForTimeout(1500);await page.screenshot({path:path.join(out,`${label}-sheet-${key}-${width}.png`),animations:'disabled'});}await deckClose(page);return {...result,captured:label};}
  assert.equal(await page.locator('#identityView.desktop-editor').count(),0,'Desktop editor inactive below 1024px');
  await page.waitForFunction(()=>document.querySelector('.deck-hero-name')?.textContent==='Saved Gamer');await page.waitForTimeout(700);
  // Hero: identity, status, Preview / Share / Publish.
  assert.equal(await page.locator('.deck-hero-handle').textContent(),'@fixture_owner');
  for(const sel of ['#previewClassicButton','.deck-share-button','#visibilityToggle','#visibilityChip'])assert.ok(await page.locator(sel).isVisible(),sel+' visible in the hero');
  assert.equal(await page.locator('.deck-hero #visibilityToggle').count(),1);
+ assert.equal(await page.evaluate(()=>document.querySelector('.deck-hero-name').getBoundingClientRect().top<document.querySelector('.deck-hero-banner').getBoundingClientRect().bottom-1),false,'hero text never sits on the Banner image');
+ await reviewMedia(page,{scenario,imageRequests,out,width});result.media=true;
  // Six groups, chips, every card; the unsaved bar is hidden with nothing to save.
  assert.equal(await page.locator('.deck-group').count(),6);assert.equal(await page.locator('.deck-chip').count(),6);
  for(const key of MAIN){if(scenario==='empty'&&['games','game-display'].includes(key)&&!(await page.locator(`[data-deck-card="${key}"]`).isVisible()))continue;assert.ok(await page.locator(`[data-deck-card="${key}"]`).isVisible(),key+' card visible');}
@@ -66,7 +100,7 @@ export async function reviewMobileDeck({page,width,scenario,out,calls,full=true}
   if(['avatar','intro','banner','socials','connections','game-display','duo',...NESTED].includes(key))assert.ok(await page.locator(`.deck-sheet-body [data-profile-save="${key}"]`).isVisible(),key+' Save Changes visible');
   assert.equal(await page.locator('.deck-unsaved').isVisible(),false);
   o=await overflow(page);assert.equal(o.docOverflow,false);assert.deepEqual(o.sheet,[],key+' sheet content inside the sheet');
-  if(full&&['socials','roles','intro','crew','wall'].includes(key))await page.screenshot({path:path.join(out,`deck-sheet-${key}-${width}.png`),animations:'disabled'});
+  if(full&&['socials','roles','intro','crew','wall','games','connections','about'].includes(key))await page.screenshot({path:path.join(out,`deck-sheet-${key}-${width}.png`),animations:'disabled'});
  }
  await deckClose(page);assert.equal(writes(),before,'opening and closing editors never saves');
  result.editorsOpened=MAIN.length+NESTED.length+1;

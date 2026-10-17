@@ -31,6 +31,18 @@ test('Mobile V2 is a presentation layer below 1024px; the Desktop editor is unto
   for (const name of ['reveal', 'configureMedia', 'clearMedia', 'update', 'setAbout']) assert.match(editor, new RegExp(`${name}:`));
 });
 
+test('Mobile V2 shows the Desktop media from the same owner-only sources, never new ones', () => {
+  const mobile = read('dist/account/mobile-editor.js');
+  for (const source of ["from './editor-media.js'", "from '../public/game-artwork.js'", "from '../public/crews-directory.js'"]) assert.ok(mobile.includes(source), source);
+  assert.match(mobile, /createIntroPoster\(\{resolveSaved:config\.savedIntro,principal:config\.principal/);
+  assert.match(mobile, /providerAvatar\(provider,/);
+  assert.match(mobile, /media\.artwork\(\)/);
+  assert.match(mobile, /failedArt\.add/, 'failed artwork is never retried');
+  assert.doesNotMatch(mobile, /createSignedUrl|getPublicUrl|\/object\/public\//, 'no public or newly signed media URLs');
+  const editor = read('dist/account/profile-editor.js');
+  assert.match(editor, /configureMedia:config=>\{desktopEditor\.configureMedia\(config\);mobile\.configureMedia\(config\);\}/);
+});
+
 test('Mobile V2 keeps drafts: cards are moved with restoration slots, never cloned or rebuilt', () => {
   const mobile = read('dist/account/mobile-editor.js');
   assert.match(mobile, /doc\.createComment\('mobile deck original position'\)/);
