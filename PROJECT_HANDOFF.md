@@ -3519,3 +3519,43 @@ TESTING delivery (2026-10-17): source `bceb676c1c64f599c980daa4ddc79be9f5dd0bdf`
 - **Later commits:** this delivery note is documentation only; the deployed `dist` is unchanged and needs no redeployment.
 
 **STOP for Mazen's Android Emulator review; PENDING_ACCEPTANCE, not ACCEPTED.**
+
+## 72. Mobile V2 visual parity audit and fixes (2026-10-17)
+
+Mazen authorized a comprehensive visual parity audit of Mobile V2 against the accepted Desktop editor, with targeted corrections ("GAMID — MOBILE V2 COMPREHENSIVE VISUAL PARITY AUDIT & FIX"). It consolidates his Android Emulator reports:
+
+- Your Intro showed a generic tile instead of the saved Intro thumbnail.
+- My Crew showed Crew names and letter placeholders without artwork.
+- My Games showed initials instead of game artwork (his account: 14 games, 4/4 favorites).
+
+Product `15e204dcc8e324de3d32efc1e747b041424f45aa`, from verified clean `7673872` on feature/play-together-notifications.
+
+**Root cause.** Only the Desktop editor received the owner media configuration (Intro lease thumbnail, allow-listed provider photos, game-artwork matches applied to the live My Games and My Crew panels). Below 1024px Desktop removes its artwork, and the deck never added any. The source data and approved routes existed.
+
+**What changed:**
+
+- **Media.** The deck now gets the same configuration and uses the same helpers, guards and fallbacks.
+- **Summaries.** They add the Desktop summary content: game names, rich Crew tiles (reused while unchanged), About Me values, the Duo badge, provider photos, and the saved location and bio.
+- **Hero.** The name no longer sits on the Banner.
+- **Width-boundary teardown.** It no longer calls `history.back()`. The Crew UX regression at 768→1440 showed that this asynchronous traversal could abort a following navigation.
+
+Intentional mobile adaptations, the shared accepted Crew stylesheet, and games or Crews without matched artwork were classified and left unchanged.
+
+- **Full table:** [docs/PROFILE-EDITOR-MOBILE-V2.md](docs/PROFILE-EDITOR-MOBILE-V2.md) → Visual parity audit.
+- **Desktop.** `desktop-editor.js` / `.css` are unchanged. No backend, permission, privacy, limit or contract change, and no media made public, newly signed or generated.
+
+**Validation:**
+
+- **Build:** 1918 tests, 1917 PASS, one opt-in SKIP, zero failures.
+- **Mobile V2 deck:** 36 cases PASS (320, 360, 375, 390, 430, 600, 768, 820 and 1023px × populated / rich / empty / failed media). They cover media and fallbacks, no idle image retries, no Intro playback, the hero text position, and the full flow at all nine widths.
+- **Desktop:** 12 of 12 screenshots (1024, 1280, 1440 × four scenarios) are byte-identical to the pre-Mobile-V2 checkpoint `82c3cd6`. The paired editor at 1024 / 1440, media review, Crew UX (35 cases) and Classic preview all pass.
+- **Evidence:** before / after captures show deployed `bceb676` versus the fix with the same fixture.
+- **Scope of testing:** all backend traffic was mocked; no real or protected account was used.
+- **Unverified:** the artwork matches for Mazen's real games and Crews, and his real Intro frame and Emulator rendering.
+
+**Truth: UPDATED.**
+
+- `your-gamid-editor-mobile` stays PENDING_ACCEPTANCE: checkpoint `15e204d`, new contract `profile-mobile-media`, and an updated `profile-mobile-deck` summary clause.
+- `your-gamid-editor` stays ACCEPTED. Only the below-1024px sentence of `profile-desktop-media` that this branch had written now points to Mobile V2 media; the Desktop clauses and checkpoint are unchanged.
+
+No Product Memory change.

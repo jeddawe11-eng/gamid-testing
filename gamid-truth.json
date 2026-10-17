@@ -94,7 +94,7 @@
         },
         {
           "id": "profile-desktop-media",
-          "rule": "From 1024px the owner editor captures a real paused video frame for existing saved Intro videos and local selections, using the existing authenticated 120-second Intro source lease or the local file. Thumbnail generation never plays Intro, saves, uploads or publishes; its Blob image is memory-only and released on replacement, removal, owner changes and Desktop teardown. Stored Steam avatars and available League prototype profile-icon IDs supply images without provider refresh or verification claims. Unavailable videos/images retain explicit fallback states. Below 1024px no video frame or provider image is captured; Mobile V2 shows status summaries."
+          "rule": "From 1024px the owner editor captures a real paused video frame for existing saved Intro videos and local selections, using the existing authenticated 120-second Intro source lease or the local file. Thumbnail generation never plays Intro, saves, uploads or publishes; its Blob image is memory-only and released on replacement, removal, owner changes and Desktop teardown. Stored Steam avatars and available League prototype profile-icon IDs supply images without provider refresh or verification claims. Unavailable videos/images retain explicit fallback states. Below 1024px Mobile V2 shows the same media from the same sources (your-gamid-editor-mobile, profile-mobile-media)."
         }
       ],
       "record": "docs/PROFILE-EDITOR-PAIRED-ROWS.md; PROJECT_HANDOFF.md §61 and §62; Product Memory IDEA-0001 and REV-0004. Mazen explicitly accepted the implemented Desktop Profile Editor layout and editing behavior on TESTING on 2026-10-15, deployed source 1ec1da3c934d83b27f025c1d6b1a5a2f20225ff2, implementation 61de6220a37922a776cddd19771b10bdac4fde51. This supersedes prior pending Desktop acceptance statements. The unchanged mobile layout is preserved; no new Android real-device manual acceptance is claimed. Historical implementation: docs/PROFILE-EDITOR-UX.md, docs/CLASSIC-PROFILE-OWNER-PREVIEW.md, docs/PROFILE-EDITOR-DESKTOP-REDESIGN.md, docs/PROFILE-EDITOR-MEDIA-REVIEW.md, docs/PROFILE-EDITOR-ADAPTIVE-LAYOUT.md; PROJECT_HANDOFF.md §3, §20, §23, §38, §41, §44, §57–§60. 2026-10-17: the below-1024px wording of four contracts was reconciled for Mobile V2 (your-gamid-editor-mobile, PENDING_ACCEPTANCE); the accepted Desktop layout, Desktop clauses and checkpoint are unchanged."
@@ -106,11 +106,15 @@
       "surfaces": [
         "/account/"
       ],
-      "checkpoint": "a0c7c95580e7e3375aa095fdc62de520059236ac",
+      "checkpoint": "15e204dcc8e324de3d32efc1e747b041424f45aa",
       "contracts": [
         {
           "id": "profile-mobile-deck",
-          "rule": "Below 1024px the Account Profile Editor is the Profile Deck: an identity hero (saved Banner, Avatar, display name, @handle, the existing GamID visibility chip with Publish / Unpublish, Preview Your GamID Classic and Share), sticky section chips (Media, About, Social, Games, Play, Wall) and six groups following the accepted Desktop pairs: Profile media (Avatar, Your Intro, Banner); About Me (About Me, Gaming Roles, Education & Work, Bio, Identity); Socials & Connections (Connections with League, My Socials); Games (My Games, Game Display); Play & Community (static Play Together, My Duo, My Crew); My Wall. Cards show bounded status summaries of the live editors. From 600px the groups use two columns; below 375px Media stacks in one column. No horizontal page scroll from 320px."
+          "rule": "Below 1024px the Account Profile Editor is the Profile Deck: an identity hero (saved Banner, Avatar, display name, @handle, the existing GamID visibility chip with Publish / Unpublish, Preview Your GamID Classic and Share), sticky section chips (Media, About, Social, Games, Play, Wall) and six groups following the accepted Desktop pairs: Profile media (Avatar, Your Intro, Banner); About Me (About Me, Gaming Roles, Education & Work, Bio, Identity); Socials & Connections (Connections with League, My Socials); Games (My Games, Game Display); Play & Community (static Play Together, My Duo, My Crew); My Wall. Cards summarise the live editors with the Desktop summary content: the Intro paused frame, Avatar and Banner, About Me values, provider photos, game artwork with names, Game Display states, the Duo with its badge and rich Crew tiles; the hero adds the saved location and bio. From 600px the groups use two columns; below 375px Media stacks in one column. No horizontal page scroll from 320px."
+        },
+        {
+          "id": "profile-mobile-media",
+          "rule": "Below 1024px the deck shows the owner media of the accepted Desktop editor from the same sources and with the same guards: a real paused Intro frame (existing authenticated 120-second owner lease or the local selection; never plays, saves or uploads; memory-only Blob released on replacement, owner change, sign-out and when Desktop takes over), allow-listed stored Steam / Discord avatars and League profile icons, and game-artwork matches applied to the live My Games and My Crew editors and their summaries. Unmatched games or Crews keep their initials or gradient; failed images fall back once and are not retried; no media URL is made public or newly signed."
         },
         {
           "id": "profile-mobile-sheet",
@@ -125,7 +129,7 @@
           "rule": "Mobile V2 is presentation only: section cards are moved with restoration slots, never recreated, so drafts, form ownership, uploads, save paths, workflow actions, privacy and limits are unchanged. Crossing 1024px in either direction restores the exact DOM for the other layout, keeps every draft and keeps the open editor open. The accepted Desktop editor (1024px and wider) is unchanged. Language behavior is unchanged; the layout uses logical properties so later right-to-left localization is not blocked."
         }
       ],
-      "record": "docs/PROFILE-EDITOR-MOBILE-V2.md; PROJECT_HANDOFF.md §71. Implemented under Mazen's authorization of 2026-10-17 from the 11-board Profile Deck proposal; deployed to TESTING as bceb676c1c64f599c980daa4ddc79be9f5dd0bdf (run 39001472361), awaiting his Android Emulator review. Not accepted."
+      "record": "docs/PROFILE-EDITOR-MOBILE-V2.md; PROJECT_HANDOFF.md §71. Implemented under Mazen's authorization of 2026-10-17 from the 11-board Profile Deck proposal; deployed to TESTING as bceb676c1c64f599c980daa4ddc79be9f5dd0bdf (run 39001472361), awaiting his Android Emulator review. Visual parity audit 2026-10-17: media and summary content aligned with Desktop at checkpoint 15e204d. Not accepted."
     },
     {
       "id": "my-socials",
