@@ -74,7 +74,8 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `bceb676c1c64f599c980daa4ddc79be9f5dd0bdf`** (successful run `39001472361`, Mobile V2 Profile Deck, product `a0c7c95`, `PROJECT_HANDOFF.md` §71; PENDING_ACCEPTANCE). Backend unchanged.
+- **TESTING serves `4786c5914f7dc8c42deb0d0f3da2f4430d4bd9e0`** (successful run `39007625520`, Mobile V2 visual parity fixes, product `15e204d`, `PROJECT_HANDOFF.md` §72; PENDING_ACCEPTANCE). Backend unchanged.
+- **Previously served `bceb676c1c64f599c980daa4ddc79be9f5dd0bdf`** (run `39001472361`, Mobile V2 Profile Deck, product `a0c7c95`, §71).
 - **Previously served `c81ad33a38b101e7f77f76ce8eb5ca6a03850c36`** (successful run `38855728905`, approved Crew reference design and confirmed member selection removal, `PROJECT_HANDOFF.md` §67; ACCEPTED by Mazen 2026-10-16 (§68)). Prior sidebar/Crew presentation is documented in §64. Backend unchanged; existing game-artwork v6 remains. Previous accepted editing-behavior deployment `1ec1da3`, §61–§62; its acceptance is preserved.
 - **Previous editor deployment `7aa0133`** (run `38427825018`, Account saved Classic preview; `PROJECT_HANDOFF.md` §57).
 - **Previously served `7fa7117`** (run `38392848965`, PROJECT_HANDOFF.md §55: Edit Crew Name, on top of §49 Wall Icon and Icon Group, §48 Spotify / SoundCloud / Vimeo logos on mobile, §47 My Socials Spotify / SoundCloud / Vimeo, §46 desktop scroll fix, §45 ISS-0013, §44 ISS-0010 and §43 Intro limit 50 MiB).

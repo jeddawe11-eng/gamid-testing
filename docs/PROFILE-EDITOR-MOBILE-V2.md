@@ -170,3 +170,10 @@ No media is made public or newly signed, and nothing is generated.
 - data use of the thumbnail capture on a phone.
 
 All tests used Chrome headless with mocked data.
+
+**Audit TESTING delivery:** source `4786c5914f7dc8c42deb0d0f3da2f4430d4bd9e0`, [workflow 39007625520](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39007625520) SUCCESS.
+
+- **Served files:** twelve served files are exact.
+- **Post-deploy review:** the live review passes at 320, 390, 430, 768 and 1023px × populated / failed media.
+- **Desktop:** byte-identical at 1024 and 1440.
+- **Status:** awaiting Mazen's manual verification.
