@@ -250,6 +250,27 @@
       "notes": "Mazen explicitly accepted the currently deployed Intro identity on TESTING on 2026-10-11, including the current D3 derivative and the verified Intro removal/storage cleanup (ISS-0011). A higher-quality D2 alternative discussed/tested historically is future work, not part of this acceptance; no D2 implementation or rollout is authorized."
     },
     {
+      "id": "intro-landscape-hint",
+      "name": "Mobile Intro landscape rotation hint",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/@handle (public Intro)",
+        "/account/ (Preview Intro)"
+      ],
+      "checkpoint": "30653d1678a9cd319d5e31ac94ec729bb1648341",
+      "contracts": [
+        {
+          "id": "intro-landscape-hint-display",
+          "rule": "The shared Intro player (account/intro-preview.html: the public visitor Intro and the editor Preview Intro) shows a small animated phone turning from portrait to landscape, bottom-left above the progress bar, once per presentation and only after metadata shows a landscape video (width / height of at least 1.2) on a touch-first (coarse pointer) screen held in portrait. It is never shown for portrait or square videos, before metadata, in landscape or on Desktop. It fades from 2.6 s and is gone at 3 s, never loops, never covers Tap to play, Skip, the progress bar or the host controls, and is static with reduced motion."
+        },
+        {
+          "id": "intro-landscape-fullscreen",
+          "rule": "Tapping the hint puts the existing Intro layer (same video, ambient background and controls) in fullscreen, then tries a landscape orientation lock where the browser grants it; a refused lock keeps fullscreen and manual rotation. It never plays, pauses, seeks, reloads or replaces the video: a paused Intro stays paused until Play, and a playing one keeps its position, volume and mute. Exit fullscreen, system Back, Skip, a stop and the Intro end leave fullscreen and release the lock; the end transition runs after fullscreen has closed. Without the Fullscreen API the hint is only a manual-rotation cue. Intro remains click-to-play; the Intro iframes allow fullscreen."
+        }
+      ],
+      "record": "docs/INTRO-LANDSCAPE-HINT.md; PROJECT_HANDOFF.md §74. Implemented under Mazen's task of 2026-10-17; on TESTING, awaiting his manual acceptance. Forced rotation is not universal on mobile browsers."
+    },
+    {
       "id": "intro-derivative-f2",
       "name": "F2 bounded Intro playback derivative optimization",
       "status": "ACCEPTED",

@@ -3577,3 +3577,46 @@ He explicitly approved saving the result.
 - **Truth:** in `your-gamid-editor-mobile`, only the record text changed, now noting this acceptance. Its status stays PENDING_ACCEPTANCE; its checkpoint, contracts and limits are unchanged. Every other capability is unchanged, including `your-gamid-editor` (ACCEPTED, Desktop).
 
 **Scope:** documentation and Product Memory only. No test was rerun by the agent, and no device details were supplied or invented. No product code, backend, database, infrastructure, deployment, merge or Production access. The animated Intro rotation icon is not authorized. **Overall Mobile V2 is not accepted.**
+
+## 74. Mobile Intro landscape rotation hint (2026-10-17)
+
+Mazen authorized implementing, testing and deploying to TESTING a TikTok-inspired animated phone-rotation hint for the mobile Intro player ("GAMID — MOBILE INTRO LANDSCAPE ROTATION HINT"). Product `30653d1678a9cd319d5e31ac94ec729bb1648341` on feature/play-together-notifications, from verified clean `a765099`.
+
+**Where it lives.** The shared Intro player `account/intro-preview.html` / `.js` is used by the public visitor Intro and the editor's Preview Intro. The editor's Intro thumbnail is unchanged.
+
+- **New:** `intro-landscape.js`, the hint and Exit buttons inside the existing Intro layer, and styles in `intro-preview.css`.
+- **Changed:** both Intro iframes now `allow="autoplay; fullscreen"`.
+
+**Behavior.**
+
+- **Display.** The hint appears once per presentation, only for landscape videos (ratio ≥ 1.2, after metadata) on a portrait touch screen. It sits bottom-left, clear of every control. The phone turns 0° → 90°, fades from 2.6 s and is gone at 3 s. With reduced motion it is static.
+- **Tap.** A tap puts the existing Intro layer in fullscreen and tries `screen.orientation.lock('landscape')`; a refused lock keeps fullscreen.
+- **Playback.** Never touched: paused stays paused; playing keeps position, volume and mute.
+- **Exit.** Exit fullscreen, system Back, Skip, stop and the Intro end leave fullscreen and unlock. The end transition waits until fullscreen has closed.
+- **No Fullscreen API** (e.g. iPhone Safari): the hint is a manual-rotation cue.
+- **Unchanged:** manual Play, the contain-fit video, the ambient background and Desktop.
+
+Details: [docs/INTRO-LANDSCAPE-HINT.md](docs/INTRO-LANDSCAPE-HINT.md).
+
+**Validation:**
+
+- **Build:** 1924 tests, 1923 PASS, one opt-in SKIP, zero failures (new `tests/intro-landscape.test.js`).
+- **Pinned-markup test.** The `public-section-visibility` test pins the public Intro iframe markup; it now expects the new `allow` list. Its intent (the panel never touches the Intro) is unchanged.
+- **`scripts/intro-landscape-browser.mjs`:** run twice, all PASS (Chrome mobile emulation, real player in a host iframe with the production `allow` list).
+  - **Widths:** 320, 360, 390, 430 and 768px.
+  - **Covers:**
+    - appearance, rotation and the 3 s window;
+    - no overlap or overflow;
+    - paused and playing fullscreen with no `play()` call;
+    - Skip from fullscreen;
+    - the end in fullscreen;
+    - portrait / square clips get no hint;
+    - no timer leaks;
+    - reduced motion;
+    - landscape phone and Desktop (no hint).
+- **Mobile V2 deck:** 36 cases PASS, now including Preview Intro → Return to editor / Skip.
+- **Desktop:** 12 of 12 screenshots are byte-identical to `82c3cd6`. The paired editor, Classic preview, media review and Crew UX (35 cases) pass.
+
+**Truth: UPDATED.** New capability `intro-landscape-hint` PENDING_ACCEPTANCE (checkpoint `30653d1`, contracts `intro-landscape-hint-display` and `intro-landscape-fullscreen`). `intro-identity` and every other capability are unchanged.
+
+No Product Memory change.
