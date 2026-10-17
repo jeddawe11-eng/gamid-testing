@@ -103,3 +103,12 @@ Mazen saw this notice in the Android Emulator when the Intro entered landscape f
 **What GamID already does to keep it rare.** Fullscreen is entered only when the viewer taps the hint, never automatically, so the notice appears only after that deliberate tap, once per entry. Nothing re-enters fullscreen during the Intro. Orientation changes inside fullscreen do not re-request it. Leaving happens only through Exit, system Back, Skip, a stop or the Intro's end.
 
 No change was made for this item: there is no supported way to suppress the notice, and a custom replacement notice was explicitly not wanted.
+
+## Refinement delivery (6 s) and device check
+
+- **Deployment:** source `be6fa4ba93aa40c006b514eb45b7475112d0c0aa`, [workflow 39021570794](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39021570794) SUCCESS. Served files are exact; the live review measures the fade at about 5.5 s and confirms a tap during the fade works.
+- **Android Emulator (Chrome 154):**
+  - the hint stays about 5.5–6 s;
+  - a late tap enters landscape fullscreen (rotation 90°);
+  - Chrome's own "To exit full screen, press Esc" notice is shown;
+  - Back returns to the portrait Intro, still paused.

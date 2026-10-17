@@ -75,7 +75,8 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `d10ca52e5d20e6d6745e726945a931ca4ba71af9`** (successful run `39013335904`, mobile Intro landscape hint, product `c3113d0`, `PROJECT_HANDOFF.md` §74; PENDING_ACCEPTANCE). Backend unchanged.
+- **TESTING serves `be6fa4ba93aa40c006b514eb45b7475112d0c0aa`** (successful run `39021570794`, Intro landscape hint 6-second refinement, product `77cfe4f`, `PROJECT_HANDOFF.md` §75; PENDING_ACCEPTANCE). Backend unchanged.
+- **Previously served `d10ca52e5d20e6d6745e726945a931ca4ba71af9`** (successful run `39013335904`, mobile Intro landscape hint, product `c3113d0`, `PROJECT_HANDOFF.md` §74; PENDING_ACCEPTANCE). Backend unchanged.
 - **Previously served `4786c5914f7dc8c42deb0d0f3da2f4430d4bd9e0`** (successful run `39007625520`, Mobile V2 visual parity fixes, product `15e204d`, `PROJECT_HANDOFF.md` §72; PENDING_ACCEPTANCE). Backend unchanged.
 - **Previously served `bceb676c1c64f599c980daa4ddc79be9f5dd0bdf`** (run `39001472361`, Mobile V2 Profile Deck, product `a0c7c95`, §71).
 - **Previously served `c81ad33a38b101e7f77f76ce8eb5ca6a03850c36`** (successful run `38855728905`, approved Crew reference design and confirmed member selection removal, `PROJECT_HANDOFF.md` §67; ACCEPTED by Mazen 2026-10-16 (§68)). Prior sidebar/Crew presentation is documented in §64. Backend unchanged; existing game-artwork v6 remains. Previous accepted editing-behavior deployment `1ec1da3`, §61–§62; its acceptance is preserved.

@@ -3666,3 +3666,15 @@ No code change and no replacement notice were made for B; it is documented in [d
 **Truth: UPDATED.** In `intro-landscape-hint` (still PENDING_ACCEPTANCE): checkpoint `77cfe4f`; the display contract now gives the 6 s timing; the fullscreen contract notes that the browser-owned notice cannot be suppressed.
 
 No Product Memory change.
+
+TESTING delivery: source `be6fa4ba93aa40c006b514eb45b7475112d0c0aa` (product `77cfe4f`), [workflow 39021570794](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39021570794) SUCCESS. Eight served files match the commit exactly. The `--live` hint review passes at every width: the fade starts at 5.50–5.52 s and a tap during the fade enters fullscreen.
+
+**Android Emulator (Chrome 154; deployed public Intro of @black as a read-only visitor, in new tabs; nothing played or saved):**
+
+- **Timing:** the hint, still visible 4.9 s after it appeared, is gone about 0.6 s later, so the window is about 5.5–6 s (it was 3 s).
+- **Tap:** a tap late in the window entered landscape fullscreen (display rotation 90°), with Exit fullscreen, Skip and Tap to play present.
+- **Chrome's notice:** "gamid-testing-static.gamid.workers.dev – To exit full screen, press Esc" appeared, as documented.
+- **Back:** returned to the portrait Intro (rotation 0), still paused, with no autoplay.
+- **Cleanup:** the screenshot files from both device checks were removed from the emulator. A few @black tabs remain open in its Chrome.
+
+**STOP for Mazen's manual verification; PENDING_ACCEPTANCE, not ACCEPTED.**
