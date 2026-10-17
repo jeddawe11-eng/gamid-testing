@@ -125,7 +125,7 @@
           "rule": "Mobile V2 is presentation only: section cards are moved with restoration slots, never recreated, so drafts, form ownership, uploads, save paths, workflow actions, privacy and limits are unchanged. Crossing 1024px in either direction restores the exact DOM for the other layout, keeps every draft and keeps the open editor open. The accepted Desktop editor (1024px and wider) is unchanged. Language behavior is unchanged; the layout uses logical properties so later right-to-left localization is not blocked."
         }
       ],
-      "record": "docs/PROFILE-EDITOR-MOBILE-V2.md; PROJECT_HANDOFF.md §71. Implemented under Mazen's authorization of 2026-10-17 from the 11-board Profile Deck proposal; on TESTING, awaiting his Android Emulator review. Not accepted."
+      "record": "docs/PROFILE-EDITOR-MOBILE-V2.md; PROJECT_HANDOFF.md §71. Implemented under Mazen's authorization of 2026-10-17 from the 11-board Profile Deck proposal; deployed to TESTING as bceb676c1c64f599c980daa4ddc79be9f5dd0bdf (run 39001472361), awaiting his Android Emulator review. Not accepted."
     },
     {
       "id": "my-socials",

@@ -72,4 +72,11 @@ No backend, RPC, storage, upload, limit, quota, privacy, provider or publication
   - The 390 path of `profile-editor-browser.mjs` drives the old flat disclosures. It was already failing at the starting checkpoint, on its EDIT WALL step, before any change, and it is replaced for mobile by the deck review. Its default widths are now 1024 and 1440.
   - `openEditor` (`desktop-layout-review.mjs`) and the Classic preview helper open editors through the deck below 1024px.
 
+## TESTING delivery
+
+- **Deployment:** source `bceb676c1c64f599c980daa4ddc79be9f5dd0bdf`, [workflow 39001472361](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39001472361) SUCCESS. Account: <https://gamid-testing-static.gamid.workers.dev/account/>.
+- **Served files:** ten served Account files match the checkpoint exactly, and `index.html` carries the expected asset stamp `bceb676`.
+- **Post-deploy review:** the `--mobile-deck --live` review (served frontend, mocked backend) passes at 360, 390, 430, 768 and 1023px × populated / rich. Desktop at 1024 and 1440 is byte-identical to the starting checkpoint.
+- **Status:** awaiting Mazen's Android Emulator review.
+
 Chrome headless with touch emulation only. Physical Android devices, the Android Emulator, other browsers and real accounts were not tested. The real Discord / Steam connect, real uploads and real publishing were not exercised (mocked).

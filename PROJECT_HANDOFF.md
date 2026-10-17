@@ -3511,4 +3511,11 @@ Full contract, behavior and evidence: [docs/PROFILE-EDITOR-MOBILE-V2.md](docs/PR
 - New capability `your-gamid-editor-mobile`, PENDING_ACCEPTANCE (checkpoint `a0c7c95`; contracts `profile-mobile-deck`, `profile-mobile-sheet`, `profile-mobile-save-bar`, `profile-mobile-boundary`).
 - `your-gamid-editor` stays ACCEPTED with its checkpoint unchanged. Only the below-1024px wording of `profile-independent-sections`, `profile-save-all`, `profile-desktop-dashboard` and `profile-desktop-media` was reconciled, to point to Mobile V2.
 
-No Product Memory record was created or changed. **STOP for Mazen's Android Emulator review; PENDING_ACCEPTANCE, not ACCEPTED.**
+No Product Memory record was created or changed.
+TESTING delivery (2026-10-17): source `bceb676c1c64f599c980daa4ddc79be9f5dd0bdf` (product `a0c7c95` plus its records), [workflow 39001472361](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39001472361) SUCCESS, including the workflow's own full validation and smoke check. [TESTING Account](https://gamid-testing-static.gamid.workers.dev/account/).
+
+- **Served files:** ten served Account files match the checkpoint exactly (including `mobile-editor.js`, `mobile-editor.css`, `profile-editor.js` and the unchanged `desktop-editor.js` / `.css`); `index.html` carries the expected asset stamp `bceb676`.
+- **Post-deploy review:** the deck review run against the served frontend (`--live`, mocked backend) passes at 360, 390, 430, 768 and 1023px × populated / rich, with the full draft, save, boundary, Back, dialog and preview flow. Desktop at 1024 and 1440 is byte-identical to the starting checkpoint.
+- **Later commits:** this delivery note is documentation only; the deployed `dist` is unchanged and needs no redeployment.
+
+**STOP for Mazen's Android Emulator review; PENDING_ACCEPTANCE, not ACCEPTED.**
