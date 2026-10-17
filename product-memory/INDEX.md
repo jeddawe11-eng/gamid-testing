@@ -79,9 +79,11 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0006 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0010 |
+| REV | Reviews | reviews/ | REV-0011 |
 
 ## Register
+
+2026-10-17: Mazen gave final acceptance of the Intro landscape hint and fullscreen behavior exactly as implemented (checkpoint 77cfe4f), superseding his provisional approval, and approved saving it. New REV-0011; Truth intro-landscape-hint ACCEPTED. Chrome's fullscreen notice remains a browser limitation. No product changes.
 
 2026-10-17: Mazen explicitly approved saving the final Mobile Public Visitor V2 acceptance already recorded in Truth (public-profile-mobile-v2 ACCEPTED, product ace0982, TESTING 2889d3b). New scoped REV-0010; owner Mobile V2 and Intro landscape hint remain PENDING_ACCEPTANCE. No product changes.
 
@@ -135,3 +137,4 @@ Rules:
 | REV-0008 | Remaining catalog, provisional artwork and landing - Mazen final TESTING acceptance | COMPLETED | [REV-0008-remaining-features-final-acceptance.md](reviews/REV-0008-remaining-features-final-acceptance.md) |
 | REV-0009 | Mobile V2 visual parity fixes - Mazen manual acceptance (Android Emulator) | COMPLETED | [REV-0009-mobile-v2-visual-fixes-acceptance.md](reviews/REV-0009-mobile-v2-visual-fixes-acceptance.md) |
 | REV-0010 | Mobile Public Visitor V2 - Mazen final acceptance | COMPLETED | [REV-0010-mobile-public-visitor-v2-final-acceptance.md](reviews/REV-0010-mobile-public-visitor-v2-final-acceptance.md) |
+| REV-0011 | Intro landscape hint and fullscreen behavior - Final Acceptance | COMPLETED | [REV-0011-intro-landscape-hint-final-acceptance.md](reviews/REV-0011-intro-landscape-hint-final-acceptance.md) |

@@ -3768,3 +3768,22 @@ Mazen explicitly approved the current Mobile Public Visitor V2 implementation (t
 - The eight mobile clauses that pointed to it (`classic-profile-desktop`: `desktop-my-crew`, `desktop-connected-games`, `desktop-social-marks`, `desktop-preserves`, `desktop-discord`; `about-me-display`; `favorite-games-public`; `socials-public-display`) now say ACCEPTED instead of PENDING_ACCEPTANCE. Nothing else changed.
 
 Product Memory: no record saved. **STOP.**
+
+## 79. Final acceptance of the Intro landscape hint (2026-10-17)
+
+Mazen explicitly accepted the currently deployed Intro landscape hint and fullscreen behavior exactly as implemented (task "GAMID — FINAL INTRO ACCEPTANCE & PRODUCT MEMORY SAVE"), superseding his provisional approval (§76). Documentation only.
+
+- **Accepted:** checkpoint `77cfe4fb90d51e321e3954ac10bcc6cdfb62f4d3` (§74–§75): the hint, its 6-second window, tap-to-landscape fullscreen where supported, and the existing playback, transitions and controls. First delivered to TESTING as `be6fa4b` (run `39021570794`); the Intro code is unchanged in the current TESTING `2889d3b`.
+- **Chrome's fullscreen notice:** a browser-controlled limitation. It shows the page origin, not the Intro path or title. A shorter future custom origin is expected to shorten the displayed address, but the notice remains. Domain migration is not authorized.
+- **Isolated experiments (Chrome 154, Android Emulator, outside the repository):**
+  - every real-fullscreen variant showed the notice;
+  - orientation lock without fullscreen is refused;
+  - an inline player (the real player in its iframe, without the fullscreen permission) showed no notice, but it gave no automatic rotation and a smaller video under Chrome's address bar.
+
+  Current fullscreen is retained.
+- **Unchanged:** product code, the deployed TESTING version, backend, database and infrastructure. No deployment, merge, domain or Production change.
+- **Still pending:** `your-gamid-editor-mobile` (§71–§73, REV-0009).
+
+**Truth: UPDATED.** `intro-landscape-hint` PENDING_ACCEPTANCE → ACCEPTED; its record notes the final acceptance and the Chrome notice limitation. Checkpoint, contracts and limits unchanged; nothing else changed.
+
+**Product Memory: SAVED** (Mazen's approval, 2026-10-17): new REV-0011, Register row and REV counter in `product-memory/INDEX.md`. **STOP.**

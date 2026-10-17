@@ -1,6 +1,6 @@
 # Mobile Intro landscape rotation hint (TESTING)
 
-Mazen's task "GAMID — MOBILE INTRO LANDSCAPE ROTATION HINT" (2026-10-17): a TikTok-inspired animated phone that turns from portrait to landscape, inviting the viewer to watch a horizontal Intro in landscape fullscreen. Branch `feature/play-together-notifications`; product checkpoint `77cfe4fb90d51e321e3954ac10bcc6cdfb62f4d3` (6-second refinement, 2026-10-17), on top of `c3113d0e887ee12878fdd9ec6e09501728c72749` (implementation `30653d1`; `c3113d0` restores LF line endings in `intro-preview.html`, with no content change). **PENDING_ACCEPTANCE** (Truth `intro-landscape-hint`).
+Mazen's task "GAMID — MOBILE INTRO LANDSCAPE ROTATION HINT" (2026-10-17): a TikTok-inspired animated phone that turns from portrait to landscape, inviting the viewer to watch a horizontal Intro in landscape fullscreen. Branch `feature/play-together-notifications`; product checkpoint `77cfe4fb90d51e321e3954ac10bcc6cdfb62f4d3` (6-second refinement, 2026-10-17), on top of `c3113d0e887ee12878fdd9ec6e09501728c72749` (implementation `30653d1`; `c3113d0` restores LF line endings in `intro-preview.html`, with no content change). **ACCEPTED** by Mazen on 2026-10-17 (Truth `intro-landscape-hint`; see Final acceptance below).
 
 ## Where it lives
 
@@ -124,3 +124,12 @@ After reviewing the deployed refinement (`be6fa4b`) in his Android Emulator, Maz
 Chrome's native fullscreen notice is still shown. It is acknowledged as a browser-controlled limitation, not a GamID defect, and nothing tries to suppress it.
 
 He approved the Intro refinement **provisionally** so work can proceed. This is not unconditional final acceptance: Truth `intro-landscape-hint` stays PENDING_ACCEPTANCE (Truth has no provisional status), and final acceptance remains open. The Intro code is unchanged.
+
+## Final acceptance (Mazen, 2026-10-17)
+
+Later the same day Mazen gave **final acceptance** of the Intro landscape hint and fullscreen behavior exactly as implemented, superseding the provisional approval above. Truth `intro-landscape-hint` is **ACCEPTED**; checkpoint `77cfe4f`, contracts and limits unchanged.
+
+- **Accepted:** the animated phone-rotation hint, its 6-second window, tap-to-landscape fullscreen where supported, and the existing playback, transitions and controls.
+- **Chrome's notice:** stays a browser-controlled limitation. It shows the page's **origin**, not the Intro path or title, so the long TESTING hostname makes it long. A shorter future custom origin (e.g. `www.gamid.gg`) is expected to shorten the displayed address; the notice itself will remain. No domain change is authorized.
+- **Alternatives:** isolated Chrome 154 experiments compared real fullscreen with an inline player. The inline player avoids the notice but cannot rotate the phone automatically and shows a smaller video under Chrome's address bar, so the current approach is retained (Product Memory REV-0011, `PROJECT_HANDOFF.md` §79).
+- **Unchanged:** no code, player, deployment or infrastructure change.
