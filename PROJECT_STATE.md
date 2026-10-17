@@ -115,7 +115,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-17, Intro landscape hint refinements):** Following Mazen's Emulator test (hint, tap → landscape fullscreen and video confirmed), the hint now shows for 6 s (fade from 5.5 s, still tappable). Chrome's "To exit full screen" notice is browser-owned and cannot be suppressed by the site; this is documented. Product `77cfe4fb90d51e321e3954ac10bcc6cdfb62f4d3`; Truth `intro-landscape-hint` is still PENDING_ACCEPTANCE (`PROJECT_HANDOFF.md` §75). **Next:** Mazen's manual verification.
+**Latest continuation (2026-10-17, Intro hint provisionally approved):** Mazen provisionally approved the Intro landscape hint refinement after his Emulator review (§76): the hint, 6 s timing and landscape fullscreen are correct, and Chrome's notice is a browser limitation. Truth `intro-landscape-hint` stays PENDING_ACCEPTANCE because this is not final acceptance. **Next:** Mobile Public Visitor V2 (`/@handle`), per Mazen's task of the same day.
+
+**Previous continuation (2026-10-17, Intro landscape hint refinements):** Following Mazen's Emulator test (hint, tap → landscape fullscreen and video confirmed), the hint now shows for 6 s (fade from 5.5 s, still tappable). Chrome's "To exit full screen" notice is browser-owned and cannot be suppressed by the site; this is documented. Product `77cfe4fb90d51e321e3954ac10bcc6cdfb62f4d3`; Truth `intro-landscape-hint` is still PENDING_ACCEPTANCE (`PROJECT_HANDOFF.md` §75). **Next:** Mazen's manual verification.
 
 **Previous continuation (2026-10-17, mobile Intro landscape hint):** Mazen's task added a brief animated phone-rotation hint to the shared Intro player, shown for landscape Intros on portrait phones. Tapping it gives landscape fullscreen, with a manual-rotation fallback. Product `c3113d0e887ee12878fdd9ec6e09501728c72749` (implementation `30653d1`); Truth `intro-landscape-hint` is PENDING_ACCEPTANCE (`docs/INTRO-LANDSCAPE-HINT.md`, `PROJECT_HANDOFF.md` §74). **Next:** Mazen's manual acceptance on Android. Overall Mobile V2 also remains PENDING_ACCEPTANCE.
 

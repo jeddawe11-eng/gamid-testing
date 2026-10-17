@@ -3678,3 +3678,17 @@ TESTING delivery: source `be6fa4ba93aa40c006b514eb45b7475112d0c0aa` (product `77
 - **Cleanup:** the screenshot files from both device checks were removed from the emulator. A few @black tabs remain open in its Chrome.
 
 **STOP for Mazen's manual verification; PENDING_ACCEPTANCE, not ACCEPTED.**
+
+## 76. Intro landscape hint: provisional approval (2026-10-17)
+
+Mazen reviewed the deployed refinement (`be6fa4b`, §75) in the Android Emulator. He confirmed that:
+
+- the hint is visually correct;
+- the 6-second timing is approved;
+- tap → landscape fullscreen works.
+
+Chrome's native fullscreen security notice is acknowledged as a browser-controlled limitation, not a GamID defect. He approved the Intro refinement **provisionally** so work can proceed; this is not unconditional final acceptance.
+
+**Truth: UPDATED** (record text only). `intro-landscape-hint` stays PENDING_ACCEPTANCE; Truth has no provisional status. The checkpoint (`77cfe4f`), contracts and every other capability are unchanged.
+
+Documentation only: no Intro code change, no attempt to suppress the browser notice, no deployment. No Product Memory change.

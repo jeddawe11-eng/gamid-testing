@@ -112,3 +112,15 @@ No change was made for this item: there is no supported way to suppress the noti
   - a late tap enters landscape fullscreen (rotation 90°);
   - Chrome's own "To exit full screen, press Esc" notice is shown;
   - Back returns to the portrait Intro, still paused.
+
+## Provisional approval (Mazen, 2026-10-17)
+
+After reviewing the deployed refinement (`be6fa4b`) in his Android Emulator, Mazen confirmed:
+
+- the rotation hint is visually correct;
+- the 6-second timing is approved;
+- tapping the hint and entering landscape fullscreen works.
+
+Chrome's native fullscreen notice is still shown. It is acknowledged as a browser-controlled limitation, not a GamID defect, and nothing tries to suppress it.
+
+He approved the Intro refinement **provisionally** so work can proceed. This is not unconditional final acceptance: Truth `intro-landscape-hint` stays PENDING_ACCEPTANCE (Truth has no provisional status), and final acceptance remains open. The Intro code is unchanged.
