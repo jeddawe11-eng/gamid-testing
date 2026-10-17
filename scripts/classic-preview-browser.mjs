@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { createDocument } from '../dist/wall/schema.js';
 import {reviewCrewUX} from './crew-ux-review.mjs';
 import { reviewDesktopLayout, openEditor, assertPairedLayout } from './desktop-layout-review.mjs';
+import { reviewMobileDeck, deckOpen, deckClose } from './mobile-deck-review.mjs';
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.GAMID_BROWSER_MODULE || 'playwright');
 const jpeg = require('jpeg-js');
@@ -28,10 +29,11 @@ const fixtureCrews = [{crew_id:crewId,crew_name:'Saved Crew',game_key:'league_of
 const browser = await chromium.launch({executablePath:process.env.GAMID_CHROME_PATH || undefined,headless:true});
 const results=[];
 const crewUX=process.argv.includes('--crew-ux');
+const mobileDeck=process.argv.includes('--mobile-deck');   // Mobile V2 deck: 'populated' runs the full flow, other scenarios layout + every editor
 const crewMemberCount=Number(process.env.GAMID_CREW_MEMBERS||2);
 const adaptive=process.argv.includes('--adaptive-layout')||process.argv.includes('--final-layout'),mediaReview=process.argv.includes('--media-review')||adaptive||crewUX,reproduce=process.argv.includes('--reproduce');
-const widths=crewUX?(process.env.GAMID_CREW_WIDTHS||'390,768,1024,1440,1920').split(',').map(Number):adaptive?(process.env.GAMID_ADAPTIVE_WIDTHS||'1024,1152,1280,1440,1920,2560').split(',').map(Number):mediaReview?[1024,1440,1920,390]:[1440,390];
-const runs=widths.flatMap(width=>(crewUX?(process.env.GAMID_CREW_COUNTS||'0,1,2,3,5,9,10').split(','):adaptive?(process.env.GAMID_ADAPTIVE_SCENARIOS||'empty,populated,rich').split(','):['populated']).map(scenario=>({width,scenario})));
+const widths=mobileDeck?(process.env.GAMID_DECK_WIDTHS||'360,375,390,430,600,768,820,1023').split(',').map(Number):crewUX?(process.env.GAMID_CREW_WIDTHS||'390,768,1024,1440,1920').split(',').map(Number):adaptive?(process.env.GAMID_ADAPTIVE_WIDTHS||'1024,1152,1280,1440,1920,2560').split(',').map(Number):mediaReview?[1024,1440,1920,390]:[1440,390];
+const runs=widths.flatMap(width=>(mobileDeck?(process.env.GAMID_DECK_SCENARIOS||'populated,rich,empty').split(','):crewUX?(process.env.GAMID_CREW_COUNTS||'0,1,2,3,5,9,10').split(','):adaptive?(process.env.GAMID_ADAPTIVE_SCENARIOS||'empty,populated,rich').split(','):['populated']).map(scenario=>({width,scenario})));
 try {
   for (const {width,scenario} of runs) {
     const crews=crewUX?Array.from({length:Number(scenario)},(_,i)=>({...fixtureCrews[i%2],crew_id:'00000000-0000-4000-8000-'+String(100+i).padStart(12,'0'),crew_name:'Crew '+(i+1),game_key:i<2?fixtureCrews[i].game_key:'fixture_game_'+i,role:i>0&&i===Number(scenario)-1?'MEMBER':'OWNER'})):fixtureCrews;
@@ -42,9 +44,10 @@ try {
     const page = await context.newPage(), errors=[], calls=[];
     await page.addInitScript(()=>{window.mediaPlayCalls=0;const play=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(){window.mediaPlayCalls++;return play.call(this);};});
     page.on('pageerror',e=>errors.push(e.message));
-    let publication='DRAFT', wallEnabled=false, signedIn=true, withIntro=true, servedRoot=root,failedMedia=false,imageRequests=0;
+    // The shared row's Education draft never matches its catalog (dirty on load at every width); the deck review needs a clean start.
+    let rowOverrides=mobileDeck?{education_work_status:null,institution:null,field_of_study:null}:{};let publication='DRAFT', wallEnabled=mobileDeck, signedIn=true, withIntro=true, servedRoot=mobileDeck&&process.env.GAMID_DECK_ROOT||root,failedMedia=false,imageRequests=0;
     const wallDocument=createDocument();
-    const row = () => ({entity_id:uid,gamid_handle:'fixture_owner',display_name:'Saved Gamer',bio:'Saved biography',visibility:publication,avatar_media_reference:adaptive&&scenario==='empty'?null:uid+'/saved.jpg',role_keys:['player'],primary_role_key:'player',role_catalog:roles,education_work_status:'student',institution:'Saved School',field_of_study:'Design',education_work_catalog:[{key:'student',label:'Student'}],account_email:'fixture@example.test',preferred_language:'en'});
+    const row = () => ({entity_id:uid,gamid_handle:'fixture_owner',display_name:'Saved Gamer',bio:'Saved biography',visibility:publication,avatar_media_reference:adaptive&&scenario==='empty'?null:uid+'/saved.jpg',role_keys:['player'],primary_role_key:'player',role_catalog:roles,education_work_status:'student',institution:'Saved School',field_of_study:'Design',education_work_catalog:[{key:'student',label:'Student'}],account_email:'fixture@example.test',preferred_language:'en',...rowOverrides});
     const publicRow = () => ({...row(),intro_derivative_path:withIntro?uid+'/intro.webm':null,public_sections:{discord:{display_name:'Saved Discord',username:'saved_discord',trust_status:'CONNECTED'},steam:{persona_name:'Saved Steam',trust_status:'CONNECTED'},duo:{gamid_handle:'fixture_friend',display_name:'Saved Friend'},crews,my_games:library}});
     const jwt = 'eyJhbGciOiJIUzI1NiJ9.'+Buffer.from(JSON.stringify({sub:uid,exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.fixture';
     await context.addInitScript(({jwt}) => localStorage.setItem('gamid.testing.auth.session.v1',JSON.stringify({access_token:jwt,refresh_token:'fixture-only',expires_at:Math.floor(Date.now()/1000)+3600})),{jwt});
@@ -88,7 +91,8 @@ try {
           if(action==='set_crew_wall_published'){crewWallModel={...crewWallModel,published:request.postDataJSON().candidate_published};bodies.set_crew_wall_published=true;}
           bodies.invite_to_crew=true;
         }
-        if(adaptive){
+        if(mobileDeck&&action==='update_my_identity_profile'){const d=request.postDataJSON();rowOverrides={...rowOverrides,display_name:d.candidate_display_name,bio:d.candidate_bio,role_keys:d.candidate_role_keys,primary_role_key:d.candidate_primary_role_key,education_work_status:d.candidate_education_work_status,institution:d.candidate_institution,field_of_study:d.candidate_field_of_study};bodies.update_my_identity_profile=[row()];}
+        if(adaptive||mobileDeck){
           if(scenario==='empty'){for(const name of ['get_my_intro','get_my_banner','get_my_social_links','get_my_connections','get_my_manual_games','get_my_favorite_games','get_my_league_profile','get_my_duo','get_my_crews'])bodies[name]=[];bodies.get_my_about=[{...about,about_country_code:null,about_city_id:null,about_city_name:null,about_languages:[],about_genres:[]}];}
           if(scenario==='rich'){
             bodies.get_my_manual_games=Array.from({length:14},(_,i)=>({game_key:i===0?'league_of_legends':i===1?'saved_game':`fixture_game_${i}`,display_name:`Game ${i+1}: A Very Long Edition Name With Additional Expansions and Platforms`,platforms:[{platform_key:'windows_pc',display_name:'PC'},{platform_key:'playstation_5',display_name:'PlayStation 5'}]}));
@@ -112,6 +116,9 @@ try {
     });
     await page.goto(CF+'/account/');await page.locator('#identityView.is-active').waitFor();
     if(crewUX){results.push(await reviewCrewUX({page,width,count:Number(scenario),memberCount:crewMemberCount,out,calls,setPublic:()=>{publication='PUBLIC';withIntro=false;wallEnabled=false;}}));assert.deepEqual(errors,[]);await context.close();continue;}
+    // From 1024px the deck is inactive: record the unchanged Desktop editor (compare with GAMID_DECK_ROOT = the starting dist).
+    if(mobileDeck&&width>=1024){await page.waitForTimeout(2500);assert.equal(await page.locator('#identityView.mobile-deck').count(),0);assert.equal(await page.locator('#identityView.desktop-editor').count(),1);await page.screenshot({path:path.join(out,`desktop-${process.env.GAMID_DECK_ROOT?'baseline':'current'}-${scenario}-${width}.png`),fullPage:true,animations:'disabled'});results.push({width,scenario,desktop:true,enabledSaves:await page.evaluate(()=>[...document.querySelectorAll('[data-profile-save]')].filter(b=>!b.disabled).map(b=>b.dataset.profileSave))});assert.deepEqual(errors,[]);await context.close();continue;}
+    if(mobileDeck){results.push(await reviewMobileDeck({page,width,scenario,out,calls,full:scenario==='populated'}));assert.deepEqual(errors,[]);await context.close();continue;}
     if(adaptive){results.push(await reviewDesktopLayout({page,width,scenario,out,calls,reproduce}));assert.deepEqual(errors,[]);await context.close();continue;}
     if(mediaReview){
       await page.waitForFunction(()=>document.querySelector('#crewPanel')?.textContent.includes('Saved Crew'));await page.waitForTimeout(reproduce?300:1500);if(!reproduce&&width>=1024)await page.waitForFunction(()=>document.querySelector('.desktop-intro-preview img')?.naturalWidth>0);
@@ -132,9 +139,9 @@ try {
       assert.deepEqual(errors,[]);await context.close();continue;
     }
     if(width>=1024){await page.waitForFunction(()=>document.querySelector('[data-editor-section=crew] > .desktop-summary')?.textContent.includes('Saved Crew'));assert.match(await page.locator('[data-editor-section=games] > .desktop-summary').innerText(),/Saved Game/);assert.match(await page.locator('[data-editor-section=crew] > .desktop-summary').innerText(),/Saved Crew/);assert.match(await page.locator('[data-editor-section=socials] > .desktop-summary').innerText(),/Instagram\s+Added/);await page.screenshot({path:path.join(out,`editor-populated-${width}.png`),fullPage:true});}
-    const openSection=async key=>{const card=page.locator(`[data-editor-section="${key}"]`);for(const parent of await card.evaluate(e=>{const a=[];for(let p=e.parentElement;p;p=p.parentElement)if(p.dataset.editorSection)a.unshift(p.dataset.editorSection);return a;})){const t=page.locator(`[data-editor-section="${parent}"] > .section-toggle`);if(await t.getAttribute('aria-expanded')!=='true')await t.click();}const toggle=card.locator(':scope > .section-toggle');if(await toggle.getAttribute('aria-expanded')!=='true')await toggle.click();};
+    const openSection=async key=>{if(await page.locator('#identityView.mobile-deck').count()){await deckOpen(page,key);return;}const card=page.locator(`[data-editor-section="${key}"]`);for(const parent of await card.evaluate(e=>{const a=[];for(let p=e.parentElement;p;p=p.parentElement)if(p.dataset.editorSection)a.unshift(p.dataset.editorSection);return a;})){const t=page.locator(`[data-editor-section="${parent}"] > .section-toggle`);if(await t.getAttribute('aria-expanded')!=='true')await t.click();}const toggle=card.locator(':scope > .section-toggle');if(await toggle.getAttribute('aria-expanded')!=='true')await toggle.click();};
     const preview=async label=>{
-      const before=calls.length;
+      const before=calls.length;await deckClose(page);
       await page.locator('#previewClassicButton').click();await page.locator('.classic-preview-dialog[open]').waitFor();
       const outer=page.frameLocator('.classic-preview-dialog > iframe');
       if(width>=1280){await outer.locator('#desktopHero').waitFor();assert.match(await outer.locator('#desktopHero').innerText(),/Saved Gamer.*fixture_owner.*Player.*Saved biography/s);assert.match(await outer.locator('#desktopAbout').innerText(),/Jeddah.*Arabic.*RPG/s);assert.ok(await outer.locator('.public-crew-card').isVisible());}

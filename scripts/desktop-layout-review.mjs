@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
+import {deckOpen} from './mobile-deck-review.mjs';
 export const innerAbout=['about','roles','education','bio','name'];
 export async function openEditor(page,key){
+ // Below 1024px Mobile V2 shows editors in its sheet; open them through the deck as a person would.
+ if(await page.locator('#identityView.mobile-deck').count())return deckOpen(page,key);
  for(const owner of innerAbout.includes(key)?['about-group']:key==='league'?['connections']:[]){
   const t=page.locator(`[data-editor-section=${owner}] > .section-toggle`);
   if(!await t.count())continue;

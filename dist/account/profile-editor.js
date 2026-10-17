@@ -1,4 +1,5 @@
 import { mountDesktopEditor } from './desktop-editor.js';
+import { mountMobileEditor } from './mobile-editor.js';
 // Shared Profile Editor layout and section save contract. No new backend or storage.
 export const SECTION_FIELDS = Object.freeze({name:['displayName'],bio:['bio'],avatar:['avatarPath'],roles:['roleKeys','primaryRoleKey'],education:['educationWorkStatus','institution','fieldOfStudy']});
 export function sectionDraft(saved,draft,section) {
@@ -57,6 +58,17 @@ export function mountProfileEditor(doc) {
  signOut.textContent='Sign Out';menu.append(signOut);
  const old=doc.getElementById('saveProfileButton');old?.remove();doc.getElementById('saveConfirmation')?.remove();
  for(const {toggle,panel} of sections.values())toggle.addEventListener('click',()=>{const open=toggle.getAttribute('aria-expanded')!=='true';toggle.setAttribute('aria-expanded',String(open));panel.hidden=!open;});
- const desktop=mountDesktopEditor(doc,sections);
- return {sections,saves,desktop};
+ // Mobile V2 (below 1024px) mounts first so its width listener hands the moved cards back before Desktop takes them.
+ // account.js keeps calling editor.desktop: every call reaches the unchanged Desktop editor, then the mobile deck.
+ let desktopEditor=null;
+ const mobile=mountMobileEditor(doc,sections,{onLeave:key=>doc.defaultView.setTimeout(()=>desktopEditor?.reveal(key),0)});
+ desktopEditor=mountDesktopEditor(doc,sections);
+ const desktop={
+  reveal:(key,options)=>desktopEditor.reveal(key,options)||mobile.reveal(key,options),
+  configureMedia:config=>desktopEditor.configureMedia(config),
+  clearMedia:()=>{desktopEditor.clearMedia();mobile.clearMedia();},
+  update:next=>{desktopEditor.update(next);mobile.update(next);},
+  setAbout:row=>{desktopEditor.setAbout(row);mobile.setAbout(row);},
+ };
+ return {sections,saves,desktop,mobile};
 }
