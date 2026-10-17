@@ -3633,3 +3633,36 @@ TESTING delivery: source `d10ca52e5d20e6d6745e726945a931ca4ba71af9` (product `c3
 - **Leftovers:** eleven small screenshot files (`/sdcard/gamid-*.png`) and a few @black tabs remain in that emulator's Chrome.
 
 **STOP for Mazen's manual acceptance; PENDING_ACCEPTANCE, not ACCEPTED.**
+
+## 75. Intro landscape hint: two targeted refinements (2026-10-17)
+
+Mazen tested the hint in the Android Emulator and confirmed that it looks good, that the tap opens the Intro in landscape fullscreen, and that the video and cinematic presentation work. He requested exactly two refinements. Product `77cfe4fb90d51e321e3954ac10bcc6cdfb62f4d3` on feature/play-together-notifications, from verified clean `467b71a`.
+
+**A. Six-second window.** `HINT_MS` changed from 3000 to 6000, and `HINT_FADE_MS` from 400 to 500, with the CSS fade at 0.5 s. The hint is now fully visible for 5.5 s, fades for 0.5 s while still tappable, and is gone at 6 s. Unchanged:
+
+- the rotation animation and styling;
+- eligibility and one showing per presentation;
+- no looping;
+- reduced motion (static).
+
+As before, the Intro's own end or a Skip removes it sooner.
+
+**B. Chrome's fullscreen notice** ("<host> — To exit full screen, press Esc"). This is browser-owned security UI.
+
+- **The standard.** The Fullscreen API Standard §8 asks browsers to make fullscreen evident and to advertise an exit that always works.
+- **What a page can pass.** `FullscreenOptions` offers only `navigationUI` (already `"hide"`) and `keyboardLock` (which would only change the wording).
+- **No suppression.** No supported site API, header or configuration suppresses it, and DOM / CSS cannot reach browser chrome.
+- **Frequency is already minimal.** Fullscreen is entered only on an explicit tap, once per entry, and is never re-requested.
+
+No code change and no replacement notice were made for B; it is documented in [docs/INTRO-LANDSCAPE-HINT.md](docs/INTRO-LANDSCAPE-HINT.md).
+
+**Validation:**
+
+- **Build:** 1925 tests, 1924 PASS, one opt-in SKIP, zero failures (new tappable-while-fading unit test).
+- **Hint review:** 320, 360, 390, 430 and 768px, plus reduced motion, landscape phone and Desktop: PASS. The fade was measured at about 5.5 s (5493 ms at 390), removal at 6 s (about 6.3 s including polling), and a tap during the fade enters fullscreen. The test's 4 s generated clips are paused for the timing steps, because the Intro's end correctly removes the hint.
+- **Mobile V2 deck:** 18 cases (9 widths × populated / rich), including Preview Intro Return / Skip: PASS.
+- **Desktop:** 12 of 12 screenshots are byte-identical to `82c3cd6`. The paired editor, Classic preview and media review pass.
+
+**Truth: UPDATED.** In `intro-landscape-hint` (still PENDING_ACCEPTANCE): checkpoint `77cfe4f`; the display contract now gives the 6 s timing; the fullscreen contract notes that the browser-owned notice cannot be suppressed.
+
+No Product Memory change.

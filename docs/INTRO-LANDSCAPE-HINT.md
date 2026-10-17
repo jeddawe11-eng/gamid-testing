@@ -1,6 +1,6 @@
 # Mobile Intro landscape rotation hint (TESTING)
 
-Mazen's task "GAMID — MOBILE INTRO LANDSCAPE ROTATION HINT" (2026-10-17): a TikTok-inspired animated phone that turns from portrait to landscape, inviting the viewer to watch a horizontal Intro in landscape fullscreen. Branch `feature/play-together-notifications`; product checkpoint `c3113d0e887ee12878fdd9ec6e09501728c72749` (implementation `30653d1`; `c3113d0` restores LF line endings in `intro-preview.html`, with no content change). **PENDING_ACCEPTANCE** (Truth `intro-landscape-hint`).
+Mazen's task "GAMID — MOBILE INTRO LANDSCAPE ROTATION HINT" (2026-10-17): a TikTok-inspired animated phone that turns from portrait to landscape, inviting the viewer to watch a horizontal Intro in landscape fullscreen. Branch `feature/play-together-notifications`; product checkpoint `77cfe4fb90d51e321e3954ac10bcc6cdfb62f4d3` (6-second refinement, 2026-10-17), on top of `c3113d0e887ee12878fdd9ec6e09501728c72749` (implementation `30653d1`; `c3113d0` restores LF line endings in `intro-preview.html`, with no content change). **PENDING_ACCEPTANCE** (Truth `intro-landscape-hint`).
 
 ## Where it lives
 
@@ -33,7 +33,7 @@ Nothing else changed in the player. It keeps its single `<video>`, its contain-f
 - **Look.**
   - A 52 × 52 px rounded glass button, bottom-left above the progress bar, clear of Tap to play (centre), Skip and the public host's Back / Skip group (top-right), and the editor's Return to editor (bottom-right).
   - A phone outline turns 0° → 90° in about 1.2 s and holds, with a cyan rotation arc.
-  - It starts fading at 2.6 s and is gone at 3.0 s. It never loops.
+  - Since Mazen's refinement (2026-10-17) it shows for 6 s in all: fully visible for 5.5 s, then a 0.5 s fade during which it is still tappable, and gone at 6.0 s. (It was 3 s: fade at 2.6 s.) It never loops.
   - It stays for its window even if Play is pressed (it does not cover Play).
   - Reduced motion: a static landscape phone that appears and goes without animation or fade.
 - **Tap (Fullscreen API available).**
@@ -61,7 +61,7 @@ Nothing else changed in the player. It keeps its single `<video>`, its contain-f
 
 - **Unit tests** (`tests/intro-landscape.test.js`, 6 tests):
   - eligibility: landscape / 4:3 yes; portrait, square, no metadata, landscape viewport and desktop no;
-  - one showing per presentation, the 2.6 s fade, gone at 3.0 s and cancelled timers;
+  - one showing per presentation, the 5.5 s fade, gone at 6.0 s, still tappable while fading, and cancelled timers;
   - fullscreen and landscape lock on tap, Exit and unlock;
   - a refused lock and an external exit;
   - the manual-rotation fallback;
@@ -71,7 +71,7 @@ Nothing else changed in the player. It keeps its single `<video>`, its contain-f
   - **Setup:** Chrome with mobile touch emulation, playing the real player in a host iframe with the production `allow` list. The test videos are generated in the browser with an audio track.
   - **Widths:** 320, 360, 390, 430 and 768px, each checking:
     - the hint appears, has turned to 90°, and is clear of Tap to play, Skip and progress;
-    - no horizontal overflow, and gone after its 3 s window;
+    - no horizontal overflow, and gone after its 6 s window (fade measured at about 5.5 s; a tap during the fade still enters fullscreen);
     - paused tap → fullscreen without any `play()` call, same source and position, Exit back;
     - playing tap → still playing, position continued, same source, volume and mute, Exit still playing;
     - Skip from fullscreen leaves it, and the profile shows;
@@ -88,3 +88,18 @@ Nothing else changed in the player. It keeps its single `<video>`, its contain-f
 - **Android Emulator (Chrome 154), real device:**
   - **Verified:** manual Tap to play; the hint appears, turns from portrait to landscape and is gone after its window; layout clear of every control.
   - **Not verified (needs Mazen):** tap → fullscreen / orientation lock. The one scripted tap fell in the fade, and the result was inconclusive.
+
+## Chrome's fullscreen notice ("… To exit full screen, press Esc")
+
+Mazen saw this notice in the Android Emulator when the Intro entered landscape fullscreen (2026-10-17). It is the browser's own security UI, not GamID's, and **a site cannot remove it**:
+
+- **The standard.** The Fullscreen API Standard (§8, Security and privacy considerations) asks user agents to make sure, "e.g. by means of an overlay", that the user knows something is fullscreen. It also asks them to "provide a means of exiting fullscreen that always works and advertise this to the user". `requestFullscreen` may "optionally display a message how the end user can revert this", at the browser's discretion.
+- **What a page can pass.** `FullscreenOptions` holds only `navigationUI` and `keyboardLock`, and neither controls the notice:
+  - `navigationUI` is a screen-space hint, and we already pass `"hide"`.
+  - `keyboardLock` would only change the wording, toward "press and hold Esc".
+- **No site-level switch.** There is no header, Permissions Policy, manifest field for a tab, or other supported site setting that turns the notice off. Hiding it with CSS / DOM is impossible (it is browser chrome) and would be against the anti-spoofing intent.
+- **Wording.** The wording depends on the browser and device. The Emulator has a hardware keyboard, hence "press Esc"; a touch-only phone may show a swipe instruction instead.
+
+**What GamID already does to keep it rare.** Fullscreen is entered only when the viewer taps the hint, never automatically, so the notice appears only after that deliberate tap, once per entry. Nothing re-enters fullscreen during the Intro. Orientation changes inside fullscreen do not re-request it. Leaving happens only through Exit, system Back, Skip, a stop or the Intro's end.
+
+No change was made for this item: there is no supported way to suppress the notice, and a custom replacement notice was explicitly not wanted.
