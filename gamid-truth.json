@@ -159,7 +159,7 @@
         },
         {
           "id": "socials-public-display",
-          "rule": "Saved links of a published (PUBLIC) GamID appear as labelled icon links leading the public profile panel, also when the owner has no Wall, opening in a new tab without referrer. An unpublished GamID shows none. When a published Wall replaces the profile body, the links are not shown. The Spotify (green), SoundCloud (orange) and Vimeo (blue) icons show their recognisable logos at every width, mobile included (static local marks, 2026-10-12, bc70717, awaiting Mazen's acceptance); on Mobile Public Visitor V2 (public-profile-mobile-v2, PENDING_ACCEPTANCE) every platform shows its desktop mark, at an adaptive size."
+          "rule": "Saved links of a published (PUBLIC) GamID appear as labelled icon links leading the public profile panel, also when the owner has no Wall, opening in a new tab without referrer. An unpublished GamID shows none. When a published Wall replaces the profile body, the links are not shown. The Spotify (green), SoundCloud (orange) and Vimeo (blue) icons show their recognisable logos at every width, mobile included (static local marks, 2026-10-12, bc70717, awaiting Mazen's acceptance); on Mobile Public Visitor V2 (public-profile-mobile-v2, ACCEPTED) every platform shows its desktop mark, at an adaptive size."
         }
       ],
       "checkpoint": "bc70717c3be5f10179e73649c6bd45fb7aa3e1d0",
@@ -560,7 +560,7 @@
         },
         {
           "id": "about-me-display",
-          "rule": "About Me appears on the desktop Classic Profile (1280px and wider); below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, PENDING_ACCEPTANCE) shows the same card."
+          "rule": "About Me appears on the desktop Classic Profile (1280px and wider); below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, ACCEPTED) shows the same card."
         },
         {
           "id": "about-me-location",
@@ -595,11 +595,11 @@
         },
         {
           "id": "desktop-my-crew",
-          "rule": "On the desktop layout only, MY CREWS sits beneath My Duo in the sidebar as ONE fixed-size entry in the My Duo card's style, with the number of Crews and their games, for the Crews the server's public crews section lists for this GamID (ACTIVE membership, Crew Wall PUBLISHED; the server's order; there is no primary Crew). It opens the consolidated My Crews view (capability my-crews-view). No listed Crew, no entry. A published, enabled Wall still replaces all of it. Below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, PENDING_ACCEPTANCE) shows the same entry."
+          "rule": "On the desktop layout only, MY CREWS sits beneath My Duo in the sidebar as ONE fixed-size entry in the My Duo card's style, with the number of Crews and their games, for the Crews the server's public crews section lists for this GamID (ACTIVE membership, Crew Wall PUBLISHED; the server's order; there is no primary Crew). It opens the consolidated My Crews view (capability my-crews-view). No listed Crew, no entry. A published, enabled Wall still replaces all of it. Below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, ACCEPTED) shows the same entry."
         },
         {
           "id": "desktop-connected-games",
-          "rule": "On the desktop layout the GamID's linked game ACCOUNTS (today only the League prototype: identity, the rank line only while stats are public, PROTOTYPE / UNVERIFIED and its data source) appear in Connected Games, in the main column between About Me and My Games, and no longer in the sidebar; below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, PENDING_ACCEPTANCE) shows the same Connected Games instead of the former League card. A few show directly and View all lists all of them. An item opens only an existing destination (League: the Game Details My Games opens for it). Connected Games is never the game library (My Games)."
+          "rule": "On the desktop layout the GamID's linked game ACCOUNTS (today only the League prototype: identity, the rank line only while stats are public, PROTOTYPE / UNVERIFIED and its data source) appear in Connected Games, in the main column between About Me and My Games, and no longer in the sidebar; below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, ACCEPTED) shows the same Connected Games instead of the former League card. A few show directly and View all lists all of them. An item opens only an existing destination (League: the Game Details My Games opens for it). Connected Games is never the game library (My Games)."
         },
         {
           "id": "desktop-game-tiles",
@@ -607,15 +607,15 @@
         },
         {
           "id": "desktop-social-marks",
-          "rule": "On the desktop layout the Discord, Instagram, TikTok, Twitch, Kick, Snapchat, Spotify, SoundCloud and Vimeo icons in My Socials show their recognisable marks (static, local, no animation; each in the badge's text colour); YouTube, X and Facebook keep their glyphs; size, placement, links and accessible names are unchanged, and below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, PENDING_ACCEPTANCE) shows the same marks (an exact copy of these rules). The TikTok, Twitch, Kick and Snapchat marks were added on 2026-10-11 (ISS-0013, 514e462) and accepted by Mazen on 2026-10-11. The Spotify (green), SoundCloud (orange) and Vimeo (blue) brand colours and marks were added on 2026-10-12 (9e6e765) and accepted by Mazen on 2026-10-12 (REV-0006); they now show at every width (my-socials, socials-public-display)."
+          "rule": "On the desktop layout the Discord, Instagram, TikTok, Twitch, Kick, Snapchat, Spotify, SoundCloud and Vimeo icons in My Socials show their recognisable marks (static, local, no animation; each in the badge's text colour); YouTube, X and Facebook keep their glyphs; size, placement, links and accessible names are unchanged, and below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, ACCEPTED) shows the same marks (an exact copy of these rules). The TikTok, Twitch, Kick and Snapchat marks were added on 2026-10-11 (ISS-0013, 514e462) and accepted by Mazen on 2026-10-11. The Spotify (green), SoundCloud (orange) and Vimeo (blue) brand colours and marks were added on 2026-10-12 (9e6e765) and accepted by Mazen on 2026-10-12 (REV-0006); they now show at every width (my-socials, socials-public-display)."
         },
         {
           "id": "desktop-preserves",
-          "rule": "The Intro still plays first (full screen) and its transition reveals the desktop profile; Replay Intro, Skip and Back work as before; a published, enabled Wall still replaces the Classic Profile. Below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, PENDING_ACCEPTANCE) applies, and crossing the width switches between the two in place without replaying the Intro."
+          "rule": "The Intro still plays first (full screen) and its transition reveals the desktop profile; Replay Intro, Skip and Back work as before; a published, enabled Wall still replaces the Classic Profile. Below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, ACCEPTED) applies, and crossing the width switches between the two in place without replaying the Intro."
         },
         {
           "id": "desktop-discord",
-          "rule": "On the desktop layout the separate Discord section is not shown: a connected Discord appears inside My Socials (its Discord Profile Card when there is a matching Discord link, otherwise its name with CONNECTED). Mobile Public Visitor V2 (public-profile-mobile-v2, PENDING_ACCEPTANCE) does the same below 1280px."
+          "rule": "On the desktop layout the separate Discord section is not shown: a connected Discord appears inside My Socials (its Discord Profile Card when there is a matching Discord link, otherwise its name with CONNECTED). Mobile Public Visitor V2 (public-profile-mobile-v2, ACCEPTED) does the same below 1280px."
         }
       ],
       "checkpoint": "ec3fda41f035d519109dd257e157e6b2f6497767",
@@ -624,7 +624,7 @@
     {
       "id": "public-profile-mobile-v2",
       "name": "Mobile Public Visitor V2 (/@handle below 1280px)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/@handle",
         "/public/"
@@ -644,7 +644,7 @@
           "rule": "My Socials icons adapt to their number: one to three accounts are large (80 / 76 / 72px at most), more accounts get gradually smaller icons in balanced rows (8 as 4 + 4, 12 as 6 + 6) that wrap naturally on narrow phones; from six accounts the size is also bounded by five-in-a-row, so it never grows with more accounts; every icon is at least 44px and shows its recognisable mark; links open in a new tab without referrer."
         }
       ],
-      "record": "docs/PUBLIC-VISITOR-MOBILE-V2.md; PROJECT_HANDOFF.md §77. Implemented under Mazen's task of 2026-10-17 (Mobile Public Visitor V2); deployed to TESTING as 2889d3b44197751efe16617736b514117d3875da (run 39025962088), awaiting his manual visual and functional acceptance. The accepted desktop layout (classic-profile-desktop) is unchanged; its, About Me's, Favorite Games' and My Socials' former 'mobile unchanged / not shown' clauses now point here."
+      "record": "docs/PUBLIC-VISITOR-MOBILE-V2.md; PROJECT_HANDOFF.md §77, §78. Implemented under Mazen's task of 2026-10-17 (Mobile Public Visitor V2); deployed to TESTING as 2889d3b44197751efe16617736b514117d3875da (run 39025962088). ACCEPTED by Mazen on 2026-10-17 (final manual visual and functional acceptance of the implemented checkpoint; contracts unchanged). The accepted desktop layout (classic-profile-desktop) is unchanged; its, About Me's, Favorite Games' and My Socials' former 'mobile unchanged / not shown' clauses now point here."
     },
     {
       "id": "favorite-games",
@@ -664,7 +664,7 @@
         },
         {
           "id": "favorite-games-public",
-          "rule": "On the desktop Classic Profile (1280px and wider), in the left column directly below the profile hero and above My Games, the favorites appear in the owner's order as up to four portrait covers (2:3, the artwork resolver's portrait cover; initials when none) with the game's name below, in one row; with no favorites the section is absent. Below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, PENDING_ACCEPTANCE) shows the same favorites as a swipeable row of covers (four columns from 600px). Visitors see them only while My Games is public, can open the existing Game Details, and cannot change them."
+          "rule": "On the desktop Classic Profile (1280px and wider), in the left column directly below the profile hero and above My Games, the favorites appear in the owner's order as up to four portrait covers (2:3, the artwork resolver's portrait cover; initials when none) with the game's name below, in one row; with no favorites the section is absent. Below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, ACCEPTED) shows the same favorites as a swipeable row of covers (four columns from 600px). Visitors see them only while My Games is public, can open the existing Game Details, and cannot change them."
         },
         {
           "id": "settings-games-connections",

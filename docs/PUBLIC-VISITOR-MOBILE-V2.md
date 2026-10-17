@@ -1,6 +1,6 @@
 # Mobile Public Visitor V2 (TESTING)
 
-Mazen's task "GAMID — PROVISIONAL INTRO ACCEPTANCE + MOBILE PUBLIC VISITOR V2" (2026-10-17), Phase 2: a premium, mobile-first public profile at `/@handle` with the existing desktop visitor profile's functionality. It applies to the public visitor page only; the owner's `/account/` editor is unchanged. Branch `feature/play-together-notifications`; product checkpoint `ace098218bef771cd5b34afff2a9681cb4afb4b3`. **PENDING_ACCEPTANCE** (Truth `public-profile-mobile-v2`); Mazen's manual visual and functional acceptance is required.
+Mazen's task "GAMID — PROVISIONAL INTRO ACCEPTANCE + MOBILE PUBLIC VISITOR V2" (2026-10-17), Phase 2: a premium, mobile-first public profile at `/@handle` with the existing desktop visitor profile's functionality. It applies to the public visitor page only; the owner's `/account/` editor is unchanged. Branch `feature/play-together-notifications`; product checkpoint `ace098218bef771cd5b34afff2a9681cb4afb4b3`. **ACCEPTED** by Mazen on 2026-10-17 (Truth `public-profile-mobile-v2`; see Final acceptance below).
 
 ## What changed
 
@@ -112,4 +112,12 @@ Chrome headless with mobile emulation only.
 - **Deployment:** source `2889d3b44197751efe16617736b514117d3875da`, [workflow 39025962088](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39025962088) SUCCESS, at <https://gamid-testing-static.gamid.workers.dev/@black>.
 - **Served files:** exact.
 - **Post-deploy review:** the live review passes at 320, 390, 430, 768 and 1023px.
-- **Status:** awaiting Mazen's manual visual and functional acceptance.
+- **Status:** accepted (below).
+
+## Final acceptance (Mazen, 2026-10-17)
+
+Mazen explicitly approved the implemented Mobile Public Visitor V2 as delivered to TESTING (source `2889d3b`, product checkpoint `ace098218bef771cd5b34afff2a9681cb4afb4b3`). Truth `public-profile-mobile-v2` is **ACCEPTED**.
+
+- **Unchanged:** the checkpoint, the three contracts (`public-mobile-layout`, `public-mobile-intro`, `public-mobile-socials`) and the deployed TESTING version. This record is documentation only: no code, UI, deployment, database or Production change.
+- **Reconciled:** the mobile clauses of the accepted `classic-profile-desktop`, `about-me`, `favorite-games` and `my-socials` contracts now refer to it as ACCEPTED; their wording is otherwise unchanged.
+- **Not covered:** the Intro landscape hint (`intro-landscape-hint`) stays PENDING_ACCEPTANCE under its provisional approval ([`INTRO-LANDSCAPE-HINT.md`](INTRO-LANDSCAPE-HINT.md)), and the owner Mobile V2 editor (`your-gamid-editor-mobile`) stays PENDING_ACCEPTANCE.

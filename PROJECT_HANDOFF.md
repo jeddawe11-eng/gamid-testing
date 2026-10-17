@@ -3751,3 +3751,20 @@ Below 1280px, without a published, enabled Wall, `/@handle` now draws the Classi
 TESTING delivery: source `2889d3b44197751efe16617736b514117d3875da` (product `ace0982`), [workflow 39025962088](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39025962088) SUCCESS. Ten served files match the commit exactly (public page, `public.js`, `public-mobile.js`, `public.css`, `public-desktop.js`, the Intro player and the owner editors), and `/@black` serves the new page. The `--live` review (served frontend, mocked backend) passes at 320, 390, 430, 768 and 1023px, plus interactions, crossing, empty, Intro, Wall and reduced motion. This note is documentation only; the deployed `dist` is unchanged.
 
 Product Memory: proposal only, not saved. **STOP for Mazen's manual acceptance.**
+
+## 78. Final acceptance of Mobile Public Visitor V2 (2026-10-17)
+
+Mazen explicitly approved the current Mobile Public Visitor V2 implementation (task "GAMID — FINAL ACCEPTANCE: MOBILE PUBLIC VISITOR V2"). This section records it; it is documentation only.
+
+- **Accepted:** product checkpoint `ace098218bef771cd5b34afff2a9681cb4afb4b3`, deployed to TESTING as `2889d3b44197751efe16617736b514117d3875da` (run `39025962088`, §77).
+- **Unchanged:** product code, UI, the deployed TESTING version, the backend, database and infrastructure. No deployment, merge or Production access.
+- **Still pending:**
+  - `intro-landscape-hint` stays PENDING_ACCEPTANCE: Mazen's approval of it is provisional (§76), and Chrome's "To exit full screen" notice remains a documented browser limitation (§75, `docs/INTRO-LANDSCAPE-HINT.md`);
+  - `your-gamid-editor-mobile` stays PENDING_ACCEPTANCE (its visual fixes accepted in REV-0009, §73).
+
+**Truth: UPDATED.**
+
+- `public-profile-mobile-v2` PENDING_ACCEPTANCE → ACCEPTED; its record notes the acceptance. Checkpoint and contracts unchanged.
+- The eight mobile clauses that pointed to it (`classic-profile-desktop`: `desktop-my-crew`, `desktop-connected-games`, `desktop-social-marks`, `desktop-preserves`, `desktop-discord`; `about-me-display`; `favorite-games-public`; `socials-public-display`) now say ACCEPTED instead of PENDING_ACCEPTANCE. Nothing else changed.
+
+Product Memory: no record saved. **STOP.**
