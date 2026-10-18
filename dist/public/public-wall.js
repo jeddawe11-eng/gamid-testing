@@ -9,6 +9,7 @@
 import * as defaultApi from "../account/supabase-client.js";
 import { createPublishedVideoUrlCache } from "./published-video-url-cache.js";
 import { paintDocument } from "../wall-kit/paint.js";
+import { registerCustomFont } from "../wall-kit/custom-fonts.js";
 import { normalizeEmbedLayering } from "../wall-kit/ops.js";
 import { validateDocument } from "../wall/validate.js";
 import { createPlayerManager } from "../wall-kit/embed/player.js";
@@ -37,6 +38,13 @@ export async function preparePublicWall(published, handle, api = defaultApi, vid
   const doc = published?.document;
   if (!doc || !validateDocument(doc).valid) return null;
   const pictures = new Map(), videos = new Map();
+  // Custom fonts the published Wall uses (only these are readable by visitors - storage policy "published wall fonts are readable"), registered on this page
+  // before it is painted. Asked for only when the snapshot names one; a font that cannot load leaves its text in the catalog fallback.
+  const fontsReady = JSON.stringify(doc).includes('"fontRef"') && typeof api.getPublicWallFonts === "function"
+    ? api.getPublicWallFonts(handle).then(fonts => Promise.all((Array.isArray(fonts) ? fonts : []).map(async font => {
+      try { const bytes = await api.loadPublicWallFont(font?.storage_path); if (bytes) await registerCustomFont(font.font_id, bytes); } catch { /* fallback font */ }
+    }))).catch(() => null)
+    : null;
   const list = Array.isArray(published.assets) ? published.assets : [];
   await Promise.all(list.map(async asset => {
     const id = asset?.asset_id, path = asset?.storage_path;
@@ -51,6 +59,7 @@ export async function preparePublicWall(published, handle, api = defaultApi, vid
       else { const url = await api.loadPublicWallPicture(path); if (url) pictures.set(id, url); }
     } catch { /* this one asset shows its placeholder */ }
   }));
+  await fontsReady;
   // My Duo opens the Duo's GamID and My Crew opens the Crew Wall - both in place (same tab), both carrying `from` so the destination offers "Back to @<this handle>"
   const pathname = globalThis.location?.pathname ?? "/";
   const view = await loadPublicView(api, handle, { duoLink: { newTab: false, href: duo => gamidHref(duo, { from: handle, pathname }) }, crewLink: { newTab: false, href: crewId => crewWallHref(crewId, { pathname, from: handle }) } }).catch(() => null);

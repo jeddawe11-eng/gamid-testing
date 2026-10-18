@@ -399,6 +399,55 @@ export async function deleteWallAsset(assetId) {
   if (path) { await request(`/functions/v1/usage-upload/object/${wallBucketFor(path)}/${path}`, { method: "DELETE", token: session?.access_token }); }
   return true;
 }
+
+// ---- Custom Wall fonts (owner; 2026-10-18) --------------------------------------------------------------------------------------------------------
+// A WOFF2 the owner uploads goes ONLY through the usage-upload gateway, which validates its structure, checks that its SHA-256 is the file name
+// (<uid>/fonts/<sha256>.woff2 - one object per font per account), reserves quota, enforces the 3-font limit in the database and registers it. The checks here are
+// for quick, friendly messages only; the server decides. Fonts are private; a visitor can read one only while the owner's published Wall uses it.
+export const WALL_FONT_MAX_BYTES = 2 * 1024 * 1024;
+export async function listWallFonts() {
+  const result = await rpc("list_my_wall_fonts");
+  return { limit: Number.isInteger(result?.limit) ? result.limit : 3, fonts: Array.isArray(result?.fonts) ? result.fonts : [] };
+}
+export async function uploadWallFont(file, userId, { name = "", licenseAccepted = false } = {}) {
+  if (!licenseAccepted) throw new ApiError("Confirm that you own this font or are licensed to use it on the web.", 400, "WALL_FONT_LICENSE_REQUIRED");
+  if (!file || !/\.woff2$/i.test(file.name || "")) throw new ApiError("Choose a WOFF2 font file (.woff2).", 400, "INVALID_FONT_TYPE");
+  if (file.size > WALL_FONT_MAX_BYTES) throw new ApiError("Fonts must be 2 MB or smaller.", 413, "FONT_TOO_LARGE");
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (bytes.length < 48 || bytes[0] !== 0x77 || bytes[1] !== 0x4f || bytes[2] !== 0x46 || bytes[3] !== 0x32) throw new ApiError("This file is not a WOFF2 font.", 400, "INVALID_FONT_TYPE");
+  await restoreSession();
+  if (!session?.access_token) throw new ApiError("Sign in again to upload a font.", 401, "unauthenticated");
+  const digest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  const path = `${userId}/fonts/${digest}.woff2`;
+  const result = await request(`/functions/v1/usage-upload/object/wall-fonts/${path}`, {
+    method: "POST", token: session.access_token, body: new Blob([bytes], { type: "font/woff2" }),
+    headers: { "Content-Type": "font/woff2", "x-upsert": "false", "x-gamid-font-name": encodeURIComponent(String(name).slice(0, 120)), "x-gamid-font-license": "accepted" },
+  });
+  return result?.font ?? null;
+}
+// The owner RPC refuses while the saved draft or a published Wall uses the font; only then is the stored file removed through the gateway.
+export async function deleteWallFont(fontId) {
+  const path = await rpc("delete_my_wall_font", { candidate_font_id: fontId });
+  if (typeof path === "string" && path) await request(`/functions/v1/usage-upload/object/wall-fonts/${encodeStoragePath(path)}`, { method: "DELETE", token: session?.access_token });
+  return true;
+}
+// -> the font's bytes (the owner's own object, read with the owner's session)
+export async function loadWallFont(path) {
+  if (!path) return null;
+  await restoreSession();
+  const blob = await requestBlob(`/storage/v1/object/authenticated/wall-fonts/${encodeStoragePath(path)}`, session?.access_token, "WALL_FONT_READ_FAILED");
+  return blob.arrayBuffer();
+}
+// Visitors: only the fonts the published, enabled Wall of a PUBLIC GamID uses (storage policy "published wall fonts are readable").
+export async function getPublicWallFonts(handle) {
+  return (await rpc("get_public_wall_fonts", { candidate_handle: handle }, { anonymous: true })) || [];
+}
+export async function loadPublicWallFont(path) {
+  if (!path) return null;
+  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/wall-fonts/${encodeStoragePath(path)}`, { headers: { apikey: PUBLISHABLE_KEY } });
+  if (!response.ok) return null;
+  return response.arrayBuffer();
+}
 export async function getMyIntro() {
   const rows = await rpc("get_my_intro");
   return rows?.[0] || null;

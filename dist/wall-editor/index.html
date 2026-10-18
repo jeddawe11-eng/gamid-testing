@@ -77,6 +77,15 @@
         <div class="ed-add-list" id="textPresets"></div>
         <h2 class="ed-sub">Fonts</h2>
         <p class="ed-hint">Select a text element, then choose a font. Size, weight, colour, alignment, direction and effects are in <b>Edit</b>.</p>
+        <section id="myFonts" class="ed-myfonts" aria-labelledby="myFontsTitle">
+          <div class="ed-myfonts-head"><h3 id="myFontsTitle">My Fonts</h3><span id="myFontsCount" class="ed-myfonts-count">0/3</span></div>
+          <p class="ed-hint">Upload a WOFF2 font you own or are licensed to use on the web: up to 3 fonts, 2 MB each. They count toward your storage and stay private unless your published Wall uses them.</p>
+          <label class="ed-myfonts-license"><input id="fontLicense" type="checkbox" /><span>I own this font or have a licence to embed it on the web.</span></label>
+          <button id="fontUpload" class="ed-btn ed-myfonts-upload" type="button">Upload My Font</button>
+          <input id="fontFile" type="file" accept=".woff2,font/woff2" hidden />
+          <p id="fontMessage" class="ed-hint ed-myfonts-message" role="status" aria-live="polite"></p>
+          <div id="myFontList" class="ed-fonts ed-myfonts-list"></div>
+        </section>
         <div class="ed-font-search"><input id="fontSearch" class="ed-text-line" type="search" autocomplete="off" spellcheck="false" placeholder="Search fonts..." aria-label="Search fonts by name" /></div>
         <div id="fontList" class="ed-fonts"></div>
       </section>

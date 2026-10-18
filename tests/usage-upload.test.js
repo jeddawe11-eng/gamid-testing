@@ -118,8 +118,8 @@ test('uncertain upload failure keeps capacity charged; confirmed remote terminat
 });
 
 test('expiry cleanup does not release a live remote upload; backend credentials must prove service-only privilege',async()=>{
- const live=fixture();live.x.upstream_url=`${TUS}/private-upstream-fixture`;assert.deepEqual(await (await live.run('cleanup')).json(),{cleaned:0,intro:0});assert.equal(live.x.state,'ACTIVE');
- const expired=fixture({remoteStatus:404});expired.x.upstream_url=`${TUS}/private-upstream-fixture`;assert.deepEqual(await (await expired.run('cleanup')).json(),{cleaned:1,intro:0});assert.equal(expired.x.state,'CANCELLED');
+ const live=fixture();live.x.upstream_url=`${TUS}/private-upstream-fixture`;assert.deepEqual(await (await live.run('cleanup')).json(),{cleaned:0,intro:0,fonts:0});assert.equal(live.x.state,'ACTIVE');
+ const expired=fixture({remoteStatus:404});expired.x.upstream_url=`${TUS}/private-upstream-fixture`;assert.deepEqual(await (await expired.run('cleanup')).json(),{cleaned:1,intro:0,fonts:0});assert.equal(expired.x.state,'CANCELLED');
  const worker=fixture({worker:true});assert.equal((await worker.run('tus','POST',{'Upload-Length':'4','Upload-Metadata':metadata('intro-media',OWNER,'video/webm')})).status,201);assert.ok(!worker.calls.some(c=>c.url.endsWith('/auth/v1/user')));
 });
 

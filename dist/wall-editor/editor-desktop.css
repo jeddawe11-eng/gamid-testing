@@ -185,6 +185,36 @@ body[data-tool="gamid"] .ed-rail [data-tool="gamid"] i, body[data-tool="layout"]
 .ed-fonts .ed-font[aria-current="true"] { color: #fff; background: linear-gradient(180deg, rgba(169, 77, 255, .55), rgba(92, 40, 190, .45)) padding-box, linear-gradient(#0d1128, #0d1128) padding-box, linear-gradient(180deg, var(--gold-hi), var(--gold-lo)) border-box; box-shadow: 0 0 .9rem rgba(160, 77, 255, .35); }
 .ed-fonts .ed-font[aria-current="true"]::after { content: ""; position: absolute; top: .45rem; right: .5rem; width: .55rem; height: .55rem; background: var(--gold-hi); transform: rotate(45deg); }
 .ed-font-empty { display: block; grid-column: 1 / -1; margin: .4rem 0; }
+/* My Fonts (custom fonts, 2026-10-18): the owner's uploaded WOFF2 fonts, the n/3 count, the licence confirmation and the upload; cards share the library card look */
+:root { --i-trash: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6'/%3E%3C/svg%3E");
+  --i-upload: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 16V4M7 9l5-5 5 5'/%3E%3Cpath d='M4 15v4.5h16V15'/%3E%3C/svg%3E"); }
+.ed-myfonts { display: block; margin: .3rem 0 1rem; padding: .75rem .75rem .8rem; border: 1px solid transparent; border-radius: .6rem; background: linear-gradient(180deg, #131838, #0b0f24) padding-box, linear-gradient(180deg, rgba(242, 220, 155, .55), rgba(125, 99, 41, .4)) border-box; }
+.ed-myfonts-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.ed-myfonts-head h3 { margin: 0; font-family: var(--font-ui); font-size: .95rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-hi); }
+.ed-myfonts-count { flex: none; min-width: 2.4rem; padding: .1rem .55rem; border: 1px solid var(--gold-line); border-radius: 999px; background: rgba(5, 6, 13, .6); color: var(--ink); font-family: var(--font-ui); font-size: .78rem; font-weight: 700; letter-spacing: .06em; text-align: center; }
+[data-tool-panel="text"] .ed-myfonts .ed-hint { margin: .45rem 0 .6rem; }
+.ed-myfonts-license { display: flex; align-items: flex-start; gap: .5rem; margin: 0 0 .65rem; color: var(--ink); font-size: .76rem; line-height: 1.4; cursor: pointer; }
+.ed-myfonts-license input { flex: none; width: 1.15rem; height: 1.15rem; margin: .1rem 0 0; accent-color: var(--violet-hi); cursor: pointer; }
+[data-tool-panel="text"] .ed-myfonts-upload { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; min-height: 2.75rem; border: 1px solid transparent; border-radius: .55rem; background: linear-gradient(180deg, #a14dff, #6a2bd6 55%, #4f1db3) padding-box, linear-gradient(180deg, var(--gold-hi), var(--gold-lo)) border-box; color: #fff; font-family: var(--font-ui); font-size: .92rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+[data-tool-panel="text"] .ed-myfonts-upload::before { content: ""; width: 1.05rem; height: 1.05rem; background: currentColor; -webkit-mask: var(--i-upload) center / contain no-repeat; mask: var(--i-upload) center / contain no-repeat; }
+[data-tool-panel="text"] .ed-myfonts-upload:hover:not(:disabled) { box-shadow: 0 0 1rem rgba(160, 77, 255, .4); filter: brightness(1.08); }
+[data-tool-panel="text"] .ed-myfonts-upload:disabled { opacity: .55; cursor: progress; }
+[data-tool-panel="text"] .ed-myfonts-message { min-height: 1.1em; margin: .5rem 0 0; font-size: .76rem; color: var(--ink-dim); }
+[data-tool-panel="text"] .ed-myfonts-message:empty { margin: 0; min-height: 0; }
+[data-tool-panel="text"] .ed-myfonts-message[data-kind="error"] { color: #ffb4c2; }
+[data-tool-panel="text"] .ed-myfonts-message[data-kind="ok"] { color: #8ff0c4; }
+.ed-myfonts-list { margin-top: .65rem; }
+.ed-myfont { position: relative; display: grid; min-width: 0; }
+.ed-myfont > .ed-font { width: 100%; padding-right: 2.6rem; }
+.ed-myfont > .ed-font[aria-current="true"]::after { right: 3.05rem; top: .55rem; }   /* the current-font diamond sits beside the delete button, not under it */
+.ed-myfont-status { color: var(--gold-hi); font-family: var(--font-ui); font-size: .62rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.ed-myfont-delete { position: absolute; top: .3rem; right: .3rem; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; padding: 0; border: 1px solid var(--gold-line); border-radius: .45rem; background: rgba(5, 6, 13, .72); color: var(--ink-dim); font-family: var(--font-ui); font-size: .72rem; font-weight: 700; cursor: pointer; }
+.ed-myfont-delete::before { content: ""; width: 1rem; height: 1rem; background: currentColor; -webkit-mask: var(--i-trash) center / contain no-repeat; mask: var(--i-trash) center / contain no-repeat; }
+.ed-myfont-delete:hover { color: #ffb4c2; border-color: #ff7890; }
+.ed-myfont-delete.is-confirming { width: auto; padding: 0 .55rem; color: #fff; background: #7a1830; border-color: #ff7890; }
+.ed-myfont-delete.is-confirming::before { content: none; }
+.ed-myfont.is-pending .ed-font { opacity: .72; }
+.ed-myfonts-empty { grid-column: 1 / -1; margin: 0; }
 @media (prefers-reduced-motion: no-preference) { .ed-drawer { scroll-behavior: smooth; } }
 @media (prefers-reduced-motion: reduce) { .ed-fonts .ed-font, [data-tool-panel="text"] #textPresets .ed-btn { transition: none; } }
 

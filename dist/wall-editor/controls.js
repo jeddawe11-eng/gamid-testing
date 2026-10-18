@@ -132,7 +132,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       for (const font of FONT_CATALOG.filter(candidate => candidate.group === group)) optgroup.append(h("option", { value: font.key, text: font.label }));
       fontSelect.append(optgroup);
     }
-    fontSelect.addEventListener("change", () => exec(write({ fontFamily: fontSelect.value }), { coalesce: "fontFamily" }));
+    fontSelect.addEventListener("change", () => exec(write({ fontFamily: fontSelect.value, fontRef: undefined }), { coalesce: "fontFamily" }));   // a library font replaces a custom one
     syncers.push(targets => {
       const value = read(targets[0]).fontFamily;
       if (!fontKnown(value) && ![...fontSelect.options].some(option => option.value === value)) fontSelect.append(h("option", { value, text: `${value} (unavailable, using fallback)` }));

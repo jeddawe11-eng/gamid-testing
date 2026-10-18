@@ -167,7 +167,7 @@ test("ISS-0011 gateway owner cleanup: the owner's due Intro files go through the
   const mine = [{ job_id: job(10), source_path: null, derivative_path: `${A}/${job(10)}/intro-d3.webm` }, { job_id: job(11), source_path: `${A}/${job(11)}/source.mp4`, derivative_path: null }];
   const g = gateway({ introCandidates: mine });
   const r = await g.run("cleanup", "POST");
-  assert.deepEqual(await r.json(), { cleaned: 0, intro: 2 });
+  assert.deepEqual(await r.json(), { cleaned: 0, intro: 2, fonts: 0 });   // (custom Wall fonts, 2026-10-18: the same cleanup also reports unregistered font objects)
   const deletes = g.calls.filter(c => c.method === "DELETE").map(c => c.url.replace(`${BASE}/storage/v1/object/`, ""));
   assert.deepEqual(deletes, [`intro-media/${A}/${job(10)}/intro-d3.webm`, `intro-sources/${A}/${job(11)}/source.mp4`]);
   assert.deepEqual(g.calls.filter(c => c.url.endsWith("/authorize_usage_delete")).map(c => c.body.candidate_bucket), ["intro-media", "intro-sources"], "every delete is authorized first");

@@ -91,7 +91,7 @@ test("accessibility and states: visible keyboard focus, hover / active / selecte
 
 test("the phone / tablet editor is untouched: the shared stylesheet only hides the desktop-only additions (Add supporting line; font search, samples and note)", () => {
   assert.match(base, /\.ed-add-sub \{ display: none; \}/);
-  assert.match(base, /\.ed-font-search, \.ed-font-sample, \.ed-font-empty \{ display: none; \}/);
+  assert.match(base, /\.ed-font-search, \.ed-font-sample, \.ed-font-empty, \.ed-myfonts \{ display: none; \}/);   // + My Fonts (2026-10-18), desktop only
   assert.match(base, /\.ed-add-list \.ed-btn \{[^}]*min-height: 3\.2rem/, "the Add card rule that older tests pin is intact");
   assert.match(base, /@media \(min-width: 900px\)[\s\S]*grid-template-columns: 5rem 17rem minmax\(0, 1fr\) 20rem/, "the base desktop grid is intact; the redesign overrides it only inside its desktop-only file");
 });

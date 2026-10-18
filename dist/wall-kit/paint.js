@@ -3,7 +3,7 @@
 // enumerated keyword (font families come from the built-in catalog by key), and no innerHTML / attribute-from-string is used anywhere.
 import { renderDocument } from "../wall/render.js";
 import { HEX_COLOR } from "../wall/fields.js";
-import { fontCss } from "./fonts.js";
+import { textFontCss } from "./custom-fonts.js";
 import { isAllowedOpenUrl } from "./embed/engine.js";
 import { isSafeLinkUrl } from "./text.js";
 import { hasPoster } from "./posters.js";
@@ -46,7 +46,7 @@ function paintText(node, content, scale, createNode, ctx = {}) {
     node.setAttribute("data-link", "true");
   }
   const style = inner.style;
-  style.setProperty("font-family", fontCss(content.fontFamily));
+  style.setProperty("font-family", textFontCss(content));   // a custom font (fontRef) first, its catalog fallback after it
   style.setProperty("font-size", px(content.fontSize * scale));
   style.setProperty("font-weight", String(content.fontWeight));
   style.setProperty("font-style", content.italic ? "italic" : "normal");

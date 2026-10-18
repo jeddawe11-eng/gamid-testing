@@ -18,6 +18,7 @@ import { createCanvas } from "./canvas.js";
 import { createPropertiesPanel } from "./controls.js";
 import { createTools } from "./tools.js";
 import { createAssetStore } from "./assets.js";
+import { createFontStore } from "./font-store.js";
 import { loadGamidSnapshot, PUBLIC_SOURCE_LABELS } from "./gamid-data.js";
 import { createWallDetails } from "../wall-kit/gamid-details.js";
 import { accountSignInUrl } from "../account/testing-auth-handoff.js";
@@ -73,6 +74,7 @@ $("errorDismiss").addEventListener("click", () => notifier.dismiss());
 // (setTimeout, not requestAnimationFrame: a hidden or backgrounded tab pauses animation frames, and an image that finished loading must still appear when the tab returns)
 const scheduleRender = () => { if (renderQueued) return; renderQueued = true; setTimeout(() => { renderQueued = false; if (workspaceVisible) renderAll(); }, 16); };
 const assetStore = createAssetStore({ api, userId: null, onChange: scheduleRender });
+const fontStore = createFontStore({ api, onChange: scheduleRender });   // the owner's custom fonts (My Fonts): registered on this page so canvas and Preview draw them
 const posters = createPosterLoader({ endpoint: api.MEDIA_POSTER_URL });
 // background videos: one pool for the canvas (repaints never restart the video) and one for Preview
 const canvasVideos = createVideoPool();
@@ -146,7 +148,7 @@ for (const button of document.querySelectorAll("#rail [data-tool]")) button.addE
 const assetFile = $("assetFile");
 let placeNextUpload = false;
 const tools = createTools({
-  session, run, notify, assets: assetStore, getGamid: () => gamidSnapshot, refreshGamid, setTool: openTool,
+  session, run, notify, assets: assetStore, fonts: fontStore, getGamid: () => gamidSnapshot, refreshGamid, setTool: openTool,
   pickImage: () => { placeNextUpload = true; assetFile.click(); },
 });
 $("assetUpload").addEventListener("click", () => { placeNextUpload = false; assetFile.click(); });
@@ -482,6 +484,8 @@ async function boot() {
   // the owner's own images and GamID data load in the background; the Wall is usable immediately
   assetStore.setUserId(api.userIdFromToken());
   assetStore.refresh().catch(() => { /* Assets shows an empty state; the Wall itself is unaffected */ });
+  fontStore.setUserId(api.userIdFromToken());
+  fontStore.refresh();   // text using a custom font shows its catalog fallback until the font arrives
   refreshGamid().catch(() => { /* blocks show a plain "not available" note */ });
   refreshPublication();
 }

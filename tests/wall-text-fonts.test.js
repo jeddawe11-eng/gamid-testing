@@ -125,11 +125,11 @@ test("licences: every added font is recorded as SIL OFL 1.1 with its copyright n
   assert.match(records, /users cannot upload fonts/);
 });
 
-test("the font library: one card per catalog font by category, a live sample in its own family, search by name only, keyboard-operable buttons, no upload and no My Fonts", () => {
+test("the font library: one card per catalog font by category, a live sample in its own family, search by name only, keyboard-operable buttons; the curated library itself never uploads (uploads live only in My Fonts, 2026-10-18)", () => {
   assert.match(tools, /const fontGroups = \[\.\.\.new Set\(FONT_CATALOG\.map\(font => font\.group\)\)\]/, "the categories and cards come from the catalog: nothing is typed twice");
   assert.match(tools, /h\("button", \{ class: "ed-btn ed-font", type: "button", "data-font": font\.key/, "each card is a real button");
   assert.match(tools, /class: "ed-font-sample", "aria-hidden": "true"/, "the sample is decoration; the button's name is the font's name");
-  assert.match(tools, /run\(ops\.updatePayloadMany\(doc\(\), ids, \{ fontFamily: font\.key \}\)\)/, "choosing a font is the same undoable payload update as before");
+  assert.match(tools, /run\(ops\.updatePayloadMany\(doc\(\), ids, \{ fontFamily: font\.key, fontRef: undefined \}\)\)/, "choosing a library font is the same undoable payload update, and it replaces a custom font");
   assert.match(tools, /notify\("Select a text element first, then choose a font\."\)/, "the existing guidance is kept");
   assert.match(tools, /function applyFontFilter\(\)/);
   assert.match(tools, /font\.label\.toLowerCase\(\)\.includes\(query\) \|\| font\.key\.includes\(query\)/, "search filters the list by name");
@@ -137,8 +137,9 @@ test("the font library: one card per catalog font by category, a live sample in 
   assert.match(tools, /setAttribute\("aria-current", "true"\)/, "the selected font is exposed to assistive technology");
   const panel = html.slice(html.indexOf('data-tool-panel="text"'), html.indexOf('data-tool-panel="media"'));
   assert.match(panel, /id="fontSearch"[^>]*type="search"/);
-  assert.doesNotMatch(panel, /type="file"|upload|my fonts/i, "no font upload and no My Fonts feature");
-  assert.doesNotMatch(tools.slice(tools.indexOf("const fontList"), tools.indexOf("// ---- Shapes")), /type="file"|FileReader|FontFace\(|upload/i);
+  assert.equal((panel.match(/type="file"/g) ?? []).length, 1, "the one file input is My Fonts'");
+  assert.match(panel, /<input id="fontFile" type="file" accept="\.woff2,font\/woff2" hidden \/>/, "WOFF2 only");
+  assert.doesNotMatch(tools.slice(tools.indexOf("const fontList"), tools.indexOf("// The font of the selected text")), /type="file"|FileReader|FontFace\(|upload/i, "the curated library never uploads");
 });
 
 test("loading is lazy: faces are fetched only when a family is rendered, and a card gets its family only when it is near the visible panel", () => {
@@ -149,7 +150,7 @@ test("loading is lazy: faces are fetched only when a family is rendered, and a c
 });
 
 test("desktop only: the phone / tablet editor keeps its one-line font buttons (search, samples and note are hidden below 900px); the new look is in the desktop-only stylesheet", () => {
-  assert.match(baseCss, /\.ed-font-search, \.ed-font-sample, \.ed-font-empty \{ display: none; \}/);
+  assert.match(baseCss, /\.ed-font-search, \.ed-font-sample, \.ed-font-empty, \.ed-myfonts \{ display: none; \}/);
   assert.match(desktopCss, /\.ed-font-search \{ display: block;/);
   assert.match(desktopCss, /\.ed-fonts \.ed-font \.ed-font-sample \{ display: block;/);
   assert.match(desktopCss, /\.ed-font-empty \{ display: block;/);

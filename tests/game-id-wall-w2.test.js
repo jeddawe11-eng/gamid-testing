@@ -18,7 +18,9 @@ const EDITOR_MIGRATION = "supabase/migrations/20260925140000_wall_editor_element
 // every Wall migration (persistence, editor types, revision status, assets, media/blocks/backgrounds): the SQL port is their union
 // (Public Wall publishing - 20261002120000_wall_public_publishing - is NOT part of the private-draft foundation pinned here: it adds the separate published snapshot
 //  and the one anonymous read path, and has its own security-shape tests in tests/wall-public-publishing.test.js. Every draft guard below still holds unchanged.)
-const migration = readdirSync("supabase/migrations").filter(name => /_wall_/.test(name) && !/_wall_public_publishing/.test(name)).sort().map(name => read(`supabase/migrations/${name}`)).join("\n");
+// (Custom Wall fonts - 20261018120000_wall_custom_fonts - is likewise not part of the private-draft foundation: it adds the owner's font registry, a service-role
+//  registration for the upload gateway and the one anonymous read of fonts a PUBLISHED Wall uses; its security shape is pinned in tests/wall-custom-fonts.test.js.)
+const migration = readdirSync("supabase/migrations").filter(name => /_wall_/.test(name) && !/_wall_public_publishing|_wall_custom_fonts/.test(name)).sort().map(name => read(`supabase/migrations/${name}`)).join("\n");
 // the migration text without SQL comments, for "does the code do X" assertions
 const migrationCode = migration.replace(/--.*$/gm, "");
 

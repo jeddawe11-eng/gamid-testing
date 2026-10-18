@@ -4,7 +4,7 @@ const BASE = 'https://upvtrczefcvigxdyuylw.supabase.co';
 const TUS = 'https://upvtrczefcvigxdyuylw.storage.supabase.co/storage/v1/upload/resumable';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ORIGINS = ['https://gamid-testing-static.gamid.workers.dev','https://jeddawe11-eng.github.io'];
-const USER_BUCKETS = ['avatars','wall-media','wall-video','intro-sources'];
+const USER_BUCKETS = ['avatars','wall-media','wall-video','intro-sources','wall-fonts'];
 const OUTPUT_BUCKETS = ['intro-media','wall-video-derived'];
 export function uploadMetadata(text) {
  const out = {};
@@ -70,6 +70,92 @@ export const processBanner=(bytes,mime,jpeg)=>reencodeJpeg(bytes,mime,jpeg,{kind
 // -> the bytes to store: a square 16-1024 px JPEG. Throws INVALID_AVATAR_TYPE / INVALID_AVATAR_SIZE / INVALID_AVATAR / AVATAR_DECODER_UNAVAILABLE.
 export const processAvatar=(bytes,mime,jpeg)=>reencodeJpeg(bytes,mime,jpeg,{kind:'AVATAR',maxBytes:AVATAR.maxBytes,quality:AVATAR.quality,maxResolutionInMP:1.1,
  fits:f=>f.width===f.height && f.width>=AVATAR.minSide && f.width<=AVATAR.maxSide});
+// Custom Wall fonts (2026-10-18): wall-fonts/<uid>/fonts/<sha256>.woff2. Direct POST only, at most 2 MiB, never trusted by name or declared type: the body must be
+// a structurally valid WOFF2 (validateWoff2) and its SHA-256, computed here, must be the file name (so one font is one object per account). The gateway then
+// reserves quota (the database also enforces the 3-font limit there), stores, completes and registers it (register_wall_font); if registration is refused, the
+// object it just stored is removed again. Browsers additionally sanitize every web font (OTS) before using it.
+export const FONT = Object.freeze({maxBytes:2*1024*1024,maxSfntBytes:16*1024*1024,maxTables:64,mime:'font/woff2'});
+const FONT_PATH=/^[0-9a-f-]{36}\/fonts\/[0-9a-f]{64}\.woff2$/;
+export const isFontPath=(bucket,path)=>bucket==='wall-fonts' && FONT_PATH.test(String(path));
+// The 63 known table tags of the WOFF2 table directory (W3C WOFF2 5.1, Table 1), by index.
+const WOFF2_TAGS=['cmap','head','hhea','hmtx','maxp','name','OS/2','post','cvt ','fpgm','glyf','loca','prep','CFF ','VORG','EBDT','EBLC','gasp','hdmx','kern','LTSH','PCLT','VDMX',
+ 'vhea','vmtx','BASE','GDEF','GPOS','GSUB','EBSC','JSTF','MATH','CBDT','CBLC','COLR','CPAL','SVG ','sbix','acnt','avar','bdat','bloc','bsln','cvar','fdsc','feat','fmtx',
+ 'fvar','gvar','hsty','just','lcar','mort','morx','opbd','prop','trak','Zapf','Silf','Glat','Gloc','Feat','Sill'];
+const FONT_REQUIRED=['cmap','head','hhea','hmtx','maxp','name','OS/2','post'];
+// -> {flavor, numTables, tags}. Throws INVALID_FONT_TYPE (not a WOFF2 at all, or a font collection) / FONT_TOO_LARGE / INVALID_FONT (any structural fault).
+export function validateWoff2(bytes) {
+ if(!(bytes instanceof Uint8Array)) throw Error('INVALID_FONT');
+ if(bytes.length>FONT.maxBytes) throw Error('FONT_TOO_LARGE');
+ if(bytes.length<48) throw Error('INVALID_FONT_TYPE');
+ const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+ const u32=o=>view.getUint32(o),u16=o=>view.getUint16(o);
+ if(u32(0)!==0x774f4632) throw Error('INVALID_FONT_TYPE');                                   // 'wOF2'
+ const flavor=u32(4);
+ if(flavor===0x74746366) throw Error('INVALID_FONT_TYPE');                                   // 'ttcf': collections are not supported
+ if(![0x00010000,0x4f54544f,0x74727565].includes(flavor)) throw Error('INVALID_FONT');      // TrueType, 'OTTO' (CFF), 'true'
+ if(u32(8)!==bytes.length) throw Error('INVALID_FONT');                                      // declared length is the real length: nothing hidden after it
+ const numTables=u16(12);
+ if(numTables<1 || numTables>FONT.maxTables || u16(14)!==0) throw Error('INVALID_FONT');
+ const totalSfntSize=u32(16), totalCompressedSize=u32(20);
+ if(totalSfntSize<12+16*numTables || totalSfntSize>FONT.maxSfntBytes || totalCompressedSize<1) throw Error('INVALID_FONT');
+ const [metaOffset,metaLength,metaOrigLength,privOffset,privLength]=[u32(28),u32(32),u32(36),u32(40),u32(44)];
+ let at=48;
+ const base128=()=>{                                                                         // UIntBase128: at most 5 bytes, no leading zeros, no overflow
+  let value=0;
+  for(let i=0;i<5;i++) {
+   if(at>=bytes.length) throw Error('INVALID_FONT');
+   const b=bytes[at++];
+   if(i===0 && b===0x80) throw Error('INVALID_FONT');
+   if(value & 0xfe000000) throw Error('INVALID_FONT');
+   value=(value*128)+(b & 0x7f);
+   if(!(b & 0x80)) return value;
+  }
+  throw Error('INVALID_FONT');
+ };
+ const tags=new Set(); let sfntTables=12+16*numTables;
+ for(let t=0;t<numTables;t++) {
+  if(at>=bytes.length) throw Error('INVALID_FONT');
+  const flags=bytes[at++]; const index=flags & 0x3f, version=flags>>6;
+  let tag;
+  if(index===63) {
+   if(at+4>bytes.length) throw Error('INVALID_FONT');
+   const raw=bytes.subarray(at,at+4); at+=4;
+   if(![...raw].every(c=>c>=0x20 && c<=0x7e)) throw Error('INVALID_FONT');
+   tag=String.fromCharCode(...raw);
+  } else tag=WOFF2_TAGS[index];
+  if(tags.has(tag)) throw Error('INVALID_FONT');
+  tags.add(tag);
+  const origLength=base128();
+  const transformed=(tag==='glyf'||tag==='loca')?version===0:version!==0;
+  const transformLength=transformed?base128():origLength;
+  if(tag==='loca' && transformed && transformLength!==0) throw Error('INVALID_FONT');      // a transformed loca has no stored data
+  if(origLength>FONT.maxSfntBytes || transformLength>FONT.maxSfntBytes) throw Error('INVALID_FONT');
+  sfntTables+=Math.ceil(origLength/4)*4;
+ }
+ if(sfntTables>totalSfntSize+4*numTables) throw Error('INVALID_FONT');                      // the tables cannot exceed the declared uncompressed font
+ const dataEnd=at+totalCompressedSize;
+ if(dataEnd>bytes.length) throw Error('INVALID_FONT');
+ const block=(offset,length,orig)=>{
+  if(!length && !offset && !orig) return;
+  if(!length || offset<dataEnd || offset%4!==0 || offset+length>bytes.length || length>65536) throw Error('INVALID_FONT');
+ };
+ block(metaOffset,metaLength,metaOrigLength); block(privOffset,privLength,0);
+ if(metaLength && privLength && privOffset<metaOffset+metaLength) throw Error('INVALID_FONT');
+ for(const tag of FONT_REQUIRED) if(!tags.has(tag)) throw Error('INVALID_FONT');
+ const truetype=tags.has('glyf')||tags.has('loca');
+ if(truetype && !(tags.has('glyf') && tags.has('loca'))) throw Error('INVALID_FONT');
+ if(!truetype && !tags.has('CFF ') && !tags.has('CFF2')) throw Error('INVALID_FONT');
+ return {flavor,numTables,tags:[...tags]};
+}
+export async function sha256Hex(bytes) {
+ const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));
+ return [...digest].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+// the display name the owner gave (sent URI-encoded); the database strips control characters and keeps 60 characters
+export function fontDisplayName(header) {
+ if(typeof header!=='string' || !header || header.length>600) return '';
+ try { return decodeURIComponent(header).replace(/[\u0000-\u001f\u007f]/g,'').slice(0,200); } catch { return ''; }   // no control characters (Postgres text cannot hold NUL)
+}
 export async function boundedBody(request, max=USAGE_CHUNK_BYTES) {
  const reader=request.body?.getReader(); if(!reader) return new Uint8Array();
  const chunks=[]; let size=0;
@@ -89,7 +175,7 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
  const origin=request.headers.get('origin');
  const cors={'Access-Control-Allow-Origin':ORIGINS.includes(origin)?origin:ORIGINS[0],Vary:'Origin',
   'Access-Control-Allow-Methods':'POST,PATCH,HEAD,DELETE,OPTIONS',
-  'Access-Control-Allow-Headers':'authorization,apikey,content-type,tus-resumable,upload-length,upload-metadata,upload-offset,x-upsert',
+  'Access-Control-Allow-Headers':'authorization,apikey,content-type,tus-resumable,upload-length,upload-metadata,upload-offset,x-upsert,x-gamid-font-name,x-gamid-font-license',
   'Access-Control-Expose-Headers':'Location,Upload-Offset,Upload-Length,Tus-Resumable'};
  const respond=(body,status=200,headers={})=>new Response(body==null?null:JSON.stringify(body),{status,headers:{...cors,...headers,...(body==null?{}:{'Content-Type':'application/json'})}});
  if(origin && !ORIGINS.includes(origin)) return respond({error:'ORIGIN_NOT_ALLOWED'},403);
@@ -132,6 +218,40 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
    return owner;
   };
   const signal=u=>rpc('signal_usage_changed',{candidate_owner:u});
+  // Custom Wall font: validated and hashed BEFORE any quota is reserved; reserve (quota + the 3-font limit, transactional in the database) -> store -> complete ->
+  // register. An identical font (same SHA-256 -> same path) is never stored twice and never takes another slot. A refused registration removes what was stored.
+  const uploadFont=async(owner,path)=>{
+   if(!isFontPath('wall-fonts',path)) throw Error('INVALID_UPLOAD_PATH');
+   if(request.headers.get('content-type')?.split(';')[0]!==FONT.mime) throw Error('INVALID_FONT_TYPE');
+   if(request.headers.get('x-gamid-font-license')!=='accepted') throw Error('WALL_FONT_LICENSE_REQUIRED');
+   let bytes;
+   try { bytes=await boundedBody(request,FONT.maxBytes); } catch(error) { throw Error(error.message==='CHUNK_TOO_LARGE'?'FONT_TOO_LARGE':error.message); }
+   validateWoff2(bytes);
+   const sha=await sha256Hex(bytes);
+   if(path!==`${owner}/fonts/${sha}.woff2`) throw Error('FONT_HASH_MISMATCH');
+   const x=await rpc('reserve_usage_upload',{candidate_owner:owner,candidate_bucket:'wall-fonts',candidate_path:path,candidate_bytes:bytes.length,candidate_mime:FONT.mime});
+   let stored=false;
+   if(x.state!=='COMPLETE') {
+    if(Date.now()-Date.parse(x.created_at)>24*60*60*1000) throw Error('UPLOAD_EXPIRED');
+    const commit=async()=>{ try { await action(x.upload_id,owner,'complete'); return true; } catch(error) { if(error.message!=='UPLOAD_SIZE_MISMATCH') throw error; return false; } };
+    if(!(await commit())) {
+     const r=await fetchImpl(`${BASE}/storage/v1/object/wall-fonts/${encodePath(path)}`,{method:'POST',headers:{...service,'Content-Type':FONT.mime,'x-upsert':'false'},body:bytes});
+     if(r.ok) { stored=true; await action(x.upload_id,owner,'complete'); }
+     else if(!(await commit())) {            // not stored by a concurrent identical request either: release this reservation
+      try { await action(x.upload_id,owner,'cancel'); } catch { /* kept for the owner reconciliation */ }
+      await signal(owner); throw Error('STORAGE_UPLOAD_FAILED');
+     }
+    }
+   }
+   let font;
+   try {
+    font=await rpc('register_wall_font',{candidate_owner:owner,candidate_path:path,candidate_sha256:sha,candidate_name:fontDisplayName(request.headers.get('x-gamid-font-name')),candidate_license:true});
+   } catch(error) {
+    if(stored) { try { await rpc('authorize_usage_delete',{candidate_owner:owner,candidate_bucket:'wall-fonts',candidate_path:path}); await remove('wall-fonts',path); } catch { /* removed by the owner's cleanup after an hour */ } }
+    await signal(owner); throw error;
+   }
+   await signal(owner); return {font};
+  };
   if(route==='cleanup' && request.method==='POST') {
    if(worker) return respond({error:'OWNER_CLEANUP_ONLY'},400);
    const rows=await rpc('usage_cleanup_candidates',{candidate_owner:uid}); let cleaned=0;
@@ -160,14 +280,21 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
     await rpc('worker_confirm_intro_cleanup',{candidate_job_id:j.job_id,candidate_source_deleted:sourceDeleted,candidate_derivative_deleted:derivativeDeleted});
     intro++;
    }
-   if(cleaned||intro) await signal(uid); return respond({cleaned,intro});
+   // unregistered font objects older than an hour (a gateway stopped between storing and registering): deleted like any unregistered font
+   let fonts=0;
+   for(const path of (await rpc('usage_font_orphans',{candidate_owner:uid}))||[]) {
+    if(typeof path!=='string'||!isFontPath('wall-fonts',path)||path.split('/')[0]!==uid) throw Error('UPLOAD_NOT_OWNED');
+    await rpc('authorize_usage_delete',{candidate_owner:uid,candidate_bucket:'wall-fonts',candidate_path:path}); await remove('wall-fonts',path); fonts++;
+   }
+   if(cleaned||intro||fonts) await signal(uid); return respond({cleaned,intro,fonts});
   }
   if(objectRoute) {
    const [,bucket,rawPath]=objectRoute; const path=decodeURIComponent(rawPath); const owner=validate(bucket,path);
    const banner=isBannerPath(bucket,path),avatar=isAvatarPath(bucket,path);
    if(banner && !BANNER_PATH.test(path)) throw Error('INVALID_UPLOAD_PATH');
    if(request.method==='DELETE') {await rpc('authorize_usage_delete',{candidate_owner:owner,candidate_bucket:bucket,candidate_path:path});if(banner)await rpc('authorize_banner_delete',{candidate_owner:owner,candidate_path:path});await remove(bucket,path);await signal(owner);return respond({deleted:true});}
-   if(request.method!=='POST' || !['avatars','wall-media'].includes(bucket)) return respond({error:'USE_RESUMABLE_UPLOAD'},400);
+   if(request.method!=='POST' || !['avatars','wall-media','wall-fonts'].includes(bucket)) return respond({error:'USE_RESUMABLE_UPLOAD'},400);
+   if(bucket==='wall-fonts') return respond(await uploadFont(owner,path),201);
    if(avatar && !AVATAR_PATH.test(path)) throw Error('INVALID_UPLOAD_PATH');   // new Avatars only; deleting an older one (any name) is unchanged
    let bytes=await boundedBody(request,banner?BANNER.maxBytes:avatar?AVATAR.maxBytes:USAGE_CHUNK_BYTES); let mime=request.headers.get('content-type')?.split(';')[0];
    // the stored Banner / Avatar is the gateway's own re-encoded JPEG; its length is what gets reserved and checked on completion
@@ -186,6 +313,7 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
    const md=uploadMetadata(request.headers.get('upload-metadata')); const owner=validate(md.bucketName,md.objectName||'');
    if(isBannerPath(md.bucketName,md.objectName||'')) throw Error('BANNER_REQUIRES_DIRECT_UPLOAD');
    if(md.bucketName==='avatars') throw Error('AVATAR_REQUIRES_DIRECT_UPLOAD');   // only the direct route validates image content
+   if(md.bucketName==='wall-fonts') throw Error('FONT_REQUIRES_DIRECT_UPLOAD');   // only the direct route validates a font
    const length=Number(request.headers.get('upload-length')); if(!Number.isSafeInteger(length)||length<1) throw Error('INVALID_UPLOAD_LENGTH');
    // Edge proxies may represent Content-Length: 0 as an empty body stream.
    // Reject actual inline data, not the presence of that stream.
@@ -220,6 +348,7 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
    if(x.state==='COMPLETE') return respond({error:'UPLOAD_COMPLETE'},409);
    if(request.method==='PATCH' && Date.now()-Date.parse(x.created_at)>24*60*60*1000)throw Error('UPLOAD_EXPIRED');
    if(request.method==='PATCH' && x.bucket==='avatars') throw Error('AVATAR_REQUIRES_DIRECT_UPLOAD');   // a resumable Avatar upload can never be continued
+   if(request.method==='PATCH' && x.bucket==='wall-fonts') throw Error('FONT_REQUIRES_DIRECT_UPLOAD');
    const remote=safeUpstream(x.upstream_url); const headers={...service,'Tus-Resumable':'1.0.0'}; let body;
    if(request.method==='PATCH') {
     const offset=Number(request.headers.get('upload-offset'));
@@ -242,7 +371,8 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
   // Diagnostic codes only: never URLs, private paths, credentials or bodies.
   log(['INVALID_UPLOAD_LOCATION','UPLOAD_SIZE_MISMATCH','UPLOAD_NOT_OWNED','UPLOAD_CONFLICT','INVALID_UPLOAD_CREATION','ACCOUNT_STORAGE_QUOTA_EXCEEDED'].includes(code)?code:'UPLOAD_GATEWAY_FAILED');
   const allowed=['UPLOAD_TOO_LARGE','INVALID_BANNER','INVALID_BANNER_TYPE','INVALID_BANNER_SIZE','BANNER_REQUIRES_DIRECT_UPLOAD','BANNER_IN_USE','BANNER_DECODER_UNAVAILABLE',
-   'INVALID_AVATAR','INVALID_AVATAR_TYPE','INVALID_AVATAR_SIZE','AVATAR_REQUIRES_DIRECT_UPLOAD','AVATAR_DECODER_UNAVAILABLE','ACCOUNT_STORAGE_QUOTA_EXCEEDED','INVALID_UPLOAD','INVALID_UPLOAD_PATH','INVALID_UPLOAD_BUCKET','INVALID_UPLOAD_LENGTH','INVALID_UPLOAD_METADATA','INVALID_UPLOAD_CREATION','UPLOAD_NOT_OWNED','UPLOAD_CONFLICT','UPLOAD_LENGTH_EXCEEDED','CHUNK_TOO_LARGE','OBJECT_ALREADY_EXISTS','UPLOAD_EXPIRED','INTRO_PROCESSING_IN_PROGRESS'];
-  return respond({error:allowed.includes(code)?code:'UPLOAD_GATEWAY_FAILED'},code==='ACCOUNT_STORAGE_QUOTA_EXCEEDED'||code==='CHUNK_TOO_LARGE'?413:code==='UPLOAD_NOT_OWNED'?403:allowed.includes(code)?400:502);
+   'INVALID_AVATAR','INVALID_AVATAR_TYPE','INVALID_AVATAR_SIZE','AVATAR_REQUIRES_DIRECT_UPLOAD','AVATAR_DECODER_UNAVAILABLE','ACCOUNT_STORAGE_QUOTA_EXCEEDED','INVALID_UPLOAD','INVALID_UPLOAD_PATH','INVALID_UPLOAD_BUCKET','INVALID_UPLOAD_LENGTH','INVALID_UPLOAD_METADATA','INVALID_UPLOAD_CREATION','UPLOAD_NOT_OWNED','UPLOAD_CONFLICT','UPLOAD_LENGTH_EXCEEDED','CHUNK_TOO_LARGE','OBJECT_ALREADY_EXISTS','UPLOAD_EXPIRED','INTRO_PROCESSING_IN_PROGRESS',
+   'INVALID_FONT','INVALID_FONT_TYPE','FONT_TOO_LARGE','FONT_HASH_MISMATCH','FONT_REQUIRES_DIRECT_UPLOAD','WALL_FONT_LIMIT','WALL_FONT_LICENSE_REQUIRED','WALL_FONT_REGISTERED','WALL_FONT_UPLOAD_NOT_FOUND','IDENTITY_NOT_FOUND'];
+  return respond({error:allowed.includes(code)?code:'UPLOAD_GATEWAY_FAILED'},code==='ACCOUNT_STORAGE_QUOTA_EXCEEDED'||code==='CHUNK_TOO_LARGE'||code==='FONT_TOO_LARGE'?413:code==='UPLOAD_NOT_OWNED'?403:code==='WALL_FONT_LIMIT'||code==='WALL_FONT_REGISTERED'?409:allowed.includes(code)?400:502);
  }
 }

@@ -7,6 +7,7 @@ import { createTextPayload, LINK_MAX } from "../wall-kit/text.js";
 import { normalizeLinkInput, LINK_PROBLEMS } from "../wall-kit/links.js";
 import { describeErrors } from "../wall-kit/messages.js";
 import { FONT_CATALOG, fontCss } from "../wall-kit/fonts.js";
+import { customFontRef, customFontId, customFontFamily, previewFontFile } from "../wall-kit/custom-fonts.js";
 import { createImagePayload } from "../wall-kit/image.js";
 import { defaultBackground, createImageBackground, createVideoBackground } from "../wall-kit/background.js";
 import { GAMID_BLOCKS, GAMID_BLOCK_INFO, createGamidPayload } from "../wall-kit/gamid.js";
@@ -44,7 +45,7 @@ export const OTHER_TEXT_MAX = 120;
 export const OTHER_LINK_STYLE = Object.freeze({ fontFamily: "system-sans", fontSize: 64, fontWeight: 700, underline: true, color: "#62e7ff", align: "center", lineHeight: 1.2, wrap: true });
 export const OTHER_LINK_SIZE = Object.freeze({ width: 800, height: 120 });
 
-export function createTools({ session, run, notify, assets, getGamid, refreshGamid, setTool, pickImage }) {
+export function createTools({ session, run, notify, assets, fonts = null, getGamid, refreshGamid, setTool, pickImage }) {
   const videoPreviews = createVideoPreviews();   // one still frame per video asset, shared by Assets and the background video list
   const doc = () => session.doc;
   const stageId = () => session.state.stageId;
@@ -81,7 +82,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
       const button = h("button", { class: "ed-btn ed-font", type: "button", "data-font": font.key, onclick: () => {
         const ids = selectedTextIds();
         if (!ids.length) { notify("Select a text element first, then choose a font."); return; }
-        run(ops.updatePayloadMany(doc(), ids, { fontFamily: font.key }));
+        run(ops.updatePayloadMany(doc(), ids, { fontFamily: font.key, fontRef: undefined }));   // a library font replaces a custom one
       } }, font.label, sample);
       entry.cards.push({ font, button, sample });
       fontList.append(button);
@@ -137,13 +138,104 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
   const relayoutFonts = () => { renderFontHeadings(); applyFontFilter(); };
   desktopFonts?.addEventListener?.("change", relayoutFonts);
   relayoutFonts();
-  // The font of the selected text element(s) is the current card; a mixed selection marks none.
+  // The font of the selected text element(s) is the current card - a custom font (My Fonts) when they use one, else the library font; a mixed selection marks none.
   function renderFontSelection() {
     const stage = session.stage, chosen = new Set(session.state.selection);
-    const families = new Set(stage ? stage.elements.filter(element => chosen.has(element.id) && element.type === "text").map(element => element.payload?.fontFamily) : []);
-    const current = families.size === 1 ? [...families][0] : null;
+    const texts = stage ? stage.elements.filter(element => chosen.has(element.id) && element.type === "text") : [];
+    const customs = new Set(texts.map(element => customFontId(element.payload?.fontRef)));
+    const currentCustom = customs.size === 1 ? [...customs][0] : null;
+    const families = new Set(texts.map(element => element.payload?.fontFamily));
+    const current = !currentCustom && customs.size === 1 && families.size === 1 ? [...families][0] : null;
     for (const entry of fontGroups) for (const { font, button } of entry.cards) { if (font.key === current) button.setAttribute("aria-current", "true"); else button.removeAttribute("aria-current"); }
+    for (const button of myFontList?.querySelectorAll("[data-custom-font-apply]") ?? []) { if (button.dataset.customFontApply === currentCustom) button.setAttribute("aria-current", "true"); else button.removeAttribute("aria-current"); }
   }
+
+  // ---- My Fonts: the owner's custom fonts (desktop Text panel). Upload, limit, quota, ownership and in-use rules are the server's; this reports them plainly. ----
+  const myFontList = $("myFontList"), myFontsCount = $("myFontsCount"), fontMessage = $("fontMessage"), fontUpload = $("fontUpload"), fontFile = $("fontFile"), fontLicense = $("fontLicense");
+  const FONT_MESSAGES = {
+    WALL_FONT_LIMIT: "You already have 3 custom fonts. Delete one you no longer use, then upload again.",
+    ACCOUNT_STORAGE_QUOTA_EXCEEDED: "There is not enough space left in your 200 MB storage for this font. Free some space, then try again.",
+    FONT_TOO_LARGE: "Fonts must be 2 MB or smaller.",
+    INVALID_FONT: "This file is not a valid WOFF2 font.",
+    INVALID_FONT_TYPE: "This file is not a WOFF2 font. Choose a .woff2 file.",
+    WALL_FONT_LICENSE_REQUIRED: "Tick the licence confirmation first: only upload fonts you own or are licensed to use on the web.",
+    FONT_HASH_MISMATCH: "The file changed on the way. Try the upload again.",
+    WALL_FONT_PUBLISHED: "Your published Wall uses this font. Choose another font for that text, publish again, then delete it.",
+    WALL_FONT_IN_USE: "Your saved Wall uses this font. Choose another font for that text and save, then delete it.",
+    WALL_FONT_NOT_FOUND: "This font is no longer in My Fonts.",
+    NETWORK_ERROR: "The connection dropped. Check it and try again.",
+    unauthenticated: "Sign in again to manage your fonts.",
+    upload: "The font could not be uploaded. Try again.",
+    delete: "The font could not be deleted. Try again.",
+  };
+  const sayFont = (text, kind = "info") => { if (!fontMessage) return; fontMessage.textContent = text; fontMessage.dataset.kind = kind; };
+  const usesFontNow = fontId => (doc()?.stages ?? []).some(stage => stage.elements.some(element => element.type === "text" && customFontId(element.payload?.fontRef) === fontId));
+  let pendingFont = null, confirmingDelete = null, confirmTimer = 0, myFontsShown = "", fontBusy = false;
+  function renderMyFonts() {
+    if (!myFontList || !fonts) return;
+    const { limit, fonts: list } = fonts.state;
+    myFontsCount.textContent = `${list.length}/${limit}`;
+    myFontsCount.setAttribute("aria-label", `${list.length} of ${limit} custom fonts used`);
+    const shown = JSON.stringify([list.map(font => [font.font_id, font.display_name, font.in_draft, font.in_published, fonts.isUsable(font.font_id)]), pendingFont?.name ?? null, confirmingDelete]);
+    if (shown === myFontsShown) return;
+    myFontsShown = shown;
+    const cards = list.map(font => {
+      const ref = customFontRef(font.font_id);
+      const sample = h("span", { class: "ed-font-sample", "aria-hidden": "true", text: FONT_SAMPLE });
+      if (fonts.isUsable(font.font_id)) sample.style.setProperty("font-family", `"${customFontFamily(ref)}", system-ui, sans-serif`);
+      const status = font.in_published ? "Published" : font.in_draft ? "On your Wall" : "";
+      const apply = h("button", { class: "ed-btn ed-font", type: "button", "data-custom-font-apply": font.font_id, onclick: () => {
+        const ids = selectedTextIds();
+        if (!ids.length) { notify("Select a text element first, then choose a font."); return; }
+        run(ops.updatePayloadMany(doc(), ids, { fontRef: ref }));
+      } }, font.display_name, status ? h("small", { class: "ed-myfont-status", text: status }) : null, sample);
+      const confirming = confirmingDelete === font.font_id;
+      const remove = h("button", { class: `ed-myfont-delete${confirming ? " is-confirming" : ""}`, type: "button", "aria-label": confirming ? `Confirm deleting ${font.display_name}` : `Delete ${font.display_name}`, title: confirming ? "Click again to delete" : "Delete font", text: confirming ? "Delete?" : "", onclick: () => deleteFont(font) });
+      return h("div", { class: "ed-myfont", "data-custom-font": font.font_id }, apply, remove);
+    });
+    if (pendingFont) {
+      const sample = h("span", { class: "ed-font-sample", "aria-hidden": "true", text: FONT_SAMPLE });
+      sample.style.setProperty("font-family", `"${pendingFont.family}", system-ui, sans-serif`);
+      cards.push(h("div", { class: "ed-myfont is-pending" }, h("div", { class: "ed-btn ed-font", "aria-busy": "true" }, `${pendingFont.name} · uploading`, sample)));
+    }
+    if (!cards.length) cards.push(h("p", { class: "ed-hint ed-myfonts-empty", text: fonts.state.failed ? "My Fonts could not be loaded. Reopen the editor to try again." : "No custom fonts yet." }));
+    myFontList.replaceChildren(...cards);
+    renderFontSelection();
+  }
+  async function deleteFont(font) {
+    if (fontBusy) return;
+    if (confirmingDelete !== font.font_id) {
+      confirmingDelete = font.font_id; clearTimeout(confirmTimer);
+      confirmTimer = setTimeout(() => { confirmingDelete = null; renderMyFonts(); }, 6000);
+      renderMyFonts(); myFontList.querySelector(`[data-custom-font="${font.font_id}"] .ed-myfont-delete`)?.focus();
+      return;
+    }
+    confirmingDelete = null; clearTimeout(confirmTimer);
+    if (usesFontNow(font.font_id)) { sayFont("This font is used on your Wall. Choose another font for that text first, then delete it.", "error"); renderMyFonts(); return; }
+    fontBusy = true; sayFont(`Deleting "${font.display_name}"…`);
+    try { await fonts.remove(font.font_id); sayFont(`"${font.display_name}" was deleted. Its slot is free.`, "ok"); }
+    catch (error) { sayFont(FONT_MESSAGES[error?.code] ?? FONT_MESSAGES.delete, "error"); }
+    finally { fontBusy = false; renderMyFonts(); }
+  }
+  async function uploadFontFile(file) {
+    const name = String(file?.name ?? "").replace(/\.woff2$/i, "").trim().slice(0, 60) || "My font";
+    if (!/\.woff2$/i.test(file?.name ?? "")) { sayFont(FONT_MESSAGES.INVALID_FONT_TYPE, "error"); return; }
+    if (file.size > 2 * 1024 * 1024) { sayFont(FONT_MESSAGES.FONT_TOO_LARGE, "error"); return; }
+    const family = await previewFontFile(await file.arrayBuffer());   // the browser's own font check, and the real preview
+    if (!family) { sayFont(FONT_MESSAGES.INVALID_FONT, "error"); return; }
+    fontBusy = true; fontUpload.disabled = true; pendingFont = { name, family }; renderMyFonts(); sayFont(`Uploading "${name}"…`);
+    try {
+      const font = await fonts.upload(file, { name, licenseAccepted: Boolean(fontLicense?.checked) });
+      sayFont(font?.duplicate ? `"${font.display_name}" is already in My Fonts - no extra slot was used.` : `"${font?.display_name ?? name}" was added to My Fonts. Select a text element and choose it.`, "ok");
+    } catch (error) { sayFont(FONT_MESSAGES[error?.code] ?? FONT_MESSAGES.upload, "error"); }
+    finally { fontBusy = false; fontUpload.disabled = false; pendingFont = null; renderMyFonts(); }
+  }
+  fontUpload?.addEventListener("click", () => {
+    if (fontBusy) return;
+    if (!fontLicense?.checked) { sayFont(FONT_MESSAGES.WALL_FONT_LICENSE_REQUIRED, "error"); fontLicense?.focus(); return; }
+    fontFile.value = ""; fontFile.click();
+  });
+  fontFile?.addEventListener("change", () => { const file = fontFile.files?.[0]; if (file) uploadFontFile(file); });
 
   // ---- Shapes --------------------------------------------------------------------------------------------------------------------------------
   for (const button of document.querySelectorAll("[data-shape]")) button.addEventListener("click", () => { const result = run(ops.addElement(doc(), stageId(), button.dataset.shape), { keepResultSelection: true }); if (result.ok) setTool("props"); });
@@ -624,7 +716,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
 
   return {
     addImageElement, uploadFile,
-    update() { templates.update(); renderBackground(); renderAssets(); renderGamidStatus(); renderGamidData(); renderFontSelection(); },
+    update() { templates.update(); renderBackground(); renderAssets(); renderGamidStatus(); renderGamidData(); renderMyFonts(); renderFontSelection(); },
     invalidate() { renderBackground(true); renderAssets(true); },
     renderAssets, renderBackground,
   };

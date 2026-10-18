@@ -270,7 +270,14 @@ test("route: nothing else links to or serves the editor - it is not wired into A
 test("the only public Wall route is the PUBLISHED snapshot: one visitor RPC in one migration, read only through public-wall.js", () => {
   const names = readdirSync("supabase/migrations");
   const defining = names.filter(name => /function public\.\w*public_wall/i.test(read(`supabase/migrations/${name}`)));
-  assert.deepEqual(defining, ["20261002120000_wall_public_publishing.sql"]);
+  // Custom Wall fonts (Mazen's approval 2026-10-18) add ONE more visitor read, of the same published snapshot: the fonts it references - never the draft
+  assert.deepEqual(defining, ["20261002120000_wall_public_publishing.sql", "20261018120000_wall_custom_fonts.sql"]);
+  const fonts = read("supabase/migrations/20261018120000_wall_custom_fonts.sql").replace(/--.*$/gm, "");
+  assert.deepEqual([...fonts.matchAll(/function public\.(\w*public_wall\w*)/gi)].map(match => match[1]), ["get_public_wall_fonts"]);
+  const visitorRead = fonts.slice(fonts.indexOf("create function private.get_public_wall_fonts_impl"), fonts.indexOf("create function public.get_public_wall_fonts"));
+  assert.match(visitorRead, /e\.visibility = 'PUBLIC' and w\.is_enabled/);
+  assert.match(visitorRead, /any \(private\.wall_document_font_refs\(w\.document\)\)/, "only fonts the published snapshot references");
+  assert.doesNotMatch(visitorRead, /wall_drafts/, "the draft never reaches visitors");
   const page = read("dist/public/public.js");
   assert.deepEqual([...page.matchAll(/\bgetPublicWall\b/g)].length, 2, "imported once, called once");
   assert.doesNotMatch(page, /wall_drafts|get_my_wall|save_my_wall|wall-editor|wall-kit/);
