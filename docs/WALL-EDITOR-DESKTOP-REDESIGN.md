@@ -52,3 +52,52 @@ Mazen's task "GAMID — My Wall Desktop Visual Redesign — Phase 1" (2026-10-18
 - **Served files:** `wall-editor/editor-desktop.css`, `editor.css` and `index.html` are byte-identical to the commit. The editor itself was not opened with a real account (real accounts are protected); the visual checks above ran on the local lab.
 - **Status:** awaiting Mazen's visual review. Phase 2 is not started and not authorized.
 - **Update (2026-10-18):** Mazen's Phase 2 task states that this Phase 1 appearance is visually approved and must be preserved. Phase 2 (Text panel and fonts) is in [`WALL-EDITOR-TEXT-FONTS.md`](WALL-EDITOR-TEXT-FONTS.md).
+
+## Media & Links and Icon Group Properties (2026-10-19)
+
+Mazen's task "GAMID — Desktop Media & Links / Icon Group UI Refinement". It covers organisation and look only, desktop only (900px and wider).
+
+- **Product:** `0615a4cc1a082bdaafc82d7eee18c9594de822e7`.
+- **TESTING static:** run `39153509185`; changed files served byte-identical.
+- **Files changed:**
+  - `dist/wall-editor/controls.js`: the Icon Group accordion;
+  - `dist/wall-editor/editor-desktop.css`: the Media panel and Icon rows;
+  - `dist/wall-editor/tools.js`: the card modes rendered as pieces on desktop;
+  - tests.
+
+**Media & Links panel:**
+- **Cards:** the platform cards are one even two-column grid in the editor's card style (gold frame, purple hover / open state). Every card is now the same height: 60 px at 1440 and at 1280, where before they were mixed 55 / 46 px. The less prominent platforms keep a dimmer frame.
+- **Modes:** "Player · Card · Link · Icon" wraps in whole pieces, so a line never starts with a separator and no word is orphaned. These pieces are rendered only on desktop; below 900px the card keeps the plain text it always had, so the phone and tablet render pixel-identically.
+- **Open form:** the open platform / Icon Group / Other form is a framed card with even spacing between the description, link rows, buttons and messages.
+- **Unchanged:** platforms, options, paste and detection, and how an Icon Group is created.
+- **Scroll height:** the panel scrolls 972 px instead of 866 px at 1440 × 900, because the cards are larger and readable.
+
+**Icon Group Properties** (desktop, one group selected). The same accordion as the text Properties, with its own remembered open / closed state:
+
+| Section | Controls |
+|---|---|
+| Icons & Links (open) | the "Icons (n of 24)" count, each icon's badge, link, ↑ / ↓ / ✕; Add an icon and its button; the hint |
+| Appearance & Spacing (open) | Icon size, Spacing, Align, the wrap hint |
+| Position & Size | X, Y, Width, Height, Rotation, Reset rotation, Smaller / Bigger / 2× bigger |
+| Arrange | Duplicate, Delete, Forward / Backward / To front / To back, Group / Ungroup |
+| Align to Stage | the six align buttons, Keep inside stage and its note |
+
+- **Order:** the existing control order is kept. Each icon row gives the link the full width, with its buttons under it, so the address is readable.
+- **Move to stage:** it stays the first control in Properties, above the sections, when the Wall has more than one stage. That is the accepted post-Round 2 rule (pinned by a test), and the text Properties work the same way. So it is not inside Arrange, as the task's example grouping suggested.
+- **Unchanged:** the phone panel, and a multi-selection, keep the flat panel.
+
+**Validation:**
+- **Tests:** `npm test`: 2005 tests, 2004 passed, 1 skipped. Lint and typecheck pass. New `tests/wall-editor-media-desktop.test.js` (3); the Phase 1 scope guard now allows exactly these two scopes.
+- **Controls preserved:** the control inventory equals the pre-change one. The only difference is the three group titles that became section headings: 61 entries before, 58 after.
+- **Icon Group walk-through (20 / 20):**
+  - creation unchanged; the sections open and close independently, several at once, remembered across rebuilds and selections, separate from the text sections;
+  - a link edit re-detects its platform; move down, remove and Add icon work;
+  - size / spacing / align / X are saved; undo / redo work;
+  - Duplicate, Align Left and Keep inside stage work;
+  - Move to stage is first;
+  - reload, Preview and the visitor view paint the groups unchanged.
+- **Regression:**
+  - 59 screen states: only the four desktop Media states changed (intended), and the phone / tablet Media panel is pixel-identical;
+  - phone / tablet Icon Group Properties pixel-identical with identical controls;
+  - text, Shape, Embed, GamID block and GamID data Properties identical;
+  - the 27-step behaviour transcript identical.

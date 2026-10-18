@@ -3986,3 +3986,21 @@ Recorded in Product Memory **REV-0012** (new; no earlier Living Fire record exis
 **Truth: NO CHANGE REQUIRED.** This accepts a bug fix, not the capability: `living-fire-text` stays PENDING_ACCEPTANCE, with its checkpoint, limits and contracts unchanged.
 
 Product Memory: SAVED REV-0012. **STOP.**
+
+## 89. Desktop Media & Links and Icon Group Properties refinement (2026-10-19)
+
+Mazen's task "GAMID — Desktop Media & Links / Icon Group UI Refinement": organisation and look only, desktop only. Details: `docs/WALL-EDITOR-DESKTOP-REDESIGN.md` (Media & Links and Icon Group Properties).
+
+- **Product:** `0615a4cc1a082bdaafc82d7eee18c9594de822e7`, TESTING run `39153509185`, served files exact.
+- **What changed:**
+  - Media & Links: an even two-column grid of equal-height cards; modes wrap in whole pieces (desktop only); the open form is framed.
+  - Icon Group Properties: five accordion sections with every existing control. Move to stage stays first (the accepted rule).
+- **Validation:**
+  - 2005 tests;
+  - Icon Group walk-through 20 / 20;
+  - phone / tablet pixel-identical;
+  - other Properties identical.
+
+**Truth: NO CHANGE REQUIRED.** The organisation is cosmetic; `wall-icons` contracts (edited in Properties; Icon size, Spacing and Align adjustable; 24 icons) are unchanged and still true.
+
+Product Memory: no record saved (needs Mazen's separate approval). **STOP for Mazen's visual acceptance.**
