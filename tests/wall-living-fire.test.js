@@ -124,3 +124,30 @@ test("editor: Living Fire controls live in the desktop Text Effects section only
   assert.match(controls, /set: style => write\(\{ fire: \{ \.\.\.defaults, \.\.\.\(read\(selectedElements\(\)\[0\]\)\.fire \?\? \{\}\), style, \.\.\.FIRE_STYLE_DEFAULTS\[style\] \} \}\)/, "a style starts from its own V3 tuning");
   assert.match(read("dist/wall-kit/messages.js"), /INVALID_FIRE: "/);
 });
+
+// ---- bounding box fix (2026-10-19): the fire's letters are laid out like the painted text, so they sit in the text's own box ----------------------------------
+test("bounding box: the fire lines are the painted text's lines - wrapped at the box width, own line breaks kept, a word wider than the box broken anywhere", async () => {
+  const { breakLines } = await import("../dist/wall-kit/living-fire-engine.js");
+  const c = { measureText: text => ({ width: Array.from(text).length * 10 }) };   // 10 units per character
+  assert.deepEqual(breakLines(c, "GAME ON STARTS", 75), ["GAME ON", "STARTS"], "wrap on: word by word at the box width");
+  assert.deepEqual(breakLines(c, "GAME ON STARTS", 140), ["GAME ON STARTS"], "fits: one line, exactly as before");
+  assert.deepEqual(breakLines(c, "GAME ON STARTS", Infinity), ["GAME ON STARTS"], "wrap off: no automatic breaks");
+  assert.deepEqual(breakLines(c, "FIRE\nAND ICE", Infinity), ["FIRE", "AND ICE"], "the text's own line breaks always count");
+  assert.deepEqual(breakLines(c, "SUPERCALIFRAGILISTIC", 80), ["SUPERCAL", "IFRAGILI", "STIC"], "overflow-wrap: anywhere, like the painted text");
+  assert.deepEqual(breakLines(c, "A  B", 25), ["A", "B"], "spaces at a break hang, they do not take width");
+  assert.deepEqual(breakLines(c, "ONE\n\nTWO", Infinity), ["ONE", "", "TWO"], "an empty line keeps its line height");
+});
+
+test("bounding box: the frame is pinned to the text box by the box's own corner, with the text's line height, alignment and wrap in the field key", () => {
+  assert.match(light, /const left = -field\.boxLeft \* f, top = -field\.boxTop \* f;/, "the box's top-left corner in the V3 frame = the element's");
+  assert.match(light, /const spec = \{ text: lines, wrap: content\.wrap === true, boxEm, lineHeight: content\.lineHeight, align: content\.align,/);
+  assert.match(light, /const key = JSON\.stringify\(\[spec\.text, spec\.wrap \? boxEm : 0, spec\.lineHeight, spec\.align,/, "a different wrap width or layout is a different field");
+  assert.match(engine, /const lines = breakLines\(c, spec\.text, spec\.wrap \? spec\.boxEm \* spec\.size : Infinity\);/);
+  assert.match(engine, /const baselines = lines\.map\(\(_, i\) => i \* lineBox \+ \(lineBox - ascentFont - descentFont\) \/ 2 \+ ascentFont\);/, "CSS line boxes: half-leading, then the font ascent");
+  assert.match(engine, /w > boxWidth \? \(spec\.rtl \? boxWidth - w : 0\)/, "an overflowing line starts at the start edge, as CSS does");
+  assert.match(engine, /const boxTop = \(DESIGN_H - \(laid\.bottom - laid\.top\)\) \* 0\.58 - laid\.top;/, "V3's 58% placement rule, applied to the whole block");
+  assert.match(engine, /\(DESIGN_W - 200\) \/ widest/, "lines fitted to 1000 design units, as V3 fits its one line");
+  // an editor resize that changes the field keeps the element's last field on screen until the new one is ready (no flash to static)
+  assert.match(engine, /const interim = lastReady\.get\(entry\.id\);/);
+  assert.match(engine, /if \(entry\.interim\) \{ releaseField\(entry\.interim\); entry\.interim = null; \}/);
+});

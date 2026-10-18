@@ -219,22 +219,68 @@ function sdfInWorker(mask) {
   return new Promise(resolve => { const id = nextJob++; jobs.set(id, sdf => resolve(sdf ?? buildSdf(mask.data))); worker.postMessage({ id, mask: mask.data.buffer, w: DESIGN_W, h: DESIGN_H }, [mask.data.buffer]); });
 }
 
-// The letters as V3 draws them: one line, centred, fitted to 1000 design units, baseline at 58% of the free height; in the TEXT'S OWN font, weight and style.
+// The letters for the V3 field, laid out EXACTLY like the painted text (paint.js): the same line breaks (wrap on = the box width, word by word, a word wider
+// than the box broken anywhere; wrap off = only the text's own line breaks), the same alignment, line height and position in the box. Only the size differs:
+// everything is drawn at a design size that fits the V3 frame (lines at most 1000 design units, room above for the flames, as V3 sizes its one line), and
+// place() scales the frame back to the text's own size. A single centred line that fits is exactly V3's own layout (same size, same baseline rule).
+export function breakLines(c, text, maxWidth) {
+  const width = line => c.measureText(line).width;
+  const lines = [];
+  for (const paragraph of text.split("\n")) {
+    if (!Number.isFinite(maxWidth)) { lines.push(paragraph); continue; }
+    let line = "";
+    const flushWord = word => {   // a word wider than the box: broken anywhere (overflow-wrap: anywhere)
+      let part = "";
+      for (const ch of Array.from(word)) { if (part && width((part + ch).trimEnd()) > maxWidth) { lines.push(part); part = ch; } else part += ch; }
+      return part;
+    };
+    for (const token of paragraph.split(/(?<=\s)(?=\S)/)) {
+      if (width((line + token).trimEnd()) <= maxWidth) { line += token; continue; }
+      if (line) { lines.push(line.trimEnd()); line = ""; }
+      line = width(token.trimEnd()) > maxWidth ? flushWord(token) : token;
+    }
+    lines.push(line.trimEnd());
+  }
+  return lines;
+}
+
 function layoutLetters(spec) {
   const mask = document.createElement("canvas"); mask.width = DESIGN_W; mask.height = DESIGN_H;
   const c = mask.getContext("2d", { willReadFrequently: true });
-  let size = spec.size;
-  const font = px => `${spec.italic ? "italic " : ""}${spec.weight} ${px}px ${spec.family}`;
-  c.font = font(size);
-  if ("letterSpacing" in c) c.letterSpacing = `${spec.letterSpacing * size}px`;
-  let m = c.measureText(spec.text);
-  if (m.width > DESIGN_W - 200) { size *= (DESIGN_W - 200) / m.width; c.font = font(size); if ("letterSpacing" in c) c.letterSpacing = `${spec.letterSpacing * size}px`; m = c.measureText(spec.text); }
-  const ascent = m.actualBoundingBoxAscent || size * 0.75, descent = m.actualBoundingBoxDescent || 0, baseline = (DESIGN_H - ascent - descent) * 0.58 + ascent;
-  c.fillStyle = "#fff"; c.textAlign = "center"; c.direction = spec.rtl ? "rtl" : "ltr";
-  c.fillText(spec.text, DESIGN_W / 2, baseline);
-  return { mask: c.getImageData(0, 0, DESIGN_W, DESIGN_H), size, bounds: { left: DESIGN_W / 2 - m.width / 2, right: DESIGN_W / 2 + m.width / 2, top: baseline - ascent, bottom: baseline + descent }, empty: !spec.text.trim() };
+  const setSize = px => { c.font = `${spec.italic ? "italic " : ""}${spec.weight} ${px}px ${spec.family}`; if ("letterSpacing" in c) c.letterSpacing = `${spec.letterSpacing * px}px`; };
+  // 1. line breaks at the reference size (wrapping scales with the font size, so the breaks hold at any size)
+  setSize(spec.size);
+  const lines = breakLines(c, spec.text, spec.wrap ? spec.boxEm * spec.size : Infinity);
+  const measure = size => {
+    setSize(size);
+    const metrics = lines.map(line => c.measureText(line));
+    const fontBox = c.measureText("Hg");
+    const ascentFont = fontBox.fontBoundingBoxAscent || size * 0.8, descentFont = fontBox.fontBoundingBoxDescent || size * 0.2;
+    const lineBox = spec.lineHeight * size;
+    // the CSS line box: half-leading above, then the font ascent to the baseline
+    const baselines = lines.map((_, i) => i * lineBox + (lineBox - ascentFont - descentFont) / 2 + ascentFont);
+    const inked = metrics.map((m, i) => (lines[i].trim() ? i : -1)).filter(i => i >= 0);
+    const top = inked.length ? Math.min(...inked.map(i => baselines[i] - (metrics[i].actualBoundingBoxAscent || size * 0.75))) : 0;
+    const bottom = inked.length ? Math.max(...inked.map(i => baselines[i] + (metrics[i].actualBoundingBoxDescent || 0))) : lineBox;
+    return { metrics, baselines, top, bottom, widths: metrics.map(m => m.width) };
+  };
+  // 2. the size: lines within 1000 design units and the flames' room above, as V3 fits its one line
+  let first = measure(spec.size);
+  const widest = Math.max(1, ...first.widths), inkHeight = Math.max(1, first.bottom - first.top);
+  const k = Math.min(1, (DESIGN_W - 200) / widest, (0.58 * DESIGN_H) / (0.58 * inkHeight + 0.8 * spec.size));
+  const size = spec.size * k;
+  const laid = k === 1 ? first : measure(size);
+  // 3. each line where the painted text puts it in its box (an overflowing line starts at the start edge, as CSS does)
+  const boxWidth = spec.boxEm * size;
+  const offsets = laid.widths.map(w => (w > boxWidth ? (spec.rtl ? boxWidth - w : 0) : spec.align === "center" ? (boxWidth - w) / 2 : spec.align === "right" ? boxWidth - w : 0));
+  const minX = Math.min(...offsets), maxX = Math.max(...offsets.map((x, i) => x + laid.widths[i]));
+  const boxLeft = DESIGN_W / 2 - (minX + maxX) / 2;                                   // design x of the box's left edge
+  const boxTop = (DESIGN_H - (laid.bottom - laid.top)) * 0.58 - laid.top;              // design y of the box's top edge (V3's 58% rule for the inked block)
+  c.fillStyle = "#fff"; c.textAlign = "left"; c.direction = spec.rtl ? "rtl" : "ltr";
+  lines.forEach((line, i) => { if (line.trim()) c.fillText(line, boxLeft + offsets[i], boxTop + laid.baselines[i]); });
+  return { mask: c.getImageData(0, 0, DESIGN_W, DESIGN_H), size, boxLeft, boxTop, lines: lines.length,
+    bounds: { left: boxLeft + minX, right: boxLeft + maxX, top: boxTop + laid.top, bottom: boxTop + laid.bottom }, empty: !spec.text.trim() };
 }
-
 function acquire(entry) {
   const key = entry.key;
   let field = fields.get(key);
@@ -249,16 +295,35 @@ function acquire(entry) {
       const texture = gl.createTexture(); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, texture);
       for (const [k, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, DESIGN_W, DESIGN_H, 0, gl.RED, gl.FLOAT, sdf);
-      Object.assign(field, { texture, bounds: laid.bounds, size: laid.size, empty: laid.empty, pending: false });
+      Object.assign(field, { texture, bounds: laid.bounds, size: laid.size, boxLeft: laid.boxLeft, boxTop: laid.boxTop, lines: laid.lines, empty: laid.empty, pending: false });
       settle();
       for (const waiter of field.waiters) waiter();
       field.waiters.clear();
     })();
   }
   field.refs++; field.used = performance.now();
-  entry.field = field;
-  if (field.pending) field.waiters.add(() => { if (entries.has(entry)) { entry.place(field); entry.dirty = true; drawEntry(entry, entry.time); } });
-  else entry.place(field);
+  if (!field.pending) { entry.field = field; remember(entry.id, field); entry.place(field); return; }
+  // a new field (e.g. an editor resize changed the line breaks): until it is ready, this element keeps showing its last field, so it never flashes to static
+  const interim = lastReady.get(entry.id);
+  if (interim?.texture && !interim.pending) { interim.refs++; entry.interim = interim; entry.field = interim; entry.place(interim); }
+  else entry.field = field;
+  entry.next = field;
+  field.waiters.add(() => {
+    if (!entries.has(entry)) return;
+    if (entry.interim) { releaseField(entry.interim); entry.interim = null; }
+    entry.field = field; entry.next = null; remember(entry.id, field);
+    entry.place(field); entry.dirty = true; drawEntry(entry, entry.time);
+  });
+}
+
+// the last ready field of each element (one reference held), for the interim above
+const lastReady = new Map();
+function remember(id, field) {
+  const previous = lastReady.get(id);
+  if (previous === field) return;
+  field.refs++;
+  lastReady.set(id, field);
+  if (previous) releaseField(previous);
 }
 
 function releaseField(field) {
@@ -328,7 +393,7 @@ function loop(stamp) {
   const still = reduced?.matches === true;
   let live = 0, frozen = 0;
   for (const entry of entries) {
-    if (!entry.field || entry.field.pending) continue;
+    if (!entry.field || entry.field.pending || !entry.field.texture) continue;
     const animate = !still && entry.visible && live < budget;
     if (animate) { live++; entry.time += dt * entry.fire.speed; times.set(entry.id, entry.time); drawEntry(entry, entry.time); }
     else { if (entry.visible) frozen++; if (entry.dirty || !entry.drawn) drawEntry(entry, still ? STILL_TIME : entry.time); }
@@ -343,8 +408,9 @@ function unmount(entry) {
   entries.delete(entry);
   settle();
   observer?.unobserve(entry.canvas);
-  releaseField(entry.field);
-  entry.field = null;
+  releaseField(entry.next ?? entry.field);
+  if (entry.interim) releaseField(entry.interim);
+  entry.field = null; entry.next = null; entry.interim = null;
 }
 
 // mount(): canvas = the text's own 2D canvas (living-fire.js); spec = what the letters are; fire = validated settings; place(field) sizes / positions the canvas.

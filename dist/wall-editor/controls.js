@@ -200,8 +200,8 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       box.append(select("Flames", "mode", { full: "Full fire", letters: "Letters only" }, "fireMode"));
       box.append(h("div", { class: "ed-btn-row" }, toggleButton({ label: "Sparks", get: element => value("sparks", false)(element) === true, set: on => set("sparks")(on), key: "fireSparks" })));
       const fit = h("p", { class: "ed-hint", role: "status" });
-      syncers.push(targets => { fit.hidden = targets.every(element => fireTextFits(read(element).text)); fit.textContent = `Living Fire draws one line of up to ${FIRE_LIMITS.maxText} characters; this text is longer, so it shows a still fire colour instead.`; });
-      box.append(fit, h("p", { class: "ed-hint", text: `Drawn in this text's own font, on one line. Up to ${FIRE_LIVE_LIMIT} fire texts move at once (fewer on slower devices); the rest show a still flame. Devices that cannot draw it, and visitors who prefer reduced motion, see a still version.` }));
+      syncers.push(targets => { fit.hidden = targets.every(element => fireTextFits(read(element).text)); fit.textContent = `Living Fire draws up to ${FIRE_LIMITS.maxText} characters; this text is longer, so it shows a still fire colour instead.`; });
+      box.append(fit, h("p", { class: "ed-hint", text: `Drawn in this text's own font, on the same lines as the text. Up to ${FIRE_LIVE_LIMIT} fire texts move at once (fewer on slower devices); the rest show a still flame. Devices that cannot draw it, and visitors who prefer reduced motion, see a still version.` }));
     } }));
   }
 

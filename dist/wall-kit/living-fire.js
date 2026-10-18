@@ -5,7 +5,8 @@
 //   fire: { style: organic|cinematic|mythic, intensity 0.2..1.4, speed 0.15..2, turbulence 0.15..1.5, color: natural|crimson|blue, sparks: boolean, mode: full|letters }
 //
 // Every key is required and no other key is allowed (the database mirrors this: private.wall_text_payload_errors, INVALID_FIRE). The three styles are three looks
-// of the same V3 effect, not fonts: the letters keep the text's own font, weight and style. Living Fire draws ONE line of at most FIRE_LIMITS.maxText characters;
+// of the same V3 effect, not fonts: the letters keep the text's own font, weight, style and LINES (the same line breaks, alignment and line height as the painted
+// text, so the fire sits inside the text's box). Living Fire draws at most FIRE_LIMITS.maxText characters;
 // a longer text, a device without WebGL2, a failed shader or a lost graphics context shows the readable static fallback (wall-kit.css .is-fire-static).
 import { isPlainObject } from "../wall/fields.js";
 import { textFontCss } from "./custom-fonts.js";
@@ -33,7 +34,7 @@ export function validateFire(value) {
     && within(value.intensity, FIRE_LIMITS.intensity) && within(value.speed, FIRE_LIMITS.speed) && within(value.turbulence, FIRE_LIMITS.turbulence);
 }
 
-// The one line Living Fire draws: line breaks and runs of spaces become one space.
+// The characters counted against FIRE_LIMITS.maxText: line breaks and runs of spaces count as one space.
 export const fireText = text => String(text ?? "").replace(/\s+/g, " ").trim();
 export const fireTextFits = text => Array.from(fireText(text)).length <= FIRE_LIMITS.maxText;
 
@@ -57,14 +58,16 @@ export function attachFire(node, content, scale, item) {
   node.appendChild(canvas);
   const fontPx = content.fontSize * scale;
   const rtl = content.direction === "rtl" || (content.direction === "auto" && /[֐-ࣿיִ-ﻼ]/.test(text));
-  const spec = { text, family: textFontCss(content), weight: content.fontWeight, italic: content.italic === true, letterSpacing: content.letterSpacing / content.fontSize, size: DESIGN_SIZE, rtl };
-  const key = JSON.stringify([spec.text, spec.family, spec.weight, spec.italic, Math.round(spec.letterSpacing * 1000), rtl]);
-  // The V3 frame (1200 x 640 design units, letters centred on one line) is scaled so its letters are the text's own size, then aligned with the text box:
-  // horizontally by the text alignment, vertically on the middle of the first line.
+  // the letters are laid out like the painted text: its own line breaks and, with wrap on, the box width (boxEm: the box width in units of the font size)
+  const lines = String(content.text).replace(/\r\n?/g, "\n").replace(/\t/g, " ");
+  const boxEm = Math.round((item.width / fontPx) * 100) / 100;
+  const spec = { text: lines, wrap: content.wrap === true, boxEm, lineHeight: content.lineHeight, align: content.align, family: textFontCss(content), weight: content.fontWeight, italic: content.italic === true, letterSpacing: content.letterSpacing / content.fontSize, size: DESIGN_SIZE, rtl };
+  const key = JSON.stringify([spec.text, spec.wrap ? boxEm : 0, spec.lineHeight, spec.align, spec.family, spec.weight, spec.italic, Math.round(spec.letterSpacing * 1000), rtl]);
+  // The V3 frame (1200 x 640 design units) is scaled so its letters are the text's own size; the field records where the text box's top-left corner is in that
+  // frame, so that corner is pinned to the element's: every line then sits exactly where the painted text puts it (Bounding box fix, 2026-10-19).
   const place = field => {
     const f = fontPx / field.size, width = DESIGN_W * f, height = DESIGN_H * f;
-    const left = content.align === "left" ? -field.bounds.left * f : content.align === "right" ? item.width - field.bounds.right * f : item.width / 2 - width / 2;
-    const top = (content.lineHeight * fontPx) / 2 - ((field.bounds.top + field.bounds.bottom) / 2) * f;
+    const left = -field.boxLeft * f, top = -field.boxTop * f;
     const style = canvas.style;
     style.setProperty("left", `${num(left)}px`); style.setProperty("top", `${num(top)}px`);
     style.setProperty("width", `${num(width)}px`); style.setProperty("height", `${num(height)}px`);
