@@ -3873,3 +3873,33 @@ Mazen approved implementing the documented custom-font architecture (§82) on TE
 Nothing else changed.
 
 Product Memory: proposal only, not saved. **STOP for Mazen's acceptance.**
+
+## 84. Custom fonts: TTF and OTF upload (2026-10-18)
+
+Mazen's task "GAMID — Custom Font Upload: Add TTF & OTF Support". Details and evidence: `docs/WALL-EDITOR-TEXT-FONTS.md` (section "TTF and OTF upload").
+
+- **Product:** `e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f`. **No migration.** The stored file is still a validated WOFF2, at most 2 MiB, so the bucket, quota, the 3-font limit, deduplication, the licence, RLS, deletion protection and visitor access are unchanged.
+- **Approach (no new service, dependency or cost):** the Edge runtime's own `node:zlib` Brotli (verified live by the new data-free `usage-upload/capabilities` round trip). It is used with a small spec-compliant WOFF2 packer (null transform) that copies every validated sfnt table unchanged and executes nothing; the output is re-validated.
+  - TTF / OTF sources may be up to 8 MiB.
+  - Collections and WOFF 1 are refused.
+  - Brotli is loaded defensively (`FONT_CONVERSION_UNAVAILABLE` otherwise).
+- **Hardening found while verifying in Chrome:** WOFF2 files must end exactly at their last block, zero-padded to 4 bytes (the reference decoder's rule); `validateWoff2` now enforces it.
+- **Edge Function:** `usage-upload` v12 (v10 confirmed equal to the previous repository version first; the v12 download is byte-identical to the repository).
+- **TESTING static:** source `e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f`, run `39127878054`, changed files byte-identical.
+- **Validation:**
+  - `npm run build`: 1986 tests, 1985 passed, 1 skipped, 0 failed.
+  - New `tests/wall-custom-fonts-convert.test.js` (10) with genuine OFL fixtures (Imperial Script TTF, Source Sans 3 OTF).
+  - Chrome renders the converted fonts pixel-identical to the originals.
+  - Lab UI checks pass; 59 regression states unchanged; behavior transcript identical.
+  - Live: `capabilities` conversion true, an unauthenticated upload 401, a foreign origin 403.
+- **Not done by the agent:** a real conversion upload with a signed-in account (Mazen's acceptance step).
+
+**Truth: UPDATED.** `custom-wall-fonts` (still PENDING_ACCEPTANCE):
+
+- contract `custom-font-upload` now covers WOFF2 / TTF / OTF and server-side conversion;
+- new limit `maxFontSourceBytes` 8388608;
+- checkpoint `e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f`.
+
+Nothing else changed.
+
+Product Memory: proposal only, not saved. **STOP for Mazen's acceptance.**

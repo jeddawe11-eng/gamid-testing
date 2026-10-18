@@ -430,12 +430,13 @@
       ],
       "limits": {
         "maxCustomFontsPerAccount": 3,
-        "maxFontBytes": 2097152
+        "maxFontBytes": 2097152,
+        "maxFontSourceBytes": 8388608
       },
       "contracts": [
         {
           "id": "custom-font-upload",
-          "rule": "An owner uploads a WOFF2 font in the desktop Text panel (Upload My Font, 900px and wider) after confirming they own it or are licensed to embed it on the web. Only the usage-upload gateway stores it: it checks the WOFF2 structure and that the file name is the SHA-256 of the bytes before any quota is reserved, never trusting the extension or declared type; at most 2 MiB; WOFF2 only (no TTF / OTF conversion)."
+          "rule": "An owner uploads a WOFF2, TTF or OTF font in the desktop Text panel (Upload My Font, 900px and wider) after confirming they own it or are licensed to embed it on the web. Only the usage-upload gateway stores it, and it tells the formats apart by their bytes, never by the extension or declared type. A WOFF2 (at most 2 MiB) must pass the structural WOFF2 check. A TTF / OTF (at most 8 MiB; collections and WOFF 1 refused) must pass a structural sfnt check and is converted on the server to WOFF2 by repackaging its tables unchanged (WOFF2 null transform, the runtime's Brotli) - no font program is executed. Only the resulting validated WOFF2 is stored, at most 2 MiB, named by its own SHA-256; the source is never stored."
         },
         {
           "id": "custom-font-limit",
@@ -458,8 +459,8 @@
           "rule": "Deleting a font is refused while the saved Wall (WALL_FONT_IN_USE) or a published Wall (WALL_FONT_PUBLISHED) uses it, until the owner replaces it and saves / publishes again; a registered font file cannot be deleted directly."
         }
       ],
-      "checkpoint": "875bd2dfe6e194816500f262d7aedeabc14d0f58",
-      "record": "docs/WALL-EDITOR-TEXT-FONTS.md; PROJECT_HANDOFF.md §83. Implemented under Mazen's approval of 2026-10-18 (the documented architecture plus the 3-font rule): migration 20261018120000_wall_custom_fonts applied on TESTING (rehearsed in a rolled-back transaction first), usage-upload v10, static deployment 875bd2d (run 39125819357). Awaiting his acceptance."
+      "checkpoint": "e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f",
+      "record": "docs/WALL-EDITOR-TEXT-FONTS.md; PROJECT_HANDOFF.md §83, §84. Implemented under Mazen's approval of 2026-10-18 (the documented architecture plus the 3-font rule): migration 20261018120000_wall_custom_fonts applied on TESTING (rehearsed in a rolled-back transaction first), usage-upload v10, static deployment 875bd2d (run 39125819357). TTF / OTF upload added under his task of the same day (usage-upload v12, static e73c79d, run 39127878054; no migration). Awaiting his acceptance."
     },
     {
       "id": "public-wall-publishing",

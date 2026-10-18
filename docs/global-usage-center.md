@@ -195,3 +195,10 @@ USAGE remains subject to Mazen's manual acceptance.
 - The 3-font limit is enforced inside `reserve_usage_upload` (patched in place, asserted) under the existing per-account lock.
 - The owner's `/cleanup` also removes unregistered font files older than an hour.
 - No other bucket, cap or rule changed. Details: `docs/WALL-EDITOR-TEXT-FONTS.md`.
+
+**TTF / OTF fonts (2026-10-18, `e73c79d`; `usage-upload` v12).** An uploaded TTF / OTF (at most 8 MiB) is converted to WOFF2 inside the upload request.
+
+- Quota is reserved for, and counts, only the stored WOFF2 (at most 2 MiB).
+- The source exists only in that request's memory and is never stored, so it never touches the account's storage or reservations.
+
+No other rule changed.

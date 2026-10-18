@@ -210,3 +210,57 @@ Mazen's task "GAMID — Custom Font Upload Implementation" approved the proposal
 - The Properties font menu shows a text's catalog fallback while a custom font is applied; the Text panel marks the custom font as current.
 
 **TESTING delivery:** product `875bd2dfe6e194816500f262d7aedeabc14d0f58`, [workflow 39125819357](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39125819357) SUCCESS (full validation and the deployed-site smoke check passed). The 12 changed static files are byte-identical; migration `20261018120000` is applied; `usage-upload` v10 is active. Awaiting Mazen's acceptance.
+
+## TTF and OTF upload (2026-10-18)
+
+Mazen's task "GAMID — Custom Font Upload: Add TTF & OTF Support". Upload My Font now accepts **WOFF2, TTF and OTF**. What is stored is always a validated **WOFF2**, at most 2 MiB, so storage, quota, the 3-font limit, deduplication, the licence, RLS, deletion protection and visitor access are unchanged. **No migration and no new service, dependency or cost.**
+
+**Runtime check before choosing.** The gateway runs on Supabase's Deno-based Edge runtime. Its `node:zlib` provides Brotli, which is what a WOFF2 needs, so no WOFF2 library or new service is required.
+
+- `index.ts` loads it defensively: a runtime without it would refuse TTF / OTF (`FONT_CONVERSION_UNAVAILABLE`, 503) and keep everything else working.
+- The new, data-free `GET usage-upload/capabilities` proves it live with a real compress, decompress and compare round on the server. On TESTING it answers `{"fonts":["woff2","ttf","otf"],"conversion":true}`.
+
+**How a TTF / OTF becomes a WOFF2** (`supabase/functions/_shared/usage-upload.js`):
+
+1. **One route.** `POST usage-upload/font` takes any format, up to 8 MiB, after the licence confirmation. **The format is read from the bytes:** `wOF2`, `00 01 00 00` / `true` (TTF) or `OTTO` (OTF). Collections (`ttcf`), WOFF 1 and everything else are refused (`INVALID_FONT_TYPE`).
+2. **Source validation** (`validateSfnt`):
+   - table count 1–64;
+   - every table record inside the file and 4-byte aligned;
+   - no overlapping or duplicate tables, and printable tags;
+   - the required tables, with outlines matching the flavor (`glyf` + `loca`, or `CFF` / `CFF2` for `OTTO`);
+   - a valid `head` magic number.
+3. **Conversion** (`convertSfntToWoff2`). Every table is copied **byte for byte** into a WOFF2 using the format's **null transform** (transform version 3 for `glyf` / `loca`, 0 for the rest). It is Brotli-compressed in font mode by the runtime, at quality 9 (quality 5 above 2 MiB of source; quality 11 cost about 40× the CPU for 4–12% smaller files), and zero-padded to 4 bytes. **Nothing is interpreted or executed:** hinting programs, outlines and all other table content are only copied.
+4. **Re-validation.** The result must pass `validateWoff2`, the same rule an uploaded WOFF2 meets, and fit in 2 MiB (`FONT_TOO_LARGE`).
+5. **Store.** The stored file is named by **its own SHA-256**. Quota is reserved for the stored WOFF2, never the source; the source exists only in this request's memory (bounded to 8 MiB) and is never written anywhere. Re-uploading the same TTF gives the same WOFF2 (the conversion is deterministic), so it is stored once and uses no new slot.
+
+**Tightened while doing this.** Chrome's decoder first rejected converted fonts that were not padded to 4 bytes. This showed that the reference decoder requires a WOFF2 to end exactly at its last block, zero-padded to 4 bytes. `validateWoff2` now enforces that rule too, so no data can ride after a WOFF2 even if its declared length covers it. All 19 real Google Fonts files still pass.
+
+**Client and editor.**
+
+- The picker offers `.woff2, .ttf, .otf`.
+- The client sends every format to `usage-upload/font`, with quick checks for friendly messages only.
+- The browser's own font check still gives the real preview before uploading.
+- **New messages:** source over 8 MB, the converted font over 2 MB, unsupported type (collections, WOFF 1), conversion failed, conversion unavailable. A successful conversion says "converted from TTF to WOFF2".
+
+**Validation.**
+
+- **`tests/wall-custom-fonts-convert.test.js` (10 tests),** with genuine OFL fixtures in `tests/fixtures/fonts/`: **Imperial Script** (TTF, from Google Fonts) and **Source Sans 3** (CFF `OTTO` OTF, Adobe).
+  - Format detection by bytes, including spoofed PNG / HTML / PDF files, `ttcf` and WOFF 1.
+  - 14 malformed-source cases and the 8 MiB cap.
+  - Conversion of both genuine fonts: valid WOFF2, smaller than the source, padded, flavor kept, null transforms, and **every table byte-identical after decompression**.
+  - Deterministic output; fail-closed without Brotli or on Brotli errors; over 2 MiB refused.
+  - **Gateway `font` route:** only the WOFF2 is reserved, stored and registered, named by its SHA-256. A WOFF2 is stored unchanged. HTML declared as `font/ttf` is refused before reservation. Size, licence, conversion-unavailable, malformed, limit and quota refusals store nothing. Duplicates store nothing. `capabilities` works.
+- **Chrome's own WOFF2 decoder and font sanitizer** (FontFace) accept both converted fonts, which render **pixel-identical** to the original TTF / OTF at the same text widths.
+- **Lab UI:** the picker offers the three formats; an HTML file named `.ttf` and a `.ttc` file are refused; genuine TTF and OTF uploads say "converted"; a TTF-sourced font draws on the canvas. The 18-step My Fonts walkthrough passes.
+- **Regression against the previous build:** 59 panel states unchanged, and the 27-step behavior transcript is identical.
+- **Live on TESTING:** `usage-upload` **v12** is active and its downloaded source is byte-identical to the repository (v10 was first confirmed to match the previous repository version). `capabilities` proves the server-side Brotli round trip; an unauthenticated TTF upload gets 401 and a foreign origin 403.
+- **`npm run build`:** 1986 tests, 1985 passed, 0 failed, 1 skipped.
+
+**Limits.**
+
+- **Real conversion untested live:** a real conversion through the deployed gateway needs a signed-in owner. The agent does not sign into accounts, so this is Mazen's acceptance step. The server's Brotli is proven live, and the conversion code is the tested shared module.
+- **No glyph transform:** the null transform does not apply WOFF2's glyph transform, so a converted TTF is somewhat larger than a WOFF2 made by Google's `woff2_compress` (Imperial Script: 66.9 KB vs 64 KB at quality 11). An uploaded WOFF2 is stored as it is.
+- **Large sources:** very large sources (several MB) use faster compression; a source whose WOFF2 would exceed 2 MiB is refused.
+- **Same font, different formats:** a WOFF2 and a TTF of the same font are different files, so they are not deduplicated against each other.
+
+**TESTING delivery:** product `e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f`, [workflow 39127878054](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39127878054) SUCCESS; `usage-upload` v12. Awaiting Mazen's acceptance.
