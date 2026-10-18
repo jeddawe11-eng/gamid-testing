@@ -3971,3 +3971,18 @@ Mazen's report: Living Fire letters were much wider than the selection box. Deta
 **Truth: NO CHANGE REQUIRED.** No capability, limit or contract changed; the contracts never stated one line. No database change.
 
 Product Memory: no candidates beyond those already proposed in §86. **STOP for Mazen's visual acceptance.**
+
+## 88. Living Fire bounding box fix accepted (2026-10-19)
+
+Mazen personally tested the Living Fire bounding-box fix on TESTING and explicitly accepted it (fix `24e2d78`, documentation `9893964`, run `39150052877`; §87). The accepted behaviour:
+- the fire follows normal text's wrapping, line breaks and alignment, inside the selection box;
+- move, resize and rotation work;
+- Organic, Cinematic and Mythic keep their approved visuals;
+- Editor, Preview and the published Wall are consistent;
+- normal text, Neon and the mobile UI are unchanged.
+
+Recorded in Product Memory **REV-0012** (new; no earlier Living Fire record existed). Documentation only: no code, database, infrastructure or deployment change.
+
+**Truth: NO CHANGE REQUIRED.** This accepts a bug fix, not the capability: `living-fire-text` stays PENDING_ACCEPTANCE, with its checkpoint, limits and contracts unchanged.
+
+Product Memory: SAVED REV-0012. **STOP.**

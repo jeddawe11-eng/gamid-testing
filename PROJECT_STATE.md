@@ -125,7 +125,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-19, Living Fire bounding box fix):** Living Fire letters now follow the painted text's own lines and stay inside the selection box (§87); product `24e2d78a35cd5e2605014da700ebd568de85e8b7`; Truth unchanged. **Next:** Mazen's visual acceptance of the fix, then his final acceptance of Living Fire.
+**Latest continuation (2026-10-19, Living Fire bounding box fix ACCEPTED):** Mazen tested and accepted the bounding-box fix (§88, Product Memory REV-0012): Living Fire letters follow the painted text's own lines and stay inside the selection box (product `24e2d78a35cd5e2605014da700ebd568de85e8b7`, §87). Truth `living-fire-text` is still PENDING_ACCEPTANCE. **Next:** Mazen's final acceptance of the Living Fire capability itself.
 
 **Previous continuation (2026-10-19, Living Fire V3 Phase C):** Living Fire is integrated on TESTING (§86, `docs/WALL-EDITOR-TEXT-EFFECTS.md` Phase C). It has one Text Effects entry with Organic (default), Cinematic and Mythic, controls in the desktop Text Effects section, and works in the editor, Preview, saved and published Walls. The audit passed, with at most 4 live animations. Product `5c0371f3b47b256918aa6cb3c0768c679d584f1f`; additive migration `20261019100000` applied; Truth `living-fire-text` PENDING_ACCEPTANCE. **Next:** Mazen's final acceptance with his own account (add Living Fire, try the three styles, publish, view as a visitor).
 

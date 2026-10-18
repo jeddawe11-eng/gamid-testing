@@ -293,6 +293,8 @@ No table or row was changed by the migration.
 
 Mazen's report "GAMID — FIX LIVING FIRE BOUNDING BOX BUG": Living Fire letters rendered much wider than the blue selection box, while normal text stayed inside it.
 
+**Accepted by Mazen on 2026-10-19** after his own TESTING test (Product Memory REV-0012). This accepts the fix; the Living Fire capability itself (Truth `living-fire-text`) is still PENDING_ACCEPTANCE.
+
 - **Product:** `24e2d78a35cd5e2605014da700ebd568de85e8b7`, TESTING run `39150052877`. The changed files are served byte-identical.
 - No schema, shader, normal text or Neon change.
 

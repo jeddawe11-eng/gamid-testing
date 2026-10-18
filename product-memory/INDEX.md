@@ -79,9 +79,11 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0006 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0011 |
+| REV | Reviews | reviews/ | REV-0012 |
 
 ## Register
+
+2026-10-19: Mazen personally tested and accepted the Living Fire bounding-box fix on TESTING (fix 24e2d78, docs 9893964, run 39150052877): the fire follows the normal text's wrapping, line breaks, alignment and selection box; the three styles keep their approved visuals. New REV-0012. The Living Fire capability (Truth living-fire-text) remains PENDING_ACCEPTANCE. No product changes.
 
 2026-10-17: Mazen gave final acceptance of the Intro landscape hint and fullscreen behavior exactly as implemented (checkpoint 77cfe4f), superseding his provisional approval, and approved saving it. New REV-0011; Truth intro-landscape-hint ACCEPTED. Chrome's fullscreen notice remains a browser limitation. No product changes.
 
@@ -138,3 +140,4 @@ Rules:
 | REV-0009 | Mobile V2 visual parity fixes - Mazen manual acceptance (Android Emulator) | COMPLETED | [REV-0009-mobile-v2-visual-fixes-acceptance.md](reviews/REV-0009-mobile-v2-visual-fixes-acceptance.md) |
 | REV-0010 | Mobile Public Visitor V2 - Mazen final acceptance | COMPLETED | [REV-0010-mobile-public-visitor-v2-final-acceptance.md](reviews/REV-0010-mobile-public-visitor-v2-final-acceptance.md) |
 | REV-0011 | Intro landscape hint and fullscreen behavior - Final Acceptance | COMPLETED | [REV-0011-intro-landscape-hint-final-acceptance.md](reviews/REV-0011-intro-landscape-hint-final-acceptance.md) |
+| REV-0012 | Living Fire bounding box fix - Mazen acceptance | COMPLETED | [REV-0012-living-fire-bounding-box-fix-acceptance.md](reviews/REV-0012-living-fire-bounding-box-fix-acceptance.md) |
