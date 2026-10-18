@@ -101,3 +101,8 @@ Mazen's task "GAMID — Desktop Media & Links / Icon Group UI Refinement". It co
   - phone / tablet Icon Group Properties pixel-identical with identical controls;
   - text, Shape, Embed, GamID block and GamID data Properties identical;
   - the 27-step behaviour transcript identical.
+
+
+### Media & Links / Icon Group UI — acceptance (2026-10-19)
+
+Mazen explicitly accepted the desktop-only visual organization delivered at product `0615a4c` (TESTING run `39153509185`): equal-height platform cards, cleaner spacing, and independently collapsible Icon Group Properties accordions matching Text Properties. All controls remain available; Move to Stage remains above the accordions per the earlier accepted rule. Phone/tablet are unchanged. Product Memory REV-0014. This is scoped acceptance, not final acceptance of the entire desktop Wall redesign. GamID Truth unchanged (`wall-icons` already ACCEPTED).
