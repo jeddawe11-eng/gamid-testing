@@ -121,3 +121,5 @@ Part 2 of the same task, extended by Mazen's "User-Owned Font Storage & Usage" r
 - one migration (bucket, `wall_fonts` table with RLS and RPCs, the published-read policy extension, the usage line);
 - `usage-upload` and `public-media` Edge Function updates and deployment;
 - the editor's Upload My Font UI and My Fonts category, and font loading in the editor and the public Wall.
+
+**Accordion TESTING delivery:** source `8da87669a346e831d8998a3b00323c96727a77a0`, [workflow 39103420138](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39103420138) SUCCESS; the served editor and font files are byte-identical to the commit. Awaiting Mazen's review.
