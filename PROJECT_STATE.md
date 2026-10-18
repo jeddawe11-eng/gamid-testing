@@ -33,6 +33,8 @@ Conversation memory is helpful context, but it is **not** an authoritative proje
 
 **Living Fire V3 final acceptance (Mazen, 2026-10-19):** Mazen explicitly accepted the full Living Fire V3 capability (Organic / Cinematic / Mythic), following acceptance of the bounding-box fix (REV-0012). Truth `living-fire-text` is **ACCEPTED**, recorded in Product Memory REV-0013. Existing limits, contracts and product checkpoint unchanged; desktop Wall work continues separately.
 
+**Desktop Media & Links / Icon Group UI acceptance (Mazen, 2026-10-19):** Mazen explicitly accepted the desktop-only card-layout and Properties-accordion refinement delivered at product `0615a4c` (TESTING run `39153509185`), recorded in Product Memory REV-0014. All controls remain, Move to Stage stays first, and phone/tablet are unchanged. Truth `wall-icons` remains ACCEPTED; the broader desktop Wall redesign continues separately.
+
 ## 2. Environment and safety
 
 - **TESTING** is the working environment. Truth: `environment: TESTING`, `production: NOT_RELEASED`.
