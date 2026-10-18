@@ -465,7 +465,7 @@
     {
       "id": "living-fire-text",
       "name": "Living Fire V3 text effect (Wall text: Organic / Cinematic / Mythic)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/wall-editor/",
         "/@handle"
@@ -494,7 +494,7 @@
         }
       ],
       "checkpoint": "5c0371f3b47b256918aa6cb3c0768c679d584f1f",
-      "record": "docs/WALL-EDITOR-TEXT-EFFECTS.md (Phase C); PROJECT_HANDOFF.md section 86. Implemented under Mazen's Phase C task (2026-10-18/19, variants Organic default, Cinematic, Mythic): additive migration 20261019100000_wall_text_living_fire applied on TESTING after a rolled-back rehearsal; static deployment 5c0371f (run 39147118537). Awaiting his acceptance."
+      "record": "docs/WALL-EDITOR-TEXT-EFFECTS.md (Phase C); PROJECT_HANDOFF.md section 86. Implemented under Mazen's Phase C task (2026-10-18/19, variants Organic default, Cinematic, Mythic): additive migration 20261019100000_wall_text_living_fire applied on TESTING after a rolled-back rehearsal; static deployment 5c0371f (run 39147118537). Final capability acceptance explicitly granted by Mazen on 2026-10-19, including Organic, Cinematic, Mythic and the separately accepted bounding-box fix (REV-0012); documented in REV-0013."
     },
     {
       "id": "public-wall-publishing",
