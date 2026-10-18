@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-18",
+  "updated": "2026-10-19",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -461,6 +461,40 @@
       ],
       "checkpoint": "e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f",
       "record": "docs/WALL-EDITOR-TEXT-FONTS.md; PROJECT_HANDOFF.md §83, §84. Implemented under Mazen's approval of 2026-10-18 (the documented architecture plus the 3-font rule): migration 20261018120000_wall_custom_fonts applied on TESTING (rehearsed in a rolled-back transaction first), usage-upload v10, static deployment 875bd2d (run 39125819357). TTF / OTF upload added under his task of the same day (usage-upload v12, static e73c79d, run 39127878054; no migration). Awaiting his acceptance."
+    },
+    {
+      "id": "living-fire-text",
+      "name": "Living Fire V3 text effect (Wall text: Organic / Cinematic / Mythic)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/",
+        "/@handle"
+      ],
+      "limits": {
+        "fireStyles": 3,
+        "maxFireTextCharacters": 80,
+        "maxLiveFireAnimations": 4
+      },
+      "contracts": [
+        {
+          "id": "living-fire-v3-visuals",
+          "rule": "Living Fire is the approved V3 effect unchanged: the package's vertex and fragment shaders and its exact distance transform are used verbatim. Organic, Cinematic and Mythic are three looks of that one effect (not fonts); Organic is the default, and choosing a style starts from that style's own V3 tuning. The letters keep the text element's own font (library or custom), weight and style."
+        },
+        {
+          "id": "living-fire-setting",
+          "rule": "A Wall text element may carry an optional fire setting { style organic|cinematic|mythic, intensity 0.2..1.4, speed 0.15..2, turbulence 0.15..1.5, color natural|crimson|blue, sparks boolean, mode full|letters } with every key required and no other key; the editor and the database apply the same rule (INVALID_FIRE). Texts without it are unchanged."
+        },
+        {
+          "id": "living-fire-editor",
+          "rule": "Desktop editor (900px and wider): one Living Fire entry in the Text panel's Text Effects toggles it on the selected text(s) and opens Text Effects in Properties, where Style, Intensity, Speed, Turbulence, Colour, Flames (Full fire / Letters only) and Sparks are set. The phone editor's controls are unchanged."
+        },
+        {
+          "id": "living-fire-rendering",
+          "rule": "The editor canvas, Preview and the published Wall (any visitor, signed in or not) draw it in the visitor's own browser: no request per frame and no streaming; its renderer is fetched only when a painted Wall has a Living Fire text. At most 4 fire texts animate at once on a page (fewer on a slow device); the others show a still V3 frame. Off-screen texts and hidden pages pause, reduced motion shows a still frame, and a device without WebGL2, a lost graphics context or a text longer than 80 characters shows a readable static fire-coloured version of the same words."
+        }
+      ],
+      "checkpoint": "5c0371f3b47b256918aa6cb3c0768c679d584f1f",
+      "record": "docs/WALL-EDITOR-TEXT-EFFECTS.md (Phase C); PROJECT_HANDOFF.md section 86. Implemented under Mazen's Phase C task (2026-10-18/19, variants Organic default, Cinematic, Mythic): additive migration 20261019100000_wall_text_living_fire applied on TESTING after a rolled-back rehearsal; static deployment 5c0371f (run 39147118537). Awaiting his acceptance."
     },
     {
       "id": "public-wall-publishing",

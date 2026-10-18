@@ -3925,3 +3925,33 @@ Mazen's task "GAMID — Desktop Text Editor Upgrade: Text Effects + Living Fire 
 **Truth: NO CHANGE REQUIRED.** This is a presentation change of the desktop editor: the existing glow, no new capability, limit or contract, and Living Fire not integrated.
 
 Product Memory: no record saved. **STOP for Mazen's acceptance of Phase A and his Living Fire variant decision.**
+
+## 86. Living Fire V3 Phase C: integrated (2026-10-19)
+
+Mazen's task "GAMID — Living Fire V3 Phase C" (2026-10-18), resumed after two interruptions. Variants: Organic (default), Cinematic and Mythic. Details, measurements and rollback: `docs/WALL-EDITOR-TEXT-EFFECTS.md` (Phase C).
+
+- **Product:** `5c0371f3b47b256918aa6cb3c0768c679d584f1f`.
+  - The V3 shaders and EDT are verbatim (hash-pinned).
+  - New files: `dist/wall-kit/living-fire.js`, `living-fire-engine.js` and `living-fire-sdf.js`.
+  - Wired through `paint.js`, so the editor, Preview and the published Wall share it.
+  - Controls are in the desktop Text Effects section; the phone UI is unchanged.
+- **Audit first, passed:**
+  - Fire costs about +13.9 KB on a first visit to a fire Wall; a Wall without fire pays about +3.5 KB for `living-fire.js` and the small paint / text / CSS growth.
+  - A mid GPU holds 28.8 fps at 24 fire texts. Software rendering limits it, so the shipped design is: at most 4 live, an adaptive budget, and still frames for the rest.
+  - The 787 ms shader compile is non-blocking; the 0.13–0.19 s context creation is deferred to idle; fire causes no layout shift.
+- **Database:** additive migration `20261019100000_wall_text_living_fire`, functions only: `private.wall_fire_ok`, revoked from the API roles, plus `INVALID_FIRE` in `private.wall_text_payload_errors`.
+  - **Rehearsal:** in a rolled-back transaction with the W2 contract test. The corpus is 621 entries (+15 fire), and the database matches JavaScript on all of them.
+  - **Applied:** on TESTING, then recorded with `migration repair`.
+  - **Live check (rolled back):** a fire Wall saved, published and read by `anon`. GM-TEST-01 was verified unchanged afterwards.
+- **Contract test, already failing before this work:** the same 5 W2 contract steps fail at HEAD `4e59f20` without this migration. Four are storage-visibility steps, and one is the persistence step for two corpus `fontRef` placeholders now refused by the custom-fonts ownership trigger. They are not caused by Living Fire and are left as they are (proposed as a Product Memory issue).
+- **TESTING static:** source `5c0371f`, run `39147118537`; 9 of 9 changed files are served byte-identical.
+- **Validation:**
+  - 2000 tests (1999 passed, 1 skipped); lint and typecheck pass. `typecheck:prototypes` was split out, chained, for the Windows command-line limit.
+  - Lab: the editor walk-through (18 / 18), fallbacks, a custom TTF with fire, and the regression against `4e59f20` (59 states pixel-identical; Properties, transcript, My Fonts and TTF / OTF unchanged).
+
+**Truth: UPDATED.**
+- New capability `living-fire-text`, PENDING_ACCEPTANCE.
+- Limits: `fireStyles` 3, `maxFireTextCharacters` 80, `maxLiveFireAnimations` 4.
+- Four contracts; checkpoint `5c0371f`; `updated` 2026-10-19.
+
+Product Memory: proposals only, not saved. **STOP for Mazen's final acceptance.**
