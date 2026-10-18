@@ -74,20 +74,31 @@
 
       <section class="ed-section" data-tool-panel="text">
         <h2>Text</h2>
+        <h3 class="ed-text-sub">Add Text</h3>
+        <p class="ed-text-sub ed-text-sub-note">Each one adds a new text box to your stage. Choose its font below.</p>
         <div class="ed-add-list" id="textPresets"></div>
-        <h2 class="ed-sub">Fonts</h2>
+        <h2 class="ed-sub" id="fontLibraryTitle">Fonts</h2>
         <p class="ed-hint">Select a text element, then choose a font. Size, weight, colour, alignment, direction and effects are in <b>Edit</b>.</p>
+        <div class="ed-font-search"><input id="fontSearch" class="ed-text-line" type="search" autocomplete="off" spellcheck="false" placeholder="Search fonts..." aria-label="Search fonts by name" /></div>
+        <div id="fontList" class="ed-fonts"></div>
+        <section id="textEffects" class="ed-text-effects" aria-labelledby="textEffectsTitle">
+          <h3 id="textEffectsTitle" class="ed-text-sub">Text Effects</h3>
+          <p class="ed-text-sub ed-text-sub-note">Select a text element, then choose an effect. Fine-tune it under Text Effects in Properties.</p>
+          <div id="textEffectList" class="ed-fx-list"></div>
+        </section>
         <section id="myFonts" class="ed-myfonts" aria-labelledby="myFontsTitle">
           <div class="ed-myfonts-head"><h3 id="myFontsTitle">My Fonts</h3><span id="myFontsCount" class="ed-myfonts-count">0/3</span></div>
-          <p class="ed-hint">Upload a WOFF2, TTF or OTF font you own or are licensed to use on the web: up to 3 fonts. TTF and OTF (up to 8 MB) are converted to WOFF2, stored up to 2 MB. They count toward your storage and stay private unless your published Wall uses them.</p>
+          <p class="ed-hint">Fonts you uploaded. Select a text element, then choose one.</p>
+          <div id="myFontList" class="ed-fonts ed-myfonts-list"></div>
+          <p id="fontMessage" class="ed-hint ed-myfonts-message" role="status" aria-live="polite"></p>
+        </section>
+        <section id="fontUploadBox" class="ed-myfonts ed-font-upload" aria-labelledby="fontUploadTitle">
+          <div class="ed-myfonts-head"><h3 id="fontUploadTitle">Upload My Font</h3></div>
+          <p class="ed-hint">WOFF2, TTF or OTF, up to 3 fonts. TTF and OTF (up to 8 MB) become WOFF2, stored up to 2 MB. Counts toward your storage; private unless your published Wall uses it.</p>
           <label class="ed-myfonts-license"><input id="fontLicense" type="checkbox" /><span>I own this font or have a licence to embed it on the web.</span></label>
           <button id="fontUpload" class="ed-btn ed-myfonts-upload" type="button">Upload My Font</button>
           <input id="fontFile" type="file" accept=".woff2,.ttf,.otf,font/woff2,font/ttf,font/otf" hidden />
-          <p id="fontMessage" class="ed-hint ed-myfonts-message" role="status" aria-live="polite"></p>
-          <div id="myFontList" class="ed-fonts ed-myfonts-list"></div>
         </section>
-        <div class="ed-font-search"><input id="fontSearch" class="ed-text-line" type="search" autocomplete="off" spellcheck="false" placeholder="Search fonts..." aria-label="Search fonts by name" /></div>
-        <div id="fontList" class="ed-fonts"></div>
       </section>
 
       <section class="ed-section" data-tool-panel="media">

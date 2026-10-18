@@ -150,6 +150,7 @@ let placeNextUpload = false;
 const tools = createTools({
   session, run, notify, assets: assetStore, fonts: fontStore, getGamid: () => gamidSnapshot, refreshGamid, setTool: openTool,
   pickImage: () => { placeNextUpload = true; assetFile.click(); },
+  revealProps: section => properties.reveal(section),
 });
 $("assetUpload").addEventListener("click", () => { placeNextUpload = false; assetFile.click(); });
 assetFile.addEventListener("change", async () => {

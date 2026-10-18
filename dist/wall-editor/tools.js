@@ -34,10 +34,19 @@ const h = (tag, attributes = {}, ...children) => {
 };
 const $ = id => document.getElementById(id);
 
+// desktopLabel / desktopNote: the desktop Text panel's wording (2026-10-18), which makes plain these add text BOXES, not fonts; the phone keeps label / note.
 export const TEXT_PRESETS = Object.freeze([
-  { key: "heading", label: "Heading", note: "Big, bold, for your name or title", overrides: { text: "Your title", fontFamily: "orbitron", fontSize: 150, fontWeight: 800 }, size: { width: 900, height: 230 } },
-  { key: "body", label: "Text", note: "A paragraph about you", overrides: { text: "Write something about yourself here.", fontFamily: "system-sans", fontSize: 56, fontWeight: 400, align: "left", lineHeight: 1.35 }, size: { width: 800, height: 260 } },
-  { key: "gaming", label: "Gaming title", note: "Condensed with a neon glow", overrides: { text: "GAME ON", fontFamily: "bebas-neue", fontSize: 230, fontWeight: 400, glow: { color: "#62e7ff", blur: 22 } }, size: { width: 900, height: 300 } },
+  { key: "heading", label: "Heading", note: "Big, bold, for your name or title", desktopLabel: "Heading", desktopNote: "A large title box for your name or a headline", overrides: { text: "Your title", fontFamily: "orbitron", fontSize: 150, fontWeight: 800 }, size: { width: 900, height: 230 } },
+  { key: "body", label: "Text", note: "A paragraph about you", desktopLabel: "Text", desktopNote: "A paragraph box for your bio or any details", overrides: { text: "Write something about yourself here.", fontFamily: "system-sans", fontSize: 56, fontWeight: 400, align: "left", lineHeight: 1.35 }, size: { width: 800, height: 260 } },
+  { key: "gaming", label: "Gaming title", note: "Condensed with a neon glow", desktopLabel: "Gaming Title", desktopNote: "A condensed title box with a neon glow", overrides: { text: "GAME ON", fontFamily: "bebas-neue", fontSize: 230, fontWeight: 400, glow: { color: "#62e7ff", blur: 22 } }, size: { width: 900, height: 300 } },
+]);
+
+// Text Effects (desktop Text panel): one entry per effect. `patch` is what the effect writes to a text payload; an entry without one is listed as "Coming soon" and does
+// nothing. Neon is the existing glow, so it needs no new payload field; Living Fire waits for Mazen's choice of V3 variant(s). New effects are added here.
+export const NEON_GLOW = Object.freeze({ color: "#62e7ff", blur: 22 });
+export const TEXT_EFFECTS = Object.freeze([
+  { key: "neon", label: "Neon", note: "A glowing neon light around the letters", field: "glow", value: NEON_GLOW },
+  { key: "living-fire", label: "Living Fire", note: "Animated fire letters", soon: true },
 ]);
 
 // "Other" link (Media & Links): a text element whose words are the link. Starts as a clear, underlined link line; every Text control restyles it.
@@ -45,7 +54,7 @@ export const OTHER_TEXT_MAX = 120;
 export const OTHER_LINK_STYLE = Object.freeze({ fontFamily: "system-sans", fontSize: 64, fontWeight: 700, underline: true, color: "#62e7ff", align: "center", lineHeight: 1.2, wrap: true });
 export const OTHER_LINK_SIZE = Object.freeze({ width: 800, height: 120 });
 
-export function createTools({ session, run, notify, assets, fonts = null, getGamid, refreshGamid, setTool, pickImage }) {
+export function createTools({ session, run, notify, assets, fonts = null, getGamid, refreshGamid, setTool, pickImage, revealProps = () => {} }) {
   const videoPreviews = createVideoPreviews();   // one still frame per video asset, shared by Assets and the background video list
   const doc = () => session.doc;
   const stageId = () => session.state.stageId;
@@ -68,7 +77,11 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   // ---- Text ----------------------------------------------------------------------------------------------------------------------------------
   function addTextPreset(preset) { return addCustom("text", createTextPayload(preset.overrides), preset.size); }
   const presets = $("textPresets");
-  for (const preset of TEXT_PRESETS) presets.append(h("button", { class: "ed-btn", type: "button", onclick: () => { addTextPreset(preset); setTool("props"); } }, h("b", { text: "T" }), h("span", {}, preset.label, h("small", { text: preset.note }))));
+  const presetCards = TEXT_PRESETS.map(preset => {
+    const name = document.createTextNode(preset.label), note = h("small", { text: preset.note });
+    presets.append(h("button", { class: "ed-btn", type: "button", onclick: () => { addTextPreset(preset); setTool("props"); } }, h("b", { text: "T" }), h("span", {}, name, note)));
+    return { preset, name, note };
+  });
   // The font library: the curated catalog (wall-kit/fonts.js), by category. Each card carries a live sample drawn in its own family (shown on desktop, 900px and wider);
   // below that the card is the same one-line button as always. A font file is fetched by the browser only when a card with that family is actually rendered.
   const fontList = $("fontList");
@@ -135,7 +148,14 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     if (!shown) fontEmpty.textContent = `No font matches "${query}".`;
   }
   fontSearch?.addEventListener("input", applyFontFilter);
-  const relayoutFonts = () => { renderFontHeadings(); applyFontFilter(); };
+  // The desktop wording of the presets and the library heading; the phone keeps its own.
+  const fontLibraryTitle = $("fontLibraryTitle");
+  function renderTextCopy() {
+    const desktop = accordionOn();
+    for (const { preset, name, note } of presetCards) { name.data = desktop ? preset.desktopLabel : preset.label; note.textContent = desktop ? preset.desktopNote : preset.note; }
+    if (fontLibraryTitle) fontLibraryTitle.textContent = desktop ? "Font Library" : "Fonts";
+  }
+  const relayoutFonts = () => { renderFontHeadings(); applyFontFilter(); renderTextCopy(); };
   desktopFonts?.addEventListener?.("change", relayoutFonts);
   relayoutFonts();
   // The font of the selected text element(s) is the current card - a custom font (My Fonts) when they use one, else the library font; a mixed selection marks none.
@@ -148,7 +168,25 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     const current = !currentCustom && customs.size === 1 && families.size === 1 ? [...families][0] : null;
     for (const entry of fontGroups) for (const { font, button } of entry.cards) { if (font.key === current) button.setAttribute("aria-current", "true"); else button.removeAttribute("aria-current"); }
     for (const button of myFontList?.querySelectorAll("[data-custom-font-apply]") ?? []) { if (button.dataset.customFontApply === currentCustom) button.setAttribute("aria-current", "true"); else button.removeAttribute("aria-current"); }
+    for (const { effect, button } of effectCards) if (!effect.soon) button.setAttribute("aria-pressed", String(texts.length > 0 && texts.every(element => element.payload?.[effect.field] != null)));
   }
+
+  // ---- Text Effects (desktop Text panel): each effect is a toggle on the selected text element(s). Turning one on keeps any settings a text already has for it, then
+  // opens Text Effects in Properties, where it is fine-tuned; turning it off removes it. Nothing changes without a selected text element.
+  const effectList = $("textEffectList");
+  const effectCards = TEXT_EFFECTS.map(effect => {
+    const button = h("button", { class: "ed-btn ed-fx", type: "button", "data-effect": effect.key, disabled: effect.soon === true, "aria-pressed": effect.soon ? null : "false", onclick: () => {
+      const stage = session.stage, ids = selectedTextIds();
+      if (!ids.length) { notify("Select a text element first, then choose an effect."); return; }
+      const lacking = ids.filter(id => stage.elements.find(element => element.id === id)?.payload?.[effect.field] == null);
+      if (lacking.length) run(ops.updatePayloadMany(doc(), lacking, { [effect.field]: structuredClone(effect.value) }));
+      else run(ops.updatePayloadMany(doc(), ids, { [effect.field]: undefined }));
+      revealProps("effects");
+    } }, h("span", { class: "ed-fx-sample", "data-fx": effect.key, "aria-hidden": "true", text: effect.label }),
+      h("span", { class: "ed-fx-text" }, effect.label, h("small", { text: effect.soon ? `${effect.note} · Coming soon` : effect.note })));
+    effectList?.append(button);
+    return { effect, button };
+  });
 
   // ---- My Fonts: the owner's custom fonts (desktop Text panel). Upload, limit, quota, ownership and in-use rules are the server's; this reports them plainly. ----
   const myFontList = $("myFontList"), myFontsCount = $("myFontsCount"), fontMessage = $("fontMessage"), fontUpload = $("fontUpload"), fontFile = $("fontFile"), fontLicense = $("fontLicense");

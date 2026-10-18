@@ -111,7 +111,8 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
 
   // ---- panels -------------------------------------------------------------------------------------------------------------------------------------
   // `read` / `write` (Round 3): the same Text controls style a live GamID Data text field, whose style lives in payload.text (no content box there)
-  function textControls(root, { read = payloadOf, write = patchAll, content = true } = {}) {
+  // effectsRoot: where Outline / Shadow / Glow / Gradient go - the desktop text accordion's Text Effects section; without it they follow under an "Effects" title.
+  function textControls(root, { read = payloadOf, write = patchAll, content = true, effectsRoot = null } = {}) {
     const nested = (key, name, fallback) => element => (read(element)[key] ?? { [name]: fallback })[name];
     const setNested = (key, name, defaults) => value => write({ [key]: { ...defaults, ...(read(selectedElements()[0])[key] ?? {}), [name]: value } });
     if (content) {
@@ -159,7 +160,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     root.append(numberSlider({ label: "Letter space", min: TEXT_LIMITS.letterSpacing[0], max: TEXT_LIMITS.letterSpacing[1], sliderMin: -10, sliderMax: 40, step: 0.5, get: element => read(element).letterSpacing, set: value => write({ letterSpacing: value }), key: "letterSpacing" }));
     root.append(numberSlider({ label: "Opacity %", min: 0, max: 100, step: 1, get: element => Math.round(read(element).opacity * 100), set: value => write({ opacity: value / 100 }), key: "opacity" }));
 
-    root.append(h("div", { class: "ed-group-title", text: "Effects" }));
+    if (effectsRoot) root = effectsRoot; else root.append(h("div", { class: "ed-group-title", text: "Effects" }));
     root.append(optionalGroup({ label: "Outline", key: "stroke", get: element => read(element).stroke, defaults: { color: "#000000", width: 4 }, write, build: box => {
       box.append(colorField({ label: "Colour", get: nested("stroke", "color", "#000000"), set: setNested("stroke", "color", { color: "#000000", width: 4 }), key: "strokeColor" }));
       box.append(numberSlider({ label: "Width", min: 0, max: 50, step: 0.5, get: nested("stroke", "width", 4), set: setNested("stroke", "width", { color: "#000000", width: 4 }), key: "strokeWidth" }));
@@ -172,7 +173,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       box.append(numberSlider({ label: "Offset Y", min: -100, max: 100, step: 1, get: nested("shadow", "y", 4), set: setNested("shadow", "y", shadowDefaults), key: "shadowY" }));
     } }));
     const glowDefaults = { color: "#62e7ff", blur: 16 };
-    root.append(optionalGroup({ label: "Glow", key: "glow", get: element => read(element).glow, defaults: glowDefaults, write, build: box => {
+    root.append(optionalGroup({ label: effectsRoot ? "Neon glow" : "Glow", key: "glow", get: element => read(element).glow, defaults: glowDefaults, write, build: box => {
       box.append(colorField({ label: "Colour", get: nested("glow", "color", "#62e7ff"), set: setNested("glow", "color", glowDefaults), key: "glowColor" }));
       box.append(numberSlider({ label: "Blur", min: 0, max: 100, step: 1, get: nested("glow", "blur", 16), set: setNested("glow", "blur", glowDefaults), key: "glowBlur" }));
     } }));
@@ -644,8 +645,8 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       h("button", { class: "ed-btn", type: "button", text: "Reset style", onclick: () => { status.textContent = ""; exec(patchAll({ style: undefined })); } })), status);
   }
 
-  function geometryControls(root) {
-    root.append(h("div", { class: "ed-group-title", text: "Position and size" }));
+  function geometryControls(root, { titled = true } = {}) {
+    if (titled) root.append(h("div", { class: "ed-group-title", text: "Position and size" }));
     const box = h("div");
     const numeric = (label, name) => {
       const input = h("input", { type: "number", step: 1, inputmode: "numeric" });
@@ -663,10 +664,11 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       h("button", { class: "ed-btn", type: "button", text: "2× bigger", onclick: () => exec(ops.scaleSelection(session.doc, session.state.selection, 2)) })));
   }
 
-  function actionControls(root, targets, single) {
+  // alignRoot: the desktop text accordion's Align to Stage section; without it the align controls follow under their own title.
+  function actionControls(root, targets, single, { alignRoot = null } = {}) {
     const ids = session.state.selection;
     const grouped = targets.some(element => element.groupId);
-    root.append(h("div", { class: "ed-group-title", text: "Arrange" }));
+    if (!alignRoot) root.append(h("div", { class: "ed-group-title", text: "Arrange" }));
     const button = (text, handler, disabled = false) => h("button", { class: "ed-btn", type: "button", text, disabled, onclick: handler });
     root.append(h("div", { class: "ed-btn-row" },
       button("Duplicate", () => { const result = exec(ops.duplicateElements(session.doc, ids), { keepResultSelection: true }); }),
@@ -680,7 +682,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     root.append(h("div", { class: "ed-btn-row" },
       button("Group", () => regroup(ops.groupElements(session.doc, ids)), units < 2),
       button("Ungroup", () => regroup(ops.ungroupElements(session.doc, ids)), !grouped)));
-    root.append(h("div", { class: "ed-group-title", text: single ? "Align to stage" : "Align" }));
+    if (alignRoot) root = alignRoot; else root.append(h("div", { class: "ed-group-title", text: single ? "Align to stage" : "Align" }));
     const alignRow = h("div", { class: "ed-btn-row" });
     for (const [mode, label] of [["left", "Left"], ["hcenter", "Center"], ["right", "Right"], ["top", "Top"], ["vmiddle", "Middle"], ["bottom", "Bottom"]]) alignRow.append(button(label, () => exec(ops.alignElements(session.doc, ids, mode))));
     root.append(alignRow);
@@ -712,9 +714,36 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       h("div", { class: "ed-btn-row" }, select, h("button", { class: "ed-btn ed-btn-primary", type: "button", text: "Move", onclick: move })));
   }
 
+  // Desktop (900px and wider) text Properties: five independent collapsible sections holding the very same controls. Several may be open; which ones are open is kept
+  // for every later text selection in this editor session. Each heading is a real button (Enter / Space toggle; Up / Down / Home / End move between headings).
+  // Below 900px, and for every other element type, the panel is exactly what it was.
+  const desktopProps = typeof matchMedia === "function" ? matchMedia("(min-width: 900px)") : null;
+  const TEXT_SECTIONS = [["content", "Content & Typography"], ["effects", "Text Effects"], ["geometry", "Position & Size"], ["arrange", "Arrange"], ["align", "Align to Stage"]];
+  const textSectionOpen = { content: true, effects: true, geometry: false, arrange: false, align: false };
+  let accordion = null;
+  function setTextSection(key, open) {
+    textSectionOpen[key] = open;
+    const entry = accordion?.[key];
+    if (entry) { entry.head.setAttribute("aria-expanded", String(open)); entry.body.hidden = !open; }
+  }
+  function accordionSection(root, key, label) {
+    const id = `propsSection-${key}`;
+    const head = h("button", { class: "ed-acc-head", type: "button", id: `${id}-head`, "aria-expanded": String(textSectionOpen[key]), "aria-controls": id, onclick: () => setTextSection(key, !textSectionOpen[key]) }, h("span", { text: label }));
+    head.addEventListener("keydown", event => {
+      const heads = [...body.querySelectorAll(".ed-acc-head")], at = heads.indexOf(head);
+      const next = { ArrowDown: heads[at + 1] ?? heads[0], ArrowUp: heads[at - 1] ?? heads[heads.length - 1], Home: heads[0], End: heads[heads.length - 1] }[event.key];
+      if (next) { event.preventDefault(); next.focus(); }
+    });
+    const inner = h("div", { class: "ed-acc-body", id, role: "region", "aria-labelledby": `${id}-head`, hidden: !textSectionOpen[key] });
+    root.append(h("section", { class: "ed-acc", "data-acc": key }, h("h3", { class: "ed-acc-title" }, head), inner));
+    accordion[key] = { head, body: inner };
+    return inner;
+  }
+
   function rebuild(targets) {
     body.replaceChildren();
     syncers = [];
+    accordion = null;
     errorBox = h("div", { class: "ed-errors", role: "alert", hidden: true });
     if (!targets.length) {
       title.textContent = "Properties";
@@ -728,6 +757,15 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     title.textContent = single ? `${label}${groupedSelection ? " (in a group)" : ""}` : groupedSelection && new Set(targets.map(element => element.groupId)).size === 1 ? `Group of ${targets.length}` : `${targets.length} elements`;
     body.append(errorBox);
     stageMoveControls(body);
+    if (types.length === 1 && types[0] === "text" && desktopProps?.matches) {
+      accordion = {};
+      const sections = Object.fromEntries(TEXT_SECTIONS.map(([key, name]) => [key, accordionSection(body, key, key === "align" && !single ? "Align" : name)]));
+      textControls(sections.content, { effectsRoot: sections.effects });
+      if (single && !groupedSelection) geometryControls(sections.geometry, { titled: false });
+      else sections.geometry.append(h("p", { class: "ed-hint", text: groupedSelection ? "Groups move and resize as one unit. Ungroup to edit an element on its own." : "Multiple elements selected. Move and resize them together on the canvas." }));
+      actionControls(sections.arrange, targets, single, { alignRoot: sections.align });
+      return;
+    }
     if (types.length === 1 && types[0] === "text") textControls(body);
     else if (types.length === 1 && types[0] === "rect") shapeControls(body);
     else if (types.length === 1 && types[0] === "image") imageControls(body, targets);
@@ -740,14 +778,23 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     actionControls(body, targets, single);
   }
 
-  return {
+  const panel = {
     update() {
       const targets = selectedElements();
       // (an embed's presentation is part of the key: switching Card <-> Player changes which controls apply, e.g. Shape)
-      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}${element.type === "image" ? `:${element.payload.slice?.set ?? "-"}` : ""}${element.type === "text" ? `:${element.payload.link ? "link" : "-"}` : ""}${element.type === "icons" ? `:${(element.payload.items ?? []).map(item => item.providerKey ?? "other").join("+")}` : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}`;
+      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}${element.type === "image" ? `:${element.payload.slice?.set ?? "-"}` : ""}${element.type === "text" ? `:${element.payload.link ? "link" : "-"}` : ""}${element.type === "icons" ? `:${(element.payload.items ?? []).map(item => item.providerKey ?? "other").join("+")}` : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}|${desktopProps?.matches ? 1 : 0}`;
       if (key !== builtKey) { builtKey = key; rebuild(targets); }
       if (targets.length) for (const sync of syncers) sync(targets);
     },
     showErrors,
+    // Opens one desktop text section (e.g. Text Effects after an effect is chosen in the Text panel) and brings it into view; remembered even when no text is selected.
+    reveal(key) {
+      if (!(key in textSectionOpen)) return;
+      setTextSection(key, true);
+      const section = accordion?.[key]?.head.closest(".ed-acc");
+      if (section) requestAnimationFrame(() => section.scrollIntoView({ block: "nearest" }));
+    },
   };
+  desktopProps?.addEventListener?.("change", () => panel.update());
+  return panel;
 }
