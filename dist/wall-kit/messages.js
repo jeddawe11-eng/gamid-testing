@@ -37,6 +37,7 @@ const BY_CODE = {
   INVALID_FADE: "An edge fade must be between 0 and 50%.",
   INVALID_MEDIA: "That media type is not available.",
   INVALID_LINK: "That link is not a valid https:// or http:// web address, so it was not applied.",
+  INVALID_FIRE: "That Living Fire setting is not valid, so it was not applied.",
   // Icon Group (DEC-0006)
   INVALID_ICON_ITEMS: "An Icon Group holds 1 to 24 icons, so that was not applied.",
   INVALID_ICON_ITEM: "An icon's link must be a supported platform link or a valid https:// or http:// web address, so that was not applied.",

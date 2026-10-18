@@ -11,6 +11,7 @@ import { paintGamidBlock } from "./gamid-blocks.js";
 import { paintGamidData } from "./gamid-data-paint.js";
 import { paintEmbedIcon, paintIcons } from "./icons-paint.js";
 import { markInteractive, markPassThrough } from "./interaction.js";
+import { attachFire } from "./living-fire.js";   // Living Fire text: its renderer is loaded only when such a text is painted
 import { safeMediaUrl, backgroundVideo } from "./video-background.js";
 import "./register.js";   // makes sure every element type, background kind and provider is registered wherever documents are painted
 
@@ -446,7 +447,7 @@ export function paintElement(item, scale, order, createNode, ctx = {}) {
   if (item.rotation) { style.setProperty("transform", `rotate(${num(item.rotation)}deg)`); style.setProperty("transform-origin", "center center"); }
   const content = item.content;
   if (content?.kind === "rect") paintRect(node, content, scale, item);
-  else if (content?.kind === "text") paintText(node, content, scale, createNode, ctx);
+  else if (content?.kind === "text") { paintText(node, content, scale, createNode, ctx); if (content.fire) attachFire(node, content, scale, item); }
   else if (content?.kind === "image") paintImage(node, content, scale, item, createNode, ctx);
   else if (content?.kind === "embed" && content.content?.kind === "embed") paintEmbed(node, content.content, scale, item, createNode, ctx);
   else if (content?.kind === "icons") paintIcons(node, content, scale, item, createNode, ctx);

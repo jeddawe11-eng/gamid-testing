@@ -4,6 +4,9 @@ import * as ops from "../wall-kit/ops.js";
 import { elementRegistry } from "../wall/elements.js";
 import { FONT_CATALOG, fontKnown } from "../wall-kit/fonts.js";
 import { TEXT_LIMITS, WEIGHTS, LINK_MAX } from "../wall-kit/text.js";
+import { FIRE_STYLES, FIRE_STYLE_DEFAULTS, FIRE_LIMITS, FIRE_LIVE_LIMIT, createFire, fireTextFits } from "../wall-kit/living-fire.js";
+
+const FIRE_STYLE_LABELS = { organic: "Organic", cinematic: "Cinematic", mythic: "Mythic" };
 import { normalizeLinkInput, LINK_PROBLEMS } from "../wall-kit/links.js";
 import { describeErrors } from "../wall-kit/messages.js";
 import { PROVIDERS, isAllowedOpenUrl, presentationsFor, PRESENTATION_LABELS } from "../wall-kit/embed/engine.js";
@@ -177,7 +180,29 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       box.append(colorField({ label: "Colour", get: nested("glow", "color", "#62e7ff"), set: setNested("glow", "color", glowDefaults), key: "glowColor" }));
       box.append(numberSlider({ label: "Blur", min: 0, max: 100, step: 1, get: nested("glow", "blur", 16), set: setNested("glow", "blur", glowDefaults), key: "glowBlur" }));
     } }));
+    if (effectsRoot) livingFireGroup(root, { read, write });   // desktop only: the phone panel is unchanged
     gradientGroup(root, "Gradient fill", { read, write });
+  }
+
+  // Living Fire (V3): the style first - choosing one starts from that style's own V3 tuning - then the engine's real controls. The letters keep this text's font.
+  function livingFireGroup(root, { read = payloadOf, write = patchAll } = {}) {
+    const defaults = createFire("organic");
+    const value = (name, fallback) => element => read(element).fire?.[name] ?? fallback;
+    const set = name => next => write({ fire: { ...defaults, ...(read(selectedElements()[0]).fire ?? {}), [name]: next } });
+    const select = (label, name, options, key) => selectField({ label, options: Object.entries(options).map(([option, text]) => ({ value: option, label: text })), get: value(name, defaults[name]), set: set(name), key });
+    root.append(optionalGroup({ label: "Living Fire", key: "fire", get: element => read(element).fire, defaults, write, build: box => {
+      box.append(selectField({ label: "Style", options: FIRE_STYLES.map(style => ({ value: style, label: FIRE_STYLE_LABELS[style] })), get: value("style", "organic"),
+        set: style => write({ fire: { ...defaults, ...(read(selectedElements()[0]).fire ?? {}), style, ...FIRE_STYLE_DEFAULTS[style] } }), key: "fireStyle" }));
+      box.append(numberSlider({ label: "Intensity %", min: Math.round(FIRE_LIMITS.intensity[0] * 100), max: Math.round(FIRE_LIMITS.intensity[1] * 100), step: 1, get: element => Math.round(value("intensity", 1)(element) * 100), set: next => set("intensity")(next / 100), key: "fireIntensity" }));
+      box.append(numberSlider({ label: "Speed ×", min: FIRE_LIMITS.speed[0], max: FIRE_LIMITS.speed[1], step: 0.05, get: value("speed", 1), set: set("speed"), key: "fireSpeed" }));
+      box.append(numberSlider({ label: "Turbulence %", min: Math.round(FIRE_LIMITS.turbulence[0] * 100), max: Math.round(FIRE_LIMITS.turbulence[1] * 100), step: 1, get: element => Math.round(value("turbulence", 0.9)(element) * 100), set: next => set("turbulence")(next / 100), key: "fireTurbulence" }));
+      box.append(select("Colour", "color", { natural: "Natural combustion", crimson: "Deep crimson", blue: "Blue flame" }, "fireColor"));
+      box.append(select("Flames", "mode", { full: "Full fire", letters: "Letters only" }, "fireMode"));
+      box.append(h("div", { class: "ed-btn-row" }, toggleButton({ label: "Sparks", get: element => value("sparks", false)(element) === true, set: on => set("sparks")(on), key: "fireSparks" })));
+      const fit = h("p", { class: "ed-hint", role: "status" });
+      syncers.push(targets => { fit.hidden = targets.every(element => fireTextFits(read(element).text)); fit.textContent = `Living Fire draws one line of up to ${FIRE_LIMITS.maxText} characters; this text is longer, so it shows a still fire colour instead.`; });
+      box.append(fit, h("p", { class: "ed-hint", text: `Drawn in this text's own font, on one line. Up to ${FIRE_LIVE_LIMIT} fire texts move at once (fewer on slower devices); the rest show a still flame. Devices that cannot draw it, and visitors who prefer reduced motion, see a still version.` }));
+    } }));
   }
 
   // "Other" link: the address this text opens on the Wall (a new tab). Checked with the same rule the database applies before it is stored; a refused address leaves

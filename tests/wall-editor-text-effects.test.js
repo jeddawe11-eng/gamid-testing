@@ -29,21 +29,20 @@ test("the new Text panel parts are desktop only: hidden by the shared stylesheet
   assert.match(panel, /<section id="fontUploadBox" class="ed-myfonts ed-font-upload"/, "Upload My Font shares the My Fonts desktop-only rule");
 });
 
-test("Text Effects: Neon is the existing glow (no new payload field); Living Fire is listed as Coming soon and writes nothing", () => {
+test("Text Effects: Neon is the existing glow (no new payload field); Living Fire writes the V3 fire setting, Organic by default (Phase C, 2026-10-19)", () => {
   assert.deepEqual(TEXT_EFFECTS.map(effect => effect.key), ["neon", "living-fire"]);
   const [neon, fire] = TEXT_EFFECTS;
   assert.equal(neon.field, "glow");
   assert.deepEqual(NEON_GLOW, TEXT_PRESETS.find(preset => preset.key === "gaming").overrides.glow, "the same neon the Gaming Title preset uses");
-  assert.equal(fire.soon, true);
-  assert.equal(fire.field, undefined);
-  assert.equal(fire.value, undefined);
-  assert.match(tools, /disabled: effect\.soon === true/);
+  assert.equal(fire.field, "fire");
+  assert.equal(fire.soon, undefined);
+  assert.equal(fire.value.style, "organic");
+  assert.match(tools, /disabled: effect\.soon === true/, "a future effect can still be listed as Coming soon");
   assert.match(tools, /if \(!ids\.length\) \{ notify\("Select a text element first, then choose an effect\."\); return; \}/);
   assert.match(tools, /revealProps\("effects"\);/, "choosing an effect opens Text Effects in Properties");
   assert.match(read("dist/wall-editor/editor.js"), /revealProps: section => properties\.reveal\(section\),/);
-  assert.doesNotMatch(tools + controls, /webgl|LivingFire|getContext\("webgl/i, "no fire renderer is integrated before Mazen chooses the V3 variant(s)");
+  assert.doesNotMatch(tools + controls, /webgl|getContext\(/i, "the editor holds no graphics code: the renderer lives in wall-kit and is loaded on demand");
 });
-
 test("Properties: five independent text sections on desktop, remembered across selections, keyboard operable; other types and the phone are unchanged", () => {
   assert.match(controls, /const TEXT_SECTIONS = \[\["content", "Content & Typography"\], \["effects", "Text Effects"\], \["geometry", "Position & Size"\], \["arrange", "Arrange"\], \["align", "Align to Stage"\]\];/);
   assert.match(controls, /const textSectionOpen = \{/, "one open / closed state for the whole editor session, not per element");

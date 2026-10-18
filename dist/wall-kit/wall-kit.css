@@ -25,7 +25,12 @@
 .wall-el { pointer-events: none; }
 .wall-el [data-wall-interactive] { pointer-events: auto; }
 .wall-text { width: 100%; height: 100%; margin: 0; padding: 0; }
-/* platform icons (DEC-0006; badges painted by icons-paint.js): a keyboard focus ring drawn INSIDE the badge (the element box clips outside it) - white on a dark band, visible on every brand colour */
+/* Living Fire (living-fire.js): live = the V3 canvas draws the letters and the text stays in the page only for assistive technology and selection; static = a device
+   or text Living Fire cannot animate - the same words in a fixed fire gradient, always readable. The !important overrides the text's own inline paint only. */
+.wall-el.has-fire > .wall-fire { position: absolute; max-width: none; pointer-events: none; }
+.wall-el.is-fire-live > .wall-text { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; -webkit-text-stroke: 0 transparent !important; background: none !important; }
+.wall-el.is-fire-static > .wall-fire { visibility: hidden; }
+.wall-el.is-fire-static > .wall-text { color: #ff8a1f !important; background-image: linear-gradient(0deg, #b3260a, #ff7a1a 48%, #ffd36b) !important; -webkit-background-clip: text !important; background-clip: text !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; filter: drop-shadow(0 0 .18em rgba(255, 106, 20, .55)); }/* platform icons (DEC-0006; badges painted by icons-paint.js): a keyboard focus ring drawn INSIDE the badge (the element box clips outside it) - white on a dark band, visible on every brand colour */
 .wall-icon:focus-visible { outline: 3px solid #ffffff; outline-offset: -3px; box-shadow: inset 0 0 0 7px #0d0b14 !important; }
 
 /* GamID blocks (real identity data drawn on the Wall). Sizes inside a block scale with the Wall through the inline font-size set by the painter (em units).

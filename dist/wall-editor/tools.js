@@ -8,6 +8,7 @@ import { normalizeLinkInput, LINK_PROBLEMS } from "../wall-kit/links.js";
 import { describeErrors } from "../wall-kit/messages.js";
 import { FONT_CATALOG, fontCss } from "../wall-kit/fonts.js";
 import { customFontRef, customFontId, customFontFamily, previewFontFile } from "../wall-kit/custom-fonts.js";
+import { createFire } from "../wall-kit/living-fire.js";
 import { createImagePayload } from "../wall-kit/image.js";
 import { defaultBackground, createImageBackground, createVideoBackground } from "../wall-kit/background.js";
 import { GAMID_BLOCKS, GAMID_BLOCK_INFO, createGamidPayload } from "../wall-kit/gamid.js";
@@ -42,11 +43,11 @@ export const TEXT_PRESETS = Object.freeze([
 ]);
 
 // Text Effects (desktop Text panel): one entry per effect. `patch` is what the effect writes to a text payload; an entry without one is listed as "Coming soon" and does
-// nothing. Neon is the existing glow, so it needs no new payload field; Living Fire waits for Mazen's choice of V3 variant(s). New effects are added here.
+// nothing. Neon is the existing glow; Living Fire is the V3 effect (wall-kit/living-fire.js, Organic by default; its style and settings are in Properties). New effects are added here.
 export const NEON_GLOW = Object.freeze({ color: "#62e7ff", blur: 22 });
 export const TEXT_EFFECTS = Object.freeze([
   { key: "neon", label: "Neon", note: "A glowing neon light around the letters", field: "glow", value: NEON_GLOW },
-  { key: "living-fire", label: "Living Fire", note: "Animated fire letters", soon: true },
+  { key: "living-fire", label: "Living Fire", note: "Living flames in your own letters: Organic, Cinematic or Mythic", field: "fire", value: createFire("organic") },
 ]);
 
 // "Other" link (Media & Links): a text element whose words are the link. Starts as a clear, underlined link line; every Text control restyles it.

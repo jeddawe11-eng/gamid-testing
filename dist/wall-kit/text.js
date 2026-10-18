@@ -5,6 +5,7 @@
 //   align (left|center|right), lineHeight (0.5..4), letterSpacing (-20..100), opacity (0..1), direction (ltr|rtl|auto), wrap (boolean)
 //   optional: fontRef (opaque string reserved for a future font asset - never inspected here), stroke {color,width}, shadow {color,blur,x,y}, glow {color,blur},
 //             gradient {from,to,angle}
+//             fire {style,intensity,speed,turbulence,color,sparks,mode} - Living Fire V3 (living-fire.js owns the rule; the database mirrors it, INVALID_FIRE)
 //             link {url} - "Other" link (Media & Links): on a visitor's Wall (Preview / view mode) the text opens `url` in a new tab (noopener noreferrer). The text is
 //             what shows; the address never does. Only a plain http(s) web address is accepted (LINK_URL): no other scheme (javascript:, data:, ...), no
 //             user name / password in it, no spaces, quotes or angle brackets - and the painter checks it again before it is ever used.
@@ -14,6 +15,7 @@
 import { elementRegistry } from "../wall/elements.js";
 import { isSet, isHex, inRange, isGradient, isPlainObject } from "../wall/fields.js";
 import { FONT_KEY } from "./fonts.js";
+import { validateFire } from "./living-fire.js";
 
 export const TEXT_LIMITS = Object.freeze({
   maxLength: 2000, fontSize: [4, 600], lineHeight: [0.5, 4], letterSpacing: [-20, 100], opacity: [0, 1],
@@ -50,6 +52,7 @@ export function validateTextPayload(payload) {
   if (isSet(payload.glow) && !glow(payload.glow)) errors.push("INVALID_GLOW");
   if (isSet(payload.gradient) && !isGradient(payload.gradient)) errors.push("INVALID_GRADIENT");
   if (isSet(payload.link) && !validateLink(payload.link)) errors.push("INVALID_LINK");
+  if (isSet(payload.fire) && !validateFire(payload.fire)) errors.push("INVALID_FIRE");
   return errors;
 }
 
@@ -62,7 +65,7 @@ export const isSafeLinkUrl = url => typeof url === "string" && url.length <= LIN
 export const validateLink = link => isPlainObject(link) && Object.keys(link).every(key => key === "url") && isSafeLinkUrl(link.url);
 // (turning what a creator TYPES into a stored address lives in links.js - editor input handling, not validation)
 
-const OPTIONAL = ["fontRef", "stroke", "shadow", "glow", "gradient", "link"];
+const OPTIONAL = ["fontRef", "stroke", "shadow", "glow", "gradient", "link", "fire"];
 const CORE = ["text", "fontFamily", "fontSize", "fontWeight", "italic", "underline", "color", "align", "lineHeight", "letterSpacing", "opacity", "direction", "wrap"];
 
 // A plain, JSON-serializable description of how to paint the text (canonical units). Only known fields are copied: unknown payload keys never reach a painter.
