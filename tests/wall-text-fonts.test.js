@@ -138,7 +138,7 @@ test("the font library: one card per catalog font by category, a live sample in 
   const panel = html.slice(html.indexOf('data-tool-panel="text"'), html.indexOf('data-tool-panel="media"'));
   assert.match(panel, /id="fontSearch"[^>]*type="search"/);
   assert.equal((panel.match(/type="file"/g) ?? []).length, 1, "the one file input is My Fonts'");
-  assert.match(panel, /<input id="fontFile" type="file" accept="\.woff2,font\/woff2" hidden \/>/, "WOFF2 only");
+  assert.match(panel, /<input id="fontFile" type="file" accept="\.woff2,\.ttf,\.otf,font\/woff2,font\/ttf,font\/otf" hidden \/>/, "fonts only: WOFF2, TTF, OTF");
   assert.doesNotMatch(tools.slice(tools.indexOf("const fontList"), tools.indexOf("// The font of the selected text")), /type="file"|FileReader|FontFace\(|upload/i, "the curated library never uploads");
 });
 

@@ -141,11 +141,93 @@ export function validateWoff2(bytes) {
  };
  block(metaOffset,metaLength,metaOrigLength); block(privOffset,privLength,0);
  if(metaLength && privLength && privOffset<metaOffset+metaLength) throw Error('INVALID_FONT');
+ // the file ends exactly at its last block, padded with zeros to 4 bytes (the reference decoder's rule): no hidden trailing data
+ const end=Math.max(dataEnd,metaLength?metaOffset+metaLength:0,privLength?privOffset+privLength:0);
+ if(bytes.length!==Math.ceil(end/4)*4 || bytes.subarray(end).some(b=>b!==0)) throw Error('INVALID_FONT');
  for(const tag of FONT_REQUIRED) if(!tags.has(tag)) throw Error('INVALID_FONT');
  const truetype=tags.has('glyf')||tags.has('loca');
  if(truetype && !(tags.has('glyf') && tags.has('loca'))) throw Error('INVALID_FONT');
  if(!truetype && !tags.has('CFF ') && !tags.has('CFF2')) throw Error('INVALID_FONT');
  return {flavor,numTables,tags:[...tags]};
+}
+// TTF / OTF upload (2026-10-18): the source font is validated as an sfnt, then repackaged - never interpreted - as a WOFF2 that carries every table byte for byte
+// (WOFF2's null transform, W3C WOFF2 5.1: glyf / loca with transform version 3, all other tables version 0), Brotli-compressed in font mode by the runtime's own
+// zlib (injected: `compress`). No hinting program, glyph outline or other table content is executed or modified here; the result must pass validateWoff2 like any
+// uploaded WOFF2 and stay within FONT.maxBytes (2 MiB) - only that WOFF2 is ever stored. The source is held in memory for this one request only (bounded).
+export const FONT_SOURCE = Object.freeze({maxBytes:8*1024*1024,maxTables:64});
+const SFNT_FLAVORS={0x00010000:'ttf',0x74727565:'ttf',0x4f54544f:'otf'};
+// -> 'woff2' | 'ttf' | 'otf' from the bytes themselves (never the name or declared type). Throws INVALID_FONT_TYPE for anything else (WOFF 1, collections, non-fonts).
+export function detectFontFormat(bytes) {
+ if(!(bytes instanceof Uint8Array) || bytes.length<12) throw Error('INVALID_FONT_TYPE');
+ const tag=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength).getUint32(0);
+ if(tag===0x774f4632) return 'woff2';
+ if(SFNT_FLAVORS[tag]) return SFNT_FLAVORS[tag];
+ throw Error('INVALID_FONT_TYPE');
+}
+// -> {flavor, tables:[{tag, offset, length}]} sorted by tag. Throws INVALID_FONT_TYPE / FONT_SOURCE_TOO_LARGE / INVALID_FONT.
+export function validateSfnt(bytes) {
+ if(!(bytes instanceof Uint8Array)) throw Error('INVALID_FONT');
+ if(bytes.length>FONT_SOURCE.maxBytes) throw Error('FONT_SOURCE_TOO_LARGE');
+ if(bytes.length<12) throw Error('INVALID_FONT_TYPE');
+ const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+ const flavor=view.getUint32(0);
+ if(!SFNT_FLAVORS[flavor]) throw Error('INVALID_FONT_TYPE');
+ const numTables=view.getUint16(4);
+ if(numTables<1 || numTables>FONT_SOURCE.maxTables || 12+16*numTables>bytes.length) throw Error('INVALID_FONT');
+ const tables=[]; const seen=new Set();
+ for(let i=0;i<numTables;i++) {
+  const at=12+16*i; const raw=bytes.subarray(at,at+4);
+  if(![...raw].every(c=>c>=0x20 && c<=0x7e)) throw Error('INVALID_FONT');
+  const tag=String.fromCharCode(...raw), offset=view.getUint32(at+8), length=view.getUint32(at+12);
+  if(seen.has(tag) || offset%4!==0 || offset<12+16*numTables || length>FONT_SOURCE.maxBytes || offset+length>bytes.length) throw Error('INVALID_FONT');
+  seen.add(tag); tables.push({tag,offset,length});
+ }
+ const ordered=[...tables].sort((a,b)=>a.offset-b.offset);
+ for(let i=1;i<ordered.length;i++) if(ordered[i].offset<ordered[i-1].offset+ordered[i-1].length) throw Error('INVALID_FONT');   // no overlapping tables
+ for(const tag of FONT_REQUIRED) if(!seen.has(tag)) throw Error('INVALID_FONT');
+ const truetype=seen.has('glyf')||seen.has('loca');
+ if(truetype && !(seen.has('glyf') && seen.has('loca'))) throw Error('INVALID_FONT');
+ if(!truetype && !seen.has('CFF ') && !seen.has('CFF2')) throw Error('INVALID_FONT');
+ if(flavor===0x4f54544f && truetype) throw Error('INVALID_FONT');                            // an 'OTTO' font has CFF outlines
+ const head=tables.find(t=>t.tag==='head');
+ if(head.length<54 || view.getUint32(head.offset+12)!==0x5f0f3cf5) throw Error('INVALID_FONT');   // head.magicNumber
+ return {flavor,tables:tables.sort((a,b)=>(a.tag<b.tag?-1:a.tag>b.tag?1:0))};
+}
+const base128Bytes=value=>{ const out=[]; do { out.unshift(value & 0x7f); value=Math.floor(value/128); } while(value>0); return out.map((b,i)=>i<out.length-1?b|0x80:b); };
+// The Brotli quality for a given source size: quality 9 keeps a conversion far inside the Edge Function's CPU budget; very large sources use 5.
+export const fontBrotliQuality=bytes=>bytes<=2*1024*1024?9:5;   // measured: quality 11 costs ~40x the CPU for 4-12% smaller files
+// TTF / OTF bytes -> WOFF2 bytes. `compress(data, quality)` is the runtime's Brotli in font mode. Throws INVALID_FONT* / FONT_SOURCE_TOO_LARGE / FONT_TOO_LARGE /
+// FONT_CONVERSION_UNAVAILABLE / FONT_CONVERSION_FAILED.
+export function convertSfntToWoff2(bytes,{compress}={}) {
+ const {flavor,tables}=validateSfnt(bytes);
+ if(typeof compress!=='function') throw Error('FONT_CONVERSION_UNAVAILABLE');
+ const directory=[]; let streamLength=0, sfntSize=12+16*tables.length;
+ for(const t of tables) {
+  const index=WOFF2_TAGS.indexOf(t.tag);
+  const version=(t.tag==='glyf'||t.tag==='loca')?3:0;                                        // the null transform for every table
+  if(index>=0) directory.push((version<<6)|index); else directory.push((version<<6)|63,...[...t.tag].map(c=>c.charCodeAt(0)));
+  directory.push(...base128Bytes(t.length));
+  streamLength+=t.length; sfntSize+=Math.ceil(t.length/4)*4;
+ }
+ const stream=new Uint8Array(streamLength); let at=0;
+ for(const t of tables) { stream.set(bytes.subarray(t.offset,t.offset+t.length),at); at+=t.length; }
+ let compressed;
+ try { compressed=compress(stream,fontBrotliQuality(bytes.length)); } catch { throw Error('FONT_CONVERSION_FAILED'); }
+ if(!(compressed instanceof Uint8Array) || !compressed.length) throw Error('FONT_CONVERSION_FAILED');
+ const length=Math.ceil((48+directory.length+compressed.length)/4)*4;   // zero-padded to 4 bytes, as the format requires
+ if(length>FONT.maxBytes) throw Error('FONT_TOO_LARGE');
+ const out=new Uint8Array(length); const v=new DataView(out.buffer);
+ v.setUint32(0,0x774f4632); v.setUint32(4,flavor); v.setUint32(8,length); v.setUint16(12,tables.length); v.setUint16(14,0);
+ v.setUint32(16,sfntSize); v.setUint32(20,compressed.length); v.setUint16(24,1); v.setUint16(26,0);   // no metadata / private blocks
+ out.set(directory,48); out.set(compressed,48+directory.length);
+ validateWoff2(out);                                                                          // the converted font meets every rule an uploaded WOFF2 does
+ return out;
+}
+// The one entry point for an uploaded font of any supported format: -> {woff2, format, converted}
+export function prepareFont(bytes,{compress}={}) {
+ const format=detectFontFormat(bytes);
+ if(format==='woff2') { validateWoff2(bytes); return {woff2:bytes,format,converted:false}; }
+ return {woff2:convertSfntToWoff2(bytes,{compress}),format,converted:true};
 }
 export async function sha256Hex(bytes) {
  const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));
@@ -169,7 +251,7 @@ export function safeUpstream(value) {
  if(url.origin!==base.origin || !url.pathname.startsWith(base.pathname+'/') || url.username || url.password || url.search || url.hash) throw Error('INVALID_UPLOAD_LOCATION');
  return url.href;
 }
-export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},jpeg=null}) {
+export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},jpeg=null,fontCompress=null,fontDecompress=null}) {
  const rawFetch=fetchImpl;
  fetchImpl=(url,options={})=>rawFetch(url,{...options,signal:AbortSignal.timeout(90000)});
  const origin=request.headers.get('origin');
@@ -181,6 +263,13 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
  if(origin && !ORIGINS.includes(origin)) return respond({error:'ORIGIN_NOT_ALLOWED'},403);
  if(request.method==='OPTIONS') return respond(null,204);
  if(env?.supabaseUrl!==BASE || !env.serviceKey || !env.anonKey) return respond({error:'TESTING_GATEWAY_NOT_CONFIGURED'},503);
+ // which font formats this deployment accepts; no account data. TTF / OTF need the runtime's Brotli, proven here by a real round of compression.
+ if((new URL(request.url).pathname.split('/usage-upload/')[1]||'')==='capabilities' && request.method==='GET') {
+  // a real round trip: compress a sample in font mode, decompress it, and compare
+  let conversion=false;
+  try { const sample=new TextEncoder().encode('GamID font conversion check '.repeat(40)); const packed=fontCompress(sample,5); conversion=packed instanceof Uint8Array && packed.length<sample.length && typeof fontDecompress==='function' && fontDecompress(packed).every((b,i)=>b===sample[i]) && fontDecompress(packed).length===sample.length; } catch { conversion=false; }
+  return respond({fonts:conversion?['woff2','ttf','otf']:['woff2'],conversion});
+ }
  const service={apikey:env.serviceKey,Authorization:`Bearer ${env.serviceKey}`};
  const rpc=async(name,body)=>{
   const r=await fetchImpl(`${BASE}/rest/v1/rpc/${name}`,{method:'POST',headers:{...service,'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -229,6 +318,21 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
    validateWoff2(bytes);
    const sha=await sha256Hex(bytes);
    if(path!==`${owner}/fonts/${sha}.woff2`) throw Error('FONT_HASH_MISMATCH');
+   return storeFont(owner,path,bytes,sha,{format:'woff2',converted:false});
+  };
+  // Any supported font (WOFF2, TTF, OTF; told apart by its bytes): a TTF / OTF is validated and converted to WOFF2 here, and the STORED file is always that validated
+  // WOFF2, named by its own SHA-256 (so the same font is stored once). The source exists only in this request's memory (at most 8 MiB) and is never stored.
+  const uploadAnyFont=async owner=>{
+   if(request.headers.get('x-gamid-font-license')!=='accepted') throw Error('WALL_FONT_LICENSE_REQUIRED');
+   let bytes;
+   try { bytes=await boundedBody(request,FONT_SOURCE.maxBytes); } catch(error) { throw Error(error.message==='CHUNK_TOO_LARGE'?'FONT_SOURCE_TOO_LARGE':error.message); }
+   const format=detectFontFormat(bytes);
+   if(format==='woff2' && bytes.length>FONT.maxBytes) throw Error('FONT_TOO_LARGE');
+   const {woff2,converted}=prepareFont(bytes,{compress:fontCompress});
+   const sha=await sha256Hex(woff2);
+   return storeFont(owner,`${owner}/fonts/${sha}.woff2`,woff2,sha,{format,converted});
+  };
+  const storeFont=async(owner,path,bytes,sha,source)=>{
    const x=await rpc('reserve_usage_upload',{candidate_owner:owner,candidate_bucket:'wall-fonts',candidate_path:path,candidate_bytes:bytes.length,candidate_mime:FONT.mime});
    let stored=false;
    if(x.state!=='COMPLETE') {
@@ -250,7 +354,7 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
     if(stored) { try { await rpc('authorize_usage_delete',{candidate_owner:owner,candidate_bucket:'wall-fonts',candidate_path:path}); await remove('wall-fonts',path); } catch { /* removed by the owner's cleanup after an hour */ } }
     await signal(owner); throw error;
    }
-   await signal(owner); return {font};
+   await signal(owner); return {font,...source};
   };
   if(route==='cleanup' && request.method==='POST') {
    if(worker) return respond({error:'OWNER_CLEANUP_ONLY'},400);
@@ -287,6 +391,10 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
     await rpc('authorize_usage_delete',{candidate_owner:uid,candidate_bucket:'wall-fonts',candidate_path:path}); await remove('wall-fonts',path); fonts++;
    }
    if(cleaned||intro||fonts) await signal(uid); return respond({cleaned,intro,fonts});
+  }
+  if(route==='font' && request.method==='POST') {
+   if(worker) return respond({error:'OWNER_UPLOAD_ONLY'},400);
+   return respond(await uploadAnyFont(uid),201);
   }
   if(objectRoute) {
    const [,bucket,rawPath]=objectRoute; const path=decodeURIComponent(rawPath); const owner=validate(bucket,path);
@@ -372,7 +480,7 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
   log(['INVALID_UPLOAD_LOCATION','UPLOAD_SIZE_MISMATCH','UPLOAD_NOT_OWNED','UPLOAD_CONFLICT','INVALID_UPLOAD_CREATION','ACCOUNT_STORAGE_QUOTA_EXCEEDED'].includes(code)?code:'UPLOAD_GATEWAY_FAILED');
   const allowed=['UPLOAD_TOO_LARGE','INVALID_BANNER','INVALID_BANNER_TYPE','INVALID_BANNER_SIZE','BANNER_REQUIRES_DIRECT_UPLOAD','BANNER_IN_USE','BANNER_DECODER_UNAVAILABLE',
    'INVALID_AVATAR','INVALID_AVATAR_TYPE','INVALID_AVATAR_SIZE','AVATAR_REQUIRES_DIRECT_UPLOAD','AVATAR_DECODER_UNAVAILABLE','ACCOUNT_STORAGE_QUOTA_EXCEEDED','INVALID_UPLOAD','INVALID_UPLOAD_PATH','INVALID_UPLOAD_BUCKET','INVALID_UPLOAD_LENGTH','INVALID_UPLOAD_METADATA','INVALID_UPLOAD_CREATION','UPLOAD_NOT_OWNED','UPLOAD_CONFLICT','UPLOAD_LENGTH_EXCEEDED','CHUNK_TOO_LARGE','OBJECT_ALREADY_EXISTS','UPLOAD_EXPIRED','INTRO_PROCESSING_IN_PROGRESS',
-   'INVALID_FONT','INVALID_FONT_TYPE','FONT_TOO_LARGE','FONT_HASH_MISMATCH','FONT_REQUIRES_DIRECT_UPLOAD','WALL_FONT_LIMIT','WALL_FONT_LICENSE_REQUIRED','WALL_FONT_REGISTERED','WALL_FONT_UPLOAD_NOT_FOUND','IDENTITY_NOT_FOUND'];
-  return respond({error:allowed.includes(code)?code:'UPLOAD_GATEWAY_FAILED'},code==='ACCOUNT_STORAGE_QUOTA_EXCEEDED'||code==='CHUNK_TOO_LARGE'||code==='FONT_TOO_LARGE'?413:code==='UPLOAD_NOT_OWNED'?403:code==='WALL_FONT_LIMIT'||code==='WALL_FONT_REGISTERED'?409:allowed.includes(code)?400:502);
+   'INVALID_FONT','INVALID_FONT_TYPE','FONT_TOO_LARGE','FONT_HASH_MISMATCH','FONT_REQUIRES_DIRECT_UPLOAD','WALL_FONT_LIMIT','WALL_FONT_LICENSE_REQUIRED','WALL_FONT_REGISTERED','WALL_FONT_UPLOAD_NOT_FOUND','IDENTITY_NOT_FOUND','FONT_SOURCE_TOO_LARGE','FONT_CONVERSION_UNAVAILABLE','FONT_CONVERSION_FAILED'];
+  return respond({error:allowed.includes(code)?code:'UPLOAD_GATEWAY_FAILED'},code==='ACCOUNT_STORAGE_QUOTA_EXCEEDED'||code==='CHUNK_TOO_LARGE'||code==='FONT_TOO_LARGE'||code==='FONT_SOURCE_TOO_LARGE'?413:code==='FONT_CONVERSION_UNAVAILABLE'?503:code==='UPLOAD_NOT_OWNED'?403:code==='WALL_FONT_LIMIT'||code==='WALL_FONT_REGISTERED'?409:allowed.includes(code)?400:502);
  }
 }

@@ -155,9 +155,12 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   const FONT_MESSAGES = {
     WALL_FONT_LIMIT: "You already have 3 custom fonts. Delete one you no longer use, then upload again.",
     ACCOUNT_STORAGE_QUOTA_EXCEEDED: "There is not enough space left in your 200 MB storage for this font. Free some space, then try again.",
-    FONT_TOO_LARGE: "Fonts must be 2 MB or smaller.",
-    INVALID_FONT: "This file is not a valid WOFF2 font.",
-    INVALID_FONT_TYPE: "This file is not a WOFF2 font. Choose a .woff2 file.",
+    FONT_TOO_LARGE: "This font is larger than 2 MB as WOFF2 (the stored size limit). Choose a smaller font file.",
+    FONT_SOURCE_TOO_LARGE: "Font files must be 8 MB or smaller (WOFF2: 2 MB).",
+    INVALID_FONT: "This file is not a valid font. Use a WOFF2, TTF or OTF font.",
+    INVALID_FONT_TYPE: "This file is not a WOFF2, TTF or OTF font. Font collections (.ttc) and WOFF 1 are not supported.",
+    FONT_CONVERSION_FAILED: "This font could not be converted to WOFF2. Try a WOFF2 version of it.",
+    FONT_CONVERSION_UNAVAILABLE: "TTF and OTF uploads are not available right now. Upload a WOFF2 version of the font.",
     WALL_FONT_LICENSE_REQUIRED: "Tick the licence confirmation first: only upload fonts you own or are licensed to use on the web.",
     FONT_HASH_MISMATCH: "The file changed on the way. Try the upload again.",
     WALL_FONT_PUBLISHED: "Your published Wall uses this font. Choose another font for that text, publish again, then delete it.",
@@ -218,15 +221,15 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     finally { fontBusy = false; renderMyFonts(); }
   }
   async function uploadFontFile(file) {
-    const name = String(file?.name ?? "").replace(/\.woff2$/i, "").trim().slice(0, 60) || "My font";
-    if (!/\.woff2$/i.test(file?.name ?? "")) { sayFont(FONT_MESSAGES.INVALID_FONT_TYPE, "error"); return; }
-    if (file.size > 2 * 1024 * 1024) { sayFont(FONT_MESSAGES.FONT_TOO_LARGE, "error"); return; }
+    const name = String(file?.name ?? "").replace(/\.(woff2|ttf|otf)$/i, "").trim().slice(0, 60) || "My font";
+    if (!/\.(woff2|ttf|otf)$/i.test(file?.name ?? "")) { sayFont(FONT_MESSAGES.INVALID_FONT_TYPE, "error"); return; }
+    if (file.size > (/\.woff2$/i.test(file.name) ? 2 : 8) * 1024 * 1024) { sayFont(/\.woff2$/i.test(file.name) ? "WOFF2 fonts must be 2 MB or smaller." : FONT_MESSAGES.FONT_SOURCE_TOO_LARGE, "error"); return; }
     const family = await previewFontFile(await file.arrayBuffer());   // the browser's own font check, and the real preview
     if (!family) { sayFont(FONT_MESSAGES.INVALID_FONT, "error"); return; }
     fontBusy = true; fontUpload.disabled = true; pendingFont = { name, family }; renderMyFonts(); sayFont(`Uploading "${name}"…`);
     try {
       const font = await fonts.upload(file, { name, licenseAccepted: Boolean(fontLicense?.checked) });
-      sayFont(font?.duplicate ? `"${font.display_name}" is already in My Fonts - no extra slot was used.` : `"${font?.display_name ?? name}" was added to My Fonts. Select a text element and choose it.`, "ok");
+      sayFont(font?.duplicate ? `"${font.display_name}" is already in My Fonts - no extra slot was used.` : `"${font?.display_name ?? name}" was added to My Fonts${font?.converted ? ` (converted from ${String(font.format).toUpperCase()} to WOFF2)` : ""}. Select a text element and choose it.`, "ok");
     } catch (error) { sayFont(FONT_MESSAGES[error?.code] ?? FONT_MESSAGES.upload, "error"); }
     finally { fontBusy = false; fontUpload.disabled = false; pendingFont = null; renderMyFonts(); }
   }

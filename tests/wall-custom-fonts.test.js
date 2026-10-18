@@ -28,7 +28,7 @@ function woff2({ flavor = 0x00010000, tables = ["cmap", "head", "hhea", "hmtx", 
   const metaBytes = meta ? meta.length : 0;
   const body = 48 + dir.length + compressed;
   const metaOffset = meta ? Math.ceil(body / 4) * 4 : 0;
-  const length = (meta ? metaOffset + metaBytes : body) + tail;
+  const length = Math.ceil((meta ? metaOffset + metaBytes : body) / 4) * 4 + tail;   // real WOFF2 files end zero-padded to 4 bytes
   const bytes = new Uint8Array(length);
   const v = new DataView(bytes.buffer);
   v.setUint32(0, 0x774f4632); v.setUint32(4, flavor); v.setUint32(8, length + lengthDelta); v.setUint16(12, n); v.setUint16(14, reserved);
@@ -69,6 +69,8 @@ test("validator: structural faults - length, table count, reserved field, sizes,
   const cases = {
     "appended bytes (declared length is not the real length)": woff2({ lengthDelta: -8, tail: 8 }),
     "truncated file": woff2({ lengthDelta: 16 }),
+    "declared length covers trailing data": woff2({ tail: 8 }),
+    "non-zero padding after the data": (() => { const b = woff2({ compressed: 61 }); b[b.length - 1] = 0x41; return b; })(),
     "zero tables": woff2({ numTables: 0 }),
     "65 tables": woff2({ numTables: 65 }),
     "reserved field set": woff2({ reserved: 1 }),
@@ -273,13 +275,13 @@ test("kit: a font is registered from its bytes once per page; unusable bytes lea
 });
 
 // ---- the editor, the published Wall, Usage -------------------------------------------------------------------------------------------------------
-test("editor: My Fonts in the desktop Text panel - count n/3, a required licence confirmation, WOFF2 only, clear messages for every server answer", () => {
+test("editor: My Fonts in the desktop Text panel - count n/3, a required licence confirmation, WOFF2 / TTF / OTF, clear messages for every server answer", () => {
   const html = read("dist/wall-editor/index.html"), tools = read("dist/wall-editor/tools.js"), base = read("dist/wall-editor/editor.css"), desktop = read("dist/wall-editor/editor-desktop.css");
   const panel = html.slice(html.indexOf('data-tool-panel="text"'), html.indexOf('data-tool-panel="media"'));
   assert.match(panel, /<h3 id="myFontsTitle">My Fonts<\/h3><span id="myFontsCount" class="ed-myfonts-count">0\/3<\/span>/);
   assert.match(panel, /<input id="fontLicense" type="checkbox" \/><span>I own this font or have a licence to embed it on the web\.<\/span>/);
   assert.match(panel, /<button id="fontUpload" class="ed-btn ed-myfonts-upload" type="button">Upload My Font<\/button>/);
-  assert.match(panel, /accept="\.woff2,font\/woff2"/);
+  assert.match(panel, /accept="\.woff2,\.ttf,\.otf,font\/woff2,font\/ttf,font\/otf"/, "WOFF2, TTF and OTF (2026-10-18)");
   assert.ok(panel.indexOf('id="myFonts"') < panel.indexOf('id="fontSearch"'), "My Fonts sits above the curated library and its accordions");
   assert.match(tools, /myFontsCount\.textContent = `\$\{list\.length\}\/\$\{limit\}`;/, "n/3 from the server's own limit");
   for (const key of ["WALL_FONT_LIMIT", "ACCOUNT_STORAGE_QUOTA_EXCEEDED", "FONT_TOO_LARGE", "INVALID_FONT", "INVALID_FONT_TYPE", "WALL_FONT_LICENSE_REQUIRED", "WALL_FONT_PUBLISHED", "WALL_FONT_IN_USE"])
@@ -303,7 +305,7 @@ test("published Wall: custom fonts are fetched only when the snapshot names one,
   assert.match(client, /rpc\("get_public_wall_fonts", \{ candidate_handle: handle \}, \{ anonymous: true \}\)/);
   assert.match(client, /\/storage\/v1\/object\/authenticated\/wall-fonts\/\$\{encodeStoragePath\(path\)\}`, \{ headers: \{ apikey: PUBLISHABLE_KEY \} \}/, "visitors read anonymously; the storage policy decides");
   assert.match(client, /"x-gamid-font-license": "accepted"/);
-  assert.match(client, /body: new Blob\(\[bytes\], \{ type: "font\/woff2" \}\)/);
+  assert.match(client, /body: new Blob\(\[bytes\], \{ type: WALL_FONT_FORMATS\[format\] \}\)/);
   assert.match(read("dist/usage/usage-center.js"), /\['font','Wall Fonts'\]/, "Usage shows the fonts' storage");
 });
 

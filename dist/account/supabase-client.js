@@ -404,26 +404,33 @@ export async function deleteWallAsset(assetId) {
 // A WOFF2 the owner uploads goes ONLY through the usage-upload gateway, which validates its structure, checks that its SHA-256 is the file name
 // (<uid>/fonts/<sha256>.woff2 - one object per font per account), reserves quota, enforces the 3-font limit in the database and registers it. The checks here are
 // for quick, friendly messages only; the server decides. Fonts are private; a visitor can read one only while the owner's published Wall uses it.
-export const WALL_FONT_MAX_BYTES = 2 * 1024 * 1024;
+export const WALL_FONT_MAX_BYTES = 2 * 1024 * 1024;          // the stored WOFF2 (and an uploaded WOFF2)
+export const WALL_FONT_SOURCE_MAX_BYTES = 8 * 1024 * 1024;   // an uploaded TTF / OTF, converted to WOFF2 on the server
 export async function listWallFonts() {
   const result = await rpc("list_my_wall_fonts");
   return { limit: Number.isInteger(result?.limit) ? result.limit : 3, fonts: Array.isArray(result?.fonts) ? result.fonts : [] };
 }
+// WOFF2, TTF or OTF: the server tells them apart by their bytes, validates them, converts a TTF / OTF to WOFF2 and names the stored WOFF2 by its own SHA-256.
+export const WALL_FONT_FORMATS = Object.freeze({ woff2: "font/woff2", ttf: "font/ttf", otf: "font/otf" });
+const fontFormatOf = bytes => {
+  const tag = bytes.length >= 4 ? ((bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3]) >>> 0 : 0;
+  return tag === 0x774f4632 ? "woff2" : tag === 0x00010000 || tag === 0x74727565 ? "ttf" : tag === 0x4f54544f ? "otf" : null;
+};
 export async function uploadWallFont(file, userId, { name = "", licenseAccepted = false } = {}) {
   if (!licenseAccepted) throw new ApiError("Confirm that you own this font or are licensed to use it on the web.", 400, "WALL_FONT_LICENSE_REQUIRED");
-  if (!file || !/\.woff2$/i.test(file.name || "")) throw new ApiError("Choose a WOFF2 font file (.woff2).", 400, "INVALID_FONT_TYPE");
-  if (file.size > WALL_FONT_MAX_BYTES) throw new ApiError("Fonts must be 2 MB or smaller.", 413, "FONT_TOO_LARGE");
+  if (!file || !/\.(woff2|ttf|otf)$/i.test(file.name || "")) throw new ApiError("Choose a WOFF2, TTF or OTF font file.", 400, "INVALID_FONT_TYPE");
+  if (file.size > WALL_FONT_SOURCE_MAX_BYTES) throw new ApiError("Font files must be 8 MB or smaller.", 413, "FONT_SOURCE_TOO_LARGE");
   const bytes = new Uint8Array(await file.arrayBuffer());
-  if (bytes.length < 48 || bytes[0] !== 0x77 || bytes[1] !== 0x4f || bytes[2] !== 0x46 || bytes[3] !== 0x32) throw new ApiError("This file is not a WOFF2 font.", 400, "INVALID_FONT_TYPE");
+  const format = fontFormatOf(bytes);
+  if (!format) throw new ApiError("This file is not a WOFF2, TTF or OTF font.", 400, "INVALID_FONT_TYPE");
+  if (format === "woff2" && bytes.length > WALL_FONT_MAX_BYTES) throw new ApiError("WOFF2 fonts must be 2 MB or smaller.", 413, "FONT_TOO_LARGE");
   await restoreSession();
   if (!session?.access_token) throw new ApiError("Sign in again to upload a font.", 401, "unauthenticated");
-  const digest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map(byte => byte.toString(16).padStart(2, "0")).join("");
-  const path = `${userId}/fonts/${digest}.woff2`;
-  const result = await request(`/functions/v1/usage-upload/object/wall-fonts/${path}`, {
-    method: "POST", token: session.access_token, body: new Blob([bytes], { type: "font/woff2" }),
-    headers: { "Content-Type": "font/woff2", "x-upsert": "false", "x-gamid-font-name": encodeURIComponent(String(name).slice(0, 120)), "x-gamid-font-license": "accepted" },
+  const result = await request("/functions/v1/usage-upload/font", {
+    method: "POST", token: session.access_token, body: new Blob([bytes], { type: WALL_FONT_FORMATS[format] }),
+    headers: { "Content-Type": WALL_FONT_FORMATS[format], "x-gamid-font-name": encodeURIComponent(String(name).slice(0, 120)), "x-gamid-font-license": "accepted" },
   });
-  return result?.font ?? null;
+  return result?.font ? { ...result.font, converted: Boolean(result.converted), format: result.format ?? format } : null;
 }
 // The owner RPC refuses while the saved draft or a published Wall uses the font; only then is the stored file removed through the gateway.
 export async function deleteWallFont(fontId) {
