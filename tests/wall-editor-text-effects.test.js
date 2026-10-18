@@ -46,7 +46,8 @@ test("Text Effects: Neon is the existing glow (no new payload field); Living Fir
 test("Properties: five independent text sections on desktop, remembered across selections, keyboard operable; other types and the phone are unchanged", () => {
   assert.match(controls, /const TEXT_SECTIONS = \[\["content", "Content & Typography"\], \["effects", "Text Effects"\], \["geometry", "Position & Size"\], \["arrange", "Arrange"\], \["align", "Align to Stage"\]\];/);
   assert.match(controls, /const textSectionOpen = \{/, "one open / closed state for the whole editor session, not per element");
-  assert.match(controls, /"aria-expanded": String\(textSectionOpen\[key\]\), "aria-controls": id/);
+  assert.match(controls, /"aria-expanded": String\(state\[key\]\), "aria-controls": id/);
+  assert.match(controls, /function accordionSection\(root, key, label, state = textSectionOpen\)/, "text sections use the text state; Icon Group has its own");
   assert.match(controls, /role: "region", "aria-labelledby": `\$\{id\}-head`/);
   for (const key of ["ArrowDown", "ArrowUp", "Home", "End"]) assert.match(controls, new RegExp(`${key}:`));
   assert.match(controls, /if \(types\.length === 1 && types\[0\] === "text" && desktopProps\?\.matches\) \{/, "text-only selections on desktop");

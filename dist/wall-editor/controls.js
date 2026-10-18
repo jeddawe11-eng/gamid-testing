@@ -563,7 +563,8 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
 
   // Icon Group (DEC-0006): the icons in the owner's order. Each row: its badge, its link (checked by the Wall link engine when it changes), move up / down, remove.
   // The list itself is rebuilt when icons are added, removed or reordered (the panel key below); a refused link leaves the saved one unchanged.
-  function iconsControls(root) {
+  // appearanceRoot: the desktop Icon Group accordion's Appearance & Spacing section; without it the size / spacing / align controls follow in the same panel.
+  function iconsControls(root, { appearanceRoot = null } = {}) {
     const element = selectedElements()[0];
     const items = () => selectedElements()[0]?.payload.items ?? [];
     const setItems = next => exec(patchAll({ items: next }));
@@ -608,6 +609,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
         h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn", type: "button", text: "Add icon", onclick: add })));
     }
     root.append(h("p", { class: "ed-hint", text: "Any supported platform link shows that platform's icon; any other website shows a link icon. A group keeps at least one icon: to remove the last one, delete the element." }));
+    if (appearanceRoot) root = appearanceRoot;
     root.append(numberSlider({ label: "Icon size", min: ICON_LIMITS.size[0], max: ICON_LIMITS.size[1], step: 1, get: item => item.payload.size ?? ICON_DEFAULTS.size, set: value => patchAll({ size: Math.round(value) }), key: "iconSize" }));
     root.append(numberSlider({ label: "Spacing", min: ICON_LIMITS.gap[0], max: ICON_LIMITS.gap[1], step: 1, get: item => item.payload.gap ?? ICON_DEFAULTS.gap, set: value => patchAll({ gap: Math.round(value) }), key: "iconGap" }));
     root.append(selectField({ label: "Align", options: ICON_ALIGNS.map(value => ({ value, label: value[0].toUpperCase() + value.slice(1) })), get: item => item.payload.align ?? ICON_DEFAULTS.align, set: value => patchAll({ align: value }), key: "iconAlign" }));
@@ -745,21 +747,25 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
   const desktopProps = typeof matchMedia === "function" ? matchMedia("(min-width: 900px)") : null;
   const TEXT_SECTIONS = [["content", "Content & Typography"], ["effects", "Text Effects"], ["geometry", "Position & Size"], ["arrange", "Arrange"], ["align", "Align to Stage"]];
   const textSectionOpen = { content: true, effects: true, geometry: false, arrange: false, align: false };
-  let accordion = null;
-  function setTextSection(key, open) {
-    textSectionOpen[key] = open;
-    const entry = accordion?.[key];
+  // Icon Group (desktop, 2026-10-19): the same accordion, with its own remembered open / closed state. Move to stage stays the first control, above it.
+  const ICON_SECTIONS = [["icons", "Icons & Links"], ["appearance", "Appearance & Spacing"], ["geometry", "Position & Size"], ["arrange", "Arrange"], ["align", "Align to Stage"]];
+  const iconSectionOpen = { icons: true, appearance: true, geometry: false, arrange: false, align: false };
+  let accordion = null, accordionState = textSectionOpen;
+  function setSection(state, key, open) {
+    state[key] = open;
+    const entry = state === accordionState ? accordion?.[key] : null;
     if (entry) { entry.head.setAttribute("aria-expanded", String(open)); entry.body.hidden = !open; }
   }
-  function accordionSection(root, key, label) {
+  const setTextSection = (key, open) => setSection(textSectionOpen, key, open);
+  function accordionSection(root, key, label, state = textSectionOpen) {
     const id = `propsSection-${key}`;
-    const head = h("button", { class: "ed-acc-head", type: "button", id: `${id}-head`, "aria-expanded": String(textSectionOpen[key]), "aria-controls": id, onclick: () => setTextSection(key, !textSectionOpen[key]) }, h("span", { text: label }));
+    const head = h("button", { class: "ed-acc-head", type: "button", id: `${id}-head`, "aria-expanded": String(state[key]), "aria-controls": id, onclick: () => setSection(state, key, !state[key]) }, h("span", { text: label }));
     head.addEventListener("keydown", event => {
       const heads = [...body.querySelectorAll(".ed-acc-head")], at = heads.indexOf(head);
       const next = { ArrowDown: heads[at + 1] ?? heads[0], ArrowUp: heads[at - 1] ?? heads[heads.length - 1], Home: heads[0], End: heads[heads.length - 1] }[event.key];
       if (next) { event.preventDefault(); next.focus(); }
     });
-    const inner = h("div", { class: "ed-acc-body", id, role: "region", "aria-labelledby": `${id}-head`, hidden: !textSectionOpen[key] });
+    const inner = h("div", { class: "ed-acc-body", id, role: "region", "aria-labelledby": `${id}-head`, hidden: !state[key] });
     root.append(h("section", { class: "ed-acc", "data-acc": key }, h("h3", { class: "ed-acc-title" }, head), inner));
     accordion[key] = { head, body: inner };
     return inner;
@@ -768,7 +774,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
   function rebuild(targets) {
     body.replaceChildren();
     syncers = [];
-    accordion = null;
+    accordion = null; accordionState = textSectionOpen;
     errorBox = h("div", { class: "ed-errors", role: "alert", hidden: true });
     if (!targets.length) {
       title.textContent = "Properties";
@@ -781,7 +787,16 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     const label = single && targets[0].type === "image" && targets[0].payload.media === "video" ? "Video" : single && targets[0].type === "text" && targets[0].payload.link ? "Link" : TYPE_LABEL[types[0]] ?? types[0];
     title.textContent = single ? `${label}${groupedSelection ? " (in a group)" : ""}` : groupedSelection && new Set(targets.map(element => element.groupId)).size === 1 ? `Group of ${targets.length}` : `${targets.length} elements`;
     body.append(errorBox);
-    stageMoveControls(body);
+    stageMoveControls(body);   // always the first control (accepted post-Round 2 fix), above any accordion
+    if (types.length === 1 && types[0] === "icons" && single && desktopProps?.matches) {
+      accordion = {}; accordionState = iconSectionOpen;
+      const sections = Object.fromEntries(ICON_SECTIONS.map(([key, name]) => [key, accordionSection(body, key, name, iconSectionOpen)]));
+      iconsControls(sections.icons, { appearanceRoot: sections.appearance });
+      if (!groupedSelection) geometryControls(sections.geometry, { titled: false });
+      else sections.geometry.append(h("p", { class: "ed-hint", text: "Groups move and resize as one unit. Ungroup to edit an element on its own." }));
+      actionControls(sections.arrange, targets, single, { alignRoot: sections.align });
+      return;
+    }
     if (types.length === 1 && types[0] === "text" && desktopProps?.matches) {
       accordion = {};
       const sections = Object.fromEntries(TEXT_SECTIONS.map(([key, name]) => [key, accordionSection(body, key, key === "align" && !single ? "Align" : name)]));

@@ -251,3 +251,33 @@ body[data-tool="gamid"] .ed-rail [data-tool="gamid"] i, body[data-tool="layout"]
 
 @media (prefers-reduced-motion: reduce) { .ed-top .ed-btn, .ed-rail button, [data-tool-panel="add"] .ed-add-list .ed-btn, [data-tool-panel="add"] .ed-add-list .ed-btn::after { transition: none; } }
 @media (forced-colors: active) { .ed-rail button, .ed-top .ed-btn, [data-tool-panel="add"] .ed-add-list .ed-btn { border-color: ButtonText; } }
+
+/* ---- Media & Links panel (desktop, 2026-10-19): the platform cards as one even two-column grid in the editor's card style, and the open platform / Icon Group /
+   Other form as a framed card. Layout and colour only: the same buttons, links, inputs and behaviour. ---- */
+[data-tool-panel="media"] h2.ed-sub { margin: 1.1rem 0 .5rem; padding-bottom: .55rem; border-bottom: 1px solid rgba(214, 178, 94, .3); font-family: var(--font-ui); font-size: 1.15rem; letter-spacing: .14em; color: var(--gold-hi); }
+[data-tool-panel="media"] .ed-hint { margin: .4rem 0 .7rem; color: var(--ink-dim); font-size: .74rem; line-height: 1.45; }
+[data-tool-panel="media"] .ed-providers { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: .4rem; margin: .45rem 0 .8rem; }
+[data-tool-panel="media"] .ed-provider { align-content: start; gap: .15rem; min-height: 3.1rem; padding: .4rem .55rem .45rem; border: 1px solid transparent; border-radius: .55rem; background: linear-gradient(180deg, #151b3a, #0d1128) padding-box, linear-gradient(180deg, rgba(242, 220, 155, .5), rgba(125, 99, 41, .45)) border-box; color: var(--ink); transition: box-shadow .15s ease; }
+[data-tool-panel="media"] .ed-provider.is-extra { background: linear-gradient(180deg, #121733, #0b0f24) padding-box, linear-gradient(180deg, rgba(242, 220, 155, .28), rgba(125, 99, 41, .24)) border-box; }
+[data-tool-panel="media"] .ed-provider b { font-family: var(--font-ui); font-size: .88rem; font-weight: 700; letter-spacing: .02em; line-height: 1.15; color: var(--ink); }
+[data-tool-panel="media"] .ed-provider small { font-size: .62rem; font-weight: 500; line-height: 1.3; color: var(--ink-dim); text-wrap: balance; }
+[data-tool-panel="media"] .ed-provider small .ed-mode { white-space: nowrap; }
+[data-tool-panel="media"] .ed-provider:hover { background: linear-gradient(180deg, #221a4e, #12123a) padding-box, linear-gradient(180deg, var(--gold-hi), var(--violet-hi)) border-box; box-shadow: 0 0 .9rem rgba(160, 77, 255, .3); }
+[data-tool-panel="media"] .ed-provider[aria-expanded="true"] { background: linear-gradient(180deg, rgba(169, 77, 255, .55), rgba(92, 40, 190, .45)) padding-box, linear-gradient(#0d1128, #0d1128) padding-box, linear-gradient(180deg, var(--gold-hi), var(--gold-lo)) border-box; box-shadow: 0 0 .9rem rgba(160, 77, 255, .35); }
+[data-tool-panel="media"] .ed-provider[aria-expanded="true"] small { color: #e4dcff; }
+[data-tool-panel="media"] .ed-provider-info { margin: 0 0 1rem; padding: .8rem .8rem .85rem; border: 1px solid transparent; border-radius: .6rem; background: linear-gradient(180deg, #131838, #0b0f24) padding-box, linear-gradient(180deg, rgba(242, 220, 155, .55), rgba(125, 99, 41, .4)) border-box; }
+[data-tool-panel="media"] .ed-provider-info .title { margin-bottom: .35rem; font-family: var(--font-ui); font-size: .95rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-hi); }
+[data-tool-panel="media"] .ed-provider-info .ed-hint { margin: .35rem 0 .65rem; }
+[data-tool-panel="media"] .ed-provider-info .ed-icon-rows { gap: .5rem; margin-bottom: .2rem; }
+[data-tool-panel="media"] .ed-provider-info .ed-btn-row { gap: .5rem; margin-top: .7rem; }
+[data-tool-panel="media"] .ed-provider-info .ed-media-msg { margin-top: .5rem; }
+@media (prefers-reduced-motion: reduce) { [data-tool-panel="media"] .ed-provider { transition: none; } }
+
+/* ---- Icon Group Properties (desktop accordion, 2026-10-19): each icon row keeps its badge, link and move / remove buttons; the link gets the full width and the
+   buttons sit under it, so the address stays readable. Only inside the accordion: the phone panel is unchanged. ---- */
+#propsBody .ed-acc-body .ed-icon-list { gap: .7rem; }
+#propsBody .ed-acc-body .ed-icon-item { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "badge link" ". actions"; row-gap: .35rem; column-gap: .55rem; }
+#propsBody .ed-acc-body .ed-icon-item > :first-child { grid-area: badge; margin-top: .3rem; }
+#propsBody .ed-acc-body .ed-icon-link { grid-area: link; }
+#propsBody .ed-acc-body .ed-icon-actions { grid-area: actions; justify-content: flex-end; gap: .35rem; }
+#propsBody .ed-acc-body .ed-icon-actions .ed-btn { min-width: 2.5rem; min-height: 2.25rem; }

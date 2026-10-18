@@ -307,10 +307,20 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
       h("ul", {}, ...rows),
       entry.examples ? h("p", { class: "ed-hint", text: `Paste: ${entry.examples}` }) : null);
   }
+  // A card's modes, "Player · Card · Link · Icon": the same text as before, as one piece per mode, so on desktop a line never starts with a separator
+  // (editor-desktop.css keeps each piece whole).
+  // Desktop only (900px and wider): below that the card keeps its plain text, so the phone and tablet panels render exactly as before.
+  const modeLines = [];
+  const renderModeLine = ({ small, modes }) => {
+    if (accordionOn()) small.replaceChildren(...modes.flatMap((mode, index) => index < modes.length - 1 ? [h("span", { class: "ed-mode", text: `${mode} ·` }), " "] : [h("span", { class: "ed-mode", text: mode })]));
+    else small.textContent = modes.join(" · ");
+  };
+  const modeLine = modes => { const line = { small: h("small"), modes }; modeLines.push(line); renderModeLine(line); return line.small; };
+  desktopFonts?.addEventListener?.("change", () => modeLines.forEach(renderModeLine));
   for (const entry of capabilities) {
     const modes = [...new Set(entry.kinds.flatMap(kind => kind.presentations))].map(value => PRESENTATION_LABELS[value]);
     const button = h("button", { type: "button", class: `ed-provider${entry.featured ? "" : " is-extra"}`, "aria-expanded": "false", "aria-controls": "mediaProviderInfo", role: "listitem",
-      onclick: () => { openProvider = openProvider === entry.key ? null : entry.key; renderProviderInfo(); } }, h("b", { text: entry.label }), h("small", { text: modes.join(" · ") }));
+      onclick: () => { openProvider = openProvider === entry.key ? null : entry.key; renderProviderInfo(); } }, h("b", { text: entry.label }), modeLine(modes));
     button.dataset.provider = entry.key;
     providerList.append(button);
   }
