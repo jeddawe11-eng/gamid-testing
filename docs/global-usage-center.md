@@ -187,3 +187,11 @@ headers/styles with fixture data and `connect-src 'none'`; no real user is touch
    disappear. Public visitor GamIDs must not show Usage.
 
 USAGE remains subject to Mazen's manual acceptance.
+
+**Custom Wall fonts (2026-10-18, `875bd2dfe6e194816500f262d7aedeabc14d0f58`; migration `20261018120000`; `usage-upload` v10).**
+
+- Fonts live in the private `wall-fonts` bucket under the owner's folder, so they count toward the same 200 MB account quota through the same reservation and completion receipts.
+- The `font` media category is shown as "Wall Fonts", and the quota list gains **Custom Fonts n / 3**.
+- The 3-font limit is enforced inside `reserve_usage_upload` (patched in place, asserted) under the existing per-account lock.
+- The owner's `/cleanup` also removes unregistered font files older than an hour.
+- No other bucket, cap or rule changed. Details: `docs/WALL-EDITOR-TEXT-FONTS.md`.

@@ -83,7 +83,7 @@ Mazen's task "GAMID — My Wall Desktop Text: Accordion + Custom Font Upload", p
 - **Regression against the previous build:** 59 states unchanged (the eight other panels at seven widths, plus the Text panel at 390, 768 and 899px; largest single-pixel delta 3 of 765). The 27-step behavior transcript is identical, and the font lifecycle (create, save, reload, Preview, public paint, all 11 faces) passes.
 - **Suite:** `npm run build` gives 1949 tests, 1948 passed, 0 failed, 1 skipped, including one new accordion test in `tests/wall-text-fonts.test.js`.
 
-## Upload My Font: NOT implemented (awaiting Mazen's architecture approval)
+## Upload My Font: the proposal (historical, 2026-10-18; approved and implemented the same day - see Custom fonts below)
 
 Part 2 of the same task, extended by Mazen's "User-Owned Font Storage & Usage" requirements, needs database, storage, policy and Edge Function changes. Under the task's own gate it is **not implemented**, and no upload button was added. What exists today:
 
@@ -123,3 +123,90 @@ Part 2 of the same task, extended by Mazen's "User-Owned Font Storage & Usage" r
 - the editor's Upload My Font UI and My Fonts category, and font loading in the editor and the public Wall.
 
 **Accordion TESTING delivery:** source `8da87669a346e831d8998a3b00323c96727a77a0`, [workflow 39103420138](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39103420138) SUCCESS; the served editor and font files are byte-identical to the commit. Awaiting Mazen's review.
+
+## Custom fonts: implemented (2026-10-18)
+
+Mazen's task "GAMID — Custom Font Upload Implementation" approved the proposal above with one product rule: **at most 3 active custom fonts per account**. Implemented on TESTING; Truth `custom-wall-fonts` is **PENDING_ACCEPTANCE**.
+
+**Server (migration `20261018120000_wall_custom_fonts`; Edge Function `usage-upload` v10).**
+
+- **Storage:** private bucket `wall-fonts` (2 MiB, `font/woff2` only) at `<uid>/fonts/<sha256>.woff2`. Only the gateway writes it: there is no client write policy, and the account-wide gateway policy already refuses direct writes.
+- **Gateway order:** licence confirmation, declared type, at most 2 MiB, then **structural WOFF2 validation**:
+  - the signature, and the declared length equal to the real length (so nothing can be appended);
+  - table count and reserved field;
+  - bounded sizes, a bounds-checked table directory with strict UIntBase128 values and no duplicate tables;
+  - the required tables and the outlines (`glyf` with `loca`, or `CFF` / `CFF2`);
+  - in-bounds metadata and private blocks;
+  - collections (`ttcf`) refused.
+
+  Then the server-computed **SHA-256 must be the file name**, which makes deduplication tamper-proof. Only then: reserve (quota and the 3-font limit), store, complete and **register**. A refused registration removes what was just stored; a failed store releases the reservation. Fonts never use the resumable route.
+- **Limits in the database** (`reserve_usage_upload` patched in place, plus `register_wall_font`, both under the existing per-account advisory lock):
+  - 3 fonts, counting registered fonts **and** in-flight or stored-but-unregistered ones, so concurrent uploads cannot pass it;
+  - an identical font (same SHA-256) is answered as `duplicate` with no new slot and no new file;
+  - the 200 MB quota is unchanged, and font bytes count toward it automatically.
+- **Registry and ownership:** `wall_fonts` (RLS on, no client grants).
+  - **Owner RPCs:** `list_my_wall_fonts` (fonts, limit, whether the saved draft or a published Wall uses each) and `delete_my_wall_font`.
+  - **Service-only:** `register_wall_font` (the gateway).
+  - **Names:** control characters are stripped and names are kept to 60 characters.
+- **Walls:** a text element stores `fontRef: "font:<font_id>"` and keeps its catalog `fontFamily` as the fallback.
+  - A trigger refuses any draft naming a font its owner does not have (`WALL_FONT_NOT_FOUND`).
+  - The document validators are unchanged: `fontRef` was already an opaque, reserved field.
+- **Deletion:**
+  - refused while the saved draft uses the font (`WALL_FONT_IN_USE`) or any published snapshot does (`WALL_FONT_PUBLISHED`);
+  - the gateway's delete check refuses a registered font file (`WALL_FONT_REGISTERED`), and a restrictive Storage policy blocks the owner's direct delete of it;
+  - unregistered font files older than an hour are removed by the owner's usage cleanup.
+- **Visitors:** the policy "published wall fonts are readable" admits a font only while the **published, enabled** Wall of a **PUBLIC** GamID references it, the same predicate as Wall media. `get_public_wall_fonts(handle)` lists exactly those. A visitor never sees the private library; signing stays owner-only.
+- **Usage:** a `font` media category ("Wall Fonts" in the Usage Center) and the line **Custom Fonts n / 3**.
+
+**Front end.**
+
+- **Kit module:** `dist/wall-kit/custom-fonts.js` turns only a well-formed `font:<uuid>` into a **generated** family (`GamID Custom <hex>`), so no user text reaches CSS. It registers fonts from their bytes with the `FontFace` API, so `font-src 'self'` is unchanged.
+- **Painting:** `paint.js` draws the custom family first and the catalog fallback after it. So the editor canvas, Preview and the published Wall all show it, with the fallback until it loads or if the browser's sanitizer refuses the file.
+- **Editor:** `font-store.js` lists and registers the owner's fonts on load.
+- **Desktop Text panel, My Fonts** (above the library and its accordions; hidden below 900px like the other desktop additions):
+  - the **n/3** count, the licence checkbox (required before the file dialog opens) and **Upload My Font**;
+  - a **real preview**: the browser must accept the file as a font first;
+  - clear messages for the limit, quota, size, type, invalid file, licence, duplicate, in-use and published cases;
+  - cards with a live sample, a "Published" / "On your Wall" status and a two-step delete;
+  - unsaved uses are caught before asking the server.
+
+  Choosing a library font (Text panel or the Properties menu) replaces a custom font.
+- **Published Wall:** fetches fonts only when its snapshot names a `fontRef`, and only through `get_public_wall_fonts`.
+
+**Validation.**
+
+- **`tests/wall-custom-fonts.test.js` (17 tests):**
+  - **Validator:** all 19 real WOFF2 files in the repository accepted. Refused: non-fonts (PNG, HTML, SVG, ZIP, raw TTF, WOFF 1), collections, a WOFF2 with script appended, every structural fault, flipped header fields and over 2 MiB.
+  - **Gateway route** (fake backend): licence, type, hash, size, ownership and path refusals happen before any reservation; the limit and the quota store nothing; duplicates store nothing; a refused registration removes the file; a failed store releases the reservation; no resumable route; delete refusal; cleanup.
+  - **Kit:** injection-safe names and single registration.
+  - **Static contracts:** the UI, the published Wall and the migration's security shape.
+- **`tests/wall-custom-fonts-db.test.js` (10 tests):** the **real migration** on PGlite after the real usage-gateway migration. Ownership and RLS, deduplication, the limit at reservation and registration, in-flight slots, quota, the draft reference check, both deletion refusals, the restrictive delete policy, the visitor policy (DRAFT / PUBLIC / disabled / unreferenced) and orphan cleanup.
+- **TESTING rehearsal (rolled back),** as the service role, GM-TEST-01, GM-TEST-02 and an anonymous visitor (SQL impersonation; no sign-in):
+  - all assertions passed, including the three in-place patches, the limit, deduplication, in-flight slots, cross-account refusals, the draft trigger through `save_my_wall_draft`, `WALL_FONT_IN_USE` and `WALL_FONT_PUBLISHED`, the visitor policy and the anonymous RPC;
+  - the restrictive delete, evaluated as the Storage API does it, with a positive control.
+
+  Afterwards the bucket, table, personas' drafts, visibility, publications and objects were verified unchanged. Then applied, and the history repaired.
+- **Live concurrency (TESTING, GM-TEST-02, synthetic receipts only):** with 2 slots held, two simultaneous reservations raced for the last slot; exactly one won and the other got `WALL_FONT_LIMIT`. The synthetic receipts were then removed (0 left).
+- **Live gateway and API with the public key only:**
+  - an unauthenticated upload gets 401, and a foreign origin 403;
+  - CORS admits the two font headers;
+  - anonymous `list_my_wall_fonts` and `register_wall_font` are denied;
+  - `get_public_wall_fonts('black')` returns `[]`;
+  - an anonymous or public URL read of a font path gets 400.
+- **`usage-upload` v10:** deployed after confirming v9 was identical to the previous repository version; the downloaded v10 source is byte-identical to the repository.
+- **Lab UI walk-through** (the real editor with a stand-in client): 18 checks pass, covering 0/3, the licence gate, refusals for non-WOFF2 and an HTML file, upload to 1/3, the duplicate message, 3/3, the 4th font refused, applying a font (canvas, current card, registered faces), the delete confirmation, refusal while used, a library font replacing the custom one, delete freeing a slot, uploading again, save with `fontRef` and the fallback, and Preview.
+- **Regression against the previous build:**
+  - 59 panel states are unchanged (the other eight panels at seven widths, and the Text panel at 390, 768 and 899px);
+  - the 27-step behavior transcript is identical;
+  - the accordion and curated-font checks pass;
+  - live `@black` makes no font request and has no errors.
+- **`npm run build`:** 1976 tests, 1975 passed, 0 failed, 1 skipped.
+
+**Limits and not done.**
+
+- The structural check cannot see inside WOFF2's brotli-compressed table data; browsers sanitize every web font (OTS) before use, and the file is only ever read as font data.
+- WOFF2 only: there is no TTF / OTF conversion.
+- **A real upload through the deployed gateway with a signed-in account was not performed by the agent,** because real accounts are protected and personas are never signed into. It is covered by the gateway tests and the live database checks above, and Mazen's acceptance test with his own account completes it.
+- The Properties font menu shows a text's catalog fallback while a custom font is applied; the Text panel marks the custom font as current.
+
+**TESTING delivery:** product `875bd2dfe6e194816500f262d7aedeabc14d0f58`, [workflow 39125819357](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39125819357) SUCCESS (full validation and the deployed-site smoke check passed). The 12 changed static files are byte-identical; migration `20261018120000` is applied; `usage-upload` v10 is active. Awaiting Mazen's acceptance.

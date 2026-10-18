@@ -3845,3 +3845,31 @@ Mazen's task "GAMID — My Wall Desktop Text: Accordion + Custom Font Upload", w
 **Truth: NO CHANGE REQUIRED** (a presentation change; no capability, limit or contract changed; the upload capability does not exist).
 
 Product Memory: proposal only, not saved. **STOP for Mazen's review and his decision on the font-upload proposal.**
+
+## 83. Custom Wall fonts: Upload My Font and My Fonts (2026-10-18)
+
+Mazen approved implementing the documented custom-font architecture (§82) on TESTING, with **at most 3 active custom fonts per account**. Implementation, security design and full evidence are in `docs/WALL-EDITOR-TEXT-FONTS.md` (section "Custom fonts: implemented").
+
+- **Product:** `875bd2dfe6e194816500f262d7aedeabc14d0f58`.
+- **Database:** migration `20261018120000_wall_custom_fonts` **APPLIED** on TESTING, after a rolled-back rehearsal in which every assertion passed (service role, GM-TEST-01 / GM-TEST-02 by SQL impersonation, anonymous visitor). State was verified unchanged afterwards, then the migration was applied and the history repaired.
+  - **Adds:** the private `wall-fonts` bucket (2 MiB, WOFF2), the `wall_fonts` registry (RLS, owner RPCs, service-only registration) and the published-fonts visitor policy and RPC.
+  - **Patches in place (asserted):** `reserve_usage_upload` (the bucket and the 3-font limit), `authorize_usage_delete` (registered fonts) and `get_my_usage_impl` (Custom Fonts n / 3).
+  - **Also adds:** the draft fontRef check, a restrictive delete policy for registered fonts and a `font` usage category.
+- **Edge Function:** `usage-upload` **v10** (deployed after confirming v9 matched the previous repository version; the v10 download is byte-identical to the repository). WOFF2 structural validation and SHA-256 naming come before any reservation; it then reserves, stores, completes and registers, rolls back a refused registration and cleans up orphans.
+- **TESTING static:** source `875bd2dfe6e194816500f262d7aedeabc14d0f58`, run `39125819357`, 12 of 12 changed files byte-identical.
+- **Verified live:**
+  - a race for the last slot has exactly one winner (synthetic receipts, then removed);
+  - anonymous probes are refused (401 / 403 / 42501);
+  - `@black` is unaffected.
+- **Not done by the agent:** a real upload with a signed-in account (protected accounts; personas are never signed into). That is Mazen's acceptance step.
+- **Validation:** `npm run build` 1976 tests, 1975 passed, 1 skipped, 0 failed. New `tests/wall-custom-fonts.test.js` (17) and `tests/wall-custom-fonts-db.test.js` (10, the real migration on PGlite). The guard tests got explicit, checked allowances for this migration and its visitor RPC. Lab UI: 18 checks pass; regression: 59 states unchanged, behavior transcript identical.
+
+**Truth: UPDATED.** New `custom-wall-fonts` **PENDING_ACCEPTANCE**:
+
+- limits `maxCustomFontsPerAccount` 3 and `maxFontBytes` 2097152;
+- six contracts: upload, limit, storage, use, visitor access, delete;
+- checkpoint `875bd2dfe6e194816500f262d7aedeabc14d0f58`.
+
+Nothing else changed.
+
+Product Memory: proposal only, not saved. **STOP for Mazen's acceptance.**

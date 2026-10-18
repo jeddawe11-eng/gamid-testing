@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-17",
+  "updated": "2026-10-18",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -419,6 +419,47 @@
       "checkpoint": "efac19e6a99d1aac9893243603d1db824534aefa",
       "record": "Product Memory DEC-0006 (implementation authorized and accepted by Mazen 2026-10-12); PROJECT_HANDOFF.md §49 (implementation, TESTING run 38204748089) and §50 (acceptance); migration supabase/migrations/20261012120000_wall_icons.sql",
       "notes": "Mazen gave final manual acceptance on TESTING on 2026-10-12 (all 14 platforms, Single Icon, Icon Group, working links, correct icons, saving). A vertical arrangement is made with the existing automatic wrapping (a narrow group box); there is no dedicated vertical layout control."
+    },
+    {
+      "id": "custom-wall-fonts",
+      "name": "Custom Wall fonts (Upload My Font / My Fonts)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/",
+        "/@handle"
+      ],
+      "limits": {
+        "maxCustomFontsPerAccount": 3,
+        "maxFontBytes": 2097152
+      },
+      "contracts": [
+        {
+          "id": "custom-font-upload",
+          "rule": "An owner uploads a WOFF2 font in the desktop Text panel (Upload My Font, 900px and wider) after confirming they own it or are licensed to embed it on the web. Only the usage-upload gateway stores it: it checks the WOFF2 structure and that the file name is the SHA-256 of the bytes before any quota is reserved, never trusting the extension or declared type; at most 2 MiB; WOFF2 only (no TTF / OTF conversion)."
+        },
+        {
+          "id": "custom-font-limit",
+          "rule": "At most 3 custom fonts per account at a time (stored fonts, not lifetime uploads), enforced by the database at quota reservation and again at registration under the per-account lock, counting uploads in progress, so concurrent uploads cannot exceed it. A 4th distinct font is refused (WALL_FONT_LIMIT); deleting an unused font frees its slot. Re-uploading an identical font (same SHA-256) is stored once and never takes another slot. No paid extra slots."
+        },
+        {
+          "id": "custom-font-storage",
+          "rule": "Each font belongs only to the uploading account, is never added to the shared GamID library, and its bytes count toward the existing account storage quota (reservation, quota refusal and cleanup rules as for every upload). My Fonts shows n/3; the Usage Center shows Custom Fonts n/3 and Wall Fonts storage."
+        },
+        {
+          "id": "custom-font-use",
+          "rule": "A text element uses a custom font as fontRef \"font:<id>\" and keeps its catalog font as the fallback; the editor canvas, Preview and the published Wall all draw it, with the fallback until it loads. A Wall may name only its owner's fonts. Choosing a library font (Text panel or Properties) replaces the custom font."
+        },
+        {
+          "id": "custom-font-visitor-access",
+          "rule": "Fonts are private. A visitor (signed in or not) can read a font only while the published, enabled Wall of a PUBLIC GamID references it; the private font library is never listed or exposed to anyone else."
+        },
+        {
+          "id": "custom-font-delete",
+          "rule": "Deleting a font is refused while the saved Wall (WALL_FONT_IN_USE) or a published Wall (WALL_FONT_PUBLISHED) uses it, until the owner replaces it and saves / publishes again; a registered font file cannot be deleted directly."
+        }
+      ],
+      "checkpoint": "875bd2dfe6e194816500f262d7aedeabc14d0f58",
+      "record": "docs/WALL-EDITOR-TEXT-FONTS.md; PROJECT_HANDOFF.md §83. Implemented under Mazen's approval of 2026-10-18 (the documented architecture plus the 3-font rule): migration 20261018120000_wall_custom_fonts applied on TESTING (rehearsed in a rolled-back transaction first), usage-upload v10, static deployment 875bd2d (run 39125819357). Awaiting his acceptance."
     },
     {
       "id": "public-wall-publishing",
