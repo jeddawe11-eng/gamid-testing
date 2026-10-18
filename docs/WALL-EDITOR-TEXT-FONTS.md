@@ -264,3 +264,7 @@ Mazen's task "GAMID — Custom Font Upload: Add TTF & OTF Support". Upload My Fo
 - **Same font, different formats:** a WOFF2 and a TTF of the same font are different files, so they are not deduplicated against each other.
 
 **TESTING delivery:** product `e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f`, [workflow 39127878054](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39127878054) SUCCESS; `usage-upload` v12. Awaiting Mazen's acceptance.
+
+## Text panel order (2026-10-18)
+
+Since `5a5a312`, the desktop Text panel runs Add Text, Font Library, Text Effects, My Fonts, then Upload My Font at the very bottom, with shorter upload copy and the same rules. My Fonts therefore now sits below the library. See `docs/WALL-EDITOR-TEXT-EFFECTS.md` (`PROJECT_HANDOFF.md` §85).

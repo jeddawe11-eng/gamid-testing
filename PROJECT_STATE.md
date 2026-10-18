@@ -4,7 +4,7 @@
 
 This file is an index and a continuation pointer. It is **not** an authoritative source. Every fact here points to the source that owns it, and **that source wins** whenever the two disagree.
 
-Last reviewed: 2026-10-17.
+Last reviewed: 2026-10-18.
 
 ## 1. Mandatory entry order
 
@@ -56,7 +56,7 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
 
 - **Working tip:** `feature/play-together-notifications`, tracking its origin branch. It is **not merged** into `main`.
   - It descends from `feature/wall-video-asset-preview` (accepted video preview fix `c932781`), which descends from `feature/gamid-truth`.
-- **Latest product commit:** `e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f` (custom fonts: TTF / OTF upload converted to WOFF2 on the server, §84; Truth `custom-wall-fonts` PENDING_ACCEPTANCE). Previous: `875bd2dfe6e194816500f262d7aedeabc14d0f58` (custom Wall fonts, §83). Before that: `8da87669a346e831d8998a3b00323c96727a77a0` (desktop font category accordions, §82). Before that: `936b665ebb2d445bd6e2ccbf1c0dce3e5bbe415d` (Text & Fonts Phase 2, §81). Before that: `716b4e74df33b9bd50ee2f802dea2442f69a001a` (Desktop Visual Redesign Phase 1, §80; visually approved per Mazen's Phase 2 task). Before that: `ace098218bef771cd5b34afff2a9681cb4afb4b3` (Mobile Public Visitor V2, §77; Truth `public-profile-mobile-v2` ACCEPTED by Mazen 2026-10-17, §78).
+- **Latest product commit:** `5a5a31239ff117e6a3c93209547490043ec206e6` (desktop Text editor: Text panel sections with Text Effects, text Properties accordion; Living Fire not integrated, §85; Truth unchanged). Previous: `e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f` (custom fonts: TTF / OTF upload converted to WOFF2 on the server, §84; Truth `custom-wall-fonts` PENDING_ACCEPTANCE). Before that: `875bd2dfe6e194816500f262d7aedeabc14d0f58` (custom Wall fonts, §83). Before that: `8da87669a346e831d8998a3b00323c96727a77a0` (desktop font category accordions, §82). Before that: `936b665ebb2d445bd6e2ccbf1c0dce3e5bbe415d` (Text & Fonts Phase 2, §81). Before that: `716b4e74df33b9bd50ee2f802dea2442f69a001a` (Desktop Visual Redesign Phase 1, §80; visually approved per Mazen's Phase 2 task). Before that: `ace098218bef771cd5b34afff2a9681cb4afb4b3` (Mobile Public Visitor V2, §77; Truth `public-profile-mobile-v2` ACCEPTED by Mazen 2026-10-17, §78).
 - **Previous product commit:** `77cfe4fb90d51e321e3954ac10bcc6cdfb62f4d3` (Intro landscape hint 6-second refinement, §75), on top of `c3113d0e887ee12878fdd9ec6e09501728c72749` (mobile Intro landscape hint, implemented at `30653d1`, §74; Truth `intro-landscape-hint` ACCEPTED by Mazen 2026-10-17, §79).
 - **Previous product commit:** `15e204dcc8e324de3d32efc1e747b041424f45aa` (Mobile V2 visual parity fixes, `PROJECT_HANDOFF.md` §72), on top of `a0c7c95580e7e3375aa095fdc62de520059236ac` (Mobile V2 Profile Deck below 1024px; `docs/PROFILE-EDITOR-MOBILE-V2.md`, §71). Truth `your-gamid-editor-mobile` is PENDING_ACCEPTANCE.
 - **Previous product commit:** `0f386d379e811d14afcc043a11601d7f459bd402` (Approved Crew reference, four-column Desktop member grid and confirmed selection removal, retaining summaries/list/public directory; `docs/MY-CREW-UX.md`, `PROJECT_HANDOFF.md` §67, Truth `crew-ux-navigation`; ACCEPTED by Mazen 2026-10-16 (§68)). Prior accepted base capabilities and limits remain unchanged.
@@ -76,7 +76,8 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f`** (successful run `39127878054`, TTF / OTF upload, `PROJECT_HANDOFF.md` §84; `usage-upload` v12; PENDING_ACCEPTANCE).
+- **TESTING serves `5a5a31239ff117e6a3c93209547490043ec206e6`** (successful run `39131378232`, desktop Text editor Phase A, `PROJECT_HANDOFF.md` §85; backend unchanged).
+- **Previously served `e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f`** (successful run `39127878054`, TTF / OTF upload, §84; `usage-upload` v12; PENDING_ACCEPTANCE).
 - **Previously served `875bd2dfe6e194816500f262d7aedeabc14d0f58`** (run `39125819357`, custom Wall fonts, §83; migration `20261018120000` applied).
 - **Previously served `8da87669a346e831d8998a3b00323c96727a77a0`** (successful run `39103420138`, font category accordions, `PROJECT_HANDOFF.md` §82, on top of Text & Fonts Phase 2 §81; awaiting Mazen's review). Backend unchanged.
 - **Previously served `936b665ebb2d445bd6e2ccbf1c0dce3e5bbe415d`** (run `39101612969`, Text & Fonts Phase 2, §81).
@@ -122,7 +123,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-18, TTF / OTF upload):** Upload My Font now also accepts TTF and OTF (up to 8 MB). They are validated and converted on the server to the stored WOFF2 (at most 2 MB), with the runtime's own Brotli and no new service; there was no migration (§84). Product `e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f`, `usage-upload` v12; Truth `custom-wall-fonts` PENDING_ACCEPTANCE. **Next:** Mazen's acceptance test with his own account (WOFF2, TTF such as Imperial Script, and OTF uploads; apply, publish, visitor view, delete).
+**Latest continuation (2026-10-18, desktop Text editor upgrade):** Phase A is on TESTING (§85, `docs/WALL-EDITOR-TEXT-EFFECTS.md`). The desktop Text panel is reordered: Add Text, Font Library, Text Effects, My Fonts, Upload My Font. Text Effects has Neon (the existing glow) and Living Fire as "Coming soon". Text Properties sit in five independent sections. Product `5a5a31239ff117e6a3c93209547490043ec206e6`, no backend change; Truth unchanged. Phase B, the Living Fire V3 readiness report, is in the doc. **Next:** Mazen's acceptance of Phase A, and his choice of V3 variant(s) (Organic / Cinematic / Mythic) plus authorisation of the migration that Phase C needs. Living Fire is not to be integrated before then.
+
+**Previous continuation (2026-10-18, TTF / OTF upload):** Upload My Font now also accepts TTF and OTF (up to 8 MB). They are validated and converted on the server to the stored WOFF2 (at most 2 MB), with the runtime's own Brotli and no new service; there was no migration (§84). Product `e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f`, `usage-upload` v12; Truth `custom-wall-fonts` PENDING_ACCEPTANCE. **Next:** Mazen's acceptance test with his own account (WOFF2, TTF such as Imperial Script, and OTF uploads; apply, publish, visitor view, delete).
 
 **Previous continuation (2026-10-18, custom Wall fonts):** Mazen approved and the agent implemented Upload My Font / My Fonts on TESTING (§83, `docs/WALL-EDITOR-TEXT-FONTS.md`). The rules are WOFF2, 2 MiB, **at most 3 per account**, inside the 200 MB quota, owner-only, readable by visitors only through a published PUBLIC Wall, with deletion refused while a Wall uses the font. Product `875bd2dfe6e194816500f262d7aedeabc14d0f58`, migration `20261018120000` applied, `usage-upload` v10; Truth `custom-wall-fonts` PENDING_ACCEPTANCE. **Next:** Mazen's acceptance test with his own account (a real upload, apply, publish, visitor view, delete).
 

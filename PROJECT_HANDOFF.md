@@ -3903,3 +3903,25 @@ Mazen's task "GAMID — Custom Font Upload: Add TTF & OTF Support". Details and 
 Nothing else changed.
 
 Product Memory: proposal only, not saved. **STOP for Mazen's acceptance.**
+
+## 85. Desktop Text editor: Text Effects, Properties accordion; Living Fire V3 readiness (2026-10-18)
+
+Mazen's task "GAMID — Desktop Text Editor Upgrade: Text Effects + Living Fire V3 + Accordion Properties". Details and evidence: `docs/WALL-EDITOR-TEXT-EFFECTS.md`.
+
+- **Phase A, product:** `5a5a31239ff117e6a3c93209547490043ec206e6`. It is desktop only (900px and wider) and has no database, Edge Function or saved-format change.
+  - **Text panel order:** Add Text (desktop wording: these add text boxes), Font Library, Text Effects (new), My Fonts, and Upload My Font at the bottom (shorter copy, the same rules).
+  - **Text Effects:** Neon toggles the existing glow and opens Text Effects in Properties. Living Fire is a disabled "Coming soon" card and is **not integrated**.
+  - **Text Properties:** five independent sections (Content & Typography, Text Effects, Position & Size, Arrange, Align to Stage) with the same controls. Their open state is kept across selections, and they are keyboard operable.
+- **TESTING static:** source `5a5a31239ff117e6a3c93209547490043ec206e6`, run `39131378232`; changed editor files byte-identical.
+- **Validation:**
+  - Tests: 1990 tests, 1989 passed, 1 skipped, 0 failed.
+  - Lab: 59 regression states and phone / tablet text Properties are pixel-identical, and the other element types' desktop Properties are identical.
+  - The behaviour transcript is identical, and the My Fonts and TTF / OTF walk-throughs pass.
+- **Phase B:** the Living Fire V3 readiness report is in the doc.
+  - The three variants are one engine and one shader (`uDirection`), so all three can be offered as selectable variants.
+  - Phase C needs a payload field plus a migration, a per-element renderer, a context strategy, a Worker for the SDF, and visitor rendering with a fallback.
+- **Not done:** Phase C, which waits for Mazen's choice of variant(s) and his authorisation.
+
+**Truth: NO CHANGE REQUIRED.** This is a presentation change of the desktop editor: the existing glow, no new capability, limit or contract, and Living Fire not integrated.
+
+Product Memory: no record saved. **STOP for Mazen's acceptance of Phase A and his Living Fire variant decision.**
