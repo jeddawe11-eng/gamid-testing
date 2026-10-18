@@ -96,20 +96,47 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
     for (const item of seen) if (item.isIntersecting) { applyCardFont(cardOf.get(item.target)); lazyFonts.unobserve(item.target); }
   }, { root: $("drawer"), rootMargin: "160px 0px" }) : null;
   for (const entry of fontGroups) for (const card of entry.cards) { cardOf.set(card.button, card); if (lazyFonts) lazyFonts.observe(card.button); else applyCardFont(card); }
-  // Search by name only: it hides cards in this list and nothing else - the canvas and the saved Wall are never touched.
+  // Desktop (900px and wider): each category is an accordion - a real button with the category name, its font count and a chevron. All start collapsed, several may be
+  // open, and the open / closed choice is kept while searching. Below 900px the heading stays the plain text it always was and every card shows (no accordion).
+  const desktopFonts = typeof matchMedia === "function" ? matchMedia("(min-width: 900px)") : null;
+  const accordionOn = () => Boolean(desktopFonts?.matches);
+  for (const entry of fontGroups) {
+    entry.open = false;
+    entry.toggle = h("button", { class: "ed-font-group-toggle", type: "button", "aria-expanded": "false", onclick: () => { if (fontSearching()) return; entry.open = !entry.open; applyFontFilter(); } },
+      h("span", { class: "ed-font-group-name", text: entry.group }), h("span", { class: "ed-font-group-count", text: String(entry.cards.length), "aria-label": `${entry.cards.length} fonts` }));
+  }
+  function renderFontHeadings() {
+    for (const entry of fontGroups) {
+      if (accordionOn()) { if (entry.toggle.parentNode !== entry.heading) { entry.heading.replaceChildren(entry.toggle); entry.heading.classList.add("is-accordion"); } }
+      else if (entry.heading.classList.contains("is-accordion")) { entry.heading.classList.remove("is-accordion"); entry.heading.replaceChildren(entry.group); }
+    }
+  }
+  // Search by name only: it hides cards in this list and nothing else - the canvas and the saved Wall are never touched. It looks in every category, collapsed or not,
+  // and shows the matching ones opened; clearing the search returns each category to the open / closed state it had before.
   const fontSearch = $("fontSearch");
+  const fontSearching = () => Boolean((fontSearch?.value ?? "").trim());
   function applyFontFilter() {
     const query = (fontSearch?.value ?? "").trim().toLowerCase();
+    const accordion = accordionOn();
     let shown = 0;
     for (const entry of fontGroups) {
       let visible = 0;
-      for (const { font, button } of entry.cards) { const match = !query || font.label.toLowerCase().includes(query) || font.key.includes(query); button.hidden = !match; if (match) visible++; }
-      entry.heading.hidden = visible === 0; shown += visible;
+      for (const { font, button } of entry.cards) {
+        const match = !query || font.label.toLowerCase().includes(query) || font.key.includes(query);
+        button.hidden = !match || (accordion && !query && !entry.open);
+        if (match) visible++;
+      }
+      entry.heading.hidden = Boolean(query) && visible === 0; shown += visible;
+      entry.toggle.setAttribute("aria-expanded", String(query ? visible > 0 : entry.open));
+      if (query) entry.toggle.setAttribute("aria-disabled", "true"); else entry.toggle.removeAttribute("aria-disabled");
     }
     fontEmpty.hidden = shown > 0;
     if (!shown) fontEmpty.textContent = `No font matches "${query}".`;
   }
   fontSearch?.addEventListener("input", applyFontFilter);
+  const relayoutFonts = () => { renderFontHeadings(); applyFontFilter(); };
+  desktopFonts?.addEventListener?.("change", relayoutFonts);
+  relayoutFonts();
   // The font of the selected text element(s) is the current card; a mixed selection marks none.
   function renderFontSelection() {
     const stage = session.stage, chosen = new Set(session.state.selection);

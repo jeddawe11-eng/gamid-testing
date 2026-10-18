@@ -65,3 +65,59 @@ New styling in `editor-desktop.css` (the Phase 1 stylesheet; Phase 1's shell and
 - **Served files:** 27 of 27 are byte-identical to the commit (SHA-256): the 14 font files, `wall-kit.css`, `fonts.js`, `LICENSES.txt`, `OFL-NOTICES.txt` and the editor files. Fonts are served as `font/woff2`.
 - **Not done:** the editor was not opened with a real account (real accounts are protected), and nothing was published; the lifecycle checks above ran on the local lab.
 - **Status:** awaiting Mazen's visual review and final acceptance. Phase 3 is not started and not authorized.
+
+## Category accordions (2026-10-18)
+
+Mazen's task "GAMID — My Wall Desktop Text: Accordion + Custom Font Upload", part 1. **Desktop only** (900px and wider); phone and tablet keep their plain headings and full list.
+
+- **Headings:** each of the four categories is a real `<button>` with the category name, its **real font count** (Gaming 5, Fantasy & Gothic 5, Luxury Signature & Script 6, System & Classic 7) and a chevron. `aria-expanded` gives its state; Enter and Space toggle it; focus is visible (gold ring); targets are at least 44px.
+- **Open and close:** every category **starts collapsed**, a click toggles only that one, and several may be open. The two-column cards with live samples are unchanged.
+- **Search:** looks in every category, collapsed or not. Matching categories show open; empty ones disappear. While searching, a heading click changes nothing (`aria-disabled`), and clearing the search **restores each category's previous open / closed state**.
+- **Kept:** the current-font highlight, lazy font loading (a collapsed category fetches nothing; opening one fetches only its faces), choosing a font, Undo / Redo, Preview, Save and Publish.
+- **Breakpoint:** crossing 900px switches between the accordion and the plain list in place, and the open / closed states survive.
+
+**Validation:**
+
+- **Accordion browser checks:** 13 pass, including counts, collapsed by default, nothing fetched while collapsed, opening fetches only that category's 5 faces, two columns, keyboard Enter and Space, several categories open, visible focus, search across collapsed categories, restore after clearing, the current font kept, and phone headings back to plain text.
+- **Fit:** every heading stays on one line at 1100 to 1820px, with no horizontal overflow.
+- **Regression against the previous build:** 59 states unchanged (the eight other panels at seven widths, plus the Text panel at 390, 768 and 899px; largest single-pixel delta 3 of 765). The 27-step behavior transcript is identical, and the font lifecycle (create, save, reload, Preview, public paint, all 11 faces) passes.
+- **Suite:** `npm run build` gives 1949 tests, 1948 passed, 0 failed, 1 skipped, including one new accordion test in `tests/wall-text-fonts.test.js`.
+
+## Upload My Font: NOT implemented (awaiting Mazen's architecture approval)
+
+Part 2 of the same task, extended by Mazen's "User-Owned Font Storage & Usage" requirements, needs database, storage, policy and Edge Function changes. Under the task's own gate it is **not implemented**, and no upload button was added. What exists today:
+
+- **Storage and table:** the Wall media bucket (`wall-media`), the `wall_assets` table (`wall_assets_mime` check) and its register function accept **images only** (`INVALID_WALL_ASSET_TYPE`).
+- **Upload gateway:** `usage-upload` validates JPEG / PNG / WebP / AVIF and video, with no font validation.
+- **Visitor access:** the policy "published wall media is readable" covers only assets referenced as Wall media in the published snapshot.
+- **CSP:** every Wall page has `font-src 'self'`.
+- **Quota:** `private.usage_stored_bytes` already sums **every object under the owner's folder in any bucket** against the fixed **200,000,000-byte per-account quota**, and `reserve_usage_upload` adds reservations, quota rejection and cleanup. A font stored under the owner's folder would be counted automatically.
+- **Reserved field:** the text payload already reserves an optional opaque `fontRef` (at most 200 characters), and its validator and the database never inspect it.
+
+**Proposed design** (each part needs Mazen's approval):
+
+1. **Storage:** a private bucket `wall-fonts` (`font/woff2` only, 2 MiB per file) at `<owner>/fonts/<sha256>.woff2`. Upload goes **only through the existing `usage-upload` gateway**, so the existing reservation, quota rejection (`ACCOUNT_STORAGE_QUOTA_EXCEEDED`), 26-hour release and cleanup rules apply, with no unlimited storage.
+2. **Server-side validation** in the gateway, never trusting the extension or the client MIME type:
+   - the WOFF2 signature and `length` equal to the real byte count;
+   - the table directory parsed within bounds;
+   - the required tables (`cmap`, `head`, `hhea`, `hmtx`, `maxp`, `name`, `OS/2`, `post`, and `glyf` or `CFF`) present;
+   - `totalSfntSize` and `numTables` capped.
+
+   Browsers additionally sanitize every web font (OTS) before use. WOFF2 only at first; TTF / OTF would need a WOFF2 encoder in the gateway and are deferred.
+3. **Ownership and deduplication:** a new table `wall_fonts` (id, owner, sha256 **unique per owner**, sanitized display name of at most 60 characters, bytes, licence-acknowledged time) with **owner-only RLS**. Owner RPCs list, register and delete. Fonts are never added to the shared library and never listed to anyone else.
+4. **On the Wall:**
+   - a text element keeps a catalog `fontFamily`, which is the fallback, and stores `fontRef: "font:<uuid>"`;
+   - the CSS family name is generated (`GamID User <uuid>`), never taken from user text, so there is no CSS injection or collision;
+   - the bytes are loaded with `fetch` plus `new FontFace(name, bytes)`, so `font-src 'self'` stays unchanged.
+5. **Visitors:** extend the published-media read path (policy plus the `public-media` lease) to fonts **referenced by the published snapshot of a public identity only**. A visitor never sees the owner's library or any unreferenced font.
+6. **Deletion:**
+   - deleting a font referenced by the **published** Wall is refused with a clear message (the same rule existing Wall assets follow);
+   - if the font is used only in the draft, the owner is warned and the text falls back to its catalog font.
+7. **Licensing and abuse:** a required acknowledgement ("I own this font or am licensed to embed it on the web"), recorded with its time, and an administrator removal path.
+8. **Accounting and costs:** fonts count inside the existing 200 MB per-account allowance, and the Usage page gains a "Wall fonts" line. There is **no new paid service, fee or package**. Supabase storage and egress stay on the existing plan; each visitor of a Wall that uses a custom font downloads that file once (cacheable). A 2 MiB cap keeps this marginal.
+
+**Changes that need approval:**
+
+- one migration (bucket, `wall_fonts` table with RLS and RPCs, the published-read policy extension, the usage line);
+- `usage-upload` and `public-media` Edge Function updates and deployment;
+- the editor's Upload My Font UI and My Fonts category, and font loading in the editor and the public Wall.

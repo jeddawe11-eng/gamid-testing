@@ -3829,3 +3829,19 @@ Mazen authorized Phase 2: the desktop Text panel as a curated typography library
 **Truth: NO CHANGE REQUIRED** (no capability, status, limit, contract or checkpoint changed; Truth records no font list).
 
 Product Memory: proposal only, not saved. **STOP for Mazen's visual review.**
+
+## 82. Font category accordions; Upload My Font proposal (2026-10-18)
+
+Mazen's task "GAMID — My Wall Desktop Text: Accordion + Custom Font Upload", with his additional "User-Owned Font Storage & Usage" requirements.
+
+- **Implemented: category accordions** (desktop, 900px and wider; `dist/wall-editor/tools.js`, `editor-desktop.css`).
+  - All four categories start collapsed, each heading is a button with the real count and a chevron, and several may be open.
+  - Search covers collapsed categories and restores the states afterwards.
+  - Keyboard, focus, the current-font highlight and lazy loading are kept, and phone and tablet are unchanged.
+  - Details and validation: `docs/WALL-EDITOR-TEXT-FONTS.md`.
+- **Not implemented: Upload My Font.** It requires a new storage bucket, a table with RLS and RPCs, a published-read policy extension and Edge Function changes, which the task's gate reserves for Mazen's separate approval. No upload UI was added. The proposal, storage accounting (inside the existing 200 MB per-account quota) and costs (no new paid service) are in the same document.
+- **Validation:** `npm run build` gives 1949 tests, 1948 passed, 1 skipped, 0 failed. The accordion browser checks pass, 59 regression states are unchanged, and the behavior transcript and font lifecycle are identical.
+
+**Truth: NO CHANGE REQUIRED** (a presentation change; no capability, limit or contract changed; the upload capability does not exist).
+
+Product Memory: proposal only, not saved. **STOP for Mazen's review and his decision on the font-upload proposal.**

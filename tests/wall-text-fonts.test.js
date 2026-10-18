@@ -159,3 +159,20 @@ test("desktop only: the phone / tablet editor keeps its one-line font buttons (s
   assert.match(desktopCss, /\.ed-fonts \.ed-font \{[^}]*overflow-wrap: anywhere/, "long names wrap instead of clipping");
   assert.doesNotMatch(desktopCss, /\.ed-fonts[^{]*\{[^}]*(animation|@keyframes)/, "no continuous animation");
 });
+
+test("category accordions (desktop only): real buttons with name, real count and chevron; all collapsed at first; several may be open; search covers collapsed categories and restores the states", () => {
+  assert.match(tools, /const desktopFonts = typeof matchMedia === "function" \? matchMedia\("\(min-width: 900px\)"\) : null;/, "the same 900px desktop breakpoint as the editor");
+  assert.match(tools, /entry\.open = false;/, "every category starts collapsed");
+  assert.match(tools, /h\("button", \{ class: "ed-font-group-toggle", type: "button", "aria-expanded": "false"/, "the heading is a keyboard-operable button exposing its state");
+  assert.match(tools, /text: String\(entry\.cards\.length\)/, "the count is the real number of fonts in the category");
+  assert.match(tools, /entry\.open = !entry\.open; applyFontFilter\(\);/, "a click toggles only that category, so several can be open");
+  assert.match(tools, /button\.hidden = !match \|\| \(accordion && !query && !entry\.open\);/, "a collapsed category hides its cards only while not searching");
+  assert.match(tools, /entry\.toggle\.setAttribute\("aria-expanded", String\(query \? visible > 0 : entry\.open\)\);/, "during search matching categories show open; afterwards the stored state returns");
+  assert.match(tools, /if \(fontSearching\(\)\) return;/, "a click during search does not change the remembered state");
+  assert.match(tools, /else if \(entry\.heading\.classList\.contains\("is-accordion"\)\) \{ entry\.heading\.classList\.remove\("is-accordion"\); entry\.heading\.replaceChildren\(entry\.group\); \}/, "below 900px the heading is the plain text it always was");
+  assert.match(tools, /desktopFonts\?\.addEventListener\?\.\("change", relayoutFonts\)/, "crossing the breakpoint switches in place");
+  assert.match(desktopCss, /\.ed-font-group-toggle \{[^}]*min-height: 2\.75rem/, "a comfortable target");
+  assert.match(desktopCss, /\.ed-font-group-toggle\[aria-expanded="true"\]::after \{ transform: rotate\(90deg\); \}/, "the chevron shows the state");
+  assert.match(desktopCss, /@media \(prefers-reduced-motion: reduce\) \{ \.ed-font-group-toggle, \.ed-font-group-toggle::after \{ transition: none; \} \}/);
+  assert.doesNotMatch(baseCss, /ed-font-group/, "the phone / tablet stylesheet does not know the accordion");
+});
