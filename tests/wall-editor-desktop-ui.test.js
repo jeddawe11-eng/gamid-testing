@@ -38,7 +38,7 @@ test("scope: no rule restyles element Properties controls, Layers, the stage int
   assert.deepEqual(selectors.filter(selector => /wall-stage|stage-host/.test(selector)), [".ed-stage-host .wall-stage"]);
   assert.match(rules, /\.ed-stage-host \.wall-stage \{ box-shadow:/);
   // buttons are restyled only inside the header, the canvas bar, the rail and the Add panel
-  for (const selector of selectors.filter(selector => /\.ed-btn/.test(selector))) assert.match(selector, /^(\.ed-top|\.ed-canvas-bar|\[data-tool-panel="add"\])/, selector);
+  for (const selector of selectors.filter(selector => /\.ed-btn/.test(selector))) assert.match(selector, /^(\.ed-top|\.ed-canvas-bar|\[data-tool-panel="add"\]|\[data-tool-panel="text"\] #textPresets)/, selector);   // Phase 2 added the Text panel presets
 });
 
 test("no behavior, layout model or data change: only presentation properties, no position-changing JS hooks, no inline style, no external or script resources", () => {
@@ -49,7 +49,7 @@ test("no behavior, layout model or data change: only presentation properties, no
   assert.match(html, /img-src 'self' data: blob:/, "data: images (the mask icons) are already allowed by the page CSP");
   assert.doesNotMatch(rules, /display:\s*none/, "nothing the editor shows is hidden by the redesign");
   const inert = [...rules.matchAll(/([^{}]+)\{[^}]*pointer-events:\s*none/g)].map(match => match[1].trim().split("}").pop().trim());
-  assert.deepEqual(inert, [".ed-top::after"], "only the decorative header hairline is click-through; no control is made unclickable");
+  assert.deepEqual(inert, [".ed-top::after", ".ed-font-search::before"], "only the decorative header hairline and the search-field icon are click-through; no control is made unclickable");
 });
 
 test("icons: one family drawn on a 24-unit grid with a consistent stroke; every rail tool, every Add action and the header actions have an icon, none uses a text glyph", () => {
@@ -89,8 +89,9 @@ test("accessibility and states: visible keyboard focus, hover / active / selecte
   assert.match(rules, /\[data-tool-panel="add"\] \.ed-add-list \.ed-btn \{[^}]*min-height: 4\.5rem/);
 });
 
-test("the phone / tablet editor is untouched: the shared stylesheet changed by exactly one rule", () => {
-  assert.match(base, /\.ed-add-btn|\.ed-add-sub \{ display: none; \}/);
+test("the phone / tablet editor is untouched: the shared stylesheet only hides the desktop-only additions (Add supporting line; font search, samples and note)", () => {
+  assert.match(base, /\.ed-add-sub \{ display: none; \}/);
+  assert.match(base, /\.ed-font-search, \.ed-font-sample, \.ed-font-empty \{ display: none; \}/);
   assert.match(base, /\.ed-add-list \.ed-btn \{[^}]*min-height: 3\.2rem/, "the Add card rule that older tests pin is intact");
   assert.match(base, /@media \(min-width: 900px\)[\s\S]*grid-template-columns: 5rem 17rem minmax\(0, 1fr\) 20rem/, "the base desktop grid is intact; the redesign overrides it only inside its desktop-only file");
 });

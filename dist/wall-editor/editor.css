@@ -130,6 +130,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-section h4.ed-sub { margin: .7rem 0 .35rem; font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: #817b8e; }
 .ed-section h2 small { text-transform: none; letter-spacing: 0; color: #817b8e; }
 .ed-add-sub { display: none; }   /* shown by the desktop redesign (editor-desktop.css, >= 900px) only */
+.ed-font-search, .ed-font-sample, .ed-font-empty { display: none; }   /* the desktop font library (search, live samples, "no match" note) is shown by editor-desktop.css only */
 .ed-add-list { display: grid; gap: .5rem; }
 .ed-add-list .ed-btn { display: flex; align-items: center; gap: .7rem; text-align: left; justify-content: flex-start; min-height: 3.2rem; }
 .ed-add-list .ed-btn b { display: grid; place-items: center; flex: none; width: 2rem; height: 2rem; border-radius: .55rem; background: #241c3a; color: var(--cyan); }

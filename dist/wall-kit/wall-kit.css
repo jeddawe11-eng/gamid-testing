@@ -4,6 +4,21 @@
 @font-face { font-family: "GamID Russo"; src: url("fonts/RussoOne.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "GamID Rajdhani"; src: url("fonts/Rajdhani.woff2") format("woff2"); font-weight: 700; font-display: swap; }
 @font-face { font-family: "GamID Chakra"; src: url("fonts/ChakraPetch.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+/* Fantasy & Gothic, Luxury Signature & Script (OFL; fonts/OFL-NOTICES.txt). A browser downloads a face only when text in that family is rendered, so the library is never fetched as a whole. */
+@font-face { font-family: "GamID Cinzel Decorative"; src: url("fonts/CinzelDecorative-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "GamID Cinzel Decorative"; src: url("fonts/CinzelDecorative-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "GamID Cinzel Decorative"; src: url("fonts/CinzelDecorative-900.woff2") format("woff2"); font-weight: 900; font-display: swap; }
+@font-face { font-family: "GamID UnifrakturCook"; src: url("fonts/UnifrakturCook.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "GamID Pirata One"; src: url("fonts/PirataOne.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "GamID Eagle Lake"; src: url("fonts/EagleLake.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "GamID Metal Mania"; src: url("fonts/MetalMania.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "GamID Great Vibes"; src: url("fonts/GreatVibes.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "GamID Alex Brush"; src: url("fonts/AlexBrush.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "GamID Pinyon Script"; src: url("fonts/PinyonScript.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "GamID Italianno"; src: url("fonts/Italianno.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "GamID Tangerine"; src: url("fonts/Tangerine-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "GamID Tangerine"; src: url("fonts/Tangerine-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "GamID Ballet"; src: url("fonts/Ballet.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 
 .wall-stage { background: #0d0b14; -webkit-user-select: none; user-select: none; }
 /* shared tap policy (interaction.js): element boxes are pass-through; only controls marked data-wall-interactive (view mode) take taps */

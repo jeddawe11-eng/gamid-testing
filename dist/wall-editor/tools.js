@@ -68,18 +68,54 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
   function addTextPreset(preset) { return addCustom("text", createTextPayload(preset.overrides), preset.size); }
   const presets = $("textPresets");
   for (const preset of TEXT_PRESETS) presets.append(h("button", { class: "ed-btn", type: "button", onclick: () => { addTextPreset(preset); setTool("props"); } }, h("b", { text: "T" }), h("span", {}, preset.label, h("small", { text: preset.note }))));
+  // The font library: the curated catalog (wall-kit/fonts.js), by category. Each card carries a live sample drawn in its own family (shown on desktop, 900px and wider);
+  // below that the card is the same one-line button as always. A font file is fetched by the browser only when a card with that family is actually rendered.
   const fontList = $("fontList");
-  for (const group of [...new Set(FONT_CATALOG.map(font => font.group))]) {
-    fontList.append(h("div", { class: "group", text: group }));
-    for (const font of FONT_CATALOG.filter(candidate => candidate.group === group)) {
-      const button = h("button", { class: "ed-btn", type: "button", text: font.label, onclick: () => {
+  const FONT_SAMPLE = "Legend";
+  const fontGroups = [...new Set(FONT_CATALOG.map(font => font.group))].map(group => ({ group, heading: h("div", { class: "group", text: group }), cards: [] }));
+  const fontEmpty = h("p", { class: "ed-hint ed-font-empty", role: "status", hidden: true });
+  for (const entry of fontGroups) {
+    fontList.append(entry.heading);
+    for (const font of FONT_CATALOG.filter(candidate => candidate.group === entry.group)) {
+      const sample = h("span", { class: "ed-font-sample", "aria-hidden": "true", text: FONT_SAMPLE });
+      const button = h("button", { class: "ed-btn ed-font", type: "button", "data-font": font.key, onclick: () => {
         const ids = selectedTextIds();
         if (!ids.length) { notify("Select a text element first, then choose a font."); return; }
         run(ops.updatePayloadMany(doc(), ids, { fontFamily: font.key }));
-      } });
-      button.style.setProperty("font-family", fontCss(font.key));
+      } }, font.label, sample);
+      entry.cards.push({ font, button, sample });
       fontList.append(button);
     }
+  }
+  fontList.append(fontEmpty);
+  // A card gets its family only when it is near the visible part of the panel, so a browser never fetches the font files of cards nobody has scrolled to (it fetches a face only
+  // when text in that family is rendered). Without IntersectionObserver every card is set at once.
+  const cardOf = new Map();
+  const applyCardFont = ({ font, button, sample }) => { const css = fontCss(font.key); button.style.setProperty("font-family", css); sample.style.setProperty("font-family", css); };
+  const lazyFonts = typeof IntersectionObserver === "function" ? new IntersectionObserver(seen => {
+    for (const item of seen) if (item.isIntersecting) { applyCardFont(cardOf.get(item.target)); lazyFonts.unobserve(item.target); }
+  }, { root: $("drawer"), rootMargin: "160px 0px" }) : null;
+  for (const entry of fontGroups) for (const card of entry.cards) { cardOf.set(card.button, card); if (lazyFonts) lazyFonts.observe(card.button); else applyCardFont(card); }
+  // Search by name only: it hides cards in this list and nothing else - the canvas and the saved Wall are never touched.
+  const fontSearch = $("fontSearch");
+  function applyFontFilter() {
+    const query = (fontSearch?.value ?? "").trim().toLowerCase();
+    let shown = 0;
+    for (const entry of fontGroups) {
+      let visible = 0;
+      for (const { font, button } of entry.cards) { const match = !query || font.label.toLowerCase().includes(query) || font.key.includes(query); button.hidden = !match; if (match) visible++; }
+      entry.heading.hidden = visible === 0; shown += visible;
+    }
+    fontEmpty.hidden = shown > 0;
+    if (!shown) fontEmpty.textContent = `No font matches "${query}".`;
+  }
+  fontSearch?.addEventListener("input", applyFontFilter);
+  // The font of the selected text element(s) is the current card; a mixed selection marks none.
+  function renderFontSelection() {
+    const stage = session.stage, chosen = new Set(session.state.selection);
+    const families = new Set(stage ? stage.elements.filter(element => chosen.has(element.id) && element.type === "text").map(element => element.payload?.fontFamily) : []);
+    const current = families.size === 1 ? [...families][0] : null;
+    for (const entry of fontGroups) for (const { font, button } of entry.cards) { if (font.key === current) button.setAttribute("aria-current", "true"); else button.removeAttribute("aria-current"); }
   }
 
   // ---- Shapes --------------------------------------------------------------------------------------------------------------------------------
@@ -561,7 +597,7 @@ export function createTools({ session, run, notify, assets, getGamid, refreshGam
 
   return {
     addImageElement, uploadFile,
-    update() { templates.update(); renderBackground(); renderAssets(); renderGamidStatus(); renderGamidData(); },
+    update() { templates.update(); renderBackground(); renderAssets(); renderGamidStatus(); renderGamidData(); renderFontSelection(); },
     invalidate() { renderBackground(true); renderAssets(true); },
     renderAssets, renderBackground,
   };

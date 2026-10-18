@@ -143,5 +143,38 @@ body[data-tool="gamid"] .ed-rail [data-tool="gamid"] i, body[data-tool="layout"]
 [data-tool-panel="add"] .ed-add-list .ed-btn span { gap: .2rem; font-family: var(--font-ui); font-size: 1.02rem; font-weight: 700; letter-spacing: .02em; color: var(--ink); }
 [data-tool-panel="add"] .ed-add-list .ed-btn small { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: .72rem; line-height: 1.35; font-weight: 500; letter-spacing: 0; color: var(--ink-dim); }
 
+/* ---- Text panel and font library (Phase 2, Mazen's task 2026-10-18): presets as cards, a search field, and the curated fonts as compact cards with a live sample in their own family.
+   Scope: [data-tool-panel="text"] only. The editing controls (Properties), the font <select> there and every behavior are untouched. ---- */
+:root { --i-search: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='M15.5 15.5L21 21'/%3E%3C/svg%3E"); }
+[data-tool-panel="text"] h2.ed-sub { margin: 1.1rem 0 .5rem; padding-bottom: .55rem; border-bottom: 1px solid rgba(214, 178, 94, .3); font-family: var(--font-ui); font-size: 1.15rem; letter-spacing: .14em; color: var(--gold-hi); }
+[data-tool-panel="text"] .ed-hint { margin: .4rem 0 .7rem; color: var(--ink-dim); font-size: .74rem; line-height: 1.45; }
+[data-tool-panel="text"] #textPresets { gap: .55rem; }
+[data-tool-panel="text"] #textPresets .ed-btn { position: relative; min-height: 3.6rem; padding: .5rem 2.5rem .5rem .6rem; gap: .8rem; border: 1px solid transparent; border-radius: .6rem; background: linear-gradient(180deg, #151b3a, #0d1128) padding-box, linear-gradient(180deg, rgba(242, 220, 155, .62), rgba(125, 99, 41, .55)) border-box; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .025); transition: box-shadow .15s ease, filter .15s ease; }
+[data-tool-panel="text"] #textPresets .ed-btn::after { content: ""; position: absolute; right: .85rem; top: 50%; width: 1rem; height: 1rem; margin-top: -.5rem; background: var(--gold); -webkit-mask: var(--i-chevron) center / contain no-repeat; mask: var(--i-chevron) center / contain no-repeat; }
+[data-tool-panel="text"] #textPresets .ed-btn:hover:not(:disabled) { background: linear-gradient(180deg, #221a4e, #12123a) padding-box, linear-gradient(180deg, var(--gold-hi), var(--violet-hi)) border-box; box-shadow: 0 0 1.1rem rgba(160, 77, 255, .38); }
+[data-tool-panel="text"] #textPresets .ed-btn:active:not(:disabled) { filter: brightness(1.15); }
+[data-tool-panel="text"] #textPresets .ed-btn b { position: relative; width: 2.6rem; height: 2.6rem; border: 1px solid var(--gold-line); border-radius: .55rem; background: radial-gradient(circle at 50% 30%, #2a2160, #121033); font-size: 0; }
+[data-tool-panel="text"] #textPresets .ed-btn b::before { content: ""; position: absolute; inset: .55rem; background: var(--gold-grad); -webkit-mask: var(--i-text) center / contain no-repeat; mask: var(--i-text) center / contain no-repeat; }
+[data-tool-panel="text"] #textPresets .ed-btn span { gap: .15rem; font-family: var(--font-ui); font-size: 1rem; font-weight: 700; letter-spacing: .02em; color: var(--ink); }
+[data-tool-panel="text"] #textPresets .ed-btn small { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: .7rem; line-height: 1.35; font-weight: 500; letter-spacing: 0; color: var(--ink-dim); }
+
+.ed-font-search { display: block; position: relative; margin: .1rem 0 .75rem; }
+.ed-font-search::before { content: ""; position: absolute; left: .75rem; top: 50%; width: 1.05rem; height: 1.05rem; margin-top: -.525rem; background: var(--gold); -webkit-mask: var(--i-search) center / contain no-repeat; mask: var(--i-search) center / contain no-repeat; pointer-events: none; }
+.ed-font-search input { min-height: 2.6rem; padding: .4rem .7rem .4rem 2.4rem; border: 1px solid var(--gold-line); border-radius: .55rem; background: #090c1d; color: var(--ink); font-size: .84rem; }
+.ed-font-search input::placeholder { color: #8f89a3; }
+.ed-font-search input:hover { border-color: var(--gold); }
+.ed-fonts { grid-template-columns: repeat(auto-fill, minmax(7.2rem, 1fr)); gap: .45rem; }
+.ed-fonts .group { grid-column: 1 / -1; display: flex; align-items: center; gap: .6rem; margin: .65rem 0 .1rem; font-family: var(--font-ui); font-size: .8rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-hi); }
+.ed-fonts .group:first-child { margin-top: 0; }
+.ed-fonts .group::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(214, 178, 94, .45), transparent); }
+.ed-fonts .ed-font { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: .2rem; min-width: 0; min-height: 4.2rem; padding: .45rem .55rem .55rem; border: 1px solid transparent; border-radius: .55rem; background: linear-gradient(180deg, #151b3a, #0d1128) padding-box, linear-gradient(180deg, rgba(242, 220, 155, .5), rgba(125, 99, 41, .45)) border-box; color: var(--ink-dim); text-align: left; font-family: var(--font-ui) !important; font-size: .72rem; font-weight: 700; letter-spacing: .04em; line-height: 1.2; overflow-wrap: anywhere; content-visibility: auto; contain-intrinsic-size: auto 4.2rem; transition: box-shadow .15s ease, color .15s ease; }
+.ed-fonts .ed-font .ed-font-sample { display: block; max-width: 100%; font-size: 1.4rem; font-weight: 400; letter-spacing: 0; line-height: 1.2; color: var(--ink); overflow-wrap: anywhere; }
+.ed-fonts .ed-font:hover:not(:disabled) { color: #fff; background: linear-gradient(180deg, #221a4e, #12123a) padding-box, linear-gradient(180deg, var(--gold-hi), var(--violet-hi)) border-box; box-shadow: 0 0 .9rem rgba(160, 77, 255, .3); }
+.ed-fonts .ed-font[aria-current="true"] { color: #fff; background: linear-gradient(180deg, rgba(169, 77, 255, .55), rgba(92, 40, 190, .45)) padding-box, linear-gradient(#0d1128, #0d1128) padding-box, linear-gradient(180deg, var(--gold-hi), var(--gold-lo)) border-box; box-shadow: 0 0 .9rem rgba(160, 77, 255, .35); }
+.ed-fonts .ed-font[aria-current="true"]::after { content: ""; position: absolute; top: .45rem; right: .5rem; width: .55rem; height: .55rem; background: var(--gold-hi); transform: rotate(45deg); }
+.ed-font-empty { display: block; grid-column: 1 / -1; margin: .4rem 0; }
+@media (prefers-reduced-motion: no-preference) { .ed-drawer { scroll-behavior: smooth; } }
+@media (prefers-reduced-motion: reduce) { .ed-fonts .ed-font, [data-tool-panel="text"] #textPresets .ed-btn { transition: none; } }
+
 @media (prefers-reduced-motion: reduce) { .ed-top .ed-btn, .ed-rail button, [data-tool-panel="add"] .ed-add-list .ed-btn, [data-tool-panel="add"] .ed-add-list .ed-btn::after { transition: none; } }
 @media (forced-colors: active) { .ed-rail button, .ed-top .ed-btn, [data-tool-panel="add"] .ed-add-list .ed-btn { border-color: ButtonText; } }

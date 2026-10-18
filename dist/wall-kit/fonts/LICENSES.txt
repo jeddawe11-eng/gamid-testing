@@ -1,4 +1,8 @@
 The bundled Wall fonts (Orbitron, Bebas Neue, Russo One, Rajdhani, Chakra Petch) are from Google Fonts and are licensed under the SIL Open Font License 1.1
 (https://openfontlicense.org). They are served from this site, unmodified (WOFF2 latin subsets), so no font is ever loaded from a third-party host at runtime.
+Added 2026-10-18 (desktop Text redesign, Phase 2): Cinzel Decorative, UnifrakturCook, Pirata One, Eagle Lake, Metal Mania, Great Vibes, Alex Brush, Pinyon Script, Italianno, Tangerine and Ballet.
+All eleven are licensed under the SIL Open Font License 1.1 (verified against https://github.com/google/fonts/tree/main/ofl, METADATA.pb "license: OFL"), distributed as the
+official Google Fonts WOFF2 latin subsets, unmodified, and served from this site. Their copyright notices, Reserved Font Names and the full licence text are in OFL-NOTICES.txt.
+The font files are not sold on their own, and users cannot upload fonts: the library is curated by GamID.
 The remaining catalog entries are system font stacks: no font file is shipped or fetched for them.
 Adding a bundled font requires its licence to be recorded here first.
