@@ -79,9 +79,11 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0006 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0012 |
+| REV | Reviews | reviews/ | REV-0013 |
 
 ## Register
+
+2026-10-19: Mazen explicitly granted final acceptance of the full Living Fire V3 capability (Organic, Cinematic, Mythic), following the separately accepted bounding-box fix REV-0012. New REV-0013; Truth living-fire-text ACCEPTED. Existing limits, contracts and product checkpoints unchanged. Documentation only.
 
 2026-10-19: Mazen personally tested and accepted the Living Fire bounding-box fix on TESTING (fix 24e2d78, docs 9893964, run 39150052877): the fire follows the normal text's wrapping, line breaks, alignment and selection box; the three styles keep their approved visuals. New REV-0012. The Living Fire capability (Truth living-fire-text) remains PENDING_ACCEPTANCE. No product changes.
 
@@ -141,3 +143,4 @@ Rules:
 | REV-0010 | Mobile Public Visitor V2 - Mazen final acceptance | COMPLETED | [REV-0010-mobile-public-visitor-v2-final-acceptance.md](reviews/REV-0010-mobile-public-visitor-v2-final-acceptance.md) |
 | REV-0011 | Intro landscape hint and fullscreen behavior - Final Acceptance | COMPLETED | [REV-0011-intro-landscape-hint-final-acceptance.md](reviews/REV-0011-intro-landscape-hint-final-acceptance.md) |
 | REV-0012 | Living Fire bounding box fix - Mazen acceptance | COMPLETED | [REV-0012-living-fire-bounding-box-fix-acceptance.md](reviews/REV-0012-living-fire-bounding-box-fix-acceptance.md) |
+| REV-0013 | Living Fire V3 - final capability acceptance | COMPLETED | [REV-0013-living-fire-v3-final-acceptance.md](reviews/REV-0013-living-fire-v3-final-acceptance.md) |
