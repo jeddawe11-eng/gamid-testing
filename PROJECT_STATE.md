@@ -31,6 +31,8 @@ Conversation memory is helpful context, but it is **not** an authoritative proje
 
 **Final remaining-features acceptance (Mazen, 2026-10-16):** Canonical Game Catalog/manual add-edit-remove, current provisional SteamGridDB artwork and current root Landing Page were personally tested and explicitly approved on TESTING. Truth marks all three ACCEPTED with existing implementation checkpoints/contracts preserved. Artwork remains provisional and TESTING-only, with the written-permission/release conditions unchanged. No PENDING_ACCEPTANCE capabilities remain in Truth; unimplemented work, outstanding conditions and release/merge authorization remain separate. See PROJECT_HANDOFF.md §70 and REV-0008.
 
+**Living Fire V3 final acceptance (Mazen, 2026-10-19):** Mazen explicitly accepted the full Living Fire V3 capability (Organic / Cinematic / Mythic), following acceptance of the bounding-box fix (REV-0012). Truth `living-fire-text` is **ACCEPTED**, recorded in Product Memory REV-0013. Existing limits, contracts and product checkpoint unchanged; desktop Wall work continues separately.
+
 ## 2. Environment and safety
 
 - **TESTING** is the working environment. Truth: `environment: TESTING`, `production: NOT_RELEASED`.
@@ -182,7 +184,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
   - CP-01 (REV-0002) is now covered by the final acceptance of My Crews (2026-10-13, §56); GR-01 (REV-0003) by the final acceptance of Gaming Roles (§53).
   - ISS-0007: Mazen's Avatar save passed; the issue stays FIXED until his explicit security acceptance (§38–§39).
   - YOUR GAMID Editor (`your-gamid-editor`): Mazen passed all 16 desktop tests and accepted the tested desktop functionality (REV-0004, §41). **Android Chrome real-device acceptance is still outstanding**, so the capability stays PENDING_ACCEPTANCE.
-- **Awaiting Mazen's acceptance (current Truth, 2026-10-19):** `living-fire-text` (§86), `custom-wall-fonts` (§83) and `your-gamid-editor-mobile` (Mobile V2 Profile Deck, §71–§73; its visual parity fixes were manually accepted on 2026-10-17, REV-0009, but the overall capability is still pending). `public-profile-mobile-v2` (§78, REV-0010) and `intro-landscape-hint` (§79, REV-0011) were accepted on 2026-10-17; everything else registered was accepted by 2026-10-16 (§70; REV-0008); provisional/release conditions and unimplemented roadmap work remain separate.
+- **Awaiting Mazen's acceptance (current Truth, 2026-10-19):** `custom-wall-fonts` (§83) and `your-gamid-editor-mobile` (Mobile V2 Profile Deck, §71–§73; its visual parity fixes were manually accepted on 2026-10-17, REV-0009, but the overall capability is still pending). `public-profile-mobile-v2` (§78, REV-0010) and `intro-landscape-hint` (§79, REV-0011) were accepted on 2026-10-17; everything else registered was accepted by 2026-10-16 (§70; REV-0008); provisional/release conditions and unimplemented roadmap work remain separate.
 - **Open conditions:**
   - SteamGridDB's written permission for distribution / commercial use is still outstanding, so artwork stays TESTING-only, with no Production / public release (§33–§35; `docs/GAME-ARTWORK-STEAMGRIDDB.md`).
   - The Discord Profile Card (ACCEPTED, §27) still needs a privacy policy for the Discord application.
