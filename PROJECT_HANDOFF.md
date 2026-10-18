@@ -3955,3 +3955,19 @@ Mazen's task "GAMID — Living Fire V3 Phase C" (2026-10-18), resumed after two 
 - Four contracts; checkpoint `5c0371f`; `updated` 2026-10-19.
 
 Product Memory: proposals only, not saved. **STOP for Mazen's final acceptance.**
+
+## 87. Living Fire bounding box fix (2026-10-19)
+
+Mazen's report: Living Fire letters were much wider than the selection box. Details: `docs/WALL-EDITOR-TEXT-EFFECTS.md` ("Bounding box fix").
+
+- **Root cause:** Living Fire always drew the text on ONE line at full size, ignoring the box width; the painted text wraps at it.
+- **Fix:** the letter mask uses the painted text's own lines, alignment and line boxes, and the V3 frame is pinned to the box corner. The shader, styles and tuning are unchanged.
+- **Product:** `24e2d78a35cd5e2605014da700ebd568de85e8b7`, TESTING run `39150052877`, served files exact.
+- **Validation:**
+  - 2002 tests (2001 passed, 1 skipped);
+  - editor walk-throughs 18 / 18 and 14 / 14;
+  - 59 screen states pixel-identical.
+
+**Truth: NO CHANGE REQUIRED.** No capability, limit or contract changed; the contracts never stated one line. No database change.
+
+Product Memory: no candidates beyond those already proposed in §86. **STOP for Mazen's visual acceptance.**

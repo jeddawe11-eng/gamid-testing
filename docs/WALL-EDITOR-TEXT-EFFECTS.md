@@ -173,7 +173,7 @@ Mazen's task "Living Fire V3 Phase C" (2026-10-18; resumed twice after interrupt
 - **Rendering:** there is one painter (`paint.js` → `attachFire`), so the editor canvas, Preview and the published Wall share it.
   - One WebGL2 context per page draws every fire text in turn, then copies each frame into that text's own 2D canvas.
   - There is one distance-field texture per distinct text / font / size. It is shared and cached across editor repaints (8 unused fields are kept), and an element's flame time continues across repaints.
-  - The letters are drawn in the text's own font, so library fonts and custom WOFF2 / TTF / OTF fonts both work, on one centred line fitted like V3. The frame is aligned to the text box by alignment and first-line centre.
+  - The letters are drawn in the text's own font, so library fonts and custom WOFF2 / TTF / OTF fonts both work. Since `24e2d78` they use the painted text's own lines as well: see "Bounding box fix" below. (Originally they were drawn on one centred line, aligned by alignment and first-line centre.)
 
 ### Safeguards, each measured
 
@@ -284,7 +284,39 @@ No table or row was changed by the migration.
 
 ### Limitations
 
-- **One line:** Living Fire draws one line of at most 80 characters, centred and fitted like V3. A wrapped or multi-line text burns on one line.
+- **Lines:** superseded by the bounding box fix (`24e2d78`). Living Fire now draws the text's own lines; the 80-character limit still applies.
 - **Readability:** thin scripts break apart, and Mythic's tall flames reach furthest (Phase B).
 - **Untested:** Safari / iOS, Firefox and Android GPUs.
 - **Phone editor:** the phone editor shows and keeps the effect but has no Living Fire controls (phone UI unchanged by design).
+
+## Bounding box fix (2026-10-19)
+
+Mazen's report "GAMID — FIX LIVING FIRE BOUNDING BOX BUG": Living Fire letters rendered much wider than the blue selection box, while normal text stayed inside it.
+
+- **Product:** `24e2d78a35cd5e2605014da700ebd568de85e8b7`, TESTING run `39150052877`. The changed files are served byte-identical.
+- No schema, shader, normal text or Neon change.
+
+**Root cause.** It was not the metrics, the scale, the canvas size or the shader. When the text fits on one line, the fire letters matched the painted glyphs to within 3 px (218–479 vs 221–479). But Living Fire always laid the whole text out as **one line** at full size and ignored the box width, while the painted text wraps at it. With "GAME ON STARTS" in Metal Mania 110 and a 358 px box:
+- the painted text broke into lines inside the box;
+- the fire drew one 485 px line, 64 px past each side.
+
+**Fix (only how the letter mask is laid out; the V3 shader, its tuning and the three styles are unchanged).** `layoutLetters` now lays the letters out exactly like `paint.js` paints the text:
+- **Line breaks:** wrap on breaks at the box width, word by word, and a word wider than the box is broken anywhere (as `overflow-wrap: anywhere`); wrap off uses only the text's own line breaks.
+- **Alignment and lines:** the same alignment, with an overflowing line starting at its start edge as CSS does; the same CSS line boxes (half-leading, font ascent); the same line height.
+- **Size:** it is drawn at a design size that fits the V3 frame, using V3's own rules (lines at most 1000 design units, room above for the flames, the inked block at 58 %).
+- **Placement:** the field records where the box's top-left corner is in the frame, and `place()` pins that corner to the element's. Everything follows the box: move, resize, rotation (the canvas is inside the rotated element) and alignment.
+- **Unchanged case:** a single centred line that fits is V3's own layout, exactly as before.
+- **No flash on resize:** the field key now includes the wrap width, line height and alignment. During an editor resize, the element keeps showing its last field until the new one is ready (sampled during a drag: always live, never static).
+
+**Measured after the fix** (visible fire, alpha > 40, against the box; flames may extend a few px past the letters):
+- narrow box with wrap on, at left, centre and right: inside the box, following the painted lines;
+- wrap off with a line too long: it overflows exactly like the painted text;
+- forced line breaks, an over-long word, a script font, a small serif, the custom TTF Imperial Script, rotation 12–15°, and the Organic, Cinematic and Mythic styles: all inside, 0–8 px;
+- editor resize drag, move, reload, Preview and the visitor view: inside, 0–5 px.
+
+If the box is shorter than its lines, the fire hangs below exactly as the painted text does; "Fit box height to text" fits it.
+
+**Tests:**
+- `tests/wall-living-fire.test.js` +2 tests: the line breaker, and the placement, key and interim rules.
+- `npm test`: 2002 tests, 2001 passed, 1 skipped. Lint and typecheck pass.
+- The fire editor walk-through (18 / 18), the bounding-box editor walk-through (14 / 14), and 59 screen states pixel-identical to `4e59f20`, phone panels included.
