@@ -58,3 +58,10 @@ New styling in `editor-desktop.css` (the Phase 1 stylesheet; Phase 1's shell and
 - The lab has no live backend, so Publish is checked for parity and the public pipeline is checked directly (the same `paintDocument` the published Wall uses), not through a live published account.
 - Latin only; synthesized bold for single-weight fonts (as before for Bebas Neue and Russo One).
 - The library samples say "Legend" for every font, a deliberately short English word that fits two-column cards.
+
+## TESTING delivery
+
+- **Deployment:** source `936b665ebb2d445bd6e2ccbf1c0dce3e5bbe415d`, [workflow 39101612969](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39101612969) SUCCESS (full project validation and the deployed-site smoke check passed), at <https://gamid-testing-static.gamid.workers.dev/wall-editor/> (owner login required).
+- **Served files:** 27 of 27 are byte-identical to the commit (SHA-256): the 14 font files, `wall-kit.css`, `fonts.js`, `LICENSES.txt`, `OFL-NOTICES.txt` and the editor files. Fonts are served as `font/woff2`.
+- **Not done:** the editor was not opened with a real account (real accounts are protected), and nothing was published; the lifecycle checks above ran on the local lab.
+- **Status:** awaiting Mazen's visual review and final acceptance. Phase 3 is not started and not authorized.

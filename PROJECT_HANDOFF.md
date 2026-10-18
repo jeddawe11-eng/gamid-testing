@@ -3801,3 +3801,31 @@ Mazen authorized Phase 1 of a fantasy-gaming visual redesign of the **desktop** 
 **Truth: NO CHANGE REQUIRED** (cosmetic only; no capability, status, limit, contract or checkpoint changed).
 
 Product Memory: proposal only, not saved. **STOP for Mazen's visual review.**
+
+## 81. My Wall Desktop Text & Fonts Upgrade, Phase 2 (2026-10-18)
+
+Mazen authorized Phase 2: the desktop Text panel as a curated typography library, and eleven new fonts. His task also states that the Phase 1 appearance (§80) is visually approved; it is preserved. Details, licences and validation: [`docs/WALL-EDITOR-TEXT-FONTS.md`](docs/WALL-EDITOR-TEXT-FONTS.md).
+
+- **Product:** `936b665ebb2d445bd6e2ccbf1c0dce3e5bbe415d`.
+- **Fonts:** Cinzel Decorative, UnifrakturCook, Pirata One, Eagle Lake and Metal Mania (Fantasy & Gothic); Great Vibes, Alex Brush, Pinyon Script, Italianno, Tangerine and Ballet (Luxury Signature & Script).
+  - All are SIL OFL 1.1, verified against `github.com/google/fonts`.
+  - They are the official Google Fonts WOFF2 latin subsets, unmodified and self-hosted; licences are in `dist/wall-kit/fonts/LICENSES.txt` and `OFL-NOTICES.txt`.
+  - No blocker; nothing was substituted.
+- **Data:** stable catalog keys. The validator and the database (`private.wall_element_payload_errors`) check only the key format, so there is **no migration and no backend change**.
+  - The 12 existing fonts are unchanged; only the group label `System` became `System & Classic`.
+  - Unknown keys still fall back safely.
+- **Panel (desktop, 900px and wider):** presets as cards, search by name, four categories, two-column cards with a live sample in each font, and a purple / gold current state (`aria-current`).
+  - Font files load lazily (`font-display: swap`; cards get their family near the visible panel).
+  - Phone and tablet keep their lists; the new fonts appear there in the existing style and in the Properties select.
+- **TESTING:** source `936b665ebb2d445bd6e2ccbf1c0dce3e5bbe415d`, run `39101612969`, 27 of 27 served files byte-identical. Backend unchanged.
+- **Validation:**
+  - `npm run build`: 1948 tests, 1947 passed, 1 skipped, 0 failed.
+  - New `tests/wall-text-fonts.test.js` (10 tests); the Phase 1 guard test was updated for the Text panel scope.
+  - Lab end to end: create, font, save, reload, Preview and public paint, all 11 faces loaded.
+  - 15 panel-behavior checks.
+  - 56 other tool-panel states unchanged versus the previous build; the 27-step behavior transcript is identical.
+- **Status:** awaiting Mazen's visual review and final acceptance. Phase 3 is not authorized.
+
+**Truth: NO CHANGE REQUIRED** (no capability, status, limit, contract or checkpoint changed; Truth records no font list).
+
+Product Memory: proposal only, not saved. **STOP for Mazen's visual review.**
