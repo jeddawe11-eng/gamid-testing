@@ -456,6 +456,39 @@
       "record": "docs/WALL-EDITOR-SHAPES-V2.md; PROJECT_HANDOFF.md section 90. Implemented under Mazen's task of 2026-10-19: product f77e76e plus b08d538 (line endings only) and da7dd1c (handles hidden while editing points); static deployment da7dd1c (run 39194776098), served files exact. No database change: the database stores the new fields unchanged; its own checks for them are prepared (docs/proposals/wall-shapes-v2-db-parity.sql, rehearsed in a rolled-back transaction) and await authorisation. Mazen accepted Shapes V2 on 2026-10-19 after left-panel accordion fix bb50aef (TESTING run 39196387512); see REV-0015. Database parity proposal remains unapplied and requires separate authorization."
     },
     {
+      "id": "my-gamer-data",
+      "name": "My Gamer Data (desktop Wall editor: Import from Classic, Refresh from Classic, Classic section catalog)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/",
+        "/@handle"
+      ],
+      "contracts": [
+        {
+          "id": "gamer-data-library",
+          "rule": "On desktop (900px and wider) the Wall editor's GamID tool is My Gamer Data with the heading Import from Classic: one accordion section per Classic section (Profile open, the others closed, open state kept for the visit), each import choice listed once and adding the existing GamID block or GamID data element; Refresh from Classic re-reads the owner's data (one read at a time, current data kept while loading and on failure) and linked elements repaint without any change to their geometry or style. Below 900px the editor's GamID panel is unchanged."
+        },
+        {
+          "id": "gamer-data-section-catalog",
+          "rule": "Classic sections beyond the specialised ones (Profile, Gaming Roles, My Games, Connections, My Duo, My Crews) are offered to the Wall through the existing section catalog (public.public_section_catalog: wall_importable, presentation text / facts / chips / cards / stat, icon, single / all, item name) and appear in the library automatically, in catalog order. A section is offered only when its catalog row AND its projection branch exist. The owner's Show on my GamID switches remain exactly Discord, Steam, League of Legends and Education & Work."
+        },
+        {
+          "id": "gamer-data-privacy",
+          "rule": "Visitors receive a section only through get_public_gamer_data, which is built from the same public reads Classic uses (a PUBLIC SOLO GamID; About Me Location / Languages / Favorite Genres each only while its own switch is on; Favorite Games only while My Games is public) and never carries a private flag. The owner's get_my_gamer_data returns the caller's own sections with every item visitors would not see marked private; anonymous callers cannot use it."
+        },
+        {
+          "id": "gamer-data-binding",
+          "rule": "A Wall binds a Classic section with the GamID data field section: { section, item?, text? } for one item (by its stable id: a fact key or a catalog game key) or { section, style?, layout? } for the whole section. Keys are validated by format only; a section that is not offered draws nothing for visitors, and an item that is gone is never replaced (the owner sees that it is no longer there, visitors see nothing). Collections follow Classic's current items and order. Existing GamID blocks and data fields are unchanged."
+        },
+        {
+          "id": "gamer-data-first-sections",
+          "rule": "The first catalog sections are About Me (the About Me card and the facts Location, Member Since, Languages, Favorite Genres) and Favorite Games (one favorite by game key, or all in the owner's order). Favorite Games on the Wall are text cards (no artwork)."
+        }
+      ],
+      "checkpoint": "fe7763721e85e6379c2d2612f285532852d14c0a",
+      "record": "docs/MY-GAMER-DATA-PHASE2.md; docs/WALL-EDITOR-DESKTOP-REDESIGN.md (My Gamer Data panel); docs/CLASSIC-WALL-IMPORT-AUDIT.md §10-§11; PROJECT_HANDOFF.md §94-§96. Phase 1 product e1a43c2 (run 39203875352); Phase 2 product 12c8b3b with migrations 20261019120000_gamer_data_sections and 20261019120100_wall_gamer_data_binding APPLIED on TESTING 2026-10-19 under Mazen's authorization; deployed fe77637 (run 39254434384), served files exact. Awaiting Mazen's manual acceptance."
+    },
+    {
       "id": "custom-wall-fonts",
       "name": "Custom Wall fonts (Upload My Font / My Fonts)",
       "status": "PENDING_ACCEPTANCE",

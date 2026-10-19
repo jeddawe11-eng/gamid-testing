@@ -2,10 +2,7 @@
 
 This covers Mazen's task "GAMID — MY GAMER DATA — PHASE 2 — Dynamic Classic-to-Wall Import Foundation" (2026-10-19, TESTING only).
 
-**Status:**
-- The code is implemented on `feature/play-together-notifications`.
-- It is **not deployed**.
-- The two migrations are **PROPOSED, not applied**. They await Mazen's explicit approval (the database approval gate).
+**Status (2026-10-19):** Mazen approved the database gate. Both migrations are **APPLIED on TESTING** and the frontend is **deployed** (`fe77637`, run `39254434384`). It is **PENDING Mazen's manual acceptance**; see §9. Sections 4–6 below are the proposal as it was approved.
 
 The design follows `docs/CLASSIC-WALL-IMPORT-AUDIT.md` §6 and §9. It builds on Phase 1 (`docs/WALL-EDITOR-DESKTOP-REDESIGN.md`, *My Gamer Data panel*).
 
@@ -157,3 +154,20 @@ select count(*) from public.wall_publications where jsonb_path_exists(document, 
 3. Deploy the frontend.
 4. Live-check the library (About Me, Favorite Games), save and publish, and the visitor view, on synthetic fixtures.
 5. Update GamID Truth (a new capability, PENDING_ACCEPTANCE), the docs and PROJECT_STATE.
+
+## 9. Applied and deployed (2026-10-19)
+
+- **Migrations:** `20261019120000_gamer_data_sections` and `20261019120100_wall_gamer_data_binding` were applied together in one transaction, then recorded with `supabase migration repair --status applied`. The migration history lists both.
+- **Live database checks (each in a rolled-back transaction):**
+  - `tests/integration/wall-gamer-data-db.sql`: **23 / 23**, including every existing Wall draft and publication still valid.
+  - `wall-publishing-db.sql`: 42 / 42.
+  - `wall-w2-db.sql`: the database validator equals the JS validator on all **643** corpus documents. 3 steps fail, all from the pre-existing set reported before (wall-video storage visibility counts, custom-font references); they were not changed.
+  - `public-section-visibility-db.sql`: its registry step read the catalog table directly. It now pins the four switch rows through `visibility_switch`, plus the two Wall-only rows (`fe77637`). One leak-pattern step fails with or without these migrations: the pattern `FOUND` matches the role label "Game Studio Founder" (a false positive from the role catalog, 20261011200000). It was reported, not changed.
+- **Frontend:** `fe77637` deployed by run `39254434384`. The 12 changed served files match the commit byte for byte.
+- **Live checks (no credentials):**
+  - The anonymous `get_public_gamer_data` for @black and @zshot equals Classic's own public reads: the same facts and values, the same favorites in the same order, and no private flag.
+  - Anonymous calls to the owner projection are refused (401); the internal functions are not reachable (404).
+  - The owner projection for the synthetic fixture GM-TEST-01 (impersonated, rolled back) works, and its switch list is unchanged.
+  - @zshot's published Wall (3 stages, 4 GamID elements, no section binding) draws every element on desktop and phone, with no page error and no call to the new projection.
+  - The signed-out Wall Editor shows its normal sign-in gate.
+- **Not verified by the agent:** the signed-in editor (library, Refresh, save, publish). It needs the owner's own sign-in; see Mazen's checklist in `PROJECT_HANDOFF.md` §96.

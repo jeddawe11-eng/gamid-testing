@@ -4135,3 +4135,29 @@ Mazen's task "GAMID — MY GAMER DATA — PHASE 2". Details are in `docs/MY-GAME
 - **Found:** `tests/integration/wall-w2-db.sql` has 5 stale steps (storage RLS counts, font references) that fail identically without these migrations. This is proposed as a Product Memory issue.
 
 **Truth: NO CHANGE REQUIRED** (nothing applied or deployed; Truth is updated when the migration and frontend reach TESTING). Product Memory: PROPOSED (not saved). **STOP at the database approval gate.**
+
+## 96. My Gamer Data Phase 2: applied and deployed (2026-10-19, PENDING acceptance)
+
+Mazen authorized passing the database gate. Details: `docs/MY-GAMER-DATA-PHASE2.md` §9.
+
+- **Migrations:** `20261019120000` and `20261019120100` APPLIED on TESTING (one transaction, then `migration repair`).
+- **Deployment:** product `fe77637` (Phase 2 code `12c8b3b` plus the registry-step update of `tests/integration/public-section-visibility-db.sql`), run `39254434384`, served files exact.
+- **Validation:**
+  - 2037 tests, lint and typecheck;
+  - live database: My Gamer Data 23 / 23, publishing 42 / 42, validator parity 643 / 643;
+  - live anonymous projection = Classic's reads for @black and @zshot;
+  - owner projection for GM-TEST-01;
+  - @zshot's published Wall unchanged.
+- **Pre-existing failures, reported and not fixed:**
+  - `wall-w2-db.sql`: 3 of the 5 known steps fail on this run.
+  - `public-section-visibility-db.sql`: the leak step false positive ("Game Studio Founder" matches `FOUND`).
+- **Mazen's manual review** (desktop Chrome at 1440 and 1280, signed in to his own TESTING account):
+  1. Open https://gamid-testing-static.gamid.workers.dev/account/, set About Me (Location, Languages, Genres, with one switch off) and choose 2–4 Favorite Games; save.
+  2. Open https://gamid-testing-static.gamid.workers.dev/wall-editor/, then My Gamer Data. Expect the sections Profile, Gaming Roles, About Me, Favorite Games, My Games, Connections, My Duo, My Crews.
+  3. About Me: add the About Me Card and each fact. The fact whose switch is off shows PRIVATE.
+  4. Favorite Games: add All Favorite Games and One Favorite Game (pick the second).
+  5. In another tab, reorder, add or remove a favorite and change an About Me switch. Back in the editor, Refresh from Classic: the elements update in place; a removed single favorite says it is no longer there.
+  6. Save, reload, Preview (no PRIVATE, private facts absent). Publish only if wanted, then open `/@<handle>` signed out to see the visitor view.
+  7. Check that existing Wall elements and the phone editor are unchanged.
+
+**Truth: UPDATED**: new capability `my-gamer-data` (PENDING_ACCEPTANCE, checkpoint `fe77637`, contracts gamer-data-library / -section-catalog / -privacy / -binding / -first-sections). Product Memory: PROPOSED (not saved). **STOP for Mazen's review; deployment is not acceptance.**
