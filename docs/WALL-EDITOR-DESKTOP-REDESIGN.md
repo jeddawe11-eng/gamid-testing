@@ -153,3 +153,8 @@ Mazen's task "GAMID — MY WALL DESKTOP BACKGROUND REDESIGN". It covers organisa
   - save / reload / Preview / visitor; no errors;
   - phone / tablet at 390 / 768 / 899 in four states pixel-identical (the panel region; a playing background video is excluded).
 - **Regression:** 59 screen states, of which only the four desktop Background states changed; the behaviour transcript is identical.
+
+
+### Background desktop panel — final acceptance (2026-10-19)
+
+Mazen explicitly accepted the desktop Background visual refinement (product `c59a922`, TESTING run `39199875542`), including consistent scope/type buttons, collapsible Images and Videos, aligned asset cards, and Fit & Position / Appearance sections. This is scoped UI acceptance, not acceptance of the entire Wall Editor. Mobile/tablet UI and background behavior are unchanged. Product Memory `REV-0016`; GamID Truth unchanged because no authoritative capability or contract changed.
