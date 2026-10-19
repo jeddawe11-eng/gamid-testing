@@ -4004,3 +4004,33 @@ Mazen's task "GAMID — Desktop Media & Links / Icon Group UI Refinement": organ
 **Truth: NO CHANGE REQUIRED.** The organisation is cosmetic; `wall-icons` contracts (edited in Properties; Icon size, Spacing and Align adjustable; 24 icons) are unchanged and still true.
 
 Product Memory: no record saved (needs Mazen's separate approval). **STOP for Mazen's visual acceptance.**
+
+## 90. My Wall desktop Shapes V2 (2026-10-19)
+
+Mazen's task "GAMID — MY WALL DESKTOP SHAPES V2". Details: `docs/WALL-EDITOR-SHAPES-V2.md`.
+
+- **Product:** `f77e76e` (feature), `b08d538` (line endings only) and `da7dd1c1813d29ab9dc4068e626216af97e69e23` (handles hidden while points are edited).
+- **TESTING static:** run `39194776098`; 12 of 12 changed files byte-identical.
+- **Features (desktop):**
+  - a 38-shape vector library in 6 categories plus Freeform;
+  - the Freeform pen and Edit Points;
+  - Smart Shape parameters;
+  - Lock aspect ratio (drags and typed Width / Height);
+  - the Shape Properties accordion (Move to stage stays first).
+- **Data:** optional fields of the existing `rect` element (`shape`, `params`, `path`, `lockAspect`, in `dist/wall/shapes.js`).
+  - Old Walls paint unchanged.
+  - The database already stores these fields unchanged (rolled-back live contract run: 627 entries, no new mismatches).
+  - Its own checks are prepared (`docs/proposals/wall-shapes-v2-db-parity.sql`, rehearsed and rolled back: 19 / 19 cases agree, contract unchanged). **Not applied: awaits Mazen's authorisation.**
+- **Product Memory:** with Mazen's approval in this task, the other agent's REV-0014 got a mechanical validity fix (full checkpoint SHA; title matching its INDEX row) in `885013b`. It had blocked `npm test` and therefore the deployment.
+- **Validation:**
+  - 2013 tests;
+  - the editor walk-through 33 / 33;
+  - all 38 shapes and freeform samples painted at 640 / 375;
+  - phone / tablet pixel-identical;
+  - other Properties identical.
+
+**Truth: UPDATED.** New capability `wall-shapes-v2`, PENDING_ACCEPTANCE:
+- limits: `libraryShapes` 38, `maxFreeformPoints` 100, `minLockAspect` 0.05, `maxLockAspect` 20;
+- four contracts; checkpoint `da7dd1c`; `updated` 2026-10-19.
+
+Product Memory: no new record. **STOP for Mazen's visual and functional acceptance.**

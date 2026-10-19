@@ -421,6 +421,41 @@
       "notes": "Mazen gave final manual acceptance on TESTING on 2026-10-12 (all 14 platforms, Single Icon, Icon Group, working links, correct icons, saving). A vertical arrangement is made with the existing automatic wrapping (a narrow group box); there is no dedicated vertical layout control."
     },
     {
+      "id": "wall-shapes-v2",
+      "name": "Wall Shapes V2 (shape library, Freeform pen and Edit Points, Smart Shapes, Lock aspect ratio)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/",
+        "/@handle"
+      ],
+      "limits": {
+        "libraryShapes": 38,
+        "maxFreeformPoints": 100,
+        "minLockAspect": 0.05,
+        "maxLockAspect": 20
+      },
+      "contracts": [
+        {
+          "id": "shapes-v2-compatible",
+          "rule": "Shapes V2 are optional fields of the existing Wall shape element (shape, params, path, lockAspect). A shape without them is exactly the shape it always was (Rectangle, Rounded, Circle and their fill, gradient, border, corner radius and opacity), so every saved and published Wall paints unchanged."
+        },
+        {
+          "id": "shapes-v2-library",
+          "rule": "The desktop editor (900px and wider) offers a library of 38 vector shapes in six categories (Basic, Polygons & stars, Arrows, Callouts, Badges & banners, Gaming) and a Freeform entry; the phone keeps its three shape buttons. Every library shape takes the same fill, gradient, border and opacity, and paints the same in the editor, Preview and the published Wall. Proportion-sensitive library shapes start with their aspect ratio locked."
+        },
+        {
+          "id": "shapes-v2-freeform",
+          "rule": "Freeform: a pen draws a path on the stage (click to add a point, drag to curve, click the first point to close; Finish open for a line; Undo point; Cancel), stored as up to 100 points in the element's own box. Edit Points (button or double-click) moves points and curve handles, adds and deletes points and switches a point between smooth and corner; while drawing or editing, the element itself does not move. Each change is one undoable edit. A freeform shape moves, resizes, rotates, layers, duplicates, saves and publishes like any element."
+        },
+        {
+          "id": "shapes-v2-smart-and-lock",
+          "rule": "Smart Shapes expose bounded numbers for the shapes that have them (polygon sides, star points and inner radius, arrow shaft and head, callout tail, corner cut, thickness). Lock aspect ratio (Position & Size) keeps the ratio the shape had when it was locked for handle drags and typed Width / Height; off, a shape stretches freely. Other element types are unchanged."
+        }
+      ],
+      "checkpoint": "da7dd1c1813d29ab9dc4068e626216af97e69e23",
+      "record": "docs/WALL-EDITOR-SHAPES-V2.md; PROJECT_HANDOFF.md section 90. Implemented under Mazen's task of 2026-10-19: product f77e76e plus b08d538 (line endings only) and da7dd1c (handles hidden while editing points); static deployment da7dd1c (run 39194776098), served files exact. No database change: the database stores the new fields unchanged; its own checks for them are prepared (docs/proposals/wall-shapes-v2-db-parity.sql, rehearsed in a rolled-back transaction) and await authorisation. Awaiting his acceptance."
+    },
+    {
       "id": "custom-wall-fonts",
       "name": "Custom Wall fonts (Upload My Font / My Fonts)",
       "status": "PENDING_ACCEPTANCE",
