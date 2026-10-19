@@ -64,7 +64,10 @@ test("GamID Blocks: My Crew is listed directly below My Duo; the editor builds i
   const tools = read("dist/wall-editor/tools.js");
   assert.match(tools, /for \(const block of GAMID_BLOCKS\) \{\n\s+const info = GAMID_BLOCK_INFO\[block\];\n\s+blocksBox\.append\(h\("button", \{ class: "ed-btn", type: "button", onclick: \(\) => \{ const result = addCustom\("gamid", createGamidPayload\(block\), info\.size\);/,
     "the accepted list: no special case, My Crew is added only when the owner chooses it");
-  assert.doesNotMatch(tools, /crews/, "no editor redesign - the list is data-driven");
+  // the block list stays data-driven (My Gamer Data, Mazen's task 2026-10-19, names its desktop "My Crews" section separately: tests/wall-editor-gamer-data-desktop.test.js)
+  const blockList = tools.slice(tools.indexOf("// ---- GamID blocks"), tools.indexOf("// ---- GamID data (Round 3)"));
+  assert.ok(blockList.length > 0);
+  assert.doesNotMatch(blockList, /crews/, "no editor redesign - the list is data-driven");
 });
 
 // ---------- 2. adding it to a Stage ----------

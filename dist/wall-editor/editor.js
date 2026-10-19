@@ -80,12 +80,28 @@ const posters = createPosterLoader({ endpoint: api.MEDIA_POSTER_URL });
 // background videos: one pool for the canvas (repaints never restart the video) and one for Preview
 const canvasVideos = createVideoPool();
 let previewVideos = null;
-async function refreshGamid() {
-  gamidSnapshot = null;
-  scheduleRender();
-  // Preview opens the Duo's GamID in a new tab (the editor is never left), at the same permanent /@handle address the account page shares
-  gamidSnapshot = await loadGamidSnapshot(api, { duoLink: { newTab: true, href: handle => new URL(`../@${handle}`, location.href).pathname }, crewLink: { newTab: true, href: crewId => `${new URL("../crew/", location.href).pathname}?c=${crewId}` } });
-  scheduleRender();
+// One read at a time: a call while a read runs joins it (no duplicate requests, and an older read can never overwrite a newer one). `keep` (Refresh from Classic):
+// the current data stays on screen while the read runs, and a read that could not load the GamID leaves it in place. Resolves true when the GamID was read.
+let gamidLoading = null;
+function refreshGamid({ keep = false } = {}) {
+  if (gamidLoading) return gamidLoading;
+  if (!keep) { gamidSnapshot = null; scheduleRender(); }
+  gamidLoading = (async () => {
+    try {
+      // Preview opens the Duo's GamID in a new tab (the editor is never left), at the same permanent /@handle address the account page shares
+      const next = await loadGamidSnapshot(api, { duoLink: { newTab: true, href: handle => new URL(`../@${handle}`, location.href).pathname }, crewLink: { newTab: true, href: crewId => `${new URL("../crew/", location.href).pathname}?c=${crewId}` } });
+      const ok = Boolean(next?.profile?.handle);
+      if (ok || !keep || !gamidSnapshot) gamidSnapshot = next;
+      return ok;
+    } catch (error) {
+      if (keep) return false;
+      throw error;
+    } finally {
+      gamidLoading = null;
+      scheduleRender();
+    }
+  })();
+  return gamidLoading;
 }
 
 // ---- text box helper --------------------------------------------------------------------------------------------------------------------------------

@@ -21,6 +21,7 @@ import { mediaCapabilities } from "../wall-kit/embed/index.js";
 import { fitFrame } from "../wall-kit/embed/player.js";
 import { createVideoPreviews } from "./video-preview.js";
 import { renderUploadError, classifyUploadError } from "../app/upload-feedback.js";
+import { createTransientMessage } from "../account/transient-message.js";
 
 const h = (tag, attributes = {}, ...children) => {
   const node = document.createElement(tag);
@@ -51,6 +52,33 @@ export const TEXT_EFFECTS = Object.freeze([
   { key: "living-fire", label: "Living Fire", note: "Living flames in your own letters: Organic, Cinematic or Mythic", field: "fire", value: createFire("organic") },
 ]);
 
+// My Gamer Data (desktop GamID tool, Phase 1 2026-10-19): the Classic data a Wall can already show, by Classic section. Each choice appears ONCE and goes to the
+// existing implementation: `data` = a GamID data element (one live field), `pick` = a GamID data element bound to one chosen item, `block` = a GamID block. "All roles /
+// games / connections" are the GamID blocks (the matching data collections draw the same content; elements of either kind stay valid and editable).
+export const GAMER_DATA_SECTIONS = Object.freeze([
+  { key: "profile", label: "Profile", items: [
+    { id: "avatar", kind: "data", field: "avatar", label: "Avatar", note: "Your GamID picture" },
+    { id: "displayName", kind: "data", field: "displayName", label: "Display Name", note: "Your display name" },
+    { id: "handle", kind: "data", field: "handle", label: "@GamID", note: "Your @GamID" },
+    { id: "bio", kind: "data", field: "bio", label: "Bio", note: "Your bio" },
+    { id: "profileCard", kind: "block", block: "profile", label: "Profile Card", note: "Your avatar, display name and @GamID in one card" },
+  ] },
+  { key: "roles", label: "Gaming Roles", items: [
+    { id: "role", kind: "pick", field: "role", label: "One Role", note: "One of your roles, or whichever is primary" },
+    { id: "roles", kind: "block", block: "roles", label: "All Roles", note: "Every gaming role you chose" },
+  ] },
+  { key: "games", label: "My Games", items: [
+    { id: "game", kind: "pick", field: "game", label: "One Game", note: "One game from your library" },
+    { id: "games", kind: "block", block: "games", label: "All Games", note: "Your games list. Hours stay hidden unless you turn them on" },
+  ] },
+  { key: "connections", label: "Connections", items: [
+    { id: "connection", kind: "pick", field: "connection", label: "One Connection", note: "One of your public connections" },
+    { id: "connections", kind: "block", block: "connections", label: "All Connections", note: "The accounts you show on your GamID" },
+  ] },
+  { key: "duo", label: "My Duo", items: [{ id: "duo", kind: "block", block: "duo", label: "My Duo", note: "Your accepted Duo. Visitors can open their GamID" }] },
+  { key: "crews", label: "My Crews", items: [{ id: "crews", kind: "block", block: "crews", label: "My Crews", note: "Your Crews with a published Crew Wall. Visitors can open each one" }] },
+]);
+
 // "Other" link (Media & Links): a text element whose words are the link. Starts as a clear, underlined link line; every Text control restyles it.
 export const OTHER_TEXT_MAX = 120;
 export const OTHER_LINK_STYLE = Object.freeze({ fontFamily: "system-sans", fontSize: 64, fontWeight: 700, underline: true, color: "#62e7ff", align: "center", lineHeight: 1.2, wrap: true });
@@ -72,7 +100,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     image: () => pickImage(),
     embed: () => { setTool("media"); requestAnimationFrame(() => $("mediaUrl")?.focus()); },
     gamid: () => setTool("gamid"),
-    gamidData: () => { setTool("gamid"); requestAnimationFrame(() => $("gamidDataTitle")?.scrollIntoView({ block: "start" })); },
+    gamidData: () => { setTool("gamid"); requestAnimationFrame(() => (accordionOn() ? $("gamerDataLibrary") : $("gamidDataTitle"))?.scrollIntoView({ block: "start" })); },
   };
   for (const button of document.querySelectorAll("[data-add-action]")) button.addEventListener("click", () => addActions[button.dataset.addAction]?.());
 
@@ -780,6 +808,92 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     }
   }
 
+  // ---- My Gamer Data (desktop, 900px and wider): the same imports as the two lists above, as one "Import from Classic" library. Each Classic section is an
+  // accordion (Profile open, the rest closed; several may be open; the choice is kept for the whole visit). Each choice is listed once and adds exactly what the
+  // lists above add. Below 900px the panel is the one it always was: the library stays hidden and the lists show.
+  const gamidPanel = document.querySelector('[data-tool-panel="gamid"]');
+  const gamidTitle = gamidPanel?.querySelector("h2"), gamidRailLabel = document.querySelector('#rail [data-tool="gamid"] span');
+  const libraryTools = $("gamerDataTools"), library = $("gamerDataLibrary");
+  const legacyGamid = [...(gamidPanel?.children ?? [])].filter(node => node !== gamidTitle && node !== libraryTools);
+  const gdOpen = { profile: true, roles: false, games: false, connections: false, duo: false, crews: false };
+  const gdFeedback = $("gamerDataStatus") ? createTransientMessage($("gamerDataStatus")) : null;
+  let gdKey = "", gdRefreshing = false;
+  const gdRefresh = $("gamerDataRefresh");
+  // Refresh from Classic: the same authorised reads as the editor's first load (one at a time - a second press while one runs does nothing). The current data stays
+  // on screen until the new data arrives; a failed read leaves it in place. Linked elements are bindings, so they repaint with the new data, keeping their place and look.
+  gdRefresh?.addEventListener("click", async () => {
+    if (gdRefreshing) return;
+    gdRefreshing = true; gdRefresh.disabled = true; gdRefresh.setAttribute("aria-busy", "true");
+    gdFeedback?.show("Refreshing from Classic…", { tone: "info", progress: true });
+    let ok = false;
+    try { ok = (await refreshGamid({ keep: true })) !== false; } catch { ok = false; }
+    gdRefreshing = false; gdRefresh.disabled = false; gdRefresh.removeAttribute("aria-busy");
+    gdFeedback?.show(ok ? "Up to date with your Classic profile." : "Your Classic data could not be refreshed. Check your connection and try again.", { tone: ok ? "success" : "error" });
+  });
+  const gdMatches = (item, element) => (item.kind === "block" ? element.type === "gamid" && element.payload?.block === item.block : element.type === "gamidData" && element.payload?.field === item.field);
+  const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
+  // what the owner's GamID holds for a choice right now: a short count line, or "Not on your GamID yet" (the choice still works and draws its own empty state)
+  function gdHolding(item, snapshot) {
+    if (!snapshot) return null;
+    const rolesCount = snapshot.roles.length, gamesCount = snapshot.games.total, connectionsCount = snapshot.connections.length, crewsCount = snapshot.crews?.length ?? 0;
+    switch (item.id) {
+      case "bio": return snapshot.profile.bio ? null : { empty: true };
+      case "role": case "roles": return rolesCount ? { text: plural(rolesCount, "role") } : { empty: true };
+      case "game": case "games": return gamesCount ? { text: plural(gamesCount, "game") } : { empty: true };
+      case "connection": case "connections": return connectionsCount ? { text: `${plural(connectionsCount, "public connection")}` } : { empty: true };
+      case "duo": return snapshot.duo ? { text: `With ${snapshot.duo.displayName}` } : { empty: true };
+      case "crews": return crewsCount ? { text: plural(crewsCount, "Crew") } : { empty: true };
+      default: return null;
+    }
+  }
+  function gdCard(item, snapshot) {
+    const holding = gdHolding(item, snapshot);
+    const icon = h("b", { class: "ed-gd-icon", "data-gd-icon": item.id, "aria-hidden": "true" });
+    const tag = holding?.empty ? h("em", { class: "ed-gd-tag", text: "Not on your GamID yet" }) : holding?.text ? h("em", { class: "ed-gd-count", text: holding.text }) : null;
+    const text = h("span", { class: "ed-gd-text" }, h("strong", { text: item.label }), h("small", { text: item.note }), tag);
+    if (item.kind !== "pick") {
+      const add = () => (item.kind === "block" ? (addCustom("gamid", createGamidPayload(item.block), GAMID_BLOCK_INFO[item.block].size).ok && setTool("props")) : addData(item.field));
+      return h("button", { class: "ed-gd-card", type: "button", "data-gd": item.id, onclick: add }, icon, text);
+    }
+    const options = itemOptions(item.field, snapshot);
+    const select = h("select", { class: "ed-gd-select", "aria-label": `Choose ${item.label.replace(/^One /, "a ").toLowerCase()}` });
+    for (const option of options) select.append(h("option", { value: option.value, text: option.label }));
+    const addButton = h("button", { class: "ed-gd-add", type: "button", text: "Add", "aria-label": `Add ${item.label}`, disabled: !options.length, onclick: () => addData(item.field, select.value) });
+    return h("div", { class: "ed-gd-card ed-gd-pick", "data-gd": item.id }, h("div", { class: "ed-gd-head" }, icon, text),
+      options.length ? h("div", { class: "ed-gd-pick-row" }, select, addButton) : !snapshot ? h("p", { class: "ed-gd-wait", text: "Loading your GamID data…" }) : null);
+  }
+  function renderGamerData() {
+    if (!library || !libraryTools) return;
+    const desktop = accordionOn();
+    libraryTools.hidden = !desktop;
+    for (const node of legacyGamid) node.style.setProperty("display", desktop ? "none" : "");   // the phone lists (hidden on desktop by script: the desktop file may not hide)
+    if (gamidTitle) gamidTitle.textContent = desktop ? "Import from Classic" : "GamID blocks";
+    if (gamidRailLabel) gamidRailLabel.textContent = desktop ? "My Gamer Data" : "GamID";
+    if (!desktop) return;
+    const snapshot = getGamid();
+    const key = JSON.stringify(snapshot ? [snapshot.profile, snapshot.roles, snapshot.games.items.map(game => game.ref), snapshot.connections, snapshot.duo?.handle ?? null, snapshot.duo?.displayName ?? null, (snapshot.crews ?? []).map(crew => crew.id)] : "loading");
+    if (key !== gdKey) {
+      gdKey = key;
+      library.replaceChildren(...GAMER_DATA_SECTIONS.map(section => {
+        const id = `gamerData-${section.key}`;
+        const body = h("div", { class: "ed-gd-body", id, hidden: !gdOpen[section.key] }, ...section.items.map(item => gdCard(item, snapshot)));
+        const toggle = h("button", { class: "ed-font-group-toggle ed-gd-toggle", type: "button", "aria-expanded": String(gdOpen[section.key]), "aria-controls": id, onclick: () => {
+          gdOpen[section.key] = !gdOpen[section.key]; toggle.setAttribute("aria-expanded", String(gdOpen[section.key])); body.hidden = !gdOpen[section.key];
+        } }, h("span", { class: "ed-font-group-name", text: section.label }), h("span", { class: "ed-font-group-count", text: String(section.items.length), "aria-label": `${section.items.length} import choices` }));
+        return h("section", { class: "ed-gd-section", "data-gd-section": section.key }, h("h3", { class: "ed-gd-section-head" }, toggle), body);
+      }));
+    }
+    // selected state: the choice that made the selected element(s) (every selected element came from it)
+    const stage = session.stage, chosen = new Set(session.state.selection);
+    const selected = stage ? stage.elements.filter(element => chosen.has(element.id)) : [];
+    for (const section of GAMER_DATA_SECTIONS) for (const item of section.items) {
+      const card = library.querySelector(`[data-gd="${item.id}"]`);
+      if (!card) continue;
+      if (selected.length && selected.every(element => gdMatches(item, element))) card.setAttribute("aria-current", "true"); else card.removeAttribute("aria-current");
+    }
+  }
+  desktopFonts?.addEventListener?.("change", () => { gdKey = ""; renderGamerData(); });
+
   // ---- Assets --------------------------------------------------------------------------------------------------------------------------------
   // Pictures (JPG / PNG / WebP / AVIF / GIF) and VIDEOS (MP4 / WebM) side by side. "Add" places either as a media layer with the same artwork controls; a video layer
   // plays muted and looping. Deleting follows the same safe rule as before (an asset the Wall uses is never deleted from under it).
@@ -870,7 +984,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
 
   return {
     addImageElement, uploadFile,
-    update() { templates.update(); renderBackground(); renderAssets(); renderGamidStatus(); renderGamidData(); renderMyFonts(); renderFontSelection(); renderShapeSelection(); },
+    update() { templates.update(); renderBackground(); renderAssets(); renderGamidStatus(); renderGamidData(); renderGamerData(); renderMyFonts(); renderFontSelection(); renderShapeSelection(); },
     invalidate() { renderBackground(true); renderAssets(true); },
     renderAssets, renderBackground,
   };
