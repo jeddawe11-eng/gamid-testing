@@ -84,6 +84,7 @@ export function createPathEditor({ host, bar, getScale, session, run, notify = (
   // ---- drawing ---------------------------------------------------------------------------------------------------------------------------------------
   // The layer is created once per pen / Edit Points session and kept (a pointer drag keeps its capture); a canvas repaint detaches it and mount() puts it back.
   function mount() {
+    host.classList.toggle("is-path-editing", Boolean(mode));   // the element's own selection box and handles step aside while the points are edited
     if (!mode) { layer?.remove(); layer = null; renderBar(); return; }
     if (mode === "edit") {
       const el = element();
