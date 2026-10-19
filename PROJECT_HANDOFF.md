@@ -4086,3 +4086,25 @@ Mazen's task "GAMID — CLASSIC → MY WALL COMPLETE DATA IMPORT AUDIT": audit a
   - Seven decisions are listed for Mazen.
 
 **Truth: NO CHANGE REQUIRED** (no current fact is contradicted). Product Memory: no record. **STOP for Mazen's review.**
+
+## 94. My Gamer Data, Phase 1 (2026-10-19)
+
+Mazen's task "GAMID — MY GAMER DATA — PHASE 1 IMPLEMENTATION": desktop only. Details: `docs/WALL-EDITOR-DESKTOP-REDESIGN.md` (My Gamer Data) and `docs/CLASSIC-WALL-IMPORT-AUDIT.md` §10.
+
+- **Product:** `e1a43c22d06526e498cdb67326ce90733d83b2db`, TESTING run `39203875352`, served files exact.
+- **What changed:**
+  - The GamID tool is **My Gamer Data**, with the panel heading **Import from Classic**.
+  - Six independent accordion sections: Profile (open), Gaming Roles, My Games, Connections, My Duo, My Crews.
+  - Each import choice is listed once, so the Roles / Games / Connections block-and-data duplicates are merged; "All …" is the GamID block.
+  - Count and "Not on your GamID yet" tags; the card that made the selection is marked.
+  - **Refresh from Classic** reads the data again, one read at a time, keeps the current data while loading and on failure, and gives feedback.
+- **Validation:**
+  - 2024 tests;
+  - 43 / 43 lab browser checks;
+  - phone / tablet pixel-identical;
+  - Background regression unchanged (its known 768 video-frame noise only).
+- **Lab:** its fake client got an opt-in synthetic GamID (`lab.html?gamid=1`, outside the repository).
+
+**Truth: NO CHANGE REQUIRED.** No capability, limit or contract changed; the same imports and data.
+
+Product Memory: no record. **STOP for Mazen's visual and functional acceptance.**

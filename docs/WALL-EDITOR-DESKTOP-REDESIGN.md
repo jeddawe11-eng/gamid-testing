@@ -158,3 +158,40 @@ Mazen's task "GAMID — MY WALL DESKTOP BACKGROUND REDESIGN". It covers organisa
 ### Background desktop panel — final acceptance (2026-10-19)
 
 Mazen explicitly accepted the desktop Background visual refinement (product `c59a922`, TESTING run `39199875542`), including consistent scope/type buttons, collapsible Images and Videos, aligned asset cards, and Fit & Position / Appearance sections. This is scoped UI acceptance, not acceptance of the entire Wall Editor. Mobile/tablet UI and background behavior are unchanged. Product Memory `REV-0016`; GamID Truth unchanged because no authoritative capability or contract changed.
+
+## My Gamer Data panel (2026-10-19)
+
+Mazen's task "GAMID — MY GAMER DATA — PHASE 1 IMPLEMENTATION": desktop only (900px and wider). Phase 1 of `docs/CLASSIC-WALL-IMPORT-AUDIT.md`. Product `e1a43c22d06526e498cdb67326ce90733d83b2db`, TESTING run `39203875352`.
+
+- **Naming:** the rail button reads **My Gamer Data** (on two lines) and the panel heading reads **Import from Classic**. Both are desktop text swaps; the phone keeps "GamID" and "GamID blocks".
+- **Library:** one accordion per Classic section. Each heading is the font library's button (name, number of choices, chevron). Profile starts open and the rest closed; any number can be open; the state is kept for the visit. The headings are real buttons with `aria-expanded` / `aria-controls`.
+  - **Profile:** Avatar, Display Name, @GamID, Bio, Profile Card.
+  - **Gaming Roles:** One Role, All Roles.
+  - **My Games:** One Game, All Games.
+  - **Connections:** One Connection, All Connections.
+  - **My Duo:** My Duo.
+  - **My Crews:** My Crews.
+- **One entry per choice** (`GAMER_DATA_SECTIONS`, `tools.js`):
+  - Single fields add the GamID data element.
+  - "One …" adds the GamID data element bound to the item chosen in the owner-only picker.
+  - "All …", Profile Card, My Duo and My Crews add the GamID block.
+  - Payloads, sizes and placement are the same as the phone lists.
+  - Earlier data-collection elements (Roles / Games / Connections) stay valid, drawn and editable.
+- **Cards:**
+  - Each card has an icon, a name and a note. It shows a count tag from the loaded data, or "Not on your GamID yet" when that data is empty.
+  - The card that made the current selection is marked (`aria-current`).
+  - A single item uses a picker with an Add button, which is disabled when there are no items.
+- **Refresh from Classic:**
+  - It runs the same authorised reads as the editor's first load (`loadGamidSnapshot`).
+  - Only one read runs at a time: `refreshGamid` joins a read already in progress.
+  - The current data stays on screen while the read runs. A read that cannot load the GamID leaves it in place.
+  - Feedback is a progress line, then a success or error line (the shared transient-message rule).
+  - Linked elements repaint with the new data. They are bindings, so their saved geometry and style are untouched.
+- **Unchanged:**
+  - the phone and tablet panel (pixel-identical at 390, 768 and 899);
+  - data, contracts and schema;
+  - the Classic editor and the visitor Wall.
+- **Validation:**
+  - 2024 tests (0 failures, 1 pre-existing environment skip);
+  - lint and typecheck;
+  - 43 browser checks in the local lab with a synthetic GamID, all passing. They cover every choice against the old panel, the accordion, keyboard use, the selected state, Refresh (loading, one read, success, error kept, retry), save / reload, Preview, the visitor view, a legacy collection, and phone / tablet pixels.

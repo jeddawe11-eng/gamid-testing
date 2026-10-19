@@ -206,3 +206,20 @@ A section that needs new interaction (a player, a link destination, media) needs
 5. **Live My Socials:** add live My Socials icons alongside today's pasted links, or keep links copy-only?
 6. **Banner:** is the Classic Banner importable as a live Wall image?
 7. **Migrations:** each new field or the Phase 3 projection needs your authorisation (TESTING only, rehearsed first).
+
+## 10. Phase 1 delivered (2026-10-19)
+
+Mazen's task "GAMID — MY GAMER DATA — PHASE 1 IMPLEMENTATION" (desktop only). Product `e1a43c22d06526e498cdb67326ce90733d83b2db`, TESTING run `39203875352`; details in `docs/WALL-EDITOR-DESKTOP-REDESIGN.md` (My Gamer Data) and `PROJECT_HANDOFF.md` §94.
+
+- **Delivered:**
+  - the names (My Gamer Data / Import from Classic);
+  - six accordion groups covering today's options (Profile, Gaming Roles, My Games, Connections, My Duo, My Crews);
+  - one entry per option: "All …" is the GamID block, and the data collections are no longer listed a second time;
+  - count and "Not on your GamID yet" tags;
+  - a **Refresh from Classic** control.
+- **Differences from §7:**
+  - Groups are always listed: an empty one is tagged rather than hidden, and its choices still add their element, which draws its own empty state.
+  - There is no "not public" tag; the canvas already marks private data.
+  - Refresh is an explicit control, not automatic on focus.
+  - There is no Layers marker.
+- **Proposed (italic) options:** none added; they remain Phase 2 / 3.
