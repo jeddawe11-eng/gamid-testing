@@ -423,7 +423,7 @@
     {
       "id": "wall-shapes-v2",
       "name": "Wall Shapes V2 (shape library, Freeform pen and Edit Points, Smart Shapes, Lock aspect ratio)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/wall-editor/",
         "/@handle"
@@ -453,7 +453,7 @@
         }
       ],
       "checkpoint": "da7dd1c1813d29ab9dc4068e626216af97e69e23",
-      "record": "docs/WALL-EDITOR-SHAPES-V2.md; PROJECT_HANDOFF.md section 90. Implemented under Mazen's task of 2026-10-19: product f77e76e plus b08d538 (line endings only) and da7dd1c (handles hidden while editing points); static deployment da7dd1c (run 39194776098), served files exact. No database change: the database stores the new fields unchanged; its own checks for them are prepared (docs/proposals/wall-shapes-v2-db-parity.sql, rehearsed in a rolled-back transaction) and await authorisation. Awaiting his acceptance."
+      "record": "docs/WALL-EDITOR-SHAPES-V2.md; PROJECT_HANDOFF.md section 90. Implemented under Mazen's task of 2026-10-19: product f77e76e plus b08d538 (line endings only) and da7dd1c (handles hidden while editing points); static deployment da7dd1c (run 39194776098), served files exact. No database change: the database stores the new fields unchanged; its own checks for them are prepared (docs/proposals/wall-shapes-v2-db-parity.sql, rehearsed in a rolled-back transaction) and await authorisation. Mazen accepted Shapes V2 on 2026-10-19 after left-panel accordion fix bb50aef (TESTING run 39196387512); see REV-0015. Database parity proposal remains unapplied and requires separate authorization."
     },
     {
       "id": "custom-wall-fonts",
