@@ -79,9 +79,11 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0006 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0015 |
+| REV | Reviews | reviews/ | REV-0016 |
 
 ## Register
+
+2026-10-19: Mazen explicitly accepted desktop Background panel visual refinement (product c59a922, TESTING run 39199875542). REV-0016 records scoped acceptance; GamID Truth unchanged because no capability or contract changed. Shapes V2 database parity proposal remains unapplied.
 
 2026-10-19: Mazen explicitly accepted full desktop Shapes V2 following aspect-lock testing and the left-panel accordion correction (TESTING run 39196387512). New REV-0015; Truth wall-shapes-v2 ACCEPTED. The prepared database parity SQL remains unapplied pending separate authorization.
 
@@ -150,3 +152,4 @@ Rules:
 | REV-0013 | Living Fire V3 - final capability acceptance | COMPLETED | [REV-0013-living-fire-v3-final-acceptance.md](reviews/REV-0013-living-fire-v3-final-acceptance.md) |
 | REV-0014 | Desktop Media & Links and Icon Group UI refinement - Mazen acceptance | COMPLETED | [REV-0014-desktop-media-links-icon-group-acceptance.md](reviews/REV-0014-desktop-media-links-icon-group-acceptance.md) |
 | REV-0015 | Shapes V2 - final capability acceptance | COMPLETED | [REV-0015-shapes-v2-final-acceptance.md](reviews/REV-0015-shapes-v2-final-acceptance.md) |
+| REV-0016 | Desktop Background panel redesign - final acceptance | COMPLETED | [REV-0016-desktop-background-final-acceptance.md](reviews/REV-0016-desktop-background-final-acceptance.md) |
