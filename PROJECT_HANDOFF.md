@@ -4049,3 +4049,24 @@ Mazen's task "GAMID — Shapes V2 Left Panel Accordion Fix": the desktop shape l
 **Truth: NO CHANGE REQUIRED.** A visual refinement; `wall-shapes-v2` (PENDING_ACCEPTANCE) and its contracts are unchanged and still true.
 
 Product Memory: no record. **STOP for Mazen's visual acceptance.**
+
+## 92. Desktop Background panel redesign (2026-10-19)
+
+Mazen's task "GAMID — MY WALL DESKTOP BACKGROUND REDESIGN": organisation and look only, desktop only. Details: `docs/WALL-EDITOR-DESKTOP-REDESIGN.md` (Background panel).
+
+- **Product:** `c59a9228019e9724f3adc357e3f94fa69e8dee10`, TESTING run `39199875542`, served files exact.
+- **What changed:**
+  - Images / Videos uploads are accordion sections with counts (Images open, Videos closed, kept for the session; the chosen type opens its own).
+  - Picture and video settings are in Fit & Position and Appearance.
+  - Upload cards are equal, with Use / Delete in one row and an in-use badge; the type buttons form one even grid.
+  - The right panel is unchanged (background settings are left-panel only by design).
+- **Validation:**
+  - 2017 tests;
+  - Background checks 43 / 43, including every state with the same controls and phone / tablet pixel-identical;
+  - 59-state grid with only the desktop Background states changed;
+  - transcript identical.
+- **Lab:** its fake client got opt-in fixture uploads (`lab.html?assets=1`, outside the repository).
+
+**Truth: NO CHANGE REQUIRED.** No capability, limit or contract changed.
+
+Product Memory: no record. **STOP for Mazen's visual acceptance.**

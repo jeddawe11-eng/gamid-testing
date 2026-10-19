@@ -106,3 +106,50 @@ Mazen's task "GAMID — Desktop Media & Links / Icon Group UI Refinement". It co
 ### Media & Links / Icon Group UI — acceptance (2026-10-19)
 
 Mazen explicitly accepted the desktop-only visual organization delivered at product `0615a4c` (TESTING run `39153509185`): equal-height platform cards, cleaner spacing, and independently collapsible Icon Group Properties accordions matching Text Properties. All controls remain available; Move to Stage remains above the accordions per the earlier accepted rule. Phone/tablet are unchanged. Product Memory REV-0014. This is scoped acceptance, not final acceptance of the entire desktop Wall redesign. GamID Truth unchanged (`wall-icons` already ACCEPTED).
+
+## Background panel (2026-10-19)
+
+Mazen's task "GAMID — MY WALL DESKTOP BACKGROUND REDESIGN". It covers organisation and look only, desktop only (900px and wider).
+
+- **Product:** `c59a9228019e9724f3adc357e3f94fa69e8dee10`.
+- **TESTING static:** run `39199875542`; changed files served byte-identical.
+- **Files changed:** `dist/wall-editor/tools.js` (the desktop branch of `renderBackground`), `dist/wall-editor/editor-desktop.css`, and tests.
+
+**Left panel:**
+- **Choices:** Whole Wall / This stage only and the five types (None, Colour, Gradient, Image, Video) are the editor's card buttons, with the purple / gold selected state. The type buttons form one even grid of two rows (no lone button).
+- **Remove background** is a full-width button.
+- **Uploads:** the Images and Videos upload groups are accordion sections (the font library's heading button: name, count, chevron).
+  - Images starts open and Videos closed. The state is kept for the editor session, including when switching tools.
+  - Choosing the Image or Video type opens that section, so the current upload is always in view.
+- **Upload cards:** equal size with a fixed 5.2rem cover thumbnail, the selected card framed.
+  - **Use / Selected** and **Delete** sit in one row.
+  - "In use: …" (Whole Wall / Stage n background / images on a stage) is a gold badge.
+  - The delete confirmation stays inside its card.
+  - Video details are two lines ("Video 1" / "1080×1920 · 2 MB").
+- **Settings:** a picture or video background's settings are two sections:
+  - **Fit & Position:** Fit, now a full-width menu, so "Fill (cover, recommended)" is readable; Position X; Position Y.
+  - **Appearance:** Opacity, Flip horizontal / vertical, Darken, and its Overlay colour / %.
+  - Colour and Gradient keep their few controls as they are.
+
+**Right panel:** unchanged. Background settings are handled only in this panel by design; no Properties panel was added.
+
+**Not changed:**
+- the phone / tablet panel (its exact DOM);
+- every control and its order;
+- scope / priority / inheritance;
+- upload, conversion and deletion rules, usage references and the uploaded files;
+- rendering, Preview, the visitor view, save, undo / redo and publishing.
+
+**Validation:**
+- **Tests:** `npm test` 2017 (2016 passed, 1 skipped); lint and typecheck pass. New `tests/wall-editor-background-desktop.test.js` (3). The existing B5 safe-deletion guard still holds: Delete is offered for background images and videos only, through the same `deleteControls`.
+- **Lab (with opt-in fixture uploads; 4 images, 2 MP4s), Background checks 43 / 43:**
+  - every state has the same controls as before, collapsed sections included;
+  - section defaults, independence and keyboard, and the state kept across tools;
+  - Colour / Gradient controls;
+  - Image: auto-open, Selected + In use; Use another upload frees the previous one; Darken / Overlay; Fit; a settings section collapses;
+  - delete confirmation and Cancel;
+  - Video: auto-open, Selected + In use, Upload MP4;
+  - This stage only (inherit note, "In use: Stage 1"); the Whole Wall keeps its video;
+  - save / reload / Preview / visitor; no errors;
+  - phone / tablet at 390 / 768 / 899 in four states pixel-identical (the panel region; a playing background video is excluded).
+- **Regression:** 59 screen states, of which only the four desktop Background states changed; the behaviour transcript is identical.
