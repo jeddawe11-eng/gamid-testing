@@ -482,11 +482,15 @@
         },
         {
           "id": "gamer-data-first-sections",
-          "rule": "The first catalog sections are About Me (the About Me card and the facts Location, Member Since, Languages, Favorite Genres) and Favorite Games (one favorite by game key, or all in the owner's order). Favorite Games on the Wall are text cards (no artwork)."
+          "rule": "The first catalog sections are About Me (the About Me card and the facts Location, Member Since, Languages, Favorite Genres) and Favorite Games (one favorite by game key, or all in the owner's order)."
+        },
+        {
+          "id": "gamer-data-display-style",
+          "rule": "A section whose catalog row marks game artwork (wall_artwork = 'game': Favorite Games) offers Display Style per element in the desktop editor's Properties: Names Only (the default; no key is stored, so earlier elements are unchanged) or Game Covers (display = covers, both for one game and for all). Game Covers draws one 2:3 cover card per game in Classic's order with its name below, sized to fit the element without overflow, distortion or a cut name; covers come only from Classic's existing artwork (GamID's game-artwork function; the owner's own read in the editor, the visitor read of a PUBLIC GamID on a published Wall), and a game without artwork keeps an initials tile with its name. Covers are shown only for the games the section already returns, so visitors see them only while My Games is public. Switching style never changes the element's position, size, rotation or style. The Wall editor's CSP img-src admits exactly one image origin beyond blob: and data:, the artwork CDN (https://cdn2.steamgriddb.com). The artwork remains a provisional TESTING evaluation pending the provider's written permission."
         }
       ],
-      "checkpoint": "fe7763721e85e6379c2d2612f285532852d14c0a",
-      "record": "docs/MY-GAMER-DATA-PHASE2.md; docs/WALL-EDITOR-DESKTOP-REDESIGN.md (My Gamer Data panel); docs/CLASSIC-WALL-IMPORT-AUDIT.md §10-§11; PROJECT_HANDOFF.md §94-§96. Phase 1 product e1a43c2 (run 39203875352); Phase 2 product 12c8b3b with migrations 20261019120000_gamer_data_sections and 20261019120100_wall_gamer_data_binding APPLIED on TESTING 2026-10-19 under Mazen's authorization; deployed fe77637 (run 39254434384), served files exact. Awaiting Mazen's manual acceptance."
+      "checkpoint": "e686d7f39a8040cf972d31b6c38dfd00660127d9",
+      "record": "docs/MY-GAMER-DATA-PHASE2.md; docs/WALL-EDITOR-DESKTOP-REDESIGN.md (My Gamer Data panel); docs/CLASSIC-WALL-IMPORT-AUDIT.md §10-§11; PROJECT_HANDOFF.md §94-§96. Phase 1 product e1a43c2 (run 39203875352); Phase 2 product 12c8b3b with migrations 20261019120000_gamer_data_sections and 20261019120100_wall_gamer_data_binding APPLIED on TESTING 2026-10-19 under Mazen's authorization; deployed fe77637 (run 39254434384), served files exact. Awaiting Mazen's manual acceptance. Favorite Games Display Style: migrations 20261019140000_gamer_data_artwork and 20261019140100_wall_gamer_data_display APPLIED on TESTING 2026-10-19 under Mazen's authorization (with editor CSP option A); deployed e686d7f (runs 39261023816, 39261690232), served files exact; awaiting Mazen's manual acceptance."
     },
     {
       "id": "custom-wall-fonts",

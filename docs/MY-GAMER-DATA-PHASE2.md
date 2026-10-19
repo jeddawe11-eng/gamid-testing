@@ -172,7 +172,7 @@ select count(*) from public.wall_publications where jsonb_path_exists(document, 
   - The signed-out Wall Editor shows its normal sign-in gate.
 - **Not verified by the agent:** the signed-in editor (library, Refresh, save, publish). It needs the owner's own sign-in; see Mazen's checklist in `PROJECT_HANDOFF.md` §96.
 
-## 10. Favorite Games Display Style (2026-10-19): implemented, migrations PROPOSED, not deployed
+## 10. Favorite Games Display Style (2026-10-19): applied and deployed, PENDING acceptance (as first proposed below; final state in §11)
 
 Mazen's task "GAMID — FAVORITE GAMES DISPLAY STYLE". The code is committed on the feature branch. It is **not deployed**, because a database change is strictly necessary (below). TESTING still serves `fe77637`.
 
@@ -212,3 +212,24 @@ Mazen's task "GAMID — FAVORITE GAMES DISPLAY STYLE". The code is committed on 
   - rolled-back TESTING rehearsal of both migrations: gamer-data 25 / 25, corpus parity 649 / 649, the same 3 pre-existing `wall-w2-db.sql` failures; TESTING was verified unchanged afterwards;
   - lab browser checks 24 / 24: Names Only pixel-identical to `fe77637`, no artwork read for Names Only, covers in order with fallback, fit and 2:3, geometry unchanged, per-element style, persistence, Preview, Refresh, visitor, My Games private, artwork off, phone and tablet pixel-identical;
   - Phase 2 regression 34 / 34.
+
+## 11. Display Style: applied and deployed (2026-10-19)
+
+Mazen authorized both migrations and **CSP option A**.
+
+- **Migrations:** `20261019140000_gamer_data_artwork` and `20261019140100_wall_gamer_data_display` were applied in one transaction and recorded with `migration repair`.
+- **Live database checks (each rolled back):**
+  - gamer-data: 25 / 25;
+  - publishing: 42 / 42;
+  - validator parity: 649 / 649;
+  - the known older failures only: `wall-w2-db.sql` 3 steps; `public-section-visibility-db.sql` the "Game Studio Founder" false positive.
+- **CSP:** the editor's `img-src` is now exactly `'self' data: blob: https://cdn2.steamgriddb.com`, with every other directive unchanged. The guard `tests/wall-round2-posters.test.js` was updated deliberately: exactly this one new origin is allowed, and no embed provider image host.
+- **Title fit:** checking with real TESTING data showed "Call of Duty 4: Modern Warfare" cut on two lines. The name font now shrinks until the longest name fits on two lines (`coverLayout` `longest`; `e686d7f`).
+- **Deployed:** `a061f27` (run `39261023816`), then `e686d7f` (run `39261690232`). The served files match the commit.
+- **Live checks on TESTING (anonymous, read-only):** in the deployed Wall editor page, under its real CSP, the deployed Wall code painted @black's real Favorite Games from the public projection and Classic's visitor artwork route.
+  - Names Only matches the Phase 2 drawing.
+  - Game Covers drew 4 cards plus a single-game card, with 5 / 5 covers loaded, all from `cdn2.steamgriddb.com`, lazy and with no referrer.
+  - Every name fits; every card stays inside its element.
+  - An image from a non-approved host (`i.ytimg.com`) is still blocked by the CSP.
+  - @zshot's published Wall (no covers) draws its 4 GamID elements with no artwork request and no error.
+- **Not verified by the agent:** the signed-in editor (Properties, Save, Refresh with the owner's own artwork read). It needs the owner's own sign-in; see the checklist in `PROJECT_HANDOFF.md` §98.

@@ -4172,3 +4172,27 @@ Mazen's task "GAMID — FAVORITE GAMES DISPLAY STYLE". Details: `docs/MY-GAMER-D
 - **Not deployed:** TESTING still serves `fe77637`.
 
 **Truth: NO CHANGE REQUIRED** (nothing applied or deployed; on deployment, `my-gamer-data` gains a Display Style contract). Product Memory: no record. **STOP for Mazen's authorization.**
+
+## 98. Favorite Games Display Style: applied and deployed (2026-10-19, PENDING acceptance)
+
+Mazen authorized both migrations and editor CSP option A. Details: `docs/MY-GAMER-DATA-PHASE2.md` §10–§11.
+
+- **Migrations:** `20261019140000` and `20261019140100` APPLIED on TESTING (one transaction plus `migration repair`).
+- **Product:** `e686d7f` (Display Style `078222d`, the CSP change `a061f27`, the name-fit fix `e686d7f`); runs `39261023816` and `39261690232`; served files exact.
+- **Validation:**
+  - 2043 tests, lint and typecheck;
+  - live database: 25 / 25, 42 / 42, parity 649 / 649;
+  - lab 24 / 24, Phase 2 34 / 34; the 59-state grid unchanged; Shapes and Icon Group pass;
+  - real TESTING editor page: Classic's covers load under the CSP, a non-approved host is blocked, names fit;
+  - @zshot's Wall unchanged.
+- **Mazen's manual review** (desktop Chrome at 1440 and 1280, signed in to his own TESTING account, with 2–4 Favorite Games chosen in https://gamid-testing-static.gamid.workers.dev/account/):
+  1. Open https://gamid-testing-static.gamid.workers.dev/wall-editor/, then My Gamer Data → Favorite Games. Add All Favorite Games and One Favorite Game. Both show as names (Names Only, unchanged).
+  2. Select each element: Properties shows Display Style. Choose Game Covers: Classic's covers appear with their names, and the element keeps its place, size and look. Switch back and forth.
+  3. Resize an element: the cards re-fit without overflow; long names stay readable.
+  4. Save and reload: each element keeps its own style. Open Preview: the same covers.
+  5. In Account, reorder or change a favorite. Back in the editor, Refresh from Classic: the covers follow, and the style is kept.
+  6. Publish if wanted, then open `/@<handle>` signed out: the same covers. With My Games set to private, the Favorite Games elements show nothing.
+  7. A favorite without artwork shows its initials and name.
+  8. On the phone, the editor is unchanged (Display Style is desktop-only); the visitor Wall shows the covers.
+
+**Truth: UPDATED**: `my-gamer-data` gains contract `gamer-data-display-style`; `gamer-data-first-sections` no longer says "text cards (no artwork)"; checkpoint `e686d7f`; still PENDING_ACCEPTANCE. Product Memory: no record. **STOP for Mazen's final acceptance.**
