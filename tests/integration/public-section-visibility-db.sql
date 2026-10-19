@@ -330,8 +330,11 @@ begin
     and js2::text !~ ('Test University|[Aa]lice|Hide on bush|GOLD|PLATINUM|KR1a|' || acct_a));
 
   -- ------------------------------------------------------------------ 13. registry
-  select count(*), string_agg(c.section_key, ',' order by c.sort_order) into rec from public.public_section_catalog c where c.active;
+  -- (My Gamer Data Phase 2, 20261019120000: the catalog also holds Wall-only sections, which are never "Show on my GamID" switches)
+  select count(*), string_agg(c.section_key, ',' order by c.sort_order) into rec from public.public_section_catalog c where c.active and c.visibility_switch;
   res := res || jsonb_build_object('step', 'the section registry lists exactly discord, steam, league, education_work', 'pass', rec.count = 4 and rec.string_agg = 'discord,steam,league,education_work');
+  select count(*), string_agg(c.section_key, ',' order by c.sort_order) into rec from public.public_section_catalog c where c.active and not c.visibility_switch;
+  res := res || jsonb_build_object('step', 'the only non-switch rows are the Wall-only sections about_me, favorite_games', 'pass', rec.count = 2 and rec.string_agg = 'about_me,favorite_games');
 
   res := res || jsonb_build_object('step', 'SUMMARY', 'pass', not exists (select 1 from jsonb_array_elements(res) e where (e->>'pass') is distinct from 'true'), 'total', jsonb_array_length(res));
   raise exception 'TEST_RESULTS:%', res::text;
