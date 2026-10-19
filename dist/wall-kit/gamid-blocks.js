@@ -349,13 +349,14 @@ export function paintGamidSection(section, content, createNode, { scale = 1, own
 // initials tile, so the name is always there. coverLayout() picks the column count that gives the largest covers that still fit the element's box
 // (width AND height), so cards never overflow, stretch or cut a title; titles wrap on up to two lines.
 export const COVER_RATIO = 1.5;
-export function coverLayout(count, width, height, { gap = 12, minTitle = 9, maxTitle = 30 } = {}) {
+export function coverLayout(count, width, height, { gap = 12, minTitle = 9, maxTitle = 30, longest = 0 } = {}) {
   const n = Math.max(1, count);
   let best = null;
   for (let columns = 1; columns <= n; columns++) {
     const rows = Math.ceil(n / columns);
     let cover = (width - (columns - 1) * gap) / columns;
-    const titleFor = w => Math.max(minTitle, Math.min(maxTitle, w * 0.13));
+    // the name font: proportional to the card, and small enough that the longest name fits on two lines (about 0.6em per character, bold)
+    const titleFor = w => Math.max(minTitle, Math.min(maxTitle, w * 0.13, longest > 0 ? (2 * w) / (0.6 * longest) : Infinity));
     for (let i = 0; i < 3; i++) {   // the title's height depends on the card's width: settle it in a few steps
       const title = titleFor(cover) * 1.25 * 2 + 4;
       const byHeight = ((height - (rows - 1) * gap) / rows - title) / COVER_RATIO;
@@ -385,7 +386,8 @@ export function paintGameCovers(section, items, content, createNode, { scale = 1
   }
   if (!items.length) { root.append(el("p", "wall-gamid-empty", "Nothing to show yet.")); return root; }
   const gap = Math.max(4, 12 * scale);
-  const layout = coverLayout(items.length, Math.max(1, width - 2 * pad), Math.max(1, height - 2 * pad - headHeight), { gap, minTitle: Math.max(8, 9 * scale), maxTitle: Math.max(10, 30 * scale) });
+  const longest = Math.max(0, ...items.map(entry => Array.from(String(entry.title ?? entry.label ?? "")).length));
+  const layout = coverLayout(items.length, Math.max(1, width - 2 * pad), Math.max(1, height - 2 * pad - headHeight), { gap, minTitle: Math.max(8, 9 * scale), maxTitle: Math.max(10, 30 * scale), longest });
   const grid = el("div", "wall-cover-grid");
   for (const [name, value] of [["grid-template-columns", `repeat(${layout.columns}, ${px(layout.cover)})`], ["gap", px(gap)]]) grid.style.setProperty(name, value);
   for (const entry of items) {

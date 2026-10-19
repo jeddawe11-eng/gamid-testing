@@ -40,6 +40,10 @@ test("layout: the largest 2:3 covers that fit the box in both directions, with r
     assert.ok(rows * (cover * COVER_RATIO + title * 1.25 * 2 + 4) + (rows - 1) * 12 <= height + 0.01, "fits the height, titles included");
   }
   assert.equal(coverLayout(4, 760, 260).columns, 4, "a wide box: one row");
+  // a long name ("Call of Duty 4: Modern Warfare", 30 characters) gets a font small enough for two lines of the card's width
+  const long = coverLayout(4, 560, 360, { longest: 30 });
+  assert.ok(30 * 0.6 * long.title <= 2 * long.cover + 0.01, `${long.title}px for a ${long.cover}px card`);
+  assert.ok(coverLayout(4, 560, 360, { longest: 8 }).title > long.title, "short names keep the larger font");
   assert.ok(coverLayout(4, 300, 900).columns <= 2, "a tall box: several rows");
 });
 
