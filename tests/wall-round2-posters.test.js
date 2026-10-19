@@ -226,11 +226,13 @@ test("F painter: a card / player facade gets its poster behind the text (hidden 
   assert.equal(all(stage, node => node.tag === "iframe").length, 0, "a poster never starts a player (no autoplay)");
 });
 
-test("F the editor wires the loader to GamID's own endpoint; the page CSP is unchanged (img-src already allows blob:, no provider image host added)", () => {
+test("F the editor wires the loader to GamID's own endpoint; no embed provider image host is in the page CSP (img-src: blob: plus ONLY the approved Classic artwork CDN)", () => {
   const editor = read("dist/wall-editor/editor.js");
   assert.match(editor, /createPosterLoader\(\{ endpoint: api\.MEDIA_POSTER_URL \}\)/);
   assert.match(read("dist/account/supabase-client.js"), /export const MEDIA_POSTER_URL = `\$\{SUPABASE_URL\}\/functions\/v1\/media-poster`/);
   const csp = /Content-Security-Policy" content="([^"]+)"/.exec(read("dist/wall-editor/index.html"))[1];
-  assert.match(csp, /img-src 'self' data: blob:;/);
+  // Mazen's authorization 2026-10-19 (Favorite Games Display Style, option A): exactly one extra image origin, the CDN Classic's Favorite Games covers come from
+  assert.match(csp, /(^|; )img-src 'self' data: blob: https:\/\/cdn2\.steamgriddb\.com;/);
+  assert.equal((csp.match(/https?:\/\/[^\s;]+/g) ?? []).filter(origin => !/supabase\.co|^https:\/\/(clips|open|platform|player|store|w|www)\./.test(origin)).join(' '), 'https://cdn2.steamgriddb.com', 'no other new origin anywhere in the CSP');
   for (const host of ["ytimg", "tiktokcdn", "scdn", "sndcdn", "vimeocdn", "steamstatic", "jtvnw"]) assert.equal(csp.includes(host), false, host);
 });

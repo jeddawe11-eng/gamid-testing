@@ -87,5 +87,5 @@ test("wiring: Classic's artwork code is reused as is; the visitor page reads art
   assert.equal(usesGamerCovers(doc), false);
   doc.stages[0].elements[0].payload.display = "covers";
   assert.equal(usesGamerCovers(doc), true);
-  assert.match(read("dist/wall-editor/index.html"), /img-src 'self' data: blob:;/, "the editor's CSP is unchanged by this task (see docs/MY-GAMER-DATA-PHASE2.md, Display Style)");
+  assert.match(read("dist/wall-editor/index.html"), /img-src 'self' data: blob: https:\/\/cdn2\.steamgriddb\.com;/, "the editor may load Classic's covers (Mazen, option A) and nothing else new");
 });
