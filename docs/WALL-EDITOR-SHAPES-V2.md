@@ -45,6 +45,7 @@ On desktop the three quick buttons are replaced (on the phone they stay) by a **
 | Badges & banners | Shield, Ribbon banner, Pennant, Tag, Plaque |
 | Gaming | Lightning, Crown, Gem, Heart, Health cross, Ring |
 
+- **Categories (since `bb50aef`):** each category is an accordion with the font library's heading button (name, shape count, chevron). Basic starts open and the others closed; several may be open, and the choice is kept for the editor session. A collapsed category shows a gold diamond when it holds the selected shape. Freeform stays above the categories.
 - **Cards:** an even 3-column grid of preview cards, each drawn with the same geometry as the Wall. Hover, keyboard focus and the current shape (purple / gold card with a diamond) are marked.
 - **Default lock:** proportion-sensitive shapes start with their aspect locked: Circle, Triangle, Diamond, the polygons and stars, Shield and the Gaming shapes.
 
@@ -118,3 +119,17 @@ Move to stage stays the first control, above the sections (accepted post-Round 2
 - **Freeform paths:** a path cannot be switched between open and closed after it is finished (redraw it). Curve handles move independently: a smooth point's two handles are not kept mirrored after the pen.
 - **Database checks:** they wait for the authorised parity migration (see above).
 - **Phone editor:** it shows and keeps every new shape but has no Shapes V2 controls (by design).
+
+## Category accordions (2026-10-19)
+
+Mazen's task "GAMID — Shapes V2 Left Panel Accordion Fix" (desktop Shapes panel only).
+
+- **Product:** `bb50aef267a38cf6cb799e243a435133828bf851`, TESTING run `39196387512`, changed files served byte-identical.
+- **Change:** the six category headings are accordions (see "Shape library" above). The cards, previews, current-shape mark and creation are unchanged, and Properties and the other tools are untouched.
+- **Panel height:** 823 px at 1440 × 900 with only Basic open (it fits without scrolling), against 1552 px before, and 1667 px with every category open.
+- **Validation:**
+  - accordion walk-through 36 / 36 at 1440 and 1280: default state, counts (9 + 8 + 7 + 3 + 5 + 6 = 38), Freeform on top, independent and multiple open, creation from an opened category, the current card and the heading mark when collapsed, the state kept across tools, Enter / Space, `aria-controls`, all 38 reachable and creatable, nothing clipped, no errors;
+  - the Shapes walk-through 33 / 33;
+  - 59 screen states: only the four desktop Shapes states changed;
+  - phone / tablet shapes pixel-identical;
+  - `npm test` 2014 (2013 passed, 1 skipped); lint and typecheck pass.

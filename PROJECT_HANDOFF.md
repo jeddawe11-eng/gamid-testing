@@ -4034,3 +4034,18 @@ Mazen's task "GAMID — MY WALL DESKTOP SHAPES V2". Details: `docs/WALL-EDITOR-S
 - four contracts; checkpoint `da7dd1c`; `updated` 2026-10-19.
 
 Product Memory: no new record. **STOP for Mazen's visual and functional acceptance.**
+
+## 91. Shapes V2 library category accordions (2026-10-19)
+
+Mazen's task "GAMID — Shapes V2 Left Panel Accordion Fix": the desktop shape library's six categories are accordions in the font-library style. Basic is open, the others closed; several may be open, kept for the session. A collapsed category marks the selected shape, and Freeform stays on top.
+
+- **Product:** `bb50aef267a38cf6cb799e243a435133828bf851`, TESTING run `39196387512`, served files exact. Details: `docs/WALL-EDITOR-SHAPES-V2.md` ("Category accordions").
+- **Validation:**
+  - accordion checks 36 / 36 (1440 and 1280);
+  - Shapes walk-through 33 / 33;
+  - phone / tablet unchanged;
+  - 2014 tests.
+
+**Truth: NO CHANGE REQUIRED.** A visual refinement; `wall-shapes-v2` (PENDING_ACCEPTANCE) and its contracts are unchanged and still true.
+
+Product Memory: no record. **STOP for Mazen's visual acceptance.**
