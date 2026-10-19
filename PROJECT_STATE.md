@@ -35,6 +35,8 @@ Conversation memory is helpful context, but it is **not** an authoritative proje
 
 **Desktop Media & Links / Icon Group UI acceptance (Mazen, 2026-10-19):** Mazen explicitly accepted the desktop-only card-layout and Properties-accordion refinement delivered at product `0615a4c` (TESTING run `39153509185`), recorded in Product Memory REV-0014. All controls remain, Move to Stage stays first, and phone/tablet are unchanged. Truth `wall-icons` remains ACCEPTED; the broader desktop Wall redesign continues separately.
 
+**Shapes V2 final acceptance (2026-10-19):** Mazen accepted the complete desktop Shapes V2 feature, including the left accordion refinement (TESTING run 39196387512). See REV-0015; Truth wall-shapes-v2 ACCEPTED. Database parity proposal remains unapplied pending separate authorization.
+
 ## 2. Environment and safety
 
 - **TESTING** is the working environment. Truth: `environment: TESTING`, `production: NOT_RELEASED`.
