@@ -4161,3 +4161,14 @@ Mazen authorized passing the database gate. Details: `docs/MY-GAMER-DATA-PHASE2.
   7. Check that existing Wall elements and the phone editor are unchanged.
 
 **Truth: UPDATED**: new capability `my-gamer-data` (PENDING_ACCEPTANCE, checkpoint `fe77637`, contracts gamer-data-library / -section-catalog / -privacy / -binding / -first-sections). Product Memory: PROPOSED (not saved). **STOP for Mazen's review; deployment is not acceptance.**
+
+## 97. Favorite Games Display Style (2026-10-19): implemented, migrations PROPOSED, NOT deployed
+
+Mazen's task "GAMID — FAVORITE GAMES DISPLAY STYLE". Details: `docs/MY-GAMER-DATA-PHASE2.md` §10.
+
+- **What it adds:** Display Style (Names Only | Game Covers) per Favorite Games element, reusing Classic's artwork function and `applyGameArtwork`.
+- **Blocker 1, database:** the server validator refuses the new `display` key, so two migrations are required: `20261019140000_gamer_data_artwork` and `20261019140100_wall_gamer_data_display`. They are **not applied** and await Mazen's authorization (rehearsed rolled back: 25 / 25, parity 649 / 649).
+- **Decision 2, editor CSP:** the editor CSP blocks provider images (a pinned guard), so the editor shows the initials fallback while visitors see covers. Options: (a) allow `cdn2.steamgriddb.com` in the editor, (b) keep it, (c) proxy.
+- **Not deployed:** TESTING still serves `fe77637`.
+
+**Truth: NO CHANGE REQUIRED** (nothing applied or deployed; on deployment, `my-gamer-data` gains a Display Style contract). Product Memory: no record. **STOP for Mazen's authorization.**

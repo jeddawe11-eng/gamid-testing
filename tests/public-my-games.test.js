@@ -533,7 +533,8 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261011260000_intro_source_limit_50mib.sql",   // Intro source limit 50 MiB (Mazen 2026-10-11); public identity / My Games untouched
       "20261012100000_my_socials_spotify_soundcloud_vimeo.sql",   // My Socials catalog gains Spotify / SoundCloud / Vimeo (three rows); public identity / My Games untouched
       "20261013100000_crew_rename.sql",   // Edit Crew Name: the owner renames a Crew (own trigger + RPC); public identity / My Games untouched
-      "20261019120000_gamer_data_sections.sql",   // My Gamer Data Phase 2 (PROPOSED): catalog columns + own projection RPCs over the accepted About Me / Favorite Games reads; public identity / My Games untouched
+      "20261019120000_gamer_data_sections.sql",   // My Gamer Data Phase 2: catalog columns + own projection RPCs over the accepted About Me / Favorite Games reads; public identity / My Games untouched
+      "20261019140000_gamer_data_artwork.sql",   // Favorite Games Display Style: catalog wall_artwork + the projection lists it; public identity / My Games untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

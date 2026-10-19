@@ -21,6 +21,7 @@ import { createTools } from "./tools.js";
 import { createAssetStore } from "./assets.js";
 import { createFontStore } from "./font-store.js";
 import { loadGamidSnapshot, PUBLIC_SOURCE_LABELS } from "./gamid-data.js";
+import { createArtworkStore } from "../wall-kit/gamid-artwork.js";
 import { createWallDetails } from "../wall-kit/gamid-details.js";
 import { accountSignInUrl } from "../account/testing-auth-handoff.js";
 import { rememberReturnTo } from "../account/post-auth-return.js";
@@ -83,6 +84,9 @@ let previewVideos = null;
 // One read at a time: a call while a read runs joins it (no duplicate requests, and an older read can never overwrite a newer one). `keep` (Refresh from Classic):
 // the current data stays on screen while the read runs, and a read that could not load the GamID leaves it in place. Resolves true when the GamID was read.
 let gamidLoading = null;
+// Classic's game artwork for Game Covers elements (the owner's own /owner/self read, as Classic's owner preview uses), asked for only when one is painted;
+// Refresh from Classic asks again on the next paint.
+const gameArtwork = createArtworkStore(() => (typeof api.getMyGameArtwork === "function" ? api.getMyGameArtwork() : null), { onChange: () => scheduleRender() });
 function refreshGamid({ keep = false } = {}) {
   if (gamidLoading) return gamidLoading;
   if (!keep) { gamidSnapshot = null; scheduleRender(); }
@@ -92,6 +96,7 @@ function refreshGamid({ keep = false } = {}) {
       const next = await loadGamidSnapshot(api, { duoLink: { newTab: true, href: handle => new URL(`../@${handle}`, location.href).pathname }, crewLink: { newTab: true, href: crewId => `${new URL("../crew/", location.href).pathname}?c=${crewId}` } });
       const ok = Boolean(next?.profile?.handle);
       if (ok || !keep || !gamidSnapshot) gamidSnapshot = next;
+      if (ok) gameArtwork.reset();
       return ok;
     } catch (error) {
       if (keep) return false;
@@ -122,7 +127,7 @@ const canvas = createCanvas({
   viewport: $("viewport"),
   session,
   isMulti: () => multi,
-  getPaintContext: () => ({ assets: assetStore, gamid: gamidSnapshot, posters, videos: canvasVideos }),
+  getPaintContext: () => ({ assets: assetStore, gamid: gamidSnapshot, posters, videos: canvasVideos, artwork: gameArtwork }),
   onSelectedTap: () => { if (isPhone()) openTool("props"); },
   onEditText: () => {
     if (isPhone()) openTool("props");
@@ -443,7 +448,7 @@ function renderPreview() {
   const width = previewMode === "mobile" ? Math.min(390, available) : Math.min(900, available);
   // a Wall saved before the player-layering rule existed is shown with that rule applied (nothing drawn over a player); the document itself is not changed
   previewVideos ??= createVideoPool();
-  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players, posters, details: detailsFor(gamidSnapshot), videos: previewVideos });
+  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players, posters, details: detailsFor(gamidSnapshot), videos: previewVideos, artwork: gameArtwork });
   $("previewColumn").replaceChildren(...(painted.ok ? painted.stages : [make("p", "ed-empty", "This Wall cannot be previewed: " + describeErrors(painted.errors).join(" "))]));
   $("previewMobile").setAttribute("aria-pressed", String(previewMode === "mobile"));
   $("previewDesktop").setAttribute("aria-pressed", String(previewMode === "desktop"));

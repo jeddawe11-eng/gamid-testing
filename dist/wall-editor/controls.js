@@ -531,6 +531,13 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     });
     if (targets.length === 1 && (DATA_ITEMS.includes(field) || isSectionItem(element.payload))) root.append(dataPicker(element));
     if (field === "connection") root.append(h("div", { class: "ed-btn-row" }, toggleButton({ label: "Show the platform name", get: item => item.payload.withLabel !== false, set: on => patchAll({ withLabel: on ? undefined : false }), key: "dataWithLabel" })));
+    // Display Style (desktop, 900px and wider): for a Classic section whose items are games with Classic artwork (Favorite Games), each element chooses Names Only
+    // (the default - no key is stored, so existing elements are unchanged) or Game Covers. Only the payload changes: never the box, rotation or style.
+    const gameArt = field === "section" && getGamid()?.sections?.find(section => section.key === element.payload.section)?.artwork === "game";
+    if (gameArt && desktopProps?.matches && targets.every(item => item.payload.field === "section" && item.payload.section === element.payload.section)) {
+      root.append(selectField({ label: "Display Style", options: [{ value: "names", label: "Names Only" }, { value: "covers", label: "Game Covers" }],
+        get: item => (item.payload.display === "covers" ? "covers" : "names"), set: value => patchAll({ display: value === "covers" ? "covers" : undefined }), key: "dataDisplay" }));
+    }
     root.append(h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn", type: "button", text: "Refresh GamID data", onclick: () => refreshGamid() })));
     if (isDataText(element.payload)) {
       if (new Set(targets.map(item => item.payload.field)).size !== 1 || !targets.every(item => isDataText(item.payload))) return;

@@ -79,7 +79,16 @@ ul.wall-gamid-chips, ul.wall-gamid-connections { list-style: none; margin: 0; pa
 .wall-gamid-rows.is-facts, .wall-gamid-rows.is-stat { flex-direction: column; flex-wrap: nowrap; }
 .wall-gamid-rows li .wall-gamid-private { margin-left: .5em; }
 .wall-gamid-chips li.is-private { opacity: .6; }
-.wall-gamid .game-library { display: grid; gap: .4em; min-height: 0; overflow: auto; }
+/* Display Style "Game Covers" (Favorite Games): portrait cover cards (2:3) sized by coverLayout() to fit the box; the name below wraps on up to two lines */
+.wall-cover-grid { display: grid; justify-content: center; align-content: start; flex: 1 1 auto; min-height: 0; }
+.wall-cover-single { box-sizing: border-box; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.wall-cover-single .wall-cover-grid { flex: 0 0 auto; align-content: center; }
+.wall-cover-card { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.wall-cover-art { position: relative; overflow: hidden; border-radius: .35em; background: linear-gradient(160deg, var(--g-accent, #8b5dff), #1b1530 70%); box-shadow: 0 .2em .6em rgba(0, 0, 0, .45); display: grid; place-items: center; }
+.wall-cover-initials { color: rgba(255, 255, 255, .85); font-weight: 800; letter-spacing: .04em; }
+.wall-cover-art > .game-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }   /* Classic's cover image (applyGameArtwork) */
+.wall-cover-title { width: 100%; margin-top: .3em; color: var(--g-text, #f7f5ff); font-weight: 700; line-height: 1.25; text-align: center; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wall-cover-card .wall-gamid-private { position: absolute; top: .3em; right: .3em; font-size: .45em; background: rgba(8, 6, 16, .78); }.wall-gamid .game-library { display: grid; gap: .4em; min-height: 0; overflow: auto; }
 .wall-gamid .game-library-head { display: flex; justify-content: space-between; color: var(--g-muted, #aaa4b7); font-size: .7em; }
 .wall-gamid .game-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .25em; }
 .wall-gamid .wall-game { display: flex; justify-content: space-between; gap: .6em; padding: .3em .6em; border-radius: .5em; background: var(--g-row-bg, rgba(255, 255, 255, .05)); font-size: .75em; }

@@ -344,5 +344,69 @@ export function paintGamidSection(section, content, createNode, { scale = 1, own
   return root;
 }
 
+// Display Style "Game Covers" (Favorite Games): each game as a portrait cover card (2:3) with its name below. The covers are Classic's own artwork
+// placed by Classic's own applyGameArtwork on each [data-game-cover] tile, exactly as on Classic); a game without one - or an image that cannot load - keeps a clean
+// initials tile, so the name is always there. coverLayout() picks the column count that gives the largest covers that still fit the element's box
+// (width AND height), so cards never overflow, stretch or cut a title; titles wrap on up to two lines.
+export const COVER_RATIO = 1.5;
+export function coverLayout(count, width, height, { gap = 12, minTitle = 9, maxTitle = 30 } = {}) {
+  const n = Math.max(1, count);
+  let best = null;
+  for (let columns = 1; columns <= n; columns++) {
+    const rows = Math.ceil(n / columns);
+    let cover = (width - (columns - 1) * gap) / columns;
+    const titleFor = w => Math.max(minTitle, Math.min(maxTitle, w * 0.13));
+    for (let i = 0; i < 3; i++) {   // the title's height depends on the card's width: settle it in a few steps
+      const title = titleFor(cover) * 1.25 * 2 + 4;
+      const byHeight = ((height - (rows - 1) * gap) / rows - title) / COVER_RATIO;
+      cover = Math.min((width - (columns - 1) * gap) / columns, byHeight);
+    }
+    if (cover > 0 && (!best || cover > best.cover)) best = { columns, rows, cover, title: titleFor(cover) };
+  }
+  return best ?? { columns: 1, rows: n, cover: 0, title: minTitle };
+}
+const initialsOf = name => String(name ?? "").split(/\s+/).filter(Boolean).slice(0, 2).map(word => Array.from(word)[0]?.toUpperCase() ?? "").join("") || "?";
+export function paintGameCovers(section, items, content, createNode, { scale = 1, owner = false, width = 400, height = 300, single = false, titleFont = null, titleColor = null } = {}) {
+  const el = (tag, className, text) => { const node = createNode(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
+  const px = value => `${Math.round(value * 100) / 100}px`;
+  const root = el("div", single ? "wall-cover-single" : `wall-gamid wall-gamid-section wall-gamid-covers is-${content.layout ?? "card"}`);
+  root.setAttribute("data-section", section.key);
+  root.setAttribute("data-display", "covers");
+  const pad = single ? 0 : 20 * scale;
+  let headHeight = 0;
+  if (!single) {
+    root.style.setProperty("font-size", px(26 * scale));
+    root.style.setProperty("padding", px(pad));
+    if (content.style) applyGamidStyle(root, content.style, value => px(value * scale));
+    const head = el("div", "wall-gamid-head");
+    head.append(el("span", "wall-gamid-title", section.label.toUpperCase()));
+    root.append(head);
+    headHeight = 26 * scale * 0.6 * 1.6 + 13 * scale;   // the block title line + the block gap (wall-kit.css)
+  }
+  if (!items.length) { root.append(el("p", "wall-gamid-empty", "Nothing to show yet.")); return root; }
+  const gap = Math.max(4, 12 * scale);
+  const layout = coverLayout(items.length, Math.max(1, width - 2 * pad), Math.max(1, height - 2 * pad - headHeight), { gap, minTitle: Math.max(8, 9 * scale), maxTitle: Math.max(10, 30 * scale) });
+  const grid = el("div", "wall-cover-grid");
+  for (const [name, value] of [["grid-template-columns", `repeat(${layout.columns}, ${px(layout.cover)})`], ["gap", px(gap)]]) grid.style.setProperty(name, value);
+  for (const entry of items) {
+    const card = el("div", "wall-cover-card");
+    card.setAttribute("data-game", entry.id);
+    const art = el("div", "wall-cover-art");
+    art.setAttribute("data-initials", initialsOf(entry.title ?? entry.label));
+    for (const [name, value] of [["width", px(layout.cover)], ["height", px(layout.cover * COVER_RATIO)], ["font-size", px(layout.cover * 0.28)]]) art.style.setProperty(name, value);
+    art.setAttribute("data-game-cover", entry.id);   // Classic's cover slot: applyGameArtwork fills it
+    art.append(el("span", "wall-cover-initials", initialsOf(entry.title ?? entry.label)));
+    const title = el("div", "wall-cover-title", entry.title ?? entry.label);
+    title.style.setProperty("font-size", px(layout.title));
+    if (titleFont) title.style.setProperty("font-family", titleFont);
+    if (titleColor) title.style.setProperty("color", titleColor);
+    card.append(art, title);
+    if (owner && entry.private) card.append(el("span", "wall-gamid-private", "PRIVATE"));
+    grid.append(card);
+  }
+  root.append(grid);
+  return root;
+}
+
 // Pure helper for tests / the editor's summary: how many rows a block renders before the person expands anything.
 export const gamesInitiallyRendered = (total, initial) => gameListView(total, false, initial).showing;

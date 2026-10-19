@@ -65,6 +65,7 @@ async function fixture() {
   await db.exec("insert into public.public_section_catalog (section_key, label, section_kind, sort_order) values ('steam', 'Steam', 'CONNECTION', 15);");   // as 20260920190000 adds it
   const switchesBefore = await switches(db, A);
   await db.exec(read("20261019120000_gamer_data_sections.sql"));
+  await db.exec(read("20261019140000_gamer_data_artwork.sql"));   // Favorite Games Display Style: the catalog's artwork capability
   return { db, switchesBefore, call: (uid, sql, params) => call(db, uid, sql, params) };
 }
 async function call(db, uid, sql, params = []) {
@@ -101,7 +102,7 @@ test("About Me: the owner sees every fact with a value (each marked private whil
     { id: "languages", kind: "chips", label: "Languages", values: ["Arabic", "English"], private: true },
     { id: "genres", kind: "chips", label: "Favorite Genres", values: ["RPG", "Shooter"], private: false },
   ]);
-  assert.deepEqual({ ...mine, items: undefined }, { key: "about_me", label: "About Me", icon: "about", presentation: "facts", single: true, all: true, order: 30, item_label: "Fact", items: undefined });
+  assert.deepEqual({ ...mine, items: undefined }, { key: "about_me", label: "About Me", icon: "about", presentation: "facts", single: true, all: true, order: 30, item_label: "Fact", artwork: null, items: undefined });
   const theirs = section(await visitor(f), "about_me");
   assert.deepEqual(theirs.items, [
     { id: "location", kind: "text", label: "Location", value: "Paris, France" },
@@ -161,4 +162,14 @@ test("grants: anonymous callers may read the public projection only; the owner p
   }
   await assert.rejects(f.call("33333333-3333-4333-8333-333333333333", "select public.get_my_gamer_data()"), /IDENTITY_NOT_FOUND/);
   assert.ok(Array.isArray(await visitor(f)));
+});
+
+test("Display Style: the catalog marks Favorite Games as games with artwork and both projections list it; nothing else about a section changes", async () => {
+  const f = await fixture();
+  await profile(f, EA, "favorite_games = '{valorant}', show_my_games = true, about_location = 'Paris', show_about_location = true");
+  for (const rows of [await owner(f), await visitor(f)]) {
+    assert.equal(section(rows, "favorite_games").artwork, "game");
+    assert.equal(section(rows, "about_me").artwork, null);
+  }
+  await assert.rejects(f.db.query("update public.public_section_catalog set wall_artwork = 'video' where section_key = 'about_me'"), /check/);
 });

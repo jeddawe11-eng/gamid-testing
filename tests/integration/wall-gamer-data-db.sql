@@ -125,6 +125,16 @@ begin
     {"id":"d1","type":"gamidData","x":10,"y":10,"width":600,"height":200,"z":0,"payload":{"field":"section","section":"About Me","item":"../x"}}]}]}'::jsonb));
   res := res || jsonb_build_object('step', 'validator: bad section / item formats are refused', 'pass', j ? 'INVALID_DATA_SECTION:d1' and j ? 'INVALID_DATA_ITEM:d1', 'got', j);
 
+  -- Favorite Games Display Style (20261019140000 / 20261019140100)
+  res := res || jsonb_build_object('step', 'Display Style: Favorite Games carries the game-artwork capability in both projections, About Me none', 'pass',
+    (select s ->> 'artwork' from jsonb_array_elements(pg_temp.gd_run(ua, 'authenticated', 'select public.get_my_gamer_data()::text')::jsonb) s where s ->> 'key' = 'favorite_games') = 'game'
+    and (select s -> 'artwork' from jsonb_array_elements(pg_temp.gd_run(ua, 'authenticated', 'select public.get_my_gamer_data()::text')::jsonb) s where s ->> 'key' = 'about_me') = 'null'::jsonb);
+  j := to_jsonb(private.wall_document_errors('{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"stage_1","elements":[
+    {"id":"d1","type":"gamidData","x":10,"y":10,"width":600,"height":200,"z":0,"payload":{"field":"section","section":"favorite_games","display":"covers"}},
+    {"id":"d2","type":"gamidData","x":10,"y":10,"width":600,"height":200,"z":1,"payload":{"field":"section","section":"favorite_games","item":"elden_ring","display":"names"}},
+    {"id":"d3","type":"gamidData","x":10,"y":10,"width":600,"height":200,"z":2,"payload":{"field":"section","section":"favorite_games","display":"posters"}}]}]}'::jsonb));
+  res := res || jsonb_build_object('step', 'Display Style: names / covers valid on both forms, anything else refused', 'pass', j = '["INVALID_DATA_DISPLAY:d3"]'::jsonb, 'got', j);
+
   raise exception 'TEST_RESULTS:%', res::text;
 end
 $test$;

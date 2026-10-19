@@ -139,7 +139,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-19, My Gamer Data Phase 2 applied and deployed):** migrations `20261019120000` / `20261019120100` APPLIED on TESTING; product `fe7763721e85e6379c2d2612f285532852d14c0a` deployed (run `39254434384`); Truth `my-gamer-data` PENDING_ACCEPTANCE (§96, `docs/MY-GAMER-DATA-PHASE2.md` §9). **Next:** Mazen's manual review (§96 checklist). Favorite Games artwork on the Wall is a separate pending improvement.
+**Latest continuation (2026-10-19, Favorite Games Display Style):** implemented and committed, **not deployed**. It needs migrations `20261019140000` / `20261019140100` (**PROPOSED, not applied**) and Mazen's editor-CSP decision (§97, `docs/MY-GAMER-DATA-PHASE2.md` §10). TESTING still serves `fe77637`. **Next:** Mazen's authorization.
+
+**Previous continuation (2026-10-19, My Gamer Data Phase 2 applied and deployed):** migrations `20261019120000` / `20261019120100` APPLIED on TESTING; product `fe7763721e85e6379c2d2612f285532852d14c0a` deployed (run `39254434384`); Truth `my-gamer-data` PENDING_ACCEPTANCE (§96, `docs/MY-GAMER-DATA-PHASE2.md` §9). **Next:** Mazen's manual review (§96 checklist). Favorite Games artwork on the Wall is a separate pending improvement.
 
 **Previous continuation (2026-10-19, My Gamer Data Phase 2, database approval gate):** the import foundation (section catalog extension, projection, `section` binding, About Me + Favorite Games) is committed but **not deployed**; migrations `20261019120000` / `20261019120100` are **PROPOSED, not applied** (§95, `docs/MY-GAMER-DATA-PHASE2.md`). TESTING still serves `e1a43c2`. **Next:** Mazen's explicit approval to apply the migrations, then deploy and Truth.
 

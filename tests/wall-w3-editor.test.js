@@ -223,6 +223,9 @@ test("route: the editor's imports are limited to the Wall core, the kit, its own
       if (/\/dist\/public\/public-games\.js$/.test(target)) continue;
       // My Duo V1: the shared identity-navigation helpers (pure; no page code, the caller injects `createNode`) so the editor's Duo link uses the public page's own rules
       if (/\/dist\/public\/identity-link\.js$/.test(target)) continue;
+      // Favorite Games Display Style (Mazen's task 2026-10-19: "reuse Classic's existing artwork resolution"): Classic's artwork helper module (its address
+      // rule and applyGameArtwork, which fills the caller's [data-game-cover] slots; no page code) places the Wall's Game Covers exactly as Classic does
+      if (/\/dist\/public\/game-artwork\.js$/.test(target)) continue;
       assert.doesNotMatch(target, /play-together|\/public\//);
     }
   }

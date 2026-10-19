@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { normalizeGamerData, usesGamerSections, loadPublicView, loadGamidSnapshot } from "../dist/wall-editor/gamid-data.js";
 import { validateGamidDataPayload, renderGamidDataPayload, isDataCollection, isDataText, isSectionItem, DATA_FIELD_INFO } from "../dist/wall-kit/gamid-data.js";
-import { resolveGamidData } from "../dist/wall-kit/gamid-data-paint.js";
+import { resolveGamidData as resolveGamid } from "../dist/wall-kit/gamid-data-paint.js";
 import { paintGamidSection, sectionItemText } from "../dist/wall-kit/gamid-blocks.js";
 import { minSizeOf, setGamidStyle } from "../dist/wall-kit/ops.js";
 import { createDocument } from "../dist/wall/schema.js";
@@ -77,6 +77,8 @@ test("ops: a whole section takes the block style and the block minimum; one item
 test("resolution: the owner designs with every item (private ones tagged); visitors only get the public projection; gone items are never replaced", () => {
   const owner = { profile: {}, sections: normalizeGamerData([ABOUT, FAVS], { owner: true }), public: { available: true, sections: normalizeGamerData([{ ...ABOUT, items: ABOUT.items.slice(0, 2) }, FAVS]) } };
   const content = payload => renderGamidDataPayload({ field: "section", ...payload });
+  // the resolution's public fields (an ok result also carries its `section` / `entry` for the Game Covers painter)
+  const resolveGamidData = (...args) => { const { section: _s, entry: _e, ...rest } = resolveGamid(...args); return rest; };
   assert.deepEqual(resolveGamidData(content({ section: "about_me", item: "location" }), owner, "edit"), { state: "ok", value: "Paris, France" });
   assert.deepEqual(resolveGamidData(content({ section: "about_me", item: "languages" }), owner, "edit"), { state: "ok", value: "English · Arabic", private: true });
   assert.deepEqual(resolveGamidData(content({ section: "about_me", item: "languages" }), owner, "view"), { state: "hidden" }, "private on Classic: nothing for visitors");
@@ -84,7 +86,7 @@ test("resolution: the owner designs with every item (private ones tagged); visit
   assert.deepEqual(resolveGamidData(content({ section: "favorite_games", item: "halo" }), owner, "view"), { state: "hidden" });
   assert.deepEqual(resolveGamidData(content({ section: "future_section" }), owner, "edit"), { state: "missing", message: "This Classic section is not available on your GamID." });
   assert.deepEqual(resolveGamidData(content({ section: "future_section" }), owner, "view"), { state: "hidden" });
-  assert.equal(resolveGamidData(content({ section: "favorite_games" }), owner, "view").value.items.length, 2);
+  assert.equal(resolveGamid(content({ section: "favorite_games" }), owner, "view").value.items.length, 2);
   assert.deepEqual(resolveGamidData(content({ section: "about_me" }), { ...owner, public: { available: false } }, "view"), { state: "hidden" });
   const notPublic = { ...owner, public: { available: false } };
   assert.equal(resolveGamidData(content({ section: "about_me", item: "location" }), notPublic, "edit").private, true, "a GamID that is not public: everything is private");

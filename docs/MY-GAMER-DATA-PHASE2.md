@@ -171,3 +171,44 @@ select count(*) from public.wall_publications where jsonb_path_exists(document, 
   - @zshot's published Wall (3 stages, 4 GamID elements, no section binding) draws every element on desktop and phone, with no page error and no call to the new projection.
   - The signed-out Wall Editor shows its normal sign-in gate.
 - **Not verified by the agent:** the signed-in editor (library, Refresh, save, publish). It needs the owner's own sign-in; see Mazen's checklist in `PROJECT_HANDOFF.md` §96.
+
+## 10. Favorite Games Display Style (2026-10-19): implemented, migrations PROPOSED, not deployed
+
+Mazen's task "GAMID — FAVORITE GAMES DISPLAY STYLE". The code is committed on the feature branch. It is **not deployed**, because a database change is strictly necessary (below). TESTING still serves `fe77637`.
+
+- **What it does:**
+  - On desktop, Properties of a Favorite Games element (All or One) has **Display Style: Names Only | Game Covers**, a `selectField` like Media & Links "Show as".
+  - Each element keeps its own choice in an optional `display` key ("names" is the default and is never stored, so every existing element is unchanged).
+  - Switching changes only that key: never the box, rotation or style.
+- **Game Covers:**
+  - One 2:3 cover card per game, in Classic's order, with the name below (up to two lines).
+  - `coverLayout()` picks the column count that gives the largest covers fitting the element's width **and** height, so there is no overflow, stretching or cut title.
+  - A game without artwork, or an image that cannot load, keeps an initials tile.
+  - One Favorite Game shows one card whose name takes the element's own font and colour.
+- **Classic's mechanism, reused unchanged:**
+  - The cover tiles carry `data-game-cover="<game key>"`. Classic's `applyGameArtwork` (`dist/public/game-artwork.js`) picks the portrait cover, checks the provider-CDN address, and adds a lazy, no-referrer image that removes itself on error.
+  - Artwork comes from GamID's existing `game-artwork` function: `/owner/self` in the editor (`getMyGameArtwork`, as Classic's owner preview) and `/<handle>` for visitors (`fetchGameArtwork`, as the public Classic profile).
+  - It is read **once per page, and only when a Game Covers element is painted** (`dist/wall-kit/gamid-artwork.js`). Refresh from Classic asks again. On a visitor's Wall, covers fill in place without repainting the Wall.
+  - The visitor page reads artwork only if its Wall shows covers (`usesGamerCovers`).
+- **Privacy:** covers are drawn only for the items the projection already returned, so visitors still see Favorite Games only while My Games is public. The artwork function's own public gate is unchanged.
+- **Generic:** the section catalog says which sections hold games with artwork (`wall_artwork = 'game'`, Favorite Games). The editor names no section and offers Display Style only where the catalog says so.
+- **Proposed migrations (NOT applied):**
+  - `20261019140000_gamer_data_artwork.sql`: the catalog column `wall_artwork` (check `'game'`), set for `favorite_games`; `private.gamer_data_projection` copied verbatim plus the `'artwork'` field. No grant changes.
+  - `20261019140100_wall_gamer_data_display.sql`: `private.wall_gamid_data_errors` copied from `20261019120100` plus the optional `display` key (names | covers, otherwise `INVALID_DATA_DISPLAY`).
+  - **Why they are needed:** the drafts and publications CHECK constraints call the server validator, which refuses unknown keys. Without the second migration, saving a Game Covers element fails.
+  - **Rollback:**
+    1. Check that no saved Wall uses `display`.
+    2. Re-run the validator block of `20261019120100` and the projection block of `20261019120000`.
+    3. Drop the `wall_artwork` column.
+- **Editor CSP: a decision for Mazen.** The Wall editor's CSP is `img-src 'self' data: blob:`, and a guard test pins "no provider image host added" (`tests/wall-round2-posters.test.js`). The editor canvas and Preview therefore show the initials fallback instead of covers, while visitors (the public page has no CSP) see the covers. The options:
+  - (a) Add `https://cdn2.steamgriddb.com` to the editor's `img-src`. This is the CDN Classic's own pages already load from, and it means updating that guard deliberately.
+  - (b) Keep the editor text-only: covers are visible only to visitors.
+  - (c) Serve covers through GamID's own image proxy: a new function route, more scope.
+- **Guard change:** the editor import-route guard (`tests/wall-w3-editor.test.js`) gains one named exception, `dist/public/game-artwork.js`, beside the two existing ones. This is so the kit reuses Classic's artwork code instead of copying a provider rule (the kit may not name a provider).
+- **Validation:**
+  - 2043 tests, lint and typecheck;
+  - Display Style unit tests 5 / 5;
+  - PGlite 7 / 7;
+  - rolled-back TESTING rehearsal of both migrations: gamer-data 25 / 25, corpus parity 649 / 649, the same 3 pre-existing `wall-w2-db.sql` failures; TESTING was verified unchanged afterwards;
+  - lab browser checks 24 / 24: Names Only pixel-identical to `fe77637`, no artwork read for Names Only, covers in order with fallback, fit and 2:3, geometry unchanged, per-element style, persistence, Preview, Refresh, visitor, My Games private, artwork off, phone and tablet pixel-identical;
+  - Phase 2 regression 34 / 34.

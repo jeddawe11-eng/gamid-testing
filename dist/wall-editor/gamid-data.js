@@ -26,8 +26,8 @@ async function safely(read, fallback) { try { return (await read()) ?? fallback;
 
 // ---- My Gamer Data sections (Phase 2) ------------------------------------------------------------------------------------------------------------------------
 // The Classic sections the server's section catalog offers to the Wall (get_my_gamer_data / get_public_gamer_data), kept to the contract's generic shape only:
-//   { key, label, icon, presentation (text | facts | chips | cards | stat), single, all, order, itemLabel, items: [{ id, kind (text | chips | card | stat), label,
-//     value?, values?, title?, sub?, private? }] }
+//   { key, label, icon, presentation (text | facts | chips | cards | stat), single, all, order, itemLabel, artwork (null | "game"), items: [{ id, kind (text |
+//     chips | card | stat), label, value?, values?, title?, sub?, private? }] }
 // Anything outside it is dropped (an unknown presentation drops the section; an unknown item kind or id drops the item), so a malformed row can never reach the painter.
 export const SECTION_PRESENTATIONS = Object.freeze(["text", "facts", "chips", "cards", "stat"]);
 export const SECTION_ITEM_KINDS = Object.freeze(["text", "chips", "card", "stat"]);
@@ -54,11 +54,14 @@ export function normalizeGamerData(rows, { owner = false } = {}) {
     const items = (Array.isArray(row.items) ? row.items : []).slice(0, SECTION_LIMITS.items).map(item => normalizeSectionItem(item, owner)).filter(item => item && !ids.has(item.id) && ids.add(item.id));
     seen.add(row.key);
     sections.push({ key: row.key, label, icon: typeof row.icon === "string" && SECTION_ICON.test(row.icon) ? row.icon : "section", presentation: row.presentation, single: row.single === true, all: row.all === true,
-      order: Number.isInteger(row.order) ? row.order : 100, itemLabel: text(row.item_label, 60) || label, items });
+      order: Number.isInteger(row.order) ? row.order : 100, itemLabel: text(row.item_label, 60) || label, items,
+      artwork: row.artwork === "game" ? "game" : null });   // "game": its items are catalog games with Classic artwork (Display Style: Game Covers)
   }
   return sections;
 }
 // whether a Wall document binds any Classic section (a visitor's page reads the section projection only then)
+// whether a Wall document shows any Classic section as Game Covers (a visitor's page reads Classic's game artwork only then)
+export const usesGamerCovers = doc => (doc?.stages ?? []).some(stage => (stage?.elements ?? []).some(element => element?.type === "gamidData" && element.payload?.field === "section" && element.payload.display === "covers"));
 export const usesGamerSections = doc => (doc?.stages ?? []).some(stage => (stage?.elements ?? []).some(element => element?.type === "gamidData" && element.payload?.field === "section"));
 
 // ---- the visitor view --------------------------------------------------------------------------------------------------------------------------------

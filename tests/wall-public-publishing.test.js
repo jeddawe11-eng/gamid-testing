@@ -170,7 +170,7 @@ test("V2b no flash: with a published Wall the Intro frame is asked for hostRevea
 
 test("V3 one renderer: the visitor Wall is painted by the same Preview pipeline (paintDocument in VIEW mode, players, posters, details, video pool)", () => {
   const module = read("dist/public/public-wall.js");
-  assert.match(module, /paintDocument\(ready\.doc, target, undefined, \{ mode: "view", assets: ready\.assets, gamid: ready\.gamid, players, posters, details, videos \}\)/);
+  assert.match(module, /paintDocument\(ready\.doc, target, undefined, \{ mode: "view", assets: ready\.assets, gamid: ready\.gamid, players, posters, details, videos, artwork: ready\.artwork \?\? null \}\)/);   // + Game Covers artwork (Favorite Games Display Style)
   assert.match(module, /doc: normalizeEmbedLayering\(doc\)\.doc/, "the same layering rule Preview applies");
   assert.doesNotMatch(module, /function paint(Stage|Element|Image|Text)\b|createElement\("(img|video)"\)/, "no second renderer");
   const editor = read("dist/wall-editor/editor.js");

@@ -14,6 +14,8 @@
 //              text-like (`text`); without, the whole section is drawn as a block (`style`, `layout`). Sections and items are resolved from the server's projection
 //              when the Wall is drawn (get_my_gamer_data / get_public_gamer_data), so a section the catalog no longer offers, or an item that is gone, draws nothing
 //              for visitors and is never replaced by another one.
+//              `display` (optional, both forms): "names" (the default: the text design) or "covers" (Game Covers) - for a section whose items are games with
+//              Classic artwork (Favorite Games). Each element keeps its own; it never changes the element's box or style.
 // Everything is typed and allowlisted: an unknown key is refused, no string is ever used as CSS, markup or an address. The database mirrors this validator.
 import { elementRegistry } from "../wall/elements.js";
 import { isSet, isPlainObject, inRange } from "../wall/fields.js";
@@ -30,6 +32,7 @@ export const ROLE_REF = /^(?:@primary|[a-z0-9_]{1,40})$/;
 export const GAME_REF_MAX = 120;
 export const SECTION_REF = /^[a-z][a-z0-9_]{1,31}$/;   // the catalog's own section_key rule
 export const SECTION_ITEM_REF = /^[a-z0-9][a-z0-9_]{0,63}$/;   // a fact key or a catalog game key
+export const SECTION_DISPLAYS = Object.freeze(["names", "covers"]);
 // A section binding is one item (text-like) when it names an item, otherwise the whole section (drawn as a block).
 export const isSectionItem = payload => payload?.field === "section" && isSet(payload.item);
 export const isDataCollection = payload => !!DATA_COLLECTIONS[payload?.field] || (payload?.field === "section" && !isSet(payload.item));
@@ -43,7 +46,7 @@ const FIELD_KEYS = Object.freeze({
   role: ["ref", "text"], game: ["ref", "text"], connection: ["ref", "text", "withLabel"],
   roles: ["style", "layout"], games: ["style", "layout", "initial", "showPlaytime"], connections: ["style", "layout"],
 });
-const keysOf = payload => (payload.field !== "section" ? FIELD_KEYS[payload.field] : isSet(payload.item) ? ["section", "item", "text"] : ["section", "style", "layout"]);
+const keysOf = payload => (payload.field !== "section" ? FIELD_KEYS[payload.field] : isSet(payload.item) ? ["section", "item", "text", "display"] : ["section", "style", "layout", "display"]);
 
 // The same normalization everywhere a game name is compared (the picker, the owner's library, the public library): NFKC, lower case, single spaces.
 export const gameRef = name => Array.from(String(name ?? "").normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim()).slice(0, GAME_REF_MAX).join("").trim();
@@ -75,6 +78,7 @@ export function validateGamidDataPayload(payload) {
   if (payload.field === "section") {
     if (typeof payload.section !== "string" || !SECTION_REF.test(payload.section)) errors.push("INVALID_DATA_SECTION");
     if (isSet(payload.item) && (typeof payload.item !== "string" || !SECTION_ITEM_REF.test(payload.item))) errors.push("INVALID_DATA_ITEM");
+    if (isSet(payload.display) && !SECTION_DISPLAYS.includes(payload.display)) errors.push("INVALID_DATA_DISPLAY");
   }
   if (isSet(payload.text) && allowed.includes("text") && !validateDataText(payload.text)) errors.push("INVALID_DATA_TEXT");
   if (isSet(payload.look) && allowed.includes("look") && !validateDataLook(payload.look)) errors.push("INVALID_DATA_LOOK");
@@ -102,7 +106,7 @@ export const dataTextStyle = (field, text) => ({ ...TEXT_BASE, ...(DATA_TEXT_DEF
 export function renderGamidDataPayload(payload) {
   const content = { kind: "gamidData", field: payload.field };
   if (DATA_ITEMS.includes(payload.field)) content.ref = payload.ref;
-  if (payload.field === "section") { content.section = payload.section; if (isSet(payload.item)) content.item = payload.item; }
+  if (payload.field === "section") { content.section = payload.section; if (isSet(payload.item)) content.item = payload.item; content.display = payload.display === "covers" ? "covers" : "names"; }
   if (isDataText(payload)) content.text = dataTextStyle(payload.field, payload.text);
   if (payload.field === "avatar") content.look = { backdrop: "none", ...(isPlainObject(payload.look) ? payload.look : {}) };
   if (payload.field === "connection") content.withLabel = payload.withLabel !== false;

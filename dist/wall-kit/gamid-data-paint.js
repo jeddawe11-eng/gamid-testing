@@ -4,7 +4,9 @@
 //   VIEW (Preview / a visitor): ONLY `snapshot.public` - exactly what the anonymous public profile returns right now. Nothing the owner hid is ever drawn, and a
 //        binding that resolves to nothing draws nothing (no diagnostic, no placeholder text a visitor could misread).
 // Text is only ever set with textContent; the picture is only ever a blob: URL; every style value comes from validated data (paint.js helpers).
-import { paintGamidBlock, paintGamidSection, sectionItemText } from "./gamid-blocks.js";
+import { paintGamidBlock, paintGamidSection, paintGameCovers, sectionItemText } from "./gamid-blocks.js";
+import { applyGameArtwork } from "../public/game-artwork.js";   // Classic's own cover placement (the one shared artwork module)
+import { textFontCss } from "./custom-fonts.js";
 import { DATA_COLLECTIONS } from "./gamid-data.js";
 
 // My Gamer Data sections (Phase 2): bound by section key and, for one item, by its stable id. A section the projection does not hold (not offered, or nothing
@@ -16,10 +18,10 @@ function resolveSection(content, sections, { owner, notPublic = false }) {
   if (content.item != null) {
     const item = section.items.find(candidate => candidate.id === content.item);
     if (!item) return owner ? { state: "missing", message: `This is no longer in your ${section.label}.` } : { state: "hidden" };
-    return { state: "ok", value: sectionItemText(item), ...tag(item.private === true) };
+    return { state: "ok", value: sectionItemText(item), section, entry: item, ...tag(item.private === true) };
   }
   if (!owner && !section.items.length) return { state: "hidden" };
-  return { state: "ok", value: section, ...tag(section.items.length > 0 && section.items.every(item => item.private === true)) };
+  return { state: "ok", value: section, section, ...tag(section.items.length > 0 && section.items.every(item => item.private === true)) };
 }
 
 // provider names come from the snapshot (the editor's data layer names providers; this painter never does)
@@ -111,7 +113,17 @@ export function paintGamidData(node, content, scale, item, createNode, ctx, { pa
     return;
   }
   node.setAttribute("data-state", "ok");
-  if (content.field === "avatar") {
+  if (content.field === "section" && content.display === "covers" && resolved.section?.artwork === "game") {
+    // Display Style "Game Covers": Classic's artwork (ctx.artwork - asked for once, only now that a cover element is painted), names always shown
+    const art = ctx.artwork ?? null;
+    const pending = art && !art.get() && art.state !== "done" ? art.request() : null;
+    const single = content.item != null;
+    node.append(paintGameCovers(resolved.section, single ? [resolved.entry] : resolved.value.items, content, createNode, { scale, owner: mode === "edit", width: item.width, height: item.height,
+      single, titleFont: single ? textFontCss(content.text) : null, titleColor: single ? content.text?.color ?? null : null }));
+    const place = () => { if (typeof node.querySelectorAll === "function" && art?.get()) applyGameArtwork(node, art.get()); };
+    place();
+    pending?.then?.(place);   // the artwork arrived after the covers were drawn: only these covers get their images (nothing else on the Wall is repainted)
+  } else if (content.field === "avatar") {
     const frame = paintArtworkFrame(node, content.look ?? { backdrop: "none" }, scale, item, createNode);
     const { url, initial } = resolved.value;
     if (url) {

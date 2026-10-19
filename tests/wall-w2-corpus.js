@@ -405,6 +405,13 @@ export const CORPUS = [
   { name: "gamidData: whole section with a text style", doc: docWith(dataEl("d1", { field: "section", section: "about_me", text: dataText() })) },
   { name: "gamidData: section item with a link in its text", doc: docWith(dataEl("d1", { field: "section", section: "about_me", item: "location", text: { ...dataText(), link: "https://example.com" } })) },
   { name: "gamidData: section with a ref", doc: docWith(dataEl("d1", { field: "section", section: "about_me", ref: "steam" })) },
+  // Favorite Games Display Style: an optional "display" (names | covers) on both forms
+  { name: "gamidData: whole section as Game Covers", doc: docWith(dataEl("d1", { field: "section", section: "favorite_games", display: "covers", layout: "compact" })) },
+  { name: "gamidData: one item as Game Covers, styled", doc: docWith(dataEl("d1", { field: "section", section: "favorite_games", item: "elden_ring", display: "covers", text: dataText({ color: "#ff3b2f" }) })) },
+  { name: "gamidData: display names stored explicitly", doc: docWith(dataEl("d1", { field: "section", section: "favorite_games", display: "names" })) },
+  { name: "gamidData: unknown display", doc: docWith(dataEl("d1", { field: "section", section: "favorite_games", display: "posters" })) },
+  { name: "gamidData: display not a string", doc: docWith(dataEl("d1", { field: "section", section: "favorite_games", item: "elden_ring", display: true })) },
+  { name: "gamidData: display on a field that is not a section", doc: docWith(dataEl("d1", { field: "games", display: "covers" })) },
   { name: "gamidData: payload array", doc: docWith(rect("d1", { type: "gamidData", payload: [] })) },
   { name: "gamidData: payload missing", doc: docWith(rect("d1", { type: "gamidData", payload: undefined })) },
   { name: "gamidData: field missing", doc: docWith(dataEl("d1", { field: undefined })) },
