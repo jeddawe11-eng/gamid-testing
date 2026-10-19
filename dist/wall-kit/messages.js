@@ -38,6 +38,10 @@ const BY_CODE = {
   INVALID_MEDIA: "That media type is not available.",
   INVALID_LINK: "That link is not a valid https:// or http:// web address, so it was not applied.",
   INVALID_FIRE: "That Living Fire setting is not valid, so it was not applied.",
+  INVALID_SHAPE: "That shape is not available, so it was not applied.",
+  INVALID_SHAPE_PARAMS: "That shape setting is out of range, so it was not applied.",
+  INVALID_SHAPE_PATH: "That freeform shape needs at least 2 points (3 when closed) and at most 100, so it was not applied.",
+  INVALID_LOCK_ASPECT: "That aspect ratio cannot be locked, so it was not applied.",
   // Icon Group (DEC-0006)
   INVALID_ICON_ITEMS: "An Icon Group holds 1 to 24 icons, so that was not applied.",
   INVALID_ICON_ITEM: "An icon's link must be a supported platform link or a valid https:// or http:// web address, so that was not applied.",

@@ -115,7 +115,8 @@
 
       <section class="ed-section" data-tool-panel="shapes">
         <h2>Shapes</h2>
-        <div class="ed-add-list">
+        <div id="shapeLibrary" class="ed-shape-library" aria-label="Shape library"></div>
+        <div class="ed-add-list" id="shapeQuick">
           <button class="ed-btn" type="button" data-shape="rect"><b>&#9632;</b><span>Rectangle</span></button>
           <button class="ed-btn" type="button" data-shape="rounded"><b>&#9635;</b><span>Rounded</span></button>
           <button class="ed-btn" type="button" data-shape="circle"><b>&#9679;</b><span>Circle</span></button>
@@ -189,6 +190,7 @@
         <button id="unpublishBtn" class="ed-btn ed-mini-text" type="button" hidden>Unpublish</button>
         <span id="selInfo" class="ed-sel-info"></span>
       </div>
+      <div id="pathBar" class="ed-path-bar" role="toolbar" aria-label="Freeform shape" hidden></div>
       <div id="viewport" class="ed-viewport"><div id="stageHost" class="ed-stage-host"></div></div>
     </section>
 

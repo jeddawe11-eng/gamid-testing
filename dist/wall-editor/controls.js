@@ -5,6 +5,7 @@ import { elementRegistry } from "../wall/elements.js";
 import { FONT_CATALOG, fontKnown } from "../wall-kit/fonts.js";
 import { TEXT_LIMITS, WEIGHTS, LINK_MAX } from "../wall-kit/text.js";
 import { FIRE_STYLES, FIRE_STYLE_DEFAULTS, FIRE_LIMITS, FIRE_LIVE_LIMIT, createFire, fireTextFits } from "../wall-kit/living-fire.js";
+import { SHAPES, SHAPE_PARAMS, SHAPE_LIMITS, SHAPE_LIBRARY, SHAPE_CATEGORIES, shapeParam, libraryIdOf } from "../wall/shapes.js";
 
 const FIRE_STYLE_LABELS = { organic: "Organic", cinematic: "Cinematic", mythic: "Mythic" };
 import { normalizeLinkInput, LINK_PROBLEMS } from "../wall-kit/links.js";
@@ -39,7 +40,7 @@ const isHexColour = value => typeof value === "string" && /^#[0-9a-fA-F]{6}$/.te
 
 // onGroupingChanged: called after a successful Group / Ungroup, so the editor can leave Multi-select (while Multi stays on, the next tap on the new group toggles it
 // OFF again and its handles vanish - the W0 Samsung finding).
-export function createPropertiesPanel({ body, title, session, run, fitTextHeight, assets = null, refreshGamid = () => {}, getGamid = () => null, onGroupingChanged = () => {} }) {
+export function createPropertiesPanel({ body, title, session, run, fitTextHeight, assets = null, refreshGamid = () => {}, getGamid = () => null, onGroupingChanged = () => {}, onEditPoints = () => {} }) {
   let builtKey = null;
   let syncers = [];
   let errorBox = null;
@@ -239,13 +240,70 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     } }));
   }
 
-  function shapeControls(root) {
-    root.append(h("div", { class: "ed-group-title", text: "Style" }));
+  // radius: false when the desktop accordion shows Corner radius in Shape & Geometry instead (titled: false drops the "Style" title there)
+  function shapeControls(root, { titled = true, radius = true } = {}) {
+    if (titled) root.append(h("div", { class: "ed-group-title", text: "Style" }));
     root.append(colorField({ label: "Fill", get: element => element.payload.fill, set: value => patchAll({ fill: value }), key: "fill" }));
     gradientGroup(root, "Gradient");
     root.append(numberSlider({ label: "Opacity %", min: 0, max: 100, step: 1, get: element => Math.round((element.payload.opacity ?? 1) * 100), set: value => patchAll({ opacity: value === 100 ? undefined : value / 100 }), key: "opacity" }));
     root.append(optionalGroupBorder());
-    root.append(numberSlider({ label: "Corner radius", min: 0, max: 1000, sliderMax: 300, step: 1, get: element => element.payload.radius ?? 0, set: value => patchAll({ radius: value === 0 ? undefined : value }), key: "radius" }));
+    if (radius) root.append(cornerRadius());
+  }
+  const cornerRadius = () => numberSlider({ label: "Corner radius", min: 0, max: 1000, sliderMax: 300, step: 1, get: element => element.payload.radius ?? 0, set: value => patchAll({ radius: value === 0 ? undefined : value }), key: "radius" });
+
+  // Shapes V2 (desktop): Shape type, its Smart Shape numbers, Corner radius for the classic shapes, Edit points for a freeform shape
+  function shapeGeometryControls(root, targets) {
+    const first = targets[0], allCustom = targets.every(item => item.payload.shape === "custom");
+    if (allCustom && targets.length === 1) {
+      const path = first.payload.path;
+      root.append(h("p", { class: "ed-hint", text: `Freeform shape: ${path.points.length} points, ${path.closed ? "closed" : "open (a line)"}.` }),
+        h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn ed-primary", type: "button", text: "Edit points", onclick: () => onEditPoints(first.id) })),
+        h("p", { class: "ed-hint", text: "Drag a point or its curve handles, add or delete points, or switch a point between smooth and corner. You can also double-click the shape. While editing points the element itself does not move; press Done (or Esc) to move and resize it again." }));
+      return;
+    }
+    if (targets.some(item => item.payload.shape === "custom")) { root.append(h("p", { class: "ed-hint", text: "A freeform shape keeps its own drawn shape." })); return; }
+    const select = h("select");
+    for (const category of SHAPE_CATEGORIES) {
+      const group = h("optgroup", { label: category });
+      for (const item of SHAPE_LIBRARY.filter(entry => entry.category === category)) group.append(h("option", { value: item.id, text: item.label }));
+      select.append(group);
+    }
+    const tuned = h("option", { value: "", text: "Tuned shape", disabled: true });
+    select.prepend(tuned);
+    select.addEventListener("change", () => {
+      const item = SHAPE_LIBRARY.find(entry => entry.id === select.value);
+      if (!item) return;
+      const classic = { rect: undefined, rounded: 48, circle: 1000 };
+      exec(patchAll({ shape: item.shape ?? undefined, params: item.params ? { ...item.params } : undefined, ...(item.shape ? {} : { radius: classic[item.id] }) }));
+    });
+    syncers.push(current => { const ids = new Set(current.map(item => libraryIdOf(item.payload))); select.value = ids.size === 1 && [...ids][0] ? [...ids][0] : ""; });
+    root.append(field("Shape type", select));
+    const shapes = new Set(targets.map(item => item.payload.shape ?? null));
+    if (shapes.size !== 1) return;
+    const shape = [...shapes][0];
+    if (!shape) { root.append(cornerRadius()); return; }
+    for (const key of Object.keys(SHAPES[shape] ?? {})) {
+      const rule = SHAPE_PARAMS[key], percent = !rule.integer;
+      const setParam = value => ops.updatePayloadMany(session.doc, session.state.selection, { params: { ...(selectedElements()[0].payload.params ?? {}), [key]: value } });
+      root.append(numberSlider({ label: percent ? `${rule.label} %` : rule.label, min: percent ? Math.round(rule.min * 100) : rule.min, max: percent ? Math.round(rule.max * 100) : rule.max, step: 1,
+        get: item => { const value = shapeParam(item.payload, key); return percent ? Math.round(value * 100) : value; }, set: value => setParam(percent ? value / 100 : Math.round(value)), key: `shape-${key}` }));
+    }
+  }
+
+  // Lock aspect ratio (shapes): on = the ratio the box has now is kept by dragging, Width and Height; off = free
+  function lockAspectControl() {
+    const box = h("input", { type: "checkbox" });
+    box.addEventListener("change", () => {
+      let result = { ok: true, doc: session.doc };
+      for (const item of selectedElements()) {
+        if (!result.ok) break;
+        const ratio = Math.min(SHAPE_LIMITS.aspect[1], Math.max(SHAPE_LIMITS.aspect[0], Math.round((item.width / item.height) * 1000) / 1000));
+        result = ops.updatePayloadMany(result.doc, [item.id], { lockAspect: box.checked ? ratio : undefined });
+      }
+      exec(result);
+    });
+    syncers.push(targets => { box.checked = targets.every(item => typeof item.payload.lockAspect === "number"); });
+    return h("div", {}, field("Lock aspect ratio", box), h("p", { class: "ed-hint", text: "On: dragging a handle, Width and Height all keep the current proportions. Off: stretch freely." }));
   }
   function optionalGroupBorder() {
     const wrap = h("div");
@@ -672,7 +730,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       h("button", { class: "ed-btn", type: "button", text: "Reset style", onclick: () => { status.textContent = ""; exec(patchAll({ style: undefined })); } })), status);
   }
 
-  function geometryControls(root, { titled = true } = {}) {
+  function geometryControls(root, { titled = true, afterSize = null } = {}) {
     if (titled) root.append(h("div", { class: "ed-group-title", text: "Position and size" }));
     const box = h("div");
     const numeric = (label, name) => {
@@ -683,6 +741,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     };
     box.append(numeric("X", "x"), numeric("Y", "y"), numeric("Width", "width"), numeric("Height", "height"));
     root.append(box);
+    if (afterSize) root.append(afterSize);
     root.append(numberSlider({ label: "Rotation °", min: -180, max: 180, step: 1, get: element => element.rotation ?? 0, set: value => ops.rotateElement(session.doc, session.state.selection[0], value), key: "rotation" }));
     root.append(h("div", { class: "ed-btn-row" },
       h("button", { class: "ed-btn", type: "button", text: "Reset rotation", onclick: () => exec(ops.rotateElement(session.doc, session.state.selection[0], 0)) }),
@@ -750,6 +809,9 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
   // Icon Group (desktop, 2026-10-19): the same accordion, with its own remembered open / closed state. Move to stage stays the first control, above it.
   const ICON_SECTIONS = [["icons", "Icons & Links"], ["appearance", "Appearance & Spacing"], ["geometry", "Position & Size"], ["arrange", "Arrange"], ["align", "Align to Stage"]];
   const iconSectionOpen = { icons: true, appearance: true, geometry: false, arrange: false, align: false };
+  // Shapes V2 (desktop, 2026-10-19): the same accordion for shapes, with its own remembered state
+  const SHAPE_SECTIONS = [["shape", "Shape & Geometry"], ["appearance", "Appearance"], ["geometry", "Position & Size"], ["arrange", "Arrange"], ["align", "Align to Stage"]];
+  const shapeSectionOpen = { shape: true, appearance: true, geometry: false, arrange: false, align: false };
   let accordion = null, accordionState = textSectionOpen;
   function setSection(state, key, open) {
     state[key] = open;
@@ -788,6 +850,16 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     title.textContent = single ? `${label}${groupedSelection ? " (in a group)" : ""}` : groupedSelection && new Set(targets.map(element => element.groupId)).size === 1 ? `Group of ${targets.length}` : `${targets.length} elements`;
     body.append(errorBox);
     stageMoveControls(body);   // always the first control (accepted post-Round 2 fix), above any accordion
+    if (types.length === 1 && types[0] === "rect" && desktopProps?.matches) {
+      accordion = {}; accordionState = shapeSectionOpen;
+      const sections = Object.fromEntries(SHAPE_SECTIONS.map(([key, name]) => [key, accordionSection(body, key, key === "align" && !single ? "Align" : name, shapeSectionOpen)]));
+      shapeGeometryControls(sections.shape, targets);
+      shapeControls(sections.appearance, { titled: false, radius: false });
+      if (single && !groupedSelection) geometryControls(sections.geometry, { titled: false, afterSize: lockAspectControl() });
+      else sections.geometry.append(h("p", { class: "ed-hint", text: groupedSelection ? "Groups move and resize as one unit. Ungroup to edit an element on its own." : "Multiple elements selected. Move and resize them together on the canvas." }), lockAspectControl());
+      actionControls(sections.arrange, targets, single, { alignRoot: sections.align });
+      return;
+    }
     if (types.length === 1 && types[0] === "icons" && single && desktopProps?.matches) {
       accordion = {}; accordionState = iconSectionOpen;
       const sections = Object.fromEntries(ICON_SECTIONS.map(([key, name]) => [key, accordionSection(body, key, name, iconSectionOpen)]));
@@ -822,7 +894,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     update() {
       const targets = selectedElements();
       // (an embed's presentation is part of the key: switching Card <-> Player changes which controls apply, e.g. Shape)
-      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}${element.type === "image" ? `:${element.payload.slice?.set ?? "-"}` : ""}${element.type === "text" ? `:${element.payload.link ? "link" : "-"}` : ""}${element.type === "icons" ? `:${(element.payload.items ?? []).map(item => item.providerKey ?? "other").join("+")}` : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}|${desktopProps?.matches ? 1 : 0}`;
+      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}${element.type === "image" ? `:${element.payload.slice?.set ?? "-"}` : ""}${element.type === "text" ? `:${element.payload.link ? "link" : "-"}` : ""}${element.type === "rect" ? `:${element.payload.shape ?? "-"}:${element.payload.path?.points.length ?? ""}` : ""}${element.type === "icons" ? `:${(element.payload.items ?? []).map(item => item.providerKey ?? "other").join("+")}` : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}|${desktopProps?.matches ? 1 : 0}`;
       if (key !== builtKey) { builtKey = key; rebuild(targets); }
       if (targets.length) for (const sync of syncers) sync(targets);
     },

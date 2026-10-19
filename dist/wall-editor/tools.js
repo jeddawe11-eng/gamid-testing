@@ -9,6 +9,7 @@ import { describeErrors } from "../wall-kit/messages.js";
 import { FONT_CATALOG, fontCss } from "../wall-kit/fonts.js";
 import { customFontRef, customFontId, customFontFamily, previewFontFile } from "../wall-kit/custom-fonts.js";
 import { createFire } from "../wall-kit/living-fire.js";
+import { SHAPE_LIBRARY, SHAPE_CATEGORIES, shapePath, shapeFillRule, libraryIdOf } from "../wall/shapes.js";
 import { createImagePayload } from "../wall-kit/image.js";
 import { defaultBackground, createImageBackground, createVideoBackground } from "../wall-kit/background.js";
 import { GAMID_BLOCKS, GAMID_BLOCK_INFO, createGamidPayload } from "../wall-kit/gamid.js";
@@ -55,7 +56,7 @@ export const OTHER_TEXT_MAX = 120;
 export const OTHER_LINK_STYLE = Object.freeze({ fontFamily: "system-sans", fontSize: 64, fontWeight: 700, underline: true, color: "#62e7ff", align: "center", lineHeight: 1.2, wrap: true });
 export const OTHER_LINK_SIZE = Object.freeze({ width: 800, height: 120 });
 
-export function createTools({ session, run, notify, assets, fonts = null, getGamid, refreshGamid, setTool, pickImage, revealProps = () => {} }) {
+export function createTools({ session, run, notify, assets, fonts = null, getGamid, refreshGamid, setTool, pickImage, revealProps = () => {}, startFreeform = () => {} }) {
   const videoPreviews = createVideoPreviews();   // one still frame per video asset, shared by Assets and the background video list
   const doc = () => session.doc;
   const stageId = () => session.state.stageId;
@@ -281,6 +282,58 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
 
   // ---- Shapes --------------------------------------------------------------------------------------------------------------------------------
   for (const button of document.querySelectorAll("[data-shape]")) button.addEventListener("click", () => { const result = run(ops.addElement(doc(), stageId(), button.dataset.shape), { keepResultSelection: true }); if (result.ok) setTool("props"); });
+  // Shapes V2 (desktop, 900px and wider): the shape library - a Freeform entry, then the curated shapes by category, each card a preview drawn with the same
+  // vector geometry the Wall uses. Below 900px the three shape buttons above stay exactly as they were.
+  const shapeLibrary = $("shapeLibrary"), shapeQuick = $("shapeQuick");
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const SHAPE_COLORS = { Basic: "#8b5dff", "Polygons & stars": "#62e7ff", Arrows: "#ffd36b", Callouts: "#f4f0ff", "Badges & banners": "#ff4fd8", Gaming: "#ff7a1a" };
+  const CLASSIC = { rect: { fill: "#8b5dff" }, rounded: { fill: "#62e7ff", radius: 48 }, circle: { fill: "#ff4fd8", radius: 1000 } };
+  const libraryPayload = item => {
+    const payload = item.shape ? { fill: SHAPE_COLORS[item.category] ?? "#8b5dff", shape: item.shape, ...(item.params ? { params: { ...item.params } } : {}) } : { ...CLASSIC[item.id] };
+    if (item.lock) payload.lockAspect = Math.round((item.size[0] / item.size[1]) * 1000) / 1000;   // proportion-sensitive shapes start with their aspect locked
+    return payload;
+  };
+  const previewSvg = item => {
+    const [w, h] = item.size, k = Math.min(40 / w, 30 / h), pw = w * k, ph = h * k;
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 44 34"); svg.setAttribute("aria-hidden", "true"); svg.setAttribute("class", "ed-shape-preview");
+    const path = document.createElementNS(SVG_NS, "path");
+    const payload = item.shape ? libraryPayload(item) : null;
+    const x = (44 - pw) / 2, y = (34 - ph) / 2;
+    path.setAttribute("d", payload ? shapePath(payload, x, y, pw, ph) : item.id === "circle" ? shapePath({ shape: "ellipse" }, x, y, pw, ph) : item.id === "rounded" ? `M${x + 6} ${y}H${x + pw - 6}Q${x + pw} ${y} ${x + pw} ${y + 6}V${y + ph - 6}Q${x + pw} ${y + ph} ${x + pw - 6} ${y + ph}H${x + 6}Q${x} ${y + ph} ${x} ${y + ph - 6}V${y + 6}Q${x} ${y} ${x + 6} ${y}Z` : `M${x} ${y}H${x + pw}V${y + ph}H${x}Z`);
+    path.setAttribute("fill-rule", payload ? shapeFillRule(payload) : "nonzero");
+    svg.append(path);
+    return svg;
+  };
+  const libraryCards = new Map();
+  if (shapeLibrary) {
+    const free = h("button", { class: "ed-btn ed-shape-free", type: "button", onclick: () => startFreeform() },
+      h("b", { "aria-hidden": "true" }), h("span", {}, "Freeform Shape", h("small", { text: "Draw your own: click to add points, drag to curve, click the first point to close. Double-click it later to edit its points." })));
+    shapeLibrary.append(free);
+    for (const category of SHAPE_CATEGORIES) {
+      const grid = h("div", { class: "ed-shape-grid" });
+      for (const item of SHAPE_LIBRARY.filter(entry => entry.category === category)) {
+        const card = h("button", { class: "ed-btn ed-shape-card", type: "button", "data-library-shape": item.id, title: item.label, onclick: () => {
+          const result = addCustom("rect", libraryPayload(item), { width: item.size[0], height: item.size[1] });
+          if (result.ok) setTool("props");
+        } }, previewSvg(item), h("span", { text: item.label }));
+        libraryCards.set(item.id, card);
+        grid.append(card);
+      }
+      shapeLibrary.append(h("h3", { class: "ed-shape-cat", text: category }), grid);
+    }
+  }
+  const renderShapeMode = () => { if (shapeQuick) shapeQuick.style.setProperty("display", accordionOn() ? "none" : ""); };
+  desktopFonts?.addEventListener?.("change", renderShapeMode);
+  renderShapeMode();
+  // the card of the selected shape is the current one
+  function renderShapeSelection() {
+    const stage = session.stage, chosen = new Set(session.state.selection);
+    const shapes = stage ? stage.elements.filter(element => chosen.has(element.id) && element.type === "rect") : [];
+    const ids = new Set(shapes.map(shape => libraryIdOf(shape.payload)));
+    const current = ids.size === 1 ? [...ids][0] : null;
+    for (const [id, card] of libraryCards) { if (id === current) card.setAttribute("aria-current", "true"); else card.removeAttribute("aria-current"); }
+  }
 
   // ---- Media & Links -------------------------------------------------------------------------------------------------------------------------
   const mediaUrl = $("mediaUrl"), mediaResult = $("mediaResult");
@@ -768,7 +821,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
 
   return {
     addImageElement, uploadFile,
-    update() { templates.update(); renderBackground(); renderAssets(); renderGamidStatus(); renderGamidData(); renderMyFonts(); renderFontSelection(); },
+    update() { templates.update(); renderBackground(); renderAssets(); renderGamidStatus(); renderGamidData(); renderMyFonts(); renderFontSelection(); renderShapeSelection(); },
     invalidate() { renderBackground(true); renderAssets(true); },
     renderAssets, renderBackground,
   };

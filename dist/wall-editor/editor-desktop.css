@@ -281,3 +281,43 @@ body[data-tool="gamid"] .ed-rail [data-tool="gamid"] i, body[data-tool="layout"]
 #propsBody .ed-acc-body .ed-icon-link { grid-area: link; }
 #propsBody .ed-acc-body .ed-icon-actions { grid-area: actions; justify-content: flex-end; gap: .35rem; }
 #propsBody .ed-acc-body .ed-icon-actions .ed-btn { min-width: 2.5rem; min-height: 2.25rem; }
+
+/* ---- Shapes V2 (desktop, 2026-10-19): the shape library - a Freeform entry, then the curated shapes by category as even preview cards - and the Freeform pen /
+   Edit Points bar and layer on the canvas. The phone keeps its three shape buttons. ---- */
+:root { --i-pen: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20l3.5-1 11-11a2.1 2.1 0 0 0-3-3l-11 11z'/%3E%3Cpath d='M14 6l3 3'/%3E%3Ccircle cx='5' cy='19' r='.6'/%3E%3C/svg%3E"); }
+.ed-shape-library { display: block; margin: .2rem 0 .4rem; }
+[data-tool-panel="shapes"] .ed-shape-free { position: relative; display: flex; align-items: center; gap: .75rem; width: 100%; min-height: 4rem; padding: .55rem .7rem; border: 1px solid transparent; border-radius: .6rem; background: linear-gradient(180deg, #221a4e, #12123a) padding-box, linear-gradient(180deg, var(--gold-hi), var(--violet-hi)) border-box; color: var(--ink); text-align: left; }
+[data-tool-panel="shapes"] .ed-shape-free b { position: relative; flex: none; width: 2.6rem; height: 2.6rem; border: 1px solid var(--gold-line); border-radius: .55rem; background: radial-gradient(circle at 50% 30%, #2a2160, #121033); }
+[data-tool-panel="shapes"] .ed-shape-free b::before { content: ""; position: absolute; inset: .55rem; background: var(--gold-grad); -webkit-mask: var(--i-pen) center / contain no-repeat; mask: var(--i-pen) center / contain no-repeat; }
+[data-tool-panel="shapes"] .ed-shape-free span { display: grid; gap: .2rem; font-family: var(--font-ui); font-size: 1rem; font-weight: 700; letter-spacing: .02em; }
+[data-tool-panel="shapes"] .ed-shape-free small { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: .68rem; font-weight: 500; line-height: 1.35; letter-spacing: 0; color: var(--ink-dim); }
+[data-tool-panel="shapes"] .ed-shape-free:hover { box-shadow: 0 0 1.1rem rgba(160, 77, 255, .38); }
+[data-tool-panel="shapes"] .ed-shape-cat { display: flex; align-items: center; gap: .6rem; margin: 1rem 0 .45rem; font-family: var(--font-ui); font-size: .8rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-hi); }
+[data-tool-panel="shapes"] .ed-shape-cat::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(214, 178, 94, .45), transparent); }
+[data-tool-panel="shapes"] .ed-shape-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: .4rem; }
+[data-tool-panel="shapes"] .ed-shape-card { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: .3rem; min-width: 0; min-height: 4.6rem; padding: .45rem .3rem .4rem; border: 1px solid transparent; border-radius: .55rem; background: linear-gradient(180deg, #151b3a, #0d1128) padding-box, linear-gradient(180deg, rgba(242, 220, 155, .5), rgba(125, 99, 41, .45)) border-box; color: var(--ink-dim); transition: box-shadow .15s ease, color .15s ease; }
+[data-tool-panel="shapes"] .ed-shape-card .ed-shape-preview { width: 2.75rem; height: 2.1rem; fill: #b9a2ff; }
+[data-tool-panel="shapes"] .ed-shape-card span { max-width: 100%; font-family: var(--font-ui); font-size: .68rem; font-weight: 700; line-height: 1.15; letter-spacing: .02em; text-align: center; overflow-wrap: anywhere; text-wrap: balance; }
+[data-tool-panel="shapes"] .ed-shape-card:hover { color: #fff; background: linear-gradient(180deg, #221a4e, #12123a) padding-box, linear-gradient(180deg, var(--gold-hi), var(--violet-hi)) border-box; box-shadow: 0 0 .9rem rgba(160, 77, 255, .3); }
+[data-tool-panel="shapes"] .ed-shape-card:hover .ed-shape-preview { fill: #d9cbff; }
+[data-tool-panel="shapes"] .ed-shape-card[aria-current="true"] { color: #fff; background: linear-gradient(180deg, rgba(169, 77, 255, .55), rgba(92, 40, 190, .45)) padding-box, linear-gradient(#0d1128, #0d1128) padding-box, linear-gradient(180deg, var(--gold-hi), var(--gold-lo)) border-box; box-shadow: 0 0 .9rem rgba(160, 77, 255, .35); }
+[data-tool-panel="shapes"] .ed-shape-card[aria-current="true"] .ed-shape-preview { fill: var(--gold-hi); }
+[data-tool-panel="shapes"] .ed-shape-card[aria-current="true"]::after { content: ""; position: absolute; top: .4rem; right: .45rem; width: .5rem; height: .5rem; background: var(--gold-hi); transform: rotate(45deg); }
+[data-tool-panel="shapes"] .ed-hint { margin: .9rem 0 .4rem; color: var(--ink-dim); font-size: .74rem; line-height: 1.45; }
+.ed-path-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; margin: 0 .55rem .45rem; padding: .45rem .6rem; border: 1px solid transparent; border-radius: .6rem; background: linear-gradient(180deg, #1c1846, #10123a) padding-box, linear-gradient(90deg, var(--gold-hi), var(--violet-hi)) border-box; }
+.ed-path-bar .ed-path-note { flex: 1 1 14rem; min-width: 0; color: var(--ink); font-size: .78rem; line-height: 1.35; }
+.ed-path-bar .ed-btn { min-height: 2.2rem; padding: .3rem .75rem; border: 1px solid var(--gold-line); border-radius: .5rem; background: #0d1128; color: var(--ink); font-family: var(--font-ui); font-size: .8rem; font-weight: 700; letter-spacing: .04em; }
+.ed-path-bar .ed-btn.ed-primary { border-color: transparent; background: linear-gradient(180deg, #a14dff, #6a2bd6 55%, #4f1db3) padding-box, linear-gradient(180deg, var(--gold-hi), var(--gold-lo)) border-box; color: #fff; }
+.ed-path-bar .ed-btn:disabled { opacity: .45; cursor: default; }
+.ed-path-layer { position: absolute; inset: 0; z-index: 30; touch-action: none; }
+.ed-path-layer.is-pen { cursor: crosshair; }
+.ed-path-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.ed-path-preview { fill: rgba(139, 93, 255, .18); stroke: #f2dc9b; stroke-width: 1.6; stroke-dasharray: 5 4; }
+.ed-path-rubber { stroke: #f2dc9b; stroke-width: 1.2; stroke-dasharray: 3 4; opacity: .8; }
+.ed-path-arm { stroke: #a97dff; stroke-width: 1.2; }
+.ed-path-handle { fill: #0d1128; stroke: #a97dff; stroke-width: 2; cursor: grab; }
+.ed-path-anchor { fill: #f4f0ff; stroke: #6a2bd6; stroke-width: 2; cursor: move; }
+.ed-path-anchor.is-selected { fill: #f2dc9b; stroke: #a14dff; }
+.ed-path-anchor.is-first { fill: #8ff0c4; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { [data-tool-panel="shapes"] .ed-shape-card { transition: none; } }
+@media (forced-colors: active) { [data-tool-panel="shapes"] .ed-shape-card, [data-tool-panel="shapes"] .ed-shape-free, .ed-path-bar { border-color: ButtonText; } }

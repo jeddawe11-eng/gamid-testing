@@ -653,6 +653,14 @@ export const CORPUS = [
   { name: "icons: several problems are all reported", doc: docWith(iconsEl("g1", { items: [], size: 1, gap: 999, align: "top" })) },
   { name: "icons: markup in an item is caught by the unsafe-content scan too", doc: docWith(iconsEl("g1", { items: [{ url: "https://a.example/<script>" }] })) },
   { name: "icons: null optional fields mean unset", doc: docWith(iconsEl("g1", { items: [YT], size: null, gap: null, align: null })) },
+  // ---- Shapes V2 (2026-10-19): VALID cases only - the JavaScript validator checks the new fields; the database accepts them (rect payloads have no key list) and
+  // stores them unchanged. Its own checks for them come with the prepared migration, once authorised (docs/WALL-EDITOR-SHAPES-V2.md).
+  { name: "shape v2: a hexagon with Smart Shape sides and a locked aspect", doc: rectWithPayload({ shape: "polygon", params: { sides: 6 }, lockAspect: 1 }) },
+  { name: "shape v2: a star with points and inner radius, gradient and border", doc: rectWithPayload({ shape: "star", params: { points: 8, inner: 0.6 }, gradient: { from: "#62e7ff", to: "#ff4fd8", angle: 90 }, stroke: "#ffffff", strokeWidth: 4 }) },
+  { name: "shape v2: every library shape key without params", doc: docWith(...["ellipse", "triangle", "right-triangle", "diamond", "arrow-right", "arrow-double", "chevron-left", "bubble", "bubble-round", "callout", "shield", "bolt", "heart", "crown", "gem", "ring"].map((shape, i) => rect(`r${i}`, { y: 10 + i * 100, payload: { fill: "#aabbcc", shape } }))) },
+  { name: "shape v2: a closed freeform path with curve handles", doc: rectWithPayload({ shape: "custom", path: { closed: true, points: [{ x: 0, y: 1 }, { x: 0.5, y: 0, ix: 0.1, iy: 0.2, ox: 0.9, oy: 0.2 }, { x: 1, y: 1 }] } }) },
+  { name: "shape v2: an open freeform line with handles past the box", doc: rectWithPayload({ shape: "custom", path: { closed: false, points: [{ x: 0, y: 0.5, ox: -1, oy: 2 }, { x: 1, y: 0.5 }] }, stroke: "#62e7ff", strokeWidth: 6 }) },
+  { name: "shape v2: a classic circle with Lock aspect ratio", doc: rectWithPayload({ radius: 1000, lockAspect: 1 }) },
   // ---- Living Fire V3 (text `fire`, 2026-10-19) ----
   { name: "fire: organic defaults", doc: docWithText({ text: "LEGEND", fire: { style: "organic", intensity: 1, speed: 1, turbulence: 0.9, color: "natural", sparks: false, mode: "full" } }) },
   { name: "fire: cinematic, crimson, sparks, letters only", doc: docWithText({ text: "LEGEND", fire: { style: "cinematic", intensity: 1.08, speed: 1.05, turbulence: 0.9, color: "crimson", sparks: true, mode: "letters" } }) },

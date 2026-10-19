@@ -5,7 +5,8 @@
 //
 // Registered here, deliberately minimal:
 //   - "rect": a rectangle. W1 shipped it as a bare fill; W3 makes it a useful shape (optional opacity, border, corner radius, gradient) as COMPATIBLE optional
-//     payload fields: every document that was valid before is still valid and renders the same.
+//     payload fields: every document that was valid before is still valid and renders the same. Shapes V2 (2026-10-19) adds the optional vector `shape`,
+//     its Smart Shape `params`, a freeform `path` and `lockAspect` (shapes.js), the same way.
 //   - "embed": the universal, provider-neutral embed contract (see providers.js) - proves the SAME mechanism also carries the provider extension point.
 // The `text` type lives in ../wall-kit/text.js and registers itself into this same registry; the core never names it.
 //
@@ -14,6 +15,7 @@
 import { createRegistry } from "./registry.js";
 import { providerRegistry } from "./providers.js";
 import { HEX_COLOR, isSet, isHex, inRange, isGradient, isPlainObject } from "./fields.js";
+import { shapeFieldErrors } from "./shapes.js";
 
 export const elementRegistry = createRegistry();
 
@@ -27,11 +29,12 @@ elementRegistry.register("rect", {
     if (isSet(payload.strokeWidth) && !inRange(payload.strokeWidth, 0, 100)) errors.push("INVALID_STROKE_WIDTH");
     if (isSet(payload.radius) && !inRange(payload.radius, 0, 1000)) errors.push("INVALID_RADIUS");
     if (isSet(payload.gradient) && !isGradient(payload.gradient)) errors.push("INVALID_GRADIENT");
+    errors.push(...shapeFieldErrors(payload));
     return errors;
   },
   render(payload) {
     const content = { kind: "rect", fill: payload.fill };
-    for (const key of ["opacity", "stroke", "strokeWidth", "radius", "gradient"]) if (isSet(payload[key])) content[key] = payload[key];
+    for (const key of ["opacity", "stroke", "strokeWidth", "radius", "gradient", "shape", "params", "path"]) if (isSet(payload[key])) content[key] = payload[key];
     return content;
   },
   scale(payload, factor) {

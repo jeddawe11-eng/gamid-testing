@@ -15,6 +15,7 @@ import { createPlayerManager } from "../wall-kit/embed/player.js";
 import { createPosterLoader } from "../wall-kit/posters.js";
 import { createVideoPool } from "../wall-kit/video-background.js";
 import { createCanvas } from "./canvas.js";
+import { createPathEditor } from "./path-editor.js";
 import { createPropertiesPanel } from "./controls.js";
 import { createTools } from "./tools.js";
 import { createAssetStore } from "./assets.js";
@@ -111,9 +112,13 @@ const canvas = createCanvas({
     if (isPhone()) openTool("props");
     requestAnimationFrame(() => $("propsBody").querySelector("textarea")?.focus());
   },
+  // Shapes V2 (desktop): double-click a freeform shape to edit its points; the pen / points layer is put back after every repaint
+  onEditShape: id => { if (!isPhone()) pathEditor?.editPoints(id); },
+  afterRender: () => pathEditor?.mount(),
 });
+let pathEditor = null;   // created below, once the tools exist (the canvas and Properties only call it later)
 const leaveMultiSelect = () => { if (multi) { multi = false; updateChrome(); } };
-const properties = createPropertiesPanel({ body: $("propsBody"), title: $("propsTitle"), session, run, fitTextHeight, assets: assetStore, refreshGamid, getGamid: () => gamidSnapshot, onGroupingChanged: leaveMultiSelect });
+const properties = createPropertiesPanel({ body: $("propsBody"), title: $("propsTitle"), session, run, fitTextHeight, assets: assetStore, refreshGamid, getGamid: () => gamidSnapshot, onGroupingChanged: leaveMultiSelect, onEditPoints: id => pathEditor?.editPoints(id) });
 
 // ---- tools: one rail, one drawer ------------------------------------------------------------------------------------------------------------------
 // On a phone a bottom sheet covers the lower part of the stage: scroll the selection up into the part that stays visible above it.
@@ -151,7 +156,9 @@ const tools = createTools({
   session, run, notify, assets: assetStore, fonts: fontStore, getGamid: () => gamidSnapshot, refreshGamid, setTool: openTool,
   pickImage: () => { placeNextUpload = true; assetFile.click(); },
   revealProps: section => properties.reveal(section),
+  startFreeform: () => pathEditor?.startPen(),
 });
+pathEditor = createPathEditor({ host: $("stageHost"), bar: $("pathBar"), getScale: () => canvas.scale, session, run, notify, onFinish: () => openTool("props") });
 $("assetUpload").addEventListener("click", () => { placeNextUpload = false; assetFile.click(); });
 assetFile.addEventListener("change", async () => {
   const file = assetFile.files?.[0];

@@ -12,6 +12,7 @@ import { paintGamidData } from "./gamid-data-paint.js";
 import { paintEmbedIcon, paintIcons } from "./icons-paint.js";
 import { markInteractive, markPassThrough } from "./interaction.js";
 import { attachFire } from "./living-fire.js";   // Living Fire text: its renderer is loaded only when such a text is painted
+import { shapePath, shapeFillRule, shapeIsOpen } from "../wall/shapes.js";   // Shapes V2: vector shape geometry (numbers only)
 import { safeMediaUrl, backgroundVideo } from "./video-background.js";
 import "./register.js";   // makes sure every element type, background kind and provider is registered wherever documents are painted
 
@@ -20,7 +21,56 @@ const px = value => `${num(value)}px`;
 const hex = value => (typeof value === "string" && HEX_COLOR.test(value) ? value : "#000000");
 const gradientCss = gradient => `linear-gradient(${num(gradient.angle)}deg, ${hex(gradient.from)}, ${hex(gradient.to)})`;
 
+// Shapes V2: a vector shape (or a freeform path) is one inline SVG filling the box. Its path data comes only from wall/shapes.js (numbers and fixed command
+// letters); fill, gradient, border and opacity are the same payload fields a classic shape uses. The border is drawn inside the box, like the CSS border.
+const SVG_NS = "http://www.w3.org/2000/svg";
+let gradientSerial = 0;
+function paintShape(node, content, scale, item) {
+  const doc = node.ownerDocument;
+  if (!doc?.createElementNS) return;
+  const make = tag => doc.createElementNS(SVG_NS, tag);
+  const width = Math.max(1, item.width), height = Math.max(1, item.height);
+  const stroke = content.stroke !== undefined && (content.strokeWidth ?? 0) > 0 ? Math.min(content.strokeWidth * scale, Math.min(width, height) / 2) : 0;
+  const open = shapeIsOpen(content);
+  const lineWidth = stroke || (open ? Math.max(2, 6 * scale) : 0);
+  const inset = lineWidth / 2;
+  const d = shapePath(content, inset, inset, Math.max(0, width - 2 * inset), Math.max(0, height - 2 * inset));
+  const svg = make("svg");
+  svg.setAttribute("class", "wall-shape");
+  svg.setAttribute("viewBox", `0 0 ${num(width)} ${num(height)}`);
+  svg.setAttribute("width", "100%"); svg.setAttribute("height", "100%");
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.setAttribute("aria-hidden", "true");
+  svg.style.setProperty("display", "block");
+  svg.style.setProperty("overflow", "visible");
+  if (content.opacity !== undefined) svg.style.setProperty("opacity", num(content.opacity));
+  const path = make("path");
+  path.setAttribute("d", d);
+  path.setAttribute("fill-rule", shapeFillRule(content));
+  if (open) path.setAttribute("fill", "none");
+  else if (content.gradient) {
+    const id = `wall-shape-grad-${++gradientSerial}`;
+    const angle = ((Number(content.gradient.angle) || 0) * Math.PI) / 180;   // CSS: 0deg points up, 90deg right
+    const dx = Math.sin(angle) / 2, dy = -Math.cos(angle) / 2;
+    const gradient = make("linearGradient");
+    gradient.setAttribute("id", id);
+    for (const [key, value] of [["x1", 0.5 - dx], ["y1", 0.5 - dy], ["x2", 0.5 + dx], ["y2", 0.5 + dy]]) gradient.setAttribute(key, num(value));
+    for (const [offset, color] of [["0", content.gradient.from], ["1", content.gradient.to]]) { const stop = make("stop"); stop.setAttribute("offset", offset); stop.setAttribute("stop-color", hex(color)); gradient.appendChild(stop); }
+    const defs = make("defs"); defs.appendChild(gradient); svg.appendChild(defs);
+    path.setAttribute("fill", `url(#${id})`);
+  } else path.setAttribute("fill", hex(content.fill));
+  if (lineWidth) {
+    path.setAttribute("stroke", hex(content.stroke ?? content.fill));
+    path.setAttribute("stroke-width", num(lineWidth));
+    path.setAttribute("stroke-linejoin", "round");
+    path.setAttribute("stroke-linecap", "round");
+  }
+  svg.appendChild(path);
+  node.appendChild(svg);
+}
+
 function paintRect(node, content, scale, item) {
+  if (content.shape) { paintShape(node, content, scale, item); return; }
   const style = node.style;
   style.setProperty("box-sizing", "border-box");
   style.setProperty("background", content.gradient ? gradientCss(content.gradient) : hex(content.fill));

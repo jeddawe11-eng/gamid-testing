@@ -25,7 +25,7 @@ const el = (tag, className, styles = {}) => {
 };
 const px = value => `${Math.round(value * 100) / 100}px`;
 
-export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, onEditText, getPaintContext = () => ({}) }) {
+export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, onEditText, onEditShape, afterRender, getPaintContext = () => ({}) }) {
   let scale = 0.3;
   let liveDoc = null;          // the in-progress gesture result (never stored in the session)
   let guides = [];
@@ -63,6 +63,7 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
     host.style.setProperty("height", px(tree.stages[index].height));
     host.replaceChildren(stageNode, overlay);
     drawOverlay(overlay);
+    afterRender?.();   // Shapes V2: the Freeform pen / Edit Points layer goes back on top after every repaint
   }
   const schedule = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; render(); }); };
 
@@ -261,6 +262,7 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
     else if (!cancelled && !done.moved) {
       if (done.kind === "background") session.clearSelection();
       else if (done.kind === "move" && done.wasSelected && !isMulti()) onSelectedTap?.(done.tapOn);
+      if (done.kind === "move" && done.tapOn) doubleTap(done.tapOn);
     }
     render();
   }
@@ -270,8 +272,18 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
     const point = toStage(event);
     const hit = ops.hitTest(currentStage(), point.x, point.y, TAP_SLOP_PX / scale);
     if (hit?.type === "text") { session.select([hit.id]); onEditText?.(hit.id); }
+    else if (hit?.type === "rect" && hit.payload?.shape === "custom") onEditShape?.(hit.id);   // a freeform shape: double-click edits its points
   });
 
+  // Shapes V2: two quick taps on the same freeform shape open Edit Points. (A real dblclick rarely reaches the stage here: the first tap repaints it, so the
+  // browser sees two different targets.) Freeform shapes only: every other element keeps exactly its existing tap behaviour.
+  let lastTap = null;
+  function doubleTap(id) {
+    const now = Date.now();
+    const element = ops.locate(session.doc, id)?.element;
+    if (lastTap && lastTap.id === id && now - lastTap.at < 450 && element?.type === "rect" && element.payload?.shape === "custom") { lastTap = null; onEditShape?.(id); return; }
+    lastTap = { id, at: now };
+  }
   const locateGrouped = (source, id) => !!ops.locate(source, id)?.element.groupId;
   return { render, get scale() { return scale; }, cancel() { gesture = null; liveDoc = null; guides = []; pointers.clear(); render(); } };
 }

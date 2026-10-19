@@ -400,6 +400,8 @@ export function assetUsage(doc, assetId) {
 //   - a link / card of fixed-ratio content keeps the proportions of its own card box (the video's ratio does not apply to a card);
 //   - a picture drawn "show whole picture" keeps its source proportions; cover/fill crop or stretch by intent.
 export function lockedAspect(element) {
+  // Shapes V2: a shape with Lock aspect ratio on keeps the ratio it was locked at (payload.lockAspect, width / height)
+  if (element.type === "rect") return typeof element.payload?.lockAspect === "number" && element.payload.lockAspect > 0 ? element.payload.lockAspect : null;
   if (element.type === "embed") {
     const descriptor = embedDescriptor(element);
     if (descriptor?.presentation === "icon") return 1;   // an Icon is a round badge: its box stays square
@@ -543,6 +545,12 @@ export function updateGeometry(doc, id, patch) {
   const next = clone(doc);
   const element = locate(next, id).element;
   for (const key of ["x", "y", "width", "height"]) if (patch[key] !== undefined) element[key] = Number(patch[key]);
+  // a shape with Lock aspect ratio on: a typed Width sets the Height (and the other way round) so the box keeps its locked proportions
+  const lockRatio = element.type === "rect" ? lockedAspect(element) : null;
+  if (lockRatio && (patch.width !== undefined) !== (patch.height !== undefined)) {
+    if (patch.width !== undefined) element.height = Math.max(1, Math.round(element.width / lockRatio));
+    else element.width = Math.max(1, Math.round(element.height * lockRatio));
+  }
   if (patch.rotation !== undefined) {
     const rotation = normalizeAngle(Number(patch.rotation));
     if (!Number.isFinite(rotation)) return fail(doc, `INVALID_ROTATION:${id}`);
