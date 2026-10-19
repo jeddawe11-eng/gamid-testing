@@ -133,3 +133,8 @@ Mazen's task "GAMID — Shapes V2 Left Panel Accordion Fix" (desktop Shapes pane
   - 59 screen states: only the four desktop Shapes states changed;
   - phone / tablet shapes pixel-identical;
   - `npm test` 2014 (2013 passed, 1 skipped); lint and typecheck pass.
+
+
+## Final acceptance — 2026-10-19
+
+Mazen explicitly accepted Shapes V2 after testing aspect-ratio lock and reviewing the desktop left-category accordion refinement (product `bb50aef`, TESTING run `39196387512`). The 38-shape library, Freeform Pen/Edit Points, Smart Shapes, aspect-ratio lock, and left/right desktop accordion UI are **ACCEPTED**; Product Memory `REV-0015`. This is scoped acceptance, not approval of the entire desktop Wall editor. The proposed database parity rule (`docs/proposals/wall-shapes-v2-db-parity.sql`) remains **unapplied** pending separate authorization.
