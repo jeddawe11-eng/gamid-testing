@@ -4108,3 +4108,30 @@ Mazen's task "GAMID — MY GAMER DATA — PHASE 1 IMPLEMENTATION": desktop only.
 **Truth: NO CHANGE REQUIRED.** No capability, limit or contract changed; the same imports and data.
 
 Product Memory: no record. **STOP for Mazen's visual and functional acceptance.**
+
+## 95. My Gamer Data, Phase 2: import foundation (2026-10-19, database approval gate)
+
+Mazen's task "GAMID — MY GAMER DATA — PHASE 2". Details are in `docs/MY-GAMER-DATA-PHASE2.md`.
+
+- **State:**
+  - The code is committed on the feature branch.
+  - It is **not deployed**. TESTING still serves `e1a43c2`.
+  - The two migrations are **PROPOSED, not applied**: `20261019120000_gamer_data_sections.sql` and `20261019120100_wall_gamer_data_binding.sql`.
+- **Architecture:**
+  - `public.public_section_catalog` is extended (Wall metadata plus `visibility_switch`, so the owner's switch list is unchanged).
+  - There is one projection branch per section, built only from Classic's existing gated reads: `get_public_gamer_data` (anon) and `get_my_gamer_data` (owner).
+  - The `gamidData` field `section` is checked by format only, because the CHECK constraints call the validator.
+  - A generic painter and automatic discovery in the My Gamer Data library.
+- **First sections:**
+  - About Me: the card, Location, Member Since, Languages, Favorite Genres.
+  - Favorite Games: one (by `game_key`) or all, in Classic's order, behind the My Games gate.
+- **Validation:**
+  - 2037 tests;
+  - PGlite projection tests (6);
+  - a rolled-back TESTING rehearsal with the real functions: 23 / 23, every existing Wall still valid, TESTING verified unchanged afterwards;
+  - corpus parity: 643 / 643;
+  - lab browser checks: Phase 2 34 / 34, Phase 1 regression all pass;
+  - phone and tablet pixel-identical; Shapes, Icon Group and Text regressions pass; the grid has 59 states, all unchanged.
+- **Found:** `tests/integration/wall-w2-db.sql` has 5 stale steps (storage RLS counts, font references) that fail identically without these migrations. This is proposed as a Product Memory issue.
+
+**Truth: NO CHANGE REQUIRED** (nothing applied or deployed; Truth is updated when the migration and frontend reach TESTING). Product Memory: PROPOSED (not saved). **STOP at the database approval gate.**

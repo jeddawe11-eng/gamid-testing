@@ -14,7 +14,7 @@ import { PROVIDERS, isAllowedOpenUrl, presentationsFor, PRESENTATION_LABELS } fr
 import { ICON_LIMITS, ICON_ALIGNS, ICON_DEFAULTS, iconItemFromInput, iconItemAddress, resolveIconItem } from "../wall-kit/icons.js";
 import { paintIconBadge } from "../wall-kit/icons-paint.js";
 import { ALT_MAX, MASKS, BLENDS, CROP_PRESETS, SPLIT_COUNTS, EFFECT_LIMITS, FADE_MAX, cropFor } from "../wall-kit/image.js";
-import { DATA_FIELD_INFO, DATA_ITEMS, DATA_TEXT_FIELDS, DATA_COLLECTIONS, dataTextStyle, renderGamidDataPayload } from "../wall-kit/gamid-data.js";
+import { DATA_FIELD_INFO, DATA_ITEMS, dataTextStyle, renderGamidDataPayload, isDataText, isDataCollection, isSectionItem } from "../wall-kit/gamid-data.js";
 import { resolveGamidData } from "../wall-kit/gamid-data-paint.js";
 import { GAMID_LAYOUTS, GAMES_INITIAL, GAMID_STYLE_ENUMS, GAMID_STYLE_RANGES, resolveGamidStyle } from "../wall-kit/gamid.js";
 
@@ -522,17 +522,18 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     const field = element.payload.field;
     const info = DATA_FIELD_INFO[field];
     const status = h("p", { class: "ed-hint", role: "status" });
-    root.append(h("div", { class: "ed-group-title", text: `GamID data · ${info?.label ?? field}` }),
+    const sectionLabel = field === "section" ? getGamid()?.sections?.find(section => section.key === element.payload.section)?.label : null;   // a Classic section names itself
+    root.append(h("div", { class: "ed-group-title", text: `GamID data · ${sectionLabel ?? info?.label ?? field}` }),
       h("p", { class: "ed-hint", text: "Live: this shows your GamID as it is now and updates with it. Visitors only ever see what your GamID shows publicly." }), status);
     syncers.push(items => {
       const resolved = resolveGamidData(renderGamidDataPayload(items[0].payload), getGamid(), "edit");
       status.textContent = resolved.state === "missing" ? resolved.message : resolved.private ? "Private right now: visitors will not see this until it is public on your GamID." : "";
     });
-    if (targets.length === 1 && DATA_ITEMS.includes(field)) root.append(dataPicker(element));
+    if (targets.length === 1 && (DATA_ITEMS.includes(field) || isSectionItem(element.payload))) root.append(dataPicker(element));
     if (field === "connection") root.append(h("div", { class: "ed-btn-row" }, toggleButton({ label: "Show the platform name", get: item => item.payload.withLabel !== false, set: on => patchAll({ withLabel: on ? undefined : false }), key: "dataWithLabel" })));
     root.append(h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn", type: "button", text: "Refresh GamID data", onclick: () => refreshGamid() })));
-    if (DATA_TEXT_FIELDS.includes(field)) {
-      if (new Set(targets.map(item => item.payload.field)).size !== 1) return;
+    if (isDataText(element.payload)) {
+      if (new Set(targets.map(item => item.payload.field)).size !== 1 || !targets.every(item => isDataText(item.payload))) return;
       const read = item => dataTextStyle(item.payload.field, item.payload.text);
       const write = patch => {
         let current = session.doc;
@@ -564,7 +565,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
         return { ok: true, doc: current };
       };
       lookControls(root, { read, write, maskSection: section(root, "Mask", true), appearanceSection: section(root, "Appearance", true), effectsSection: section(root, "Effects") });
-    } else if (DATA_COLLECTIONS[field]) {
+    } else if (isDataCollection(element.payload)) {
       root.append(selectField({ label: "Layout", options: GAMID_LAYOUTS.map(value => ({ value, label: value === "card" ? "Card" : "Compact" })), get: item => item.payload.layout ?? "card", set: value => patchAll({ layout: value }), key: "dataLayout" }));
       if (field === "games") {
         root.append(numberSlider({ label: "Shown first", min: GAMES_INITIAL.min, max: GAMES_INITIAL.max, step: 1, get: item => item.payload.initial ?? GAMES_INITIAL.default, set: value => patchAll({ initial: Math.round(value) }), key: "dataInitial" }));
@@ -579,19 +580,24 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     const snapshot = getGamid();
     const select = h("select", { "aria-label": "Which one" });
     const options = [];
-    if (field === "role") {
+    // a Classic section item (My Gamer Data): the items of that section the server returned for the owner - bound by their stable id (`item`, not `ref`)
+    const section = field === "section" ? snapshot?.sections?.find(candidate => candidate.key === element.payload.section) : null;
+    const key = field === "section" ? "item" : "ref";
+    if (field === "section") {
+      for (const item of section?.items ?? []) options.push({ value: item.id, label: item.label });
+    } else if (field === "role") {
       options.push({ value: "@primary", label: "My primary role (follows my GamID)" });
       for (const role of snapshot?.roles ?? []) options.push({ value: role.key, label: role.label });
     } else if (field === "game") {
       const seen = new Set();
       for (const game of snapshot?.games?.items ?? []) if (game.ref && !seen.has(game.ref)) { seen.add(game.ref); options.push({ value: game.ref, label: game.refName || game.name }); }
     } else for (const connection of snapshot?.connections ?? []) options.push({ value: connection.key, label: `${connection.label} · ${connection.name}` });
-    const currentRef = element.payload.ref;
+    const currentRef = element.payload[key];
     if (currentRef && !options.some(option => option.value === currentRef)) options.unshift({ value: currentRef, label: "(no longer available)" });
     for (const option of options) select.append(h("option", { value: option.value, text: option.label }));
-    select.addEventListener("change", () => exec(patchAll({ ref: select.value }), { coalesce: "dataRef" }));
-    syncers.push(targets => { select.value = targets[0].payload.ref ?? ""; });
-    return h("label", { class: "ed-field" }, h("span", { text: field === "role" ? "Role" : field === "game" ? "Game" : "Connection" }), h("div", { class: "ed-inline" }, select));
+    select.addEventListener("change", () => exec(patchAll({ [key]: select.value }), { coalesce: "dataRef" }));
+    syncers.push(targets => { select.value = targets[0].payload[key] ?? ""; });
+    return h("label", { class: "ed-field" }, h("span", { text: field === "section" ? (section?.itemLabel ?? "Item") : field === "role" ? "Role" : field === "game" ? "Game" : "Connection" }), h("div", { class: "ed-inline" }, select));
   }
   function embedControls(root) {
     const element = selectedElements()[0];

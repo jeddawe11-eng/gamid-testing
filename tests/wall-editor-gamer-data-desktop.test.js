@@ -39,7 +39,7 @@ test("each choice once, routed to an existing implementation; every GamID block 
 });
 
 test("the cards add exactly what the phone lists add (same payload builders, same sizes)", () => {
-  assert.match(tools, /addCustom\("gamid", createGamidPayload\(item\.block\), GAMID_BLOCK_INFO\[item\.block\]\.size\)\.ok && setTool\("props"\)\) : addData\(item\.field\)\)/);
+  assert.match(tools, /addCustom\("gamid", createGamidPayload\(item\.block\), GAMID_BLOCK_INFO\[item\.block\]\.size\)\.ok && setTool\("props"\)\)\n\s+: item\.kind === "section" \? addSection\(item\.section\) : item\.kind === "section-item" \? addSection\(item\.section, item\.item\) : addData\(item\.field\)\)/);
   assert.match(tools, /onclick: \(\) => addData\(item\.field, select\.value\) \}\)/);
   assert.match(tools, /const options = itemOptions\(item\.field, snapshot\);/, "the same owner-only options as the phone picker");
 });

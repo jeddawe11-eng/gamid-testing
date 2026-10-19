@@ -4,8 +4,23 @@
 //   VIEW (Preview / a visitor): ONLY `snapshot.public` - exactly what the anonymous public profile returns right now. Nothing the owner hid is ever drawn, and a
 //        binding that resolves to nothing draws nothing (no diagnostic, no placeholder text a visitor could misread).
 // Text is only ever set with textContent; the picture is only ever a blob: URL; every style value comes from validated data (paint.js helpers).
-import { paintGamidBlock } from "./gamid-blocks.js";
+import { paintGamidBlock, paintGamidSection, sectionItemText } from "./gamid-blocks.js";
 import { DATA_COLLECTIONS } from "./gamid-data.js";
+
+// My Gamer Data sections (Phase 2): bound by section key and, for one item, by its stable id. A section the projection does not hold (not offered, or nothing
+// visible) or an item that is gone is never replaced by another one: the owner gets a plain diagnostic, a visitor gets nothing.
+function resolveSection(content, sections, { owner, notPublic = false }) {
+  const section = (Array.isArray(sections) ? sections : []).find(candidate => candidate.key === content.section);
+  if (!section) return owner ? { state: "missing", message: "This Classic section is not available on your GamID." } : { state: "hidden" };
+  const tag = flag => (owner && (notPublic || flag) ? { private: true } : {});
+  if (content.item != null) {
+    const item = section.items.find(candidate => candidate.id === content.item);
+    if (!item) return owner ? { state: "missing", message: `This is no longer in your ${section.label}.` } : { state: "hidden" };
+    return { state: "ok", value: sectionItemText(item), ...tag(item.private === true) };
+  }
+  if (!owner && !section.items.length) return { state: "hidden" };
+  return { state: "ok", value: section, ...tag(section.items.length > 0 && section.items.every(item => item.private === true)) };
+}
 
 // provider names come from the snapshot (the editor's data layer names providers; this painter never does)
 const providerLabel = (snapshot, key) => snapshot?.connectionLabels?.[key] ?? "This";
@@ -41,6 +56,7 @@ export function resolveGamidData(content, snapshot, mode = "edit") {
       if (!connection) return { state: "missing", message: `${providerLabel(snapshot, content.ref)} connection is no longer available.` };
       return { state: "ok", value: connectionText(connection, content), ...tag() };
     }
+    case "section": return resolveSection(content, snapshot.sections, { owner: true, notPublic });
     default: return { state: "ok", value: null, ...tag(DATA_PRIVATE(snapshot, field)) };
   }
 }
@@ -69,6 +85,7 @@ function resolvePublic(content, view) {
       const connection = (view.connections ?? []).find(item => item.key === content.ref);
       return connection ? { state: "ok", value: connectionText(connection, content) } : { state: "hidden" };
     }
+    case "section": return resolveSection(content, view.sections, { owner: false });
     default: return { state: "ok", value: null };
   }
 }
@@ -117,6 +134,8 @@ export function paintGamidData(node, content, scale, item, createNode, ctx, { pa
       node.setAttribute("data-state", "pending");
       resolved.promise.then(value => { if (value) { paintValue(value); node.setAttribute("data-state", "ok"); } else node.setAttribute("data-state", "hidden"); });
     } else paintValue(resolved.value);
+  } else if (content.field === "section") {
+    node.append(paintGamidSection(resolved.value, content, createNode, { scale, owner: mode === "edit" }));
   } else {
     const view = mode === "view";
     const snapshot = view ? visitorSnapshot(ctx.gamid.public) : ctx.gamid;

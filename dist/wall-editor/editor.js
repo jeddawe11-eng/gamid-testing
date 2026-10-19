@@ -236,6 +236,11 @@ function layerName(element) {
     const slice = element.payload.slice;
     return slice ? `${base} · piece ${Math.round(slice.from * 100)}–${Math.round(slice.to * 100)}%` : base;
   }
+  if (element.type === "gamidData" && element.payload.field === "section") {   // a Classic section (My Gamer Data) names itself, and its item when it binds one
+    const section = gamidSnapshot?.sections?.find(candidate => candidate.key === element.payload.section);
+    const item = element.payload.item != null ? section?.items.find(candidate => candidate.id === element.payload.item) : null;
+    return `GamID data: ${section?.label ?? "Classic section"}${element.payload.item != null ? ` · ${item?.label ?? "item"}` : ""}`;
+  }
   if (element.type === "gamidData") return `GamID data: ${DATA_FIELD_INFO[element.payload.field]?.label ?? "field"}`;
   if (element.type === "embed") { const descriptor = elementRegistry.get("embed").render(element.payload).content; return `${descriptor?.providerLabel ?? "Link"} ${descriptor?.contentLabel?.toLowerCase() ?? ""}${descriptor?.presentation === "icon" ? " icon" : ""}`.trim(); }
   if (element.type === "gamid") return `GamID: ${GAMID_BLOCK_INFO[element.payload.block]?.label ?? "block"}`;

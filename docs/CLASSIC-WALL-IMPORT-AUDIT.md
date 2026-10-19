@@ -223,3 +223,20 @@ Mazen's task "GAMID — MY GAMER DATA — PHASE 1 IMPLEMENTATION" (desktop only)
   - Refresh is an explicit control, not automatic on focus.
   - There is no Layers marker.
 - **Proposed (italic) options:** none added; they remain Phase 2 / 3.
+
+## 11. Phase 2 status (2026-10-19)
+
+The import foundation follows §6.
+- **Built:**
+  - the catalog extension;
+  - one projection branch per section, built from Classic's gated reads;
+  - the format-only `section` binding;
+  - generic presentations;
+  - automatic library discovery;
+  - About Me and Favorite Games.
+- **Not applied or deployed:** the two migrations await Mazen's approval.
+- **Differences from §6:**
+  - The validator checks the section key's **format**, not the catalog: the Wall's CHECK constraints may not read tables, and a retired section then draws nothing instead of invalidating saved Walls.
+  - There are two public RPCs (owner and anon) rather than one owner "variant".
+
+Details: `docs/MY-GAMER-DATA-PHASE2.md`.

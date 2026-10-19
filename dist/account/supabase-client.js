@@ -576,6 +576,10 @@ export async function setMyFavoriteGames(keys) { const rows = await rpc("set_my_
 // a PUBLISHED GamID's Favorite Games (anonymous; only while its My Games is public): [{ game_key, name, year }]
 export async function getPublicFavoriteGames(handle) { return (await rpc("get_public_favorite_games", { candidate_handle: handle }, { anonymous: true })) || []; }// the consolidated My Crews view of a PUBLISHED GamID (anonymous): the Crews its public section lists, member counts and up to six PUBLIC members
 export async function getPublicCrews(handle) { return (await rpc("get_public_crews", { candidate_handle: handle }, { anonymous: true })) || []; }
+// My Gamer Data (Wall): the Classic sections the server's section catalog offers to the Wall, with their items. Owner (every item, each marked `private` when
+// visitors would not see it) and anonymous (a PUBLISHED GamID's visible items only; built from the same public reads Classic uses).
+export async function getMyGamerData() { const rows = await rpc("get_my_gamer_data"); return Array.isArray(rows) ? rows : []; }
+export async function getPublicGamerData(handle) { const rows = await rpc("get_public_gamer_data", { candidate_handle: handle }, { anonymous: true }); return Array.isArray(rows) ? rows : []; }
 
 export async function getMyConnections() {
   return (await rpc("get_my_connections")) || [];

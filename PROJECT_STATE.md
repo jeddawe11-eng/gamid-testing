@@ -138,7 +138,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-19, My Gamer Data Phase 1):** on desktop the GamID tool is My Gamer Data ("Import from Classic"): six accordion sections, each import once, and Refresh from Classic (§94). Product `e1a43c22d06526e498cdb67326ce90733d83b2db` (run `39203875352`). Truth unchanged. **Next:** Mazen's visual and functional acceptance; Phases 2 / 3 need his separate decisions (`docs/CLASSIC-WALL-IMPORT-AUDIT.md` §9).
+**Latest continuation (2026-10-19, My Gamer Data Phase 2, database approval gate):** the import foundation (section catalog extension, projection, `section` binding, About Me + Favorite Games) is committed but **not deployed**; migrations `20261019120000` / `20261019120100` are **PROPOSED, not applied** (§95, `docs/MY-GAMER-DATA-PHASE2.md`). TESTING still serves `e1a43c2`. **Next:** Mazen's explicit approval to apply the migrations, then deploy and Truth.
+
+**Previous continuation (2026-10-19, My Gamer Data Phase 1):** on desktop the GamID tool is My Gamer Data ("Import from Classic"): six accordion sections, each import once, and Refresh from Classic (§94). Product `e1a43c22d06526e498cdb67326ce90733d83b2db` (run `39203875352`). Truth unchanged. **Next:** Mazen's visual and functional acceptance; Phases 2 / 3 need his separate decisions (`docs/CLASSIC-WALL-IMPORT-AUDIT.md` §9).
 
 **Previous continuation (2026-10-19, Classic → My Wall import audit):** audit and design only (§93, `docs/CLASSIC-WALL-IMPORT-AUDIT.md`): 7 of 19 Classic sections fully on the Wall, 2 partial, 10 missing (incl. Favorite Games, About Me); proposed registry on the existing `public_section_catalog`. Nothing implemented. **Next:** Mazen's decisions (§9 of the report) before any implementation.
 

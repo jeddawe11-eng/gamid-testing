@@ -16,7 +16,7 @@ import { createPlayerManager } from "../wall-kit/embed/player.js";
 import { createPosterLoader } from "../wall-kit/posters.js";
 import { createVideoPool } from "../wall-kit/video-background.js";
 import { createWallDetails } from "../wall-kit/gamid-details.js";
-import { loadPublicView, providerLabel, PUBLIC_SOURCE_LABELS } from "../wall-editor/gamid-data.js";
+import { loadPublicView, providerLabel, PUBLIC_SOURCE_LABELS, usesGamerSections } from "../wall-editor/gamid-data.js";
 import { gamidHref, crewWallHref } from "./identity-link.js";
 
 const publishedVideoUrls = createPublishedVideoUrlCache({ baseUrl: defaultApi.SUPABASE_URL });
@@ -62,7 +62,7 @@ export async function preparePublicWall(published, handle, api = defaultApi, vid
   await fontsReady;
   // My Duo opens the Duo's GamID and My Crew opens the Crew Wall - both in place (same tab), both carrying `from` so the destination offers "Back to @<this handle>"
   const pathname = globalThis.location?.pathname ?? "/";
-  const view = await loadPublicView(api, handle, { duoLink: { newTab: false, href: duo => gamidHref(duo, { from: handle, pathname }) }, crewLink: { newTab: false, href: crewId => crewWallHref(crewId, { pathname, from: handle }) } }).catch(() => null);
+  const view = await loadPublicView(api, handle, { duoLink: { newTab: false, href: duo => gamidHref(duo, { from: handle, pathname }) }, crewLink: { newTab: false, href: crewId => crewWallHref(crewId, { pathname, from: handle }) }, sections: usesGamerSections(doc) }).catch(() => null);
   return {
     doc: normalizeEmbedLayering(doc).doc,   // the same layering rule Preview applies (nothing is drawn over a player)
     assets: { urlFor: id => pictures.get(id) ?? null, videoUrlFor: id => videos.get(id) ?? null },

@@ -295,5 +295,54 @@ function applyGamidStyle(root, style, px) {
   root.className += ` is-styled chips-${style.chipStyle} rows-${style.rowStyle} avatar-${style.avatarShape} name-${style.nameSize}${style.showHandle === false ? " no-handle" : ""}`;
 }
 
+// My Gamer Data (Phase 2): a whole Classic section from the server's projection, drawn with the block's own look and style options. The drawing follows the
+// section's GENERIC presentation, so a newly registered section needs no painter of its own:
+//   facts  one row per item: its label, then its value (a chips item as chips)      cards  one row per item: its title, then its sub line
+//   chips  every item's values as chips                                           text   one paragraph per item          stat   one row per item: value, label
+// `owner` (EDIT): items visitors would not see carry a PRIVATE tag. A visitor's section already holds only what Classic shows publicly.
+export const sectionItemText = item => (item.kind === "chips" ? item.values.join(" · ") : item.kind === "card" ? item.title : item.value);
+export function paintGamidSection(section, content, createNode, { scale = 1, owner = false } = {}) {
+  const el = (tag, className, text) => { const node = createNode(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
+  const root = el("div", `wall-gamid wall-gamid-section is-${content.layout ?? "card"}`);
+  root.setAttribute("data-section", section.key);
+  const px = value => `${Math.round(value * scale * 100) / 100}px`;
+  root.style.setProperty("font-size", px(26));
+  root.style.setProperty("padding", px(20));
+  if (content.style) applyGamidStyle(root, content.style, px);
+  const head = el("div", "wall-gamid-head");
+  head.append(el("span", "wall-gamid-title", section.label.toUpperCase()));
+  root.append(head);
+  const items = Array.isArray(section.items) ? section.items : [];
+  if (!items.length) { root.append(el("p", "wall-gamid-empty", "Nothing to show yet.")); return root; }
+  const privateTag = item => (owner && item.private ? el("span", "wall-gamid-private", "PRIVATE") : null);
+  const chips = values => { const list = el("ul", "wall-gamid-chips"); for (const value of values) list.append(el("li", "", value)); return list; };
+  if (section.presentation === "chips") {
+    const list = el("ul", "wall-gamid-chips");
+    for (const item of items) for (const value of item.kind === "chips" ? item.values : [sectionItemText(item)]) list.append(el("li", item.private && owner ? "is-private" : "", value));
+    root.append(list);
+    return root;
+  }
+  if (section.presentation === "text") {
+    for (const item of items) { const p = el("p", "wall-gamid-text", sectionItemText(item)); const tag = privateTag(item); if (tag) p.append(" ", tag); root.append(p); }
+    return root;
+  }
+  const list = el("ul", `wall-gamid-connections wall-gamid-rows is-${section.presentation}`);
+  for (const item of items) {
+    const li = el("li", `is-${item.kind}`);
+    const title = el("strong", "wall-connection-title");
+    title.append(el("span", "wall-connection-label", section.presentation === "stat" ? sectionItemText(item) : item.kind === "card" ? item.title : item.label));
+    const tag = privateTag(item);
+    if (tag) title.append(tag);
+    li.append(title);
+    if (section.presentation === "stat") li.append(el("span", "", item.label));
+    else if (item.kind === "card") li.append(el("span", "", item.sub ?? ""));
+    else if (item.kind === "chips") li.append(chips(item.values));
+    else li.append(el("span", "", sectionItemText(item)));
+    list.append(li);
+  }
+  root.append(list);
+  return root;
+}
+
 // Pure helper for tests / the editor's summary: how many rows a block renders before the person expands anything.
 export const gamesInitiallyRendered = (total, initial) => gameListView(total, false, initial).showing;

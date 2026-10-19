@@ -24,6 +24,43 @@ export const PUBLIC_PAGE_SIZE = 50;
 
 async function safely(read, fallback) { try { return (await read()) ?? fallback; } catch { return fallback; } }
 
+// ---- My Gamer Data sections (Phase 2) ------------------------------------------------------------------------------------------------------------------------
+// The Classic sections the server's section catalog offers to the Wall (get_my_gamer_data / get_public_gamer_data), kept to the contract's generic shape only:
+//   { key, label, icon, presentation (text | facts | chips | cards | stat), single, all, order, itemLabel, items: [{ id, kind (text | chips | card | stat), label,
+//     value?, values?, title?, sub?, private? }] }
+// Anything outside it is dropped (an unknown presentation drops the section; an unknown item kind or id drops the item), so a malformed row can never reach the painter.
+export const SECTION_PRESENTATIONS = Object.freeze(["text", "facts", "chips", "cards", "stat"]);
+export const SECTION_ITEM_KINDS = Object.freeze(["text", "chips", "card", "stat"]);
+const SECTION_KEY = /^[a-z][a-z0-9_]{1,31}$/, SECTION_ITEM = /^[a-z0-9][a-z0-9_]{0,63}$/, SECTION_ICON = /^[a-z][a-z0-9-]{0,31}$/;
+const SECTION_LIMITS = Object.freeze({ sections: 40, items: 60, values: 30 });
+function normalizeSectionItem(row, owner) {
+  if (!row || typeof row !== "object" || typeof row.id !== "string" || !SECTION_ITEM.test(row.id) || !SECTION_ITEM_KINDS.includes(row.kind)) return null;
+  const item = { id: row.id, kind: row.kind, label: text(row.label, 60) };
+  if (row.kind === "text" || row.kind === "stat") { item.value = text(String(row.value ?? ""), 500); if (!item.value) return null; }
+  if (row.kind === "chips") { item.values = (Array.isArray(row.values) ? row.values : []).map(value => text(value, 60)).filter(Boolean).slice(0, SECTION_LIMITS.values); if (!item.values.length) return null; }
+  if (row.kind === "card") { item.title = text(row.title, 120); if (!item.title) return null; const sub = text(row.sub == null ? "" : String(row.sub), 60); if (sub) item.sub = sub; }
+  if (!item.label) item.label = item.title ?? item.id;
+  if (owner && row.private === true) item.private = true;
+  return item;
+}
+export function normalizeGamerData(rows, { owner = false } = {}) {
+  const seen = new Set();
+  const sections = [];
+  for (const row of (Array.isArray(rows) ? rows : []).slice(0, SECTION_LIMITS.sections)) {
+    if (!row || typeof row !== "object" || typeof row.key !== "string" || !SECTION_KEY.test(row.key) || seen.has(row.key) || !SECTION_PRESENTATIONS.includes(row.presentation)) continue;
+    const label = text(row.label, 60);
+    if (!label || !(row.single === true || row.all === true)) continue;
+    const ids = new Set();
+    const items = (Array.isArray(row.items) ? row.items : []).slice(0, SECTION_LIMITS.items).map(item => normalizeSectionItem(item, owner)).filter(item => item && !ids.has(item.id) && ids.add(item.id));
+    seen.add(row.key);
+    sections.push({ key: row.key, label, icon: typeof row.icon === "string" && SECTION_ICON.test(row.icon) ? row.icon : "section", presentation: row.presentation, single: row.single === true, all: row.all === true,
+      order: Number.isInteger(row.order) ? row.order : 100, itemLabel: text(row.item_label, 60) || label, items });
+  }
+  return sections;
+}
+// whether a Wall document binds any Classic section (a visitor's page reads the section projection only then)
+export const usesGamerSections = doc => (doc?.stages ?? []).some(stage => (stage?.elements ?? []).some(element => element?.type === "gamidData" && element.payload?.field === "section"));
+
 // ---- the visitor view --------------------------------------------------------------------------------------------------------------------------------
 const APEX = new Set(["MASTER", "GRANDMASTER", "CHALLENGER"]);
 const titleCase = value => `${String(value).charAt(0)}${String(value).slice(1).toLowerCase()}`;
@@ -108,7 +145,7 @@ export function publicCrewList(section, link) {
 
 // The visitor's view of this GamID. `games` is null when the owner's My Games is off (or there are none); its list grows page by page (50 at a time, the public
 // function's own paging) only when a visitor asks for more, so a library of thousands never loads at once.
-export async function loadPublicView(api, handle, { duoLink = null, crewLink = null } = {}) {
+export async function loadPublicView(api, handle, { duoLink = null, crewLink = null, sections: withSections = false } = {}) {
   if (!handle || typeof api.getPublicIdentity !== "function") return { available: false, handle: handle || "", games: null, connections: [], crews: [] };
   const identity = await safely(() => api.getPublicIdentity(handle), null);
   if (!identity) return { available: false, handle, games: null, connections: [], crews: [] };
@@ -157,7 +194,9 @@ export async function loadPublicView(api, handle, { duoLink = null, crewLink = n
     return lookup;
   }
   const duo = await publicDuo(api, sections.duo, duoLink);
-  return { available: true, handle, games, connections: publicConnections(sections), profile, roles, findGame, duo, crews: publicCrewList(sections.crews, crewLink) };
+  // My Gamer Data sections: the server's anonymous projection (already filtered by every Classic privacy switch), read only when the Wall binds one
+  const gamerData = withSections && typeof api.getPublicGamerData === "function" ? normalizeGamerData(await safely(() => api.getPublicGamerData(handle), [])) : [];
+  return { available: true, handle, games, connections: publicConnections(sections), profile, roles, findGame, duo, crews: publicCrewList(sections.crews, crewLink), sections: gamerData };
 }
 
 // The owner's own Duo for designing (EDIT mode): only an ACCEPTED Duo (get_my_duo relation DUO), its public avatar when its GamID is published, and whether visitors
@@ -180,7 +219,7 @@ export function ownerCrews(rows, publicList = []) {
 }
 
 export async function loadGamidSnapshot(api, { duoLink = null, crewLink = null } = {}) {
-  const [account, profile, connections, publicSettings, display, discovered, manual, duoRows, crewRows] = await Promise.all([
+  const [account, profile, connections, publicSettings, display, discovered, manual, duoRows, crewRows, gamerRows] = await Promise.all([
     safely(() => api.getIdentity(), null),
     safely(() => api.getIdentityProfile(), null),
     safely(() => api.getMyConnections(), []),
@@ -190,6 +229,7 @@ export async function loadGamidSnapshot(api, { duoLink = null, crewLink = null }
     safely(() => api.getMyManualGames(), []),
     safely(() => (typeof api.getMyDuo === "function" ? api.getMyDuo() : []), []),
     safely(() => (typeof api.getMyCrews === "function" ? api.getMyCrews() : []), []),
+    safely(() => (typeof api.getMyGamerData === "function" ? api.getMyGamerData() : []), []),
   ]);
   const identity = { ...(account ?? {}), ...(profile ?? {}) };
   let avatarUrl = null;
@@ -215,7 +255,8 @@ export async function loadGamidSnapshot(api, { duoLink = null, crewLink = null }
     items.push({ name, minutes: null, ref: gameRef(name), refName: name });
   }
   items.sort((a, b) => a.name.localeCompare(b.name));
-  const publicView = await safely(() => loadPublicView(api, identity.gamid_handle, { duoLink: duoLink ?? { newTab: true }, crewLink: crewLink ?? { newTab: true } }), { available: false, handle: identity.gamid_handle ?? "", games: null, connections: [], duo: null, crews: [] });
+  const gamerData = normalizeGamerData(gamerRows, { owner: true });
+  const publicView = await safely(() => loadPublicView(api, identity.gamid_handle, { duoLink: duoLink ?? { newTab: true }, crewLink: crewLink ?? { newTab: true }, sections: gamerData.length > 0 }), { available: false, handle: identity.gamid_handle ?? "", games: null, connections: [], duo: null, crews: [], sections: [] });
   let duo = ownerDuo(duoRows);
   if (duo) {
     const avatarPath = duoRows.find(row => row?.relation === "DUO")?.avatar_media_reference;
@@ -227,6 +268,7 @@ export async function loadGamidSnapshot(api, { duoLink = null, crewLink = null }
   return {
     duo,
     crews,
+    sections: gamerData,   // My Gamer Data sections (owner view, each item marked private when visitors would not see it)
     public: publicView,
     profile: { displayName: identity.display_name ?? "", handle: identity.gamid_handle ?? "", initial: (identity.display_name ?? "G").trim()[0]?.toUpperCase() ?? "G", avatarUrl, bio: typeof identity.bio === "string" ? identity.bio.trim() : "" },
     roles: roleKeys.map(key => ({ key, label: roleCatalog.get(key) || roleLabel(key), primary: key === identity.primary_role_key })),

@@ -73,6 +73,12 @@ ul.wall-gamid-chips, ul.wall-gamid-connections { list-style: none; margin: 0; pa
 .wall-gamid-chips li.is-primary { border-color: var(--g-heading, #62e7ff); color: var(--g-heading, #62e7ff); }
 .wall-gamid-connections li { display: grid; padding: .35em .8em; border: 1px solid var(--g-row-border, rgba(98, 231, 255, .35)); border-radius: .7em; font-size: .75em; }
 .wall-gamid-connections li span { color: var(--g-muted, #aaa4b7); font-size: .85em; }
+/* My Gamer Data sections (Phase 2): the generic presentations reuse the block rows and chips */
+.wall-gamid-text { margin: 0; font-size: .75em; line-height: 1.4; overflow-wrap: anywhere; }
+.wall-gamid-rows li .wall-gamid-chips { margin-top: .3em; font-size: 1.15em; }
+.wall-gamid-rows.is-facts, .wall-gamid-rows.is-stat { flex-direction: column; flex-wrap: nowrap; }
+.wall-gamid-rows li .wall-gamid-private { margin-left: .5em; }
+.wall-gamid-chips li.is-private { opacity: .6; }
 .wall-gamid .game-library { display: grid; gap: .4em; min-height: 0; overflow: auto; }
 .wall-gamid .game-library-head { display: flex; justify-content: space-between; color: var(--g-muted, #aaa4b7); font-size: .7em; }
 .wall-gamid .game-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .25em; }

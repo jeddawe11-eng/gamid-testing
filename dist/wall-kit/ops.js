@@ -16,7 +16,7 @@ import { createElement, CANONICAL_CANVAS } from "../wall/schema.js";
 import { createTextPayload } from "./text.js";
 import { GAMID_BLOCK_INFO } from "./gamid.js";
 import { cropRatio, MIN_SLICE, SPLIT_COUNTS, SLICE_DIRS } from "./image.js";
-import { DATA_COLLECTIONS } from "./gamid-data.js";
+import { DATA_COLLECTIONS, DATA_FIELD_INFO, isDataCollection } from "./gamid-data.js";
 import { PROVIDERS, ICON_SIZE, defaultEmbedSize } from "./embed/engine.js";
 import "./register.js";   // every element type, background kind and embed provider the kit provides
 
@@ -72,6 +72,7 @@ export function minSizeOf(element) {
   if (element.type === "icons") return TOUCH_MIN;   // an Icon Group shrinks its icons to fit (icons.js iconGroupLayout); its box stays a touch target
   if (element.type === "gamid") return GAMID_BLOCK_INFO[element.payload?.block]?.minSize ?? BASE_MIN;
   if (element.type === "gamidData" && DATA_COLLECTIONS[element.payload?.field]) return GAMID_BLOCK_INFO[DATA_COLLECTIONS[element.payload.field]]?.minSize ?? BASE_MIN;   // a live collection is the block
+  if (element.type === "gamidData" && isDataCollection(element.payload)) return DATA_FIELD_INFO.section.minSize;   // a whole Classic section (My Gamer Data) is drawn as a block
   return BASE_MIN;
 }
 
@@ -498,7 +499,7 @@ export function updatePayloadMany(doc, ids, patch) {
 }
 
 // A GamID block, or (Round 3) a live GamID Data COLLECTION - the same block, placed as live data: both take the block style.
-const isStyledBlock = element => element.type === "gamid" || (element.type === "gamidData" && !!DATA_COLLECTIONS[element.payload?.field]);
+const isStyledBlock = element => element.type === "gamid" || (element.type === "gamidData" && isDataCollection(element.payload));
 // ---- GamID block styling (Round 2) -------------------------------------------------------------------------------------------------------------------
 // Merges a partial style into EACH selected GamID block's own style (a key set to `undefined` goes back to its default; an empty style is removed, so the block is
 // exactly the default look again). Validated like every other edit; one undo step.

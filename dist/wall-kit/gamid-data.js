@@ -9,6 +9,11 @@
 //   look       avatar only: the Artwork look (backdrop, mask, effects, blend, radius, opacity) - one visual engine for every picture
 //   style / layout / initial / showPlaytime   collections only: exactly the GamID block's options (gamid.js)
 //   withLabel  connection only: show the provider's name before the account name (default on)
+//   section    (My Gamer Data Phase 2) a Classic section the server's section catalog offers to the Wall (public.public_section_catalog, wall_importable), such as
+//              about_me or favorite_games. `item` (optional) binds ONE of its items by its stable id (a fact key, a catalog game key): with `item` the element is
+//              text-like (`text`); without, the whole section is drawn as a block (`style`, `layout`). Sections and items are resolved from the server's projection
+//              when the Wall is drawn (get_my_gamer_data / get_public_gamer_data), so a section the catalog no longer offers, or an item that is gone, draws nothing
+//              for visitors and is never replaced by another one.
 // Everything is typed and allowlisted: an unknown key is refused, no string is ever used as CSS, markup or an address. The database mirrors this validator.
 import { elementRegistry } from "../wall/elements.js";
 import { isSet, isPlainObject, inRange } from "../wall/fields.js";
@@ -16,13 +21,19 @@ import { validateTextPayload } from "./text.js";
 import { validateArtworkLook } from "./image.js";
 import { GAMID_LAYOUTS, GAMES_INITIAL, validateGamidStyle, resolveGamidStyle } from "./gamid.js";
 
-export const DATA_FIELDS = Object.freeze(["avatar", "displayName", "handle", "bio", "role", "roles", "game", "games", "connection", "connections"]);
+export const DATA_FIELDS = Object.freeze(["avatar", "displayName", "handle", "bio", "role", "roles", "game", "games", "connection", "connections", "section"]);
 export const DATA_TEXT_FIELDS = Object.freeze(["displayName", "handle", "bio", "role", "game", "connection"]);
 export const DATA_COLLECTIONS = Object.freeze({ roles: "roles", games: "games", connections: "connections" });
 export const DATA_ITEMS = Object.freeze(["role", "game", "connection"]);
 export const CONNECTION_REF = /^[a-z][a-z0-9_]{1,30}$/;   // a connection's provider key (the picker only offers the owner's real, public connections)
 export const ROLE_REF = /^(?:@primary|[a-z0-9_]{1,40})$/;
 export const GAME_REF_MAX = 120;
+export const SECTION_REF = /^[a-z][a-z0-9_]{1,31}$/;   // the catalog's own section_key rule
+export const SECTION_ITEM_REF = /^[a-z0-9][a-z0-9_]{0,63}$/;   // a fact key or a catalog game key
+// A section binding is one item (text-like) when it names an item, otherwise the whole section (drawn as a block).
+export const isSectionItem = payload => payload?.field === "section" && isSet(payload.item);
+export const isDataCollection = payload => !!DATA_COLLECTIONS[payload?.field] || (payload?.field === "section" && !isSet(payload.item));
+export const isDataText = payload => DATA_TEXT_FIELDS.includes(payload?.field) || isSectionItem(payload);
 const LOOK_KEYS = ["backdrop", "mask", "effects", "blend", "radius", "opacity"];
 
 // The keys each field may carry (anything else: INVALID_DATA_KEY).
@@ -32,6 +43,7 @@ const FIELD_KEYS = Object.freeze({
   role: ["ref", "text"], game: ["ref", "text"], connection: ["ref", "text", "withLabel"],
   roles: ["style", "layout"], games: ["style", "layout", "initial", "showPlaytime"], connections: ["style", "layout"],
 });
+const keysOf = payload => (payload.field !== "section" ? FIELD_KEYS[payload.field] : isSet(payload.item) ? ["section", "item", "text"] : ["section", "style", "layout"]);
 
 // The same normalization everywhere a game name is compared (the picker, the owner's library, the public library): NFKC, lower case, single spaces.
 export const gameRef = name => Array.from(String(name ?? "").normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim()).slice(0, GAME_REF_MAX).join("").trim();
@@ -51,7 +63,7 @@ export function validateGamidDataPayload(payload) {
   if (!isPlainObject(payload)) return ["PAYLOAD_NOT_OBJECT"];
   if (!DATA_FIELDS.includes(payload.field)) return ["INVALID_DATA_FIELD"];
   const errors = [];
-  const allowed = FIELD_KEYS[payload.field];
+  const allowed = keysOf(payload);
   if (Object.keys(payload).some(key => key !== "field" && !allowed.includes(key))) errors.push("INVALID_DATA_KEY");
   if (DATA_ITEMS.includes(payload.field)) {
     const ref = payload.ref;
@@ -59,6 +71,10 @@ export function validateGamidDataPayload(payload) {
       : payload.field === "connection" ? CONNECTION_REF.test(ref)
       : ref.length > 0 && Array.from(ref).length <= GAME_REF_MAX && ref === gameRef(ref));
     if (!ok) errors.push("INVALID_DATA_REF");
+  }
+  if (payload.field === "section") {
+    if (typeof payload.section !== "string" || !SECTION_REF.test(payload.section)) errors.push("INVALID_DATA_SECTION");
+    if (isSet(payload.item) && (typeof payload.item !== "string" || !SECTION_ITEM_REF.test(payload.item))) errors.push("INVALID_DATA_ITEM");
   }
   if (isSet(payload.text) && allowed.includes("text") && !validateDataText(payload.text)) errors.push("INVALID_DATA_TEXT");
   if (isSet(payload.look) && allowed.includes("look") && !validateDataLook(payload.look)) errors.push("INVALID_DATA_LOOK");
@@ -78,6 +94,7 @@ export const DATA_TEXT_DEFAULTS = Object.freeze({
   role: { fontFamily: "rajdhani", fontSize: 52, fontWeight: 700, color: "#c9b6ff", letterSpacing: 4 },
   game: { fontFamily: "rajdhani", fontSize: 52, fontWeight: 700 },
   connection: { fontFamily: "rajdhani", fontSize: 48, fontWeight: 600 },
+  section: { fontFamily: "rajdhani", fontSize: 52, fontWeight: 700 },
 });
 const TEXT_BASE = { fontFamily: "orbitron", fontSize: 64, fontWeight: 700, italic: false, underline: false, color: "#ffffff", align: "center", lineHeight: 1.2, letterSpacing: 0, opacity: 1, direction: "auto", wrap: true };
 export const dataTextStyle = (field, text) => ({ ...TEXT_BASE, ...(DATA_TEXT_DEFAULTS[field] ?? {}), ...(isPlainObject(text) ? text : {}) });
@@ -85,10 +102,11 @@ export const dataTextStyle = (field, text) => ({ ...TEXT_BASE, ...(DATA_TEXT_DEF
 export function renderGamidDataPayload(payload) {
   const content = { kind: "gamidData", field: payload.field };
   if (DATA_ITEMS.includes(payload.field)) content.ref = payload.ref;
-  if (DATA_TEXT_FIELDS.includes(payload.field)) content.text = dataTextStyle(payload.field, payload.text);
+  if (payload.field === "section") { content.section = payload.section; if (isSet(payload.item)) content.item = payload.item; }
+  if (isDataText(payload)) content.text = dataTextStyle(payload.field, payload.text);
   if (payload.field === "avatar") content.look = { backdrop: "none", ...(isPlainObject(payload.look) ? payload.look : {}) };
   if (payload.field === "connection") content.withLabel = payload.withLabel !== false;
-  if (DATA_COLLECTIONS[payload.field]) {
+  if (isDataCollection(payload)) {
     content.layout = payload.layout ?? "card";
     content.initial = payload.initial ?? GAMES_INITIAL.default;
     content.showPlaytime = payload.showPlaytime === true;
@@ -124,6 +142,7 @@ export const DATA_FIELD_INFO = Object.freeze({
   games: { label: "Games", size: { width: 800, height: 520 } },
   connection: { label: "One connection", size: { width: 700, height: 90 } },
   connections: { label: "Connections", size: { width: 800, height: 260 } },
+  section: { label: "Classic section", size: { width: 800, height: 300 }, itemSize: { width: 700, height: 90 }, minSize: { width: 260, height: 120 } },
 });
 
 elementRegistry.register("gamidData", { validatePayload: validateGamidDataPayload, render: renderGamidDataPayload, scale: scaleGamidDataPayload });
