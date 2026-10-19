@@ -1,6 +1,6 @@
 ---
 id: REV-0014
-title: Desktop Media and Links and Icon Group UI refinement - Mazen acceptance
+title: Desktop Media & Links and Icon Group UI refinement - Mazen acceptance
 status: COMPLETED
 created: 2026-10-19
 updated: 2026-10-19
@@ -12,7 +12,7 @@ review_type: ACCEPTANCE
 outcome: PASS
 reviewer: Mazen
 truth_refs: [wall-icons]
-checkpoints: [0615a4c]
+checkpoints: [0615a4cc1a082bdaafc82d7eee18c9594de822e7]
 sources: [docs/WALL-EDITOR-DESKTOP-REDESIGN.md, PROJECT_HANDOFF.md, gamid-truth.json]
 ---
 
