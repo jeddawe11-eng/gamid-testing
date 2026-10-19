@@ -119,3 +119,13 @@ test("rendering and editor wiring: SVG built only from wall/shapes.js; classic s
   assert.match(canvas, /element\?\.type === "rect" && element\.payload\?\.shape === "custom"\) \{ lastTap = null; onEditShape\?\.\(id\); return; \}/, "double-tap: freeform shapes only");
   assert.match(read("dist/wall-kit/ops.js"), /if \(element\.type === "rect"\) return typeof element\.payload\?\.lockAspect === "number"/);
 });
+
+test("library categories are accordions like the font library: Basic open, the rest closed, kept for the session; the selected shape's category is marked", () => {
+  const tools = read("dist/wall-editor/tools.js"), css = read("dist/wall-editor/editor-desktop.css");
+  assert.match(tools, /const shapeCategoryOpen = new Map\(SHAPE_CATEGORIES\.map\(\(category, index\) => \[category, index === 0\]\)\);/);
+  assert.match(tools, /h\("button", \{ class: "ed-font-group-toggle ed-shape-cat-toggle", type: "button", "aria-controls": gridId,/, "the accepted font-library heading button");
+  assert.match(tools, /toggle\.setAttribute\("aria-expanded", String\(open\)\); grid\.hidden = !open;/);
+  assert.match(tools, /if \(category === currentCategory\) toggle\.setAttribute\("data-current", "true"\);/);
+  assert.match(css, /\[data-tool-panel="shapes"\] \.ed-shape-grid:not\(\[hidden\]\) \{ display: grid;/, "a closed category's grid really hides (no display: none rule needed)");
+  assert.ok(tools.indexOf('class: "ed-btn ed-shape-free"') < tools.indexOf("for (const category of SHAPE_CATEGORIES)"), "Freeform stays above the categories");
+});

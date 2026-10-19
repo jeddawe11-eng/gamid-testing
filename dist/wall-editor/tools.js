@@ -306,6 +306,9 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     return svg;
   };
   const libraryCards = new Map();
+  // the categories are accordions (2026-10-19), styled like the font library: Basic starts open, several may be open, and the choice is kept for this session
+  const shapeCategoryOpen = new Map(SHAPE_CATEGORIES.map((category, index) => [category, index === 0]));
+  const categoryToggles = new Map();
   if (shapeLibrary) {
     const free = h("button", { class: "ed-btn ed-shape-free", type: "button", onclick: () => startFreeform() },
       h("b", { "aria-hidden": "true" }), h("span", {}, "Freeform Shape", h("small", { text: "Draw your own: click to add points, drag to curve, click the first point to close. Double-click it later to edit its points." })));
@@ -320,9 +323,18 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
         libraryCards.set(item.id, card);
         grid.append(card);
       }
-      shapeLibrary.append(h("h3", { class: "ed-shape-cat", text: category }), grid);
+      const count = grid.children.length, gridId = `shapeCategory-${categoryToggles.size + 1}`;
+      grid.id = gridId;
+      const toggle = h("button", { class: "ed-font-group-toggle ed-shape-cat-toggle", type: "button", "aria-controls": gridId, onclick: () => { shapeCategoryOpen.set(category, !shapeCategoryOpen.get(category)); renderCategories(); } },
+        h("span", { class: "ed-font-group-name", text: category }), h("span", { class: "ed-font-group-count", text: String(count), "aria-label": `${count} shapes` }));
+      categoryToggles.set(category, { toggle, grid });
+      shapeLibrary.append(h("h3", { class: "ed-shape-cat is-accordion" }, toggle), grid);
     }
   }
+  function renderCategories() {
+    for (const [category, { toggle, grid }] of categoryToggles) { const open = shapeCategoryOpen.get(category); toggle.setAttribute("aria-expanded", String(open)); grid.hidden = !open; }
+  }
+  renderCategories();
   const renderShapeMode = () => { if (shapeQuick) shapeQuick.style.setProperty("display", accordionOn() ? "none" : ""); };
   desktopFonts?.addEventListener?.("change", renderShapeMode);
   renderShapeMode();
@@ -333,6 +345,9 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     const ids = new Set(shapes.map(shape => libraryIdOf(shape.payload)));
     const current = ids.size === 1 ? [...ids][0] : null;
     for (const [id, card] of libraryCards) { if (id === current) card.setAttribute("aria-current", "true"); else card.removeAttribute("aria-current"); }
+    // a collapsed category still shows that it holds the selected shape
+    const currentCategory = SHAPE_LIBRARY.find(item => item.id === current)?.category ?? null;
+    for (const [category, { toggle }] of categoryToggles) { if (category === currentCategory) toggle.setAttribute("data-current", "true"); else toggle.removeAttribute("data-current"); }
   }
 
   // ---- Media & Links -------------------------------------------------------------------------------------------------------------------------
