@@ -37,6 +37,8 @@ Conversation memory is helpful context, but it is **not** an authoritative proje
 
 **Shapes V2 final acceptance (2026-10-19):** Mazen accepted the complete desktop Shapes V2 feature, including the left accordion refinement (TESTING run 39196387512). See REV-0015; Truth wall-shapes-v2 ACCEPTED. Database parity proposal remains unapplied pending separate authorization.
 
+**Desktop Background panel acceptance (2026-10-19):** Mazen explicitly accepted the desktop-only Background panel UI refinement delivered at product `c59a922` (TESTING run `39199875542`). See Product Memory REV-0016. GamID Truth unchanged (visual organization only); phone/tablet unchanged. Shapes V2 database parity proposal remains unapplied.
+
 ## 2. Environment and safety
 
 - **TESTING** is the working environment. Truth: `environment: TESTING`, `production: NOT_RELEASED`.
