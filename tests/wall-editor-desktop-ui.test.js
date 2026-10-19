@@ -32,7 +32,7 @@ test("scope: no rule restyles element Properties controls, Layers, the stage int
   const selectors = [...rules.matchAll(/(^|\})\s*([^{}@]+)\{/g)].map(match => match[2].trim()).flatMap(group => group.split(",").map(part => part.trim()));
   // Later desktop tasks (Mazen, 2026-10-19): the Media & Links panel's cards and forms, and the Icon Group rows inside the Properties accordion, are restyled on desktop.
   // ... and (Shapes V2, 2026-10-19) the Shapes panel library and the Freeform pen / Edit Points bar and layer.
-  const allowedScope = selector => selector.startsWith('[data-tool-panel="media"]') || selector.startsWith("#propsBody .ed-acc-body .ed-icon-") || selector.startsWith('[data-tool-panel="shapes"]') || /^\.ed-path-/.test(selector) || selector === ".ed-shape-library";
+  const allowedScope = selector => selector.startsWith('[data-tool-panel="media"]') || selector.startsWith("#propsBody .ed-acc-body .ed-icon-") || selector.startsWith('[data-tool-panel="shapes"]') || selector.startsWith('[data-tool-panel="background"]') || /^\.ed-path-/.test(selector) || selector === ".ed-shape-library";
   for (const selector of selectors) {
     if (allowedScope(selector)) { assert.doesNotMatch(selector, /\.wall-|\.ed-text-line|\.ed-field|^\.ed-btn\b/, `media / Icon Group scope must not reach Wall content or shared controls: ${selector}`); continue; }
     assert.doesNotMatch(selector, /\.ed-field|\.ed-seg|\.ed-text-input|\.ed-text-line|\.ed-layer|\.ed-props-section|\.ed-group-title|\.ed-asset|\.ed-provider|\.ed-handle|\.ed-sel(?![\w-])|\.ed-pad|\.ed-boundary|\.ed-guide|\.ed-overlay|\.ed-artboard|\.wall-(?!stage)|\.ed-preview|\.ed-banner|\.ed-gate/, `out of scope: ${selector}`);
@@ -42,7 +42,7 @@ test("scope: no rule restyles element Properties controls, Layers, the stage int
   assert.deepEqual(selectors.filter(selector => /wall-stage|stage-host/.test(selector)), [".ed-stage-host .wall-stage"]);
   assert.match(rules, /\.ed-stage-host \.wall-stage \{ box-shadow:/);
   // buttons are restyled only inside the header, the canvas bar, the rail and the Add panel
-  for (const selector of selectors.filter(selector => /\.ed-btn/.test(selector))) assert.match(selector, /^(\.ed-top|\.ed-canvas-bar|\[data-tool-panel="add"\]|\[data-tool-panel="text"\] #textPresets|#propsBody \.ed-acc-body \.ed-icon-actions|\[data-tool-panel="media"\] \.ed-provider-info \.ed-btn-row|\.ed-path-bar \.ed-btn)/, selector);   // Phase 2 added the Text panel presets
+  for (const selector of selectors.filter(selector => /\.ed-btn/.test(selector))) assert.match(selector, /^(\.ed-top|\.ed-canvas-bar|\[data-tool-panel="add"\]|\[data-tool-panel="text"\] #textPresets|#propsBody \.ed-acc-body \.ed-icon-actions|\[data-tool-panel="media"\] \.ed-provider-info \.ed-btn-row|\.ed-path-bar \.ed-btn|\[data-tool-panel="background"\] )/, selector);   // the Background panel (2026-10-19) styles its own buttons   // Phase 2 added the Text panel presets
 });
 
 test("no behavior, layout model or data change: only presentation properties, no position-changing JS hooks, no inline style, no external or script resources", () => {

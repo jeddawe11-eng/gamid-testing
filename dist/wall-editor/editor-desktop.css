@@ -326,3 +326,42 @@ body[data-tool="gamid"] .ed-rail [data-tool="gamid"] i, body[data-tool="layout"]
 .ed-path-anchor.is-first { fill: #8ff0c4; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { [data-tool-panel="shapes"] .ed-shape-card { transition: none; } }
 @media (forced-colors: active) { [data-tool-panel="shapes"] .ed-shape-card, [data-tool-panel="shapes"] .ed-shape-free, .ed-path-bar { border-color: ButtonText; } }
+
+/* ---- Background panel (desktop, 2026-10-19): the scope and type choices as the editor's card buttons, the uploads and the picture / video settings as accordion
+   sections (the font library's heading button), and even upload cards with a clear Use / Delete row and an in-use badge. Same controls, same behaviour. ---- */
+[data-tool-panel="background"] .ed-seg { display: grid; gap: .4rem; margin: .1rem 0 .7rem; padding: 0; border: 0; background: none; }
+[data-tool-panel="background"] .ed-seg:first-of-type { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+[data-tool-panel="background"] #bgKinds { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+[data-tool-panel="background"] #bgKinds button:nth-child(-n + 3) { grid-column: span 2; }
+[data-tool-panel="background"] #bgKinds button:nth-child(n + 4) { grid-column: span 3; }
+[data-tool-panel="background"] .ed-seg button { min-width: 0; min-height: 2.5rem; padding: .3rem .4rem; border: 1px solid transparent; border-radius: .55rem; background: linear-gradient(180deg, #151b3a, #0d1128) padding-box, linear-gradient(180deg, rgba(242, 220, 155, .5), rgba(125, 99, 41, .45)) border-box; color: var(--ink-dim); font-family: var(--font-ui); font-size: .8rem; font-weight: 700; letter-spacing: .04em; white-space: nowrap; transition: box-shadow .15s ease, color .15s ease; }
+[data-tool-panel="background"] .ed-seg button:hover { color: #fff; background: linear-gradient(180deg, #221a4e, #12123a) padding-box, linear-gradient(180deg, var(--gold-hi), var(--violet-hi)) border-box; box-shadow: 0 0 .9rem rgba(160, 77, 255, .3); }
+[data-tool-panel="background"] .ed-seg button[aria-pressed="true"] { color: #fff; background: linear-gradient(180deg, rgba(169, 77, 255, .55), rgba(92, 40, 190, .45)) padding-box, linear-gradient(#0d1128, #0d1128) padding-box, linear-gradient(180deg, var(--gold-hi), var(--gold-lo)) border-box; box-shadow: 0 0 .9rem rgba(160, 77, 255, .35); }
+[data-tool-panel="background"] #bgControls > .ed-row .ed-btn { width: 100%; min-height: 2.4rem; border: 1px solid var(--gold-line); border-radius: .55rem; background: #0d1128; color: var(--ink); font-family: var(--font-ui); font-size: .82rem; font-weight: 700; letter-spacing: .04em; }
+[data-tool-panel="background"] #bgControls > .ed-row .ed-btn.ed-primary { border-color: transparent; background: linear-gradient(180deg, #a14dff, #6a2bd6 55%, #4f1db3) padding-box, linear-gradient(180deg, var(--gold-hi), var(--gold-lo)) border-box; color: #fff; }
+[data-tool-panel="background"] .ed-hint { margin: .45rem 0 .7rem; color: var(--ink-dim); font-size: .74rem; line-height: 1.45; }
+[data-tool-panel="background"] .ed-bg-section { margin: .5rem 0 .2rem; }
+[data-tool-panel="background"] .ed-bg-section-head { margin: 0; font-family: var(--font-ui); }
+[data-tool-panel="background"] .ed-bg-toggle { font-size: .8rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+[data-tool-panel="background"] .ed-bg-section-body { padding: .55rem 0 .2rem; }
+/* the full-width Fit menu: the same look as every field menu in the editor */
+[data-tool-panel="background"] .ed-bg-section-body .ed-stack { color: var(--ink-dim); font-size: .74rem; }
+[data-tool-panel="background"] .ed-bg-section-body .ed-stack select { width: 100%; min-height: 2.6rem; padding: .4rem .55rem; border: 1px solid var(--line); border-radius: .6rem; background: var(--panel2); color: var(--ink); font-weight: 600; }
+[data-tool-panel="background"] .ed-bg-section-body .ed-assets { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: .45rem; }
+[data-tool-panel="background"] .ed-bg-asset { display: flex; flex-direction: column; gap: .4rem; min-width: 0; padding: .4rem; border: 1px solid transparent; border-radius: .55rem; background: linear-gradient(180deg, #151b3a, #0d1128) padding-box, linear-gradient(180deg, rgba(242, 220, 155, .45), rgba(125, 99, 41, .4)) border-box; }
+[data-tool-panel="background"] .ed-bg-asset:has(.ed-btn[aria-pressed="true"]) { background: linear-gradient(180deg, rgba(169, 77, 255, .4), rgba(92, 40, 190, .3)) padding-box, linear-gradient(#0d1128, #0d1128) padding-box, linear-gradient(180deg, var(--gold-hi), var(--gold-lo)) border-box; }
+[data-tool-panel="background"] .ed-bg-asset .thumb { width: 100%; height: 5.2rem; aspect-ratio: auto; overflow: hidden; border-radius: .4rem; background: #070914; }
+[data-tool-panel="background"] .ed-bg-asset .thumb img, [data-tool-panel="background"] .ed-bg-asset .thumb canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
+[data-tool-panel="background"] .ed-bg-asset .meta { display: grid; gap: .05rem; color: var(--ink-dim); font-size: .64rem; line-height: 1.3; }
+[data-tool-panel="background"] .ed-bg-asset .meta b { color: var(--ink); font-family: var(--font-ui); font-size: .76rem; letter-spacing: .02em; }
+[data-tool-panel="background"] .ed-bg-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-top: auto; }
+[data-tool-panel="background"] .ed-bg-actions .ed-btn { flex: 1 1 0; min-width: 0; min-height: 2.1rem; padding: .2rem .4rem; border: 1px solid var(--gold-line); border-radius: .45rem; background: #0d1128; color: var(--ink); font-family: var(--font-ui); font-size: .76rem; font-weight: 700; letter-spacing: .03em; }
+[data-tool-panel="background"] .ed-bg-actions .ed-btn[aria-pressed="true"] { border-color: transparent; background: linear-gradient(180deg, #a14dff, #6a2bd6 55%, #4f1db3) padding-box, linear-gradient(180deg, var(--gold-hi), var(--gold-lo)) border-box; color: #fff; }
+[data-tool-panel="background"] .ed-bg-actions .ed-btn.ed-danger { color: #ffb4c2; }
+[data-tool-panel="background"] .ed-bg-actions .ed-btn.ed-danger:hover { border-color: #ff7890; }
+[data-tool-panel="background"] .ed-bg-actions .ed-asset-inuse { flex: 1 1 100%; display: flex; align-items: flex-start; gap: .35rem; margin: 0; padding: .25rem .4rem; border: 1px solid rgba(214, 178, 94, .45); border-radius: .45rem; background: rgba(214, 178, 94, .1); color: var(--gold-hi); font-size: .64rem; font-weight: 600; line-height: 1.3; }
+[data-tool-panel="background"] .ed-bg-actions .ed-asset-inuse::before { content: ""; flex: none; width: .4rem; height: .4rem; margin-top: .25rem; background: var(--gold-hi); transform: rotate(45deg); }
+[data-tool-panel="background"] .ed-bg-actions .ed-confirm { flex: 1 1 100%; }
+[data-tool-panel="background"] .ed-bg-actions .ed-confirm p { margin: 0 0 .35rem; color: var(--ink); font-size: .68rem; line-height: 1.35; }
+@media (prefers-reduced-motion: reduce) { [data-tool-panel="background"] .ed-seg button { transition: none; } }
+@media (forced-colors: active) { [data-tool-panel="background"] .ed-seg button, [data-tool-panel="background"] .ed-bg-asset { border-color: ButtonText; } }
