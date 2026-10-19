@@ -137,7 +137,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-19, desktop Background panel):** the Background panel uses the accepted desktop card style, with accordion sections for the uploads and the picture / video settings (§92); product `c59a9228019e9724f3adc357e3f94fa69e8dee10` (run `39199875542`); phone / tablet unchanged; Truth unchanged. **Next:** Mazen's visual acceptance.
+**Latest continuation (2026-10-19, Classic → My Wall import audit):** audit and design only (§93, `docs/CLASSIC-WALL-IMPORT-AUDIT.md`): 7 of 19 Classic sections fully on the Wall, 2 partial, 10 missing (incl. Favorite Games, About Me); proposed registry on the existing `public_section_catalog`. Nothing implemented. **Next:** Mazen's decisions (§9 of the report) before any implementation.
+
+**Previous continuation (2026-10-19, desktop Background panel):** the Background panel uses the accepted desktop card style, with accordion sections for the uploads and the picture / video settings (§92); product `c59a9228019e9724f3adc357e3f94fa69e8dee10` (run `39199875542`); phone / tablet unchanged; Truth unchanged. **Next:** Mazen's visual acceptance.
 
 **Previous continuation (2026-10-19, Shapes V2 category accordions):** the desktop shape library's categories are accordions (Basic open; §91), product `bb50aef267a38cf6cb799e243a435133828bf851` (run `39196387512`); Truth unchanged (`wall-shapes-v2` PENDING_ACCEPTANCE). **Next:** Mazen's visual acceptance; his decision on the Shapes V2 database parity migration is still open.
 

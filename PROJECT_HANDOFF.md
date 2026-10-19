@@ -4070,3 +4070,19 @@ Mazen's task "GAMID — MY WALL DESKTOP BACKGROUND REDESIGN": organisation and l
 **Truth: NO CHANGE REQUIRED.** No capability, limit or contract changed.
 
 Product Memory: no record. **STOP for Mazen's visual acceptance.**
+
+## 93. Classic → My Wall data import audit (2026-10-19, audit only)
+
+Mazen's task "GAMID — CLASSIC → MY WALL COMPLETE DATA IMPORT AUDIT": audit and design only. No code, schema, deployment, Truth or Product Memory change. Report: `docs/CLASSIC-WALL-IMPORT-AUDIT.md`.
+
+- **Findings:**
+  - A published Wall replaces Classic for visitors (`public.js:425`).
+  - Wall data elements already bind live, privacy-safe, to the anonymous public view.
+  - Of 19 Classic sections, 7 are fully supported on the Wall, 2 partially and 10 missing, among them Favorite Games and all of About Me.
+  - Roles / Games / Connections are offered twice (block + data).
+  - The block and field lists are hard-coded in JavaScript and in the database validator, so every new section has needed a migration.
+- **Proposal:** extend the existing `public.public_section_catalog` (already described as the section registry), with one gated anonymous projection, a generic data-driven `section` binding and generic renderers, while keeping specialised renderers where behaviour is needed.
+  - Phases: 1 = UI, 2 = missing fields, 3 = registry, 4 = live socials + Banner.
+  - Seven decisions are listed for Mazen.
+
+**Truth: NO CHANGE REQUIRED** (no current fact is contradicted). Product Memory: no record. **STOP for Mazen's review.**
