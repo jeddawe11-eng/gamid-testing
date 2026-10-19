@@ -79,9 +79,11 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0006 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0014 |
+| REV | Reviews | reviews/ | REV-0015 |
 
 ## Register
+
+2026-10-19: Mazen explicitly accepted full desktop Shapes V2 following aspect-lock testing and the left-panel accordion correction (TESTING run 39196387512). New REV-0015; Truth wall-shapes-v2 ACCEPTED. The prepared database parity SQL remains unapplied pending separate authorization.
 
 2026-10-19: Mazen explicitly accepted the desktop Media & Links platform-card organization and Icon Group Properties accordions on TESTING (product 0615a4c, run 39153509185). New REV-0014. All existing controls remain; Move to Stage stays first; mobile/tablet unchanged. Truth wall-icons already ACCEPTED; no status or contract change.
 
@@ -147,3 +149,4 @@ Rules:
 | REV-0012 | Living Fire bounding box fix - Mazen acceptance | COMPLETED | [REV-0012-living-fire-bounding-box-fix-acceptance.md](reviews/REV-0012-living-fire-bounding-box-fix-acceptance.md) |
 | REV-0013 | Living Fire V3 - final capability acceptance | COMPLETED | [REV-0013-living-fire-v3-final-acceptance.md](reviews/REV-0013-living-fire-v3-final-acceptance.md) |
 | REV-0014 | Desktop Media & Links and Icon Group UI refinement - Mazen acceptance | COMPLETED | [REV-0014-desktop-media-links-icon-group-acceptance.md](reviews/REV-0014-desktop-media-links-icon-group-acceptance.md) |
+| REV-0015 | Shapes V2 - final capability acceptance | COMPLETED | [REV-0015-shapes-v2-final-acceptance.md](reviews/REV-0015-shapes-v2-final-acceptance.md) |
