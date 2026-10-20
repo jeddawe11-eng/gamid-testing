@@ -1,5 +1,5 @@
 /* Wall Editor - GamID visual language (dark, cyan/violet). Mobile-first: the canvas stays central, tools open as bottom sheets; >= 900px they are side panels. */
-:root { color-scheme: dark; --bg: #07060b; --panel: #11101a; --panel2: #191622; --line: #2b2738; --text: #f7f5ff; --muted: #aaa4b7; --cyan: #62e7ff; --violet: #8b5dff; --green: #6ef0b5; --danger: #ff7890; --warn: #ffc857; --bar: 3.5rem; --top: 3.5rem;
+:root { color-scheme: dark; --bg: #07060b; --panel: #11101a; --panel2: #191622; --line: #2b2738; --text: #f7f5ff; --muted: #aaa4b7; --cyan: #62e7ff; --violet: #8b5dff; --green: #6ef0b5; --danger: #ff7890; --warn: #ffc857; --bar: 3.5rem; --top: 3.5rem; --stages: 3.25rem;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -76,7 +76,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @keyframes ed-spin { to { transform: rotate(360deg); } }
 
 /* ---- workspace: tool rail | tool drawer | canvas | inspector (desktop); canvas + bottom tool strip + sheets (mobile) ---- */
-.ed-workspace { height: calc(100dvh - var(--top)); display: block; padding-bottom: calc(var(--bar) + env(safe-area-inset-bottom)); }
+.ed-workspace { height: calc(100dvh - var(--top) - var(--stages)); display: block; padding-bottom: calc(var(--bar) + env(safe-area-inset-bottom)); }
 .ed-center { height: 100%; min-height: 0; display: flex; flex-direction: column; min-width: 0; }
 .ed-canvas-bar { display: flex; align-items: center; gap: .5rem; padding: .35rem .6rem; border-bottom: 1px solid var(--line); background: #0c0a13; }
 .ed-stage-label { font-weight: 800; font-size: .78rem; letter-spacing: .06em; color: #c8bafc; }
@@ -176,6 +176,29 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-icon-actions .ed-btn { min-width: 2.75rem; min-height: 2.75rem; padding: 0; justify-content: center; }
 .ed-icon-actions .ed-btn:disabled { opacity: .4; cursor: default; }
 .ed-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .6rem; }
+/* Stages bar (2026-10-20): the one stage control of the editor, between the header and the workspace, on every screen size. Its fixed height (--stages) is
+   taken out of the workspace, so nothing below moves or is covered; the strip scrolls sideways when stages do not fit, never the page. */
+.ed-stage-bar { position: relative; z-index: 45; height: var(--stages); display: flex; align-items: center; gap: .4rem; min-width: 0; padding: 0 .5rem; border-bottom: 1px solid var(--line); background: #0c0a13; }
+.ed-stage-bar[hidden] { display: none; }
+.ed-stage-strip { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: .35rem; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: thin; scroll-snap-type: x proximity; padding: .25rem .1rem; }
+.ed-stage-tab { flex: 0 0 auto; min-width: 2.75rem; min-height: 2.5rem; padding: 0 .8rem; border: 1px solid #3a334b; border-radius: .65rem; background: #1c1828; color: var(--text); font: inherit; font-size: .8rem; font-weight: 800; letter-spacing: .04em; white-space: nowrap; cursor: pointer; scroll-snap-align: start; }
+.ed-stage-tab[aria-selected="true"] { border-color: var(--cyan); color: var(--cyan); background: #0d2530; }
+.ed-stage-tab:focus-visible, .ed-stage-add:focus-visible, .ed-stage-act:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.ed-stage-add { flex: 0 0 auto; min-height: 2.5rem; min-width: 2.75rem; padding: 0 .85rem; border: 1px solid var(--violet); border-radius: .65rem; background: rgba(139, 93, 255, .18); color: #fff; font: inherit; font-size: .8rem; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.ed-stage-tools { flex: 0 0 auto; display: flex; gap: .3rem; }
+.ed-stage-act { min-width: 2.5rem; min-height: 2.5rem; padding: 0 .6rem; border: 1px solid #3a334b; border-radius: .65rem; background: #14111e; color: var(--text); font: inherit; font-size: .8rem; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.ed-stage-act:disabled { opacity: .4; cursor: default; }
+.ed-stage-del:not(:disabled) { color: var(--danger); }
+.ed-stage-short { display: none; }
+.ed-stage-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+.ed-stage-confirm { position: absolute; top: calc(100% + .3rem); right: .5rem; z-index: 50; width: min(22rem, calc(100vw - 1rem)); margin: 0; box-shadow: 0 .6rem 1.6rem rgba(0, 0, 0, .6); }
+.ed-stage-confirm[hidden] { display: none; }
+@media (max-width: 599px) {
+  .ed-stage-bar { gap: .3rem; padding: 0 .35rem; }
+  .ed-stage-long { display: none; }
+  .ed-stage-short { display: inline; font-size: 1.05rem; }
+  .ed-stage-tab { padding: 0 .65rem; font-size: .76rem; }
+}
 .ed-chip { min-width: 2.75rem; min-height: 2.75rem; border-radius: .7rem; border: 1px solid #3a334b; background: #1c1828; font-weight: 800; cursor: pointer; }
 .ed-chip[aria-selected="true"] { border-color: var(--cyan); color: var(--cyan); background: #0d2530; }
 .ed-confirm { margin-top: .6rem; padding: .7rem; border: 1px solid #754151; border-radius: .7rem; background: #28151c; font-size: .8rem; }

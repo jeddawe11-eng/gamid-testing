@@ -209,19 +209,30 @@ function updateChrome() {
   $("multiBtn").setAttribute("aria-pressed", String(multi));
 }
 
-// ---- layout: stages and layers ----------------------------------------------------------------------------------------------------------------------
+// ---- stages (the global Stages bar, 2026-10-20) and layers (Layout) ---------------------------------------------------------------------------------
+// One stage interface for the whole editor, below the header and visible with the workspace whatever tool is open: a scrollable strip of stage tabs (the
+// current one highlighted), Add stage (always at the END - never between existing stages), and Move earlier / later / Delete for the current stage.
+let stageStripKey = "";
 function renderStages() {
   const chips = $("stageChips");
-  chips.replaceChildren();
-  session.doc.stages.forEach((stage, index) => {
-    const chip = make("button", "ed-chip", String(index + 1));
-    chip.type = "button";
-    chip.setAttribute("role", "tab");
-    chip.setAttribute("aria-label", `Stage ${index + 1}`);
-    chip.setAttribute("aria-selected", String(stage.id === session.state.stageId));
-    chip.addEventListener("click", () => { pendingStageDelete = null; session.setStage(stage.id); });
-    chips.append(chip);
-  });
+  const key = JSON.stringify([session.doc.stages.map(stage => stage.id), session.state.stageId]);
+  if (key !== stageStripKey) {   // rebuilt only when the stages or the current stage change, so the strip keeps its scroll position and keyboard focus
+    stageStripKey = key;
+    const focused = chips.contains(document.activeElement);
+    chips.replaceChildren();
+    session.doc.stages.forEach((stage, index) => {
+      const current = stage.id === session.state.stageId;
+      const chip = make("button", "ed-stage-tab", `Stage ${index + 1}`);
+      chip.type = "button";
+      chip.setAttribute("role", "tab");
+      chip.setAttribute("aria-selected", String(current));
+      chip.tabIndex = current ? 0 : -1;   // one tab stop for the strip; arrow keys move between stages
+      chip.dataset.stage = stage.id;
+      chip.addEventListener("click", () => { pendingStageDelete = null; session.setStage(stage.id); });
+      chips.append(chip);
+      if (current) requestAnimationFrame(() => { chip.scrollIntoView?.({ block: "nearest", inline: "nearest" }); if (focused) chip.focus({ preventScroll: true }); });
+    });
+  }
   const index = ops.stageIndex(session.doc, session.state.stageId);
   $("stageLeft").disabled = index <= 0;
   $("stageRight").disabled = index >= session.doc.stages.length - 1;
@@ -332,9 +343,24 @@ $("multiBtn").addEventListener("click", () => { multi = !multi; updateChrome(); 
 $("undoBtn").addEventListener("click", () => { session.undo(); tools.invalidate(); });
 $("redoBtn").addEventListener("click", () => { session.redo(); tools.invalidate(); });
 
+// Add stage APPENDS: the new stage is always the last one, whichever stage is open, and the open stage stays open (no existing stage moves or changes).
+// Reordering stays an explicit action (Move earlier / later).
 $("stageAdd").addEventListener("click", () => {
-  const result = run(ops.addStage(session.doc, { afterIndex: ops.stageIndex(session.doc, session.state.stageId) }));
-  if (result.ok) session.setStage(result.stageId);
+  const result = run(ops.addStage(session.doc));
+  if (result.ok) {
+    $("stageStatus").textContent = `Stage ${session.doc.stages.length} added at the end.`;   // announced; the new tab at the end of the strip is the visible feedback
+    requestAnimationFrame(() => $("stageChips").lastElementChild?.scrollIntoView?.({ block: "nearest", inline: "nearest" }));
+  }
+});
+// Left / Right (and Home / End) on a stage tab open the previous / next stage; the event stops here so it never nudges selected elements.
+$("stageChips").addEventListener("keydown", event => {
+  const index = ops.stageIndex(session.doc, session.state.stageId);
+  const to = { ArrowLeft: index - 1, ArrowRight: index + 1, Home: 0, End: session.doc.stages.length - 1 }[event.key];
+  if (to === undefined) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const stage = session.doc.stages[Math.min(Math.max(to, 0), session.doc.stages.length - 1)];
+  if (stage && stage.id !== session.state.stageId) { pendingStageDelete = null; session.setStage(stage.id); }
 });
 $("stageLeft").addEventListener("click", () => run(ops.reorderStage(session.doc, session.state.stageId, ops.stageIndex(session.doc, session.state.stageId) - 1)));
 $("stageRight").addEventListener("click", () => run(ops.reorderStage(session.doc, session.state.stageId, ops.stageIndex(session.doc, session.state.stageId) + 1)));
@@ -489,6 +515,7 @@ if (typeof ResizeObserver === "function") {
 function gate({ title, text, loader = false, link = false, retry = false }) {
   $("gate").hidden = false;
   $("workspace").hidden = true;
+  $("stageBar").hidden = true;
   workspaceVisible = false;
   $("gateLoader").hidden = !loader;
   $("gateTitle").textContent = title;
@@ -511,6 +538,7 @@ async function boot() {
   }
   $("gate").hidden = true;
   $("workspace").hidden = false;
+  $("stageBar").hidden = false;
   workspaceVisible = true;
   document.body.dataset.tool = document.body.dataset.tool || "add";
   renderAll();
