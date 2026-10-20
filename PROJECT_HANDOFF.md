@@ -4425,3 +4425,30 @@ Details: `docs/WALL-PICTURES-COVERS-F7.md` (implementation) and `docs/WALL-BANDW
 - **Waiting for approval:** F7-B, F8-B, avatar display copies and JS bundling / immutable URLs.
 
 **Truth: NO CHANGE REQUIRED** (delivery optimizations only). Product Memory: no writes; the earlier DEC proposal (F8-A paused) still awaits Mazen. **STOP for Mazen's decisions.**
+
+## 106. F8-A fast-start MP4 Wall video uploads, lossless (2026-10-21, PENDING Mazen's acceptance)
+
+Mazen's task "GAMID — SAFE WALL + INTRO BANDWIDTH OPTIMIZATION" authorized the single-copy lossless faststart direction (research §2, option A). Details: `docs/WALL-VIDEO-FASTSTART-F8A.md`.
+
+- **Product:** `51e397259ec6487c4fe5cb63597e40d8399cedf8`; Truth `5600d06`.
+  - Deployed head `5600d0677c5f68a4b9a81c418d644173dfeaf662` (run `39492020998`); the served changed files are byte-identical to the commit.
+  - New MP4 uploads whose `moov` follows the media are remuxed in the owner's browser, in `uploadWallVideo` (desktop + mobile editors).
+  - The `moov` moves before the first `mdat`, and only the stco / co64 entries shift. Streams, audio, metadata and size are unchanged.
+  - The candidate is verified from its own bytes, and only the verified bytes are uploaded.
+  - Already-fast-start MP4s, WebMs and every unprovable file are uploaded unchanged. The server checks, the quota and existing files are unchanged.
+- **Checks:**
+  - 5 new unit tests (including 300 fuzz rounds);
+  - full suite: 2079 tests, 2078 pass, 0 fail, 1 skipped; lint and typecheck pass;
+  - 10 real / fixture files: `ffmpeg -f streamhash` identical, ffprobe identical, server `inspectMp4` verdict identical, Chrome output = Node output, playback and seek OK;
+  - the deployed module produces the same bytes on the TESTING origin.
+- **Measured (local Chrome):**
+  - first frame about 35–45% sooner, requests 3 → 1;
+  - first-view bytes unchanged;
+  - the revisit saving (the Chrome media-cache failure on moov-at-end files) is still an estimate for the final TESTING benchmark.
+- **Existing files:**
+  - not rewritten;
+  - a migration plan (new path + compare-and-set switch of `wall_assets.storage_path` + delayed old-object deletion) awaits Mazen's separate approval, with decisions on the temporary double count, the runner and owner notice.
+- **No other audit item** qualified as low-risk and within contract; all remaining items wait for approval (doc, last section).
+- **Unchanged:** Google Cloud, R2, F6-B, F7-B and F8-B (none changed or implemented).
+
+**Truth: UPDATED** (new `wall-video-faststart` PENDING_ACCEPTANCE at `51e3972`). Product Memory: no writes; the earlier DEC proposal (F8-A paused) is superseded by Mazen's authorization and should not be saved as written. **STOP for Mazen's acceptance and the migration decision.**

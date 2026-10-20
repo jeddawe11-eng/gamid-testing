@@ -47,6 +47,8 @@ Mazen's task "Continue GamID Wall bandwidth optimization on TESTING only", inclu
 
 ## 2. F8-A decision: one optimized faststart file vs the original plus a playback copy
 
+> **Outcome (2026-10-21):** Mazen authorized the single-copy lossless direction. It is implemented for **new** uploads as a verified remux in the owner's browser, so no worker is needed (`docs/WALL-VIDEO-FASTSTART-F8A.md`, handoff §106). Existing files wait for a separately approved migration plan.
+
 **The problem (measured):**
 - 2 of @black's 4 MP4s are moov-at-end (not faststart).
 - Chrome then needs 3 requests per file (an aborted first request, the tail, the middle).
