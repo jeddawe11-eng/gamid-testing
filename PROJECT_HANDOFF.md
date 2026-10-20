@@ -4327,3 +4327,27 @@ Mazen's task "GAMID — FULL WALL BANDWIDTH BASELINE AUDIT". Report and the repe
 - **Nothing changed:** no product, database, storage, cache or deployment change. Mobile Wall Editor V2 is untouched and still PENDING.
 
 **Truth: NO CHANGE REQUIRED** (measurement findings are not product truth). **STOP: F6–F8 wait for Mazen's approval.**
+
+## 103. F6–F8 bandwidth optimization plan (2026-10-21, research and planning only)
+
+Mazen's task "GAMID — F6–F8 Engineering Research & Optimization Plan". The proposal: `docs/WALL-BANDWIDTH-F6-F8-PLAN.md`. **Nothing implemented, deployed or accepted.**
+
+- **New evidence** (TESTING, anonymous, read-only):
+  1. **Simulated cross-tab lease reuse** (`harness.mjs --plan revisit --simulate-shared-leases`): the new-tab revisit drops from 32.28 to 15.70 MB. The rest is the Intro plus two moov-at-end MP4s that Chrome cannot serve from its cache (`ERR_CACHE_OPERATION_NOT_SUPPORTED`); every faststart file costs 0 bytes.
+  2. **Supabase rejects `apikey` as a query parameter** (HTTP 400), so a token-free `<video>` URL needs a lease or a same-origin proxy.
+  3. **Encoding experiments** on this Wall's files at matched quality (VMAF / SSIM): lossless WebP −17% / −28%, lossy pictures −65 to −88%, a muted video carries a 128 kbit/s audio track (−8.3%), alpha WebM −30% at VMAF 97.9; the AV1 gate fails for a cover-cropped background at CRF 32.
+- **Recommended order:**
+  1. **F8-A:** lossless faststart + audio-strip playback copies via the existing `wall_video_jobs` worker queue;
+  2. **F6-A:** cross-tab lease reuse (client only; *estimated* revisit 32.3 → about 2.3 MB);
+  3. **F6-B:** the Intro through the existing `/@handle/intro.webm` route with `private, no-cache` revalidation;
+  4. **F7-A** stage-aware pictures + **F7-C** WebP covers;
+  5. **F7-B** lossless picture derivatives;
+  6. **F8-B** (optional) quality-gated renditions.
+- **Rejected:** a server-shared lease, public / immutable buckets, the query-parameter key, HLS / DASH.
+- **Decisions for Mazen:**
+  - the F5 contract change (F6-B);
+  - the Cloudflare terms for video through a free-plan Worker;
+  - derivative storage and quota;
+  - lossy quality thresholds.
+
+**Truth: NO CHANGE REQUIRED** (research only). **STOP: no optimization starts without Mazen's explicit approval.**

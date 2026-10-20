@@ -1,5 +1,5 @@
 // GamID Public Wall bandwidth baseline harness (Playwright + Chrome DevTools Protocol). READ-ONLY: an anonymous visitor of a published Wall on TESTING.
-// Usage: node scripts/wall-bandwidth/harness.mjs <profile desktop|mobile> <runLabel> [--plan full|key] [--handle black] [--out <dir>] [--playwright <dir with node_modules/playwright>]
+// Usage: node scripts/wall-bandwidth/harness.mjs <profile desktop|mobile> <runLabel> [--plan full|key|revisit] [--simulate-shared-leases] [--throttle] [--handle black] [--out <dir>] [--playwright <dir with node_modules/playwright>]
 // Protocol and the 2026-10-20 baseline: docs/WALL-BANDWIDTH-BASELINE.md.
 // Output: <outDir>/<profile>-<run>.json - every network request (sanitized: no query strings, no tokens, storage object paths hashed), per-phase byte attribution,
 // video element telemetry and page timing. Bytes = CDP encodedDataLength (bytes received from the network incl. headers); cache reads are kept separate.
@@ -16,6 +16,9 @@ const opt = name => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[
 const require = createRequire(join(opt("playwright") ?? join(process.cwd(), "..", "gamid-monitor"), "package.json"));
 const { chromium, devices } = require("playwright");
 const plan = opt("plan") ?? "full", handle = opt("handle") ?? "black", throttle = args.includes("--throttle");
+// --simulate-shared-leases (research only, F6 planning 2026-10-21): the revisit tab starts with the first tab's F4 URL cache, i.e. what cross-tab lease reuse would do
+const simulateSharedLeases = args.includes("--simulate-shared-leases");
+const F4_CACHE_KEY = "gamid.testing.published-wall-video-urls.v1";
 const SITE = "https://gamid-testing-static.gamid.workers.dev";
 const OUT = opt("out") ?? join(tmpdir(), "gamid-wall-bandwidth");   // outside the repository: run files are local evidence (they contain hashed paths only)
 mkdirSync(OUT, { recursive: true });
@@ -181,6 +184,18 @@ try {
     await page.close();
     report.loads.secondVisit = await openWall(page2, "11-second-visit");
     setPhase("11-second-visit-play"); report.playback.secondVisit = []; for (let i = 1; i <= report.stages; i++) report.playback.secondVisit.push(await playStage(page2, i, { cap: 90 }));
+  } else if (plan === "revisit") {
+    // revisit plan: cold load + every stage, then a NEW tab of the same profile + every stage (optionally carrying the F4 URL cache across tabs)
+    setPhase("4-stages"); for (let i = 1; i <= report.stages; i++) { await scrollToStage(page, i); await wait(page, 8000); }
+    const carried = simulateSharedLeases ? await page.evaluate(k => sessionStorage.getItem(k), F4_CACHE_KEY) : null;
+    report.simulatedSharedLeases = simulateSharedLeases ? { carriedEntries: carried ? JSON.parse(carried).length : 0 } : null;
+    const page2 = await ctx.newPage(); pages.push(page2);
+    await page2.addInitScript(TELEMETRY);
+    if (carried) await page2.addInitScript(([k, v]) => { try { sessionStorage.setItem(k, v); } catch {} }, [F4_CACHE_KEY, carried]);
+    await instrument(page2, "tab2");
+    await page.close();
+    report.loads.secondVisit = await openWall(page2, "11-second-visit");
+    setPhase("11-second-visit-stages"); for (let i = 1; i <= report.stages; i++) { await scrollToStage(page2, i); await wait(page2, 8000); }
   } else {
     // key plan: cold load, every stage, every video once
     setPhase("4-stages"); for (let i = 1; i <= report.stages; i++) { await scrollToStage(page, i); await wait(page, 8000); }

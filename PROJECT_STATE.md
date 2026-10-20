@@ -143,7 +143,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-21, Public Wall bandwidth baseline):** measurement only (§102, `docs/WALL-BANDWIDTH-BASELINE.md`, tools `scripts/wall-bandwidth/`). Baseline on TESTING `22cbc85` with @black: 41.46 MB to view all stages, 32.30 MB per new-tab revisit, 2.28 MB per reload. Nothing deployed; Truth unchanged. **Next:** Mazen's approval before any F6 / F7 / F8 work; Mobile Wall Editor V2 manual acceptance is still pending (below).
+**Latest continuation (2026-10-21, F6–F8 plan):** research and planning only (§103, `docs/WALL-BANDWIDTH-F6-F8-PLAN.md`). Recommended order: F8-A, F6-A, F6-B, F7-A/C, F7-B, F8-B (optional). Nothing implemented or deployed; Truth unchanged. **Next:** Mazen's decision on the plan; Mobile Wall Editor V2 acceptance still pending.
+
+**Previous continuation (2026-10-21, Public Wall bandwidth baseline):** measurement only (§102, `docs/WALL-BANDWIDTH-BASELINE.md`, tools `scripts/wall-bandwidth/`). Baseline on TESTING `22cbc85` with @black: 41.46 MB to view all stages, 32.30 MB per new-tab revisit, 2.28 MB per reload. Nothing deployed; Truth unchanged. **Next:** Mazen's approval before any F6 / F7 / F8 work; Mobile Wall Editor V2 manual acceptance is still pending (below).
 
 **Previous continuation (2026-10-20, Mobile Wall Editor V2):** a new phone-only Wall editing shell over the same Wall engine (§101, `docs/WALL-EDITOR-MOBILE-V2.md`). Product `81c06bab1919ebe5a4e99b9f7146ad3751d52d34`, deployed `22cbc85b86b8f2eddf4cfb0c1a077e5f59c75b5e` (run `39440094448`). Truth `wall-editor-mobile-v2` PENDING_ACCEPTANCE. Tablet and desktop editors, Classic and the Wall Visitor unchanged. **Next:** Mazen's manual review (§101 checklist). Mobile Wall Visitor V2 is a separate future task, not started.
 
