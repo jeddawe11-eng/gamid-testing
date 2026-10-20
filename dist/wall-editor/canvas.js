@@ -16,6 +16,11 @@ const MOVE_THRESHOLD_PX = 4;
 const HANDLE_TARGET_PX = 64;     // a selection smaller than this pushes its handles outward
 const PAD_MIN_PX = 48;
 const ROTATE_SNAP_DEG = 15;
+// Mobile Wall Editor V2 (2026-10-20): a VIEW-only zoom on top of the fitted scale (1 = the whole stage fits). It changes how big the stage is drawn, never the
+// document: every gesture still converts screen pixels back to stage units through `scale`.
+export const ZOOM_MIN = 1;
+export const ZOOM_MAX = 6;
+const ZOOM_SCALE_MAX = 3;        // never draw the stage larger than 3 screen px per stage unit
 
 const el = (tag, className, styles = {}) => {
   const node = document.createElement(tag);
@@ -25,8 +30,13 @@ const el = (tag, className, styles = {}) => {
 };
 const px = value => `${Math.round(value * 100) / 100}px`;
 
-export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, onEditText, onEditShape, afterRender, getPaintContext = () => ({}) }) {
+// view (Mobile Wall Editor V2, phones only): { enabled: () => boolean, onChange: ({ zoom }) => void }. While enabled, two fingers that do not start on the
+// selection zoom the canvas around their midpoint, one finger on empty canvas pans it, and events on the canvas margin around the stage count too. Disabled
+// (desktop, tablet), the canvas behaves exactly as before.
+export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, onEditText, onEditShape, afterRender, getPaintContext = () => ({}), view = null }) {
   let scale = 0.3;
+  let zoom = 1;
+  const zoomOn = () => view?.enabled?.() === true;
   let liveDoc = null;          // the in-progress gesture result (never stored in the session)
   let guides = [];
   let gesture = null;
@@ -44,7 +54,8 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
     const availW = viewport.clientWidth - padX;
     const availH = center.clientHeight - center.querySelector(".ed-canvas-bar").offsetHeight - padY;
     const canvas = session.doc.canvas;
-    return Math.max(0.12, Math.min(availW / canvas.width, availH / canvas.height, 1));
+    const fit = Math.max(0.12, Math.min(availW / canvas.width, availH / canvas.height, 1));
+    return zoomOn() && zoom > 1 ? Math.min(fit * zoom, Math.max(fit, ZOOM_SCALE_MAX)) : fit;
   }
 
   function render() {
@@ -148,10 +159,62 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
     try { host.setPointerCapture(event.pointerId); } catch { /* a synthetic event without an active pointer cannot be captured */ }
   }
 
-  host.addEventListener("pointerdown", event => {
+  // ---- view zoom / pan (Mobile V2) ---------------------------------------------------------------------------------------------------------------------------
+  const clampZoom = value => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
+  const midpoint = () => { const [a, b] = [...pointers.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, distance: Math.hypot(a.x - b.x, a.y - b.y) || 1 }; };
+  // Redraws at the new zoom and scrolls so that the stage point `anchor` (stage units) sits under the screen point `at` - the pinch midpoint or the canvas centre.
+  function applyZoom(next, anchor = null, at = null) {
+    zoom = clampZoom(next);
+    render();
+    if (anchor && at) {
+      const rect = host.getBoundingClientRect();
+      viewport.scrollLeft += rect.left + anchor.x * scale - at.x;
+      viewport.scrollTop += rect.top + anchor.y * scale - at.y;
+    }
+    view?.onChange?.({ zoom });
+  }
+  function viewCentre() { const rect = viewport.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }; }
+  function zoomBy(factor) { const at = viewCentre(); applyZoom(zoom * factor, toStage({ clientX: at.x, clientY: at.y }), at); }
+  function fit() { zoom = 1; render(); viewport.scrollLeft = 0; viewport.scrollTop = 0; view?.onChange?.({ zoom }); }
+  // Brings the selection into the visible canvas (after it was added, chosen in Layers, or moved to by a stage switch) - scrolling only, never zooming.
+  function revealSelection() {
+    const box = host.querySelector(".ed-sel");
+    if (!box || zoom <= 1) return;
+    const sel = box.getBoundingClientRect(), port = viewport.getBoundingClientRect();
+    const margin = 24;
+    if (sel.right < port.left + margin || sel.left > port.right - margin) viewport.scrollLeft += sel.left + sel.width / 2 - (port.left + port.width / 2);
+    if (sel.bottom < port.top + margin || sel.top > port.bottom - margin) viewport.scrollTop += sel.top + sel.height / 2 - (port.top + port.height / 2);
+  }
+  let zoomFrame = 0;
+  function zoomMove() {
+    if (zoomFrame) return;
+    zoomFrame = requestAnimationFrame(() => {
+      zoomFrame = 0;
+      if (gesture?.kind !== "zoom" || pointers.size < 2) return;
+      const now = midpoint();
+      applyZoom(gesture.startZoom * (now.distance / gesture.startDistance), gesture.anchor, now);   // pinch + two-finger pan in one gesture
+    });
+  }
+
+  // Events are read on the viewport: on a phone the margin around the stage is canvas too (pinch / pan there). Elsewhere only the stage reacts, as before.
+  const surface = viewport;
+  surface.addEventListener("pointerdown", event => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (!zoomOn() && !host.contains(event.target)) return;
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     event.preventDefault();
+    // Mobile V2: two fingers zoom the CANVAS unless the first one started on what was ALREADY selected (then they scale the selection, the W0 gesture) - a
+    // pinch that merely lands on another element zooms. An element drag that is interrupted this way is dropped (nothing is committed).
+    const firstOnFreshElement = gesture?.kind === "move" && gesture.tapOn && !gesture.wasSelected;
+    if (pointers.size === 2 && zoomOn() && (!gesture || gesture.kind === "background" || !session.state.selection.length || firstOnFreshElement)) {
+      liveDoc = null; guides = [];
+      const mid = midpoint();
+      gesture = { kind: "zoom", pointerId: event.pointerId, startZoom: zoom, startDistance: mid.distance, anchor: toStage({ clientX: mid.x, clientY: mid.y }), moved: true };
+      try { host.setPointerCapture(event.pointerId); } catch { /* not capturable */ }
+      render();
+      return;
+    }
+    if (gesture?.kind === "zoom") return;
     if (pointers.size === 2 && session.state.selection.length) {
       // two fingers on a selection: pinch to scale it (W0 proved this gesture on the Samsung)
       const [a, b] = [...pointers.values()];
@@ -195,9 +258,10 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
     begin("background", event);
   });
 
-  host.addEventListener("pointermove", event => {
+  surface.addEventListener("pointermove", event => {
     if (pointers.has(event.pointerId)) pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (!gesture) return;
+    if (gesture.kind === "zoom") { zoomMove(); return; }
     if (gesture.kind === "pinch") {
       if (pointers.size < 2) return;
       const [a, b] = [...pointers.values()];
@@ -209,7 +273,14 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
     if (event.pointerId !== gesture.pointerId) return;
     const rawDx = event.clientX - gesture.startX, rawDy = event.clientY - gesture.startY;
     if (!gesture.moved && Math.hypot(rawDx, rawDy) < MOVE_THRESHOLD_PX) return;
-    if (gesture.kind === "background") return;
+    if (gesture.kind === "background") {
+      // Mobile V2: one finger on empty canvas pans a zoomed stage (it is then no longer a tap, so it keeps the selection)
+      if (!zoomOn() || (!gesture.panning && Math.hypot(rawDx, rawDy) < TAP_SLOP_PX / 2)) return;
+      if (!gesture.panning) { gesture.panning = true; gesture.moved = true; gesture.scrollX = viewport.scrollLeft; gesture.scrollY = viewport.scrollTop; }
+      viewport.scrollLeft = gesture.scrollX - rawDx;
+      viewport.scrollTop = gesture.scrollY - rawDy;
+      return;
+    }
     gesture.moved = true;
     const dx = rawDx / scale, dy = rawDy / scale;
     let result;
@@ -250,6 +321,14 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
   function finish(event, cancelled) {
     pointers.delete(event.pointerId);
     if (!gesture) return;
+    if (gesture.kind === "zoom") {
+      // the zoom ends when fewer than two fingers remain; a finger left on the glass does nothing until it lifts (it never starts an element drag)
+      if (pointers.size >= 2 && !cancelled) return;
+      gesture = null;
+      try { host.releasePointerCapture(event.pointerId); } catch { /* already released */ }
+      view?.onChange?.({ zoom });
+      return;
+    }
     if (gesture.kind === "pinch") {
       if (pointers.size >= 1 && !cancelled) return;   // wait until the last finger lifts
     } else if (event.pointerId !== gesture.pointerId) return;
@@ -266,9 +345,10 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
     }
     render();
   }
-  host.addEventListener("pointerup", event => finish(event, false));
-  host.addEventListener("pointercancel", event => finish(event, true));
-  host.addEventListener("dblclick", event => {
+  surface.addEventListener("pointerup", event => finish(event, false));
+  surface.addEventListener("pointercancel", event => finish(event, true));
+  surface.addEventListener("dblclick", event => {
+    if (!host.contains(event.target)) return;
     const point = toStage(event);
     const hit = ops.hitTest(currentStage(), point.x, point.y, TAP_SLOP_PX / scale);
     if (hit?.type === "text") { session.select([hit.id]); onEditText?.(hit.id); }
@@ -285,5 +365,9 @@ export function createCanvas({ host, viewport, session, isMulti, onSelectedTap, 
     lastTap = { id, at: now };
   }
   const locateGrouped = (source, id) => !!ops.locate(source, id)?.element.groupId;
-  return { render, get scale() { return scale; }, cancel() { gesture = null; liveDoc = null; guides = []; pointers.clear(); render(); } };
+  return {
+    render, get scale() { return scale; }, cancel() { gesture = null; liveDoc = null; guides = []; pointers.clear(); render(); },
+    // Mobile V2 view controls (they never touch the document)
+    get zoom() { return zoom; }, get busy() { return gesture !== null; }, zoomBy, fit, revealSelection,
+  };
 }

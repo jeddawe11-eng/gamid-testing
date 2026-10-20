@@ -25,6 +25,8 @@ import { createArtworkStore } from "../wall-kit/gamid-artwork.js";
 import { createWallDetails } from "../wall-kit/gamid-details.js";
 import { accountSignInUrl } from "../account/testing-auth-handoff.js";
 import { rememberReturnTo } from "../account/post-auth-return.js";
+import { createMobileShell } from "./mobile-shell.js";
+import { isPhoneShell } from "./phone.js";
 
 const $ = id => document.getElementById(id);
 const make = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
@@ -45,6 +47,7 @@ let pendingStageDelete = null;
 let gamidSnapshot = null;
 let renderQueued = false;
 let publication = { known: false, record: null, busy: false };   // the owner's publish status (see "publishing" below)
+let mobile = null;   // Mobile Wall Editor V2: the phone shell (mobile-shell.js), created once the canvas and tools exist
 const session = createEditorSession({ persistence, onChange: () => renderAll() });
 
 // Applies an operation result to the session. A failed operation changes nothing and tells the owner why.
@@ -136,6 +139,8 @@ const canvas = createCanvas({
   // Shapes V2 (desktop): double-click a freeform shape to edit its points; the pen / points layer is put back after every repaint
   onEditShape: id => { if (!isPhone()) pathEditor?.editPoints(id); },
   afterRender: () => pathEditor?.mount(),
+  // phones only: view-only zoom / pan / fit of the canvas (the shell shows the zoom level)
+  view: { enabled: isPhoneShell, onChange: state => mobile?.zoomChanged(state) },
 });
 let pathEditor = null;   // created below, once the tools exist (the canvas and Properties only call it later)
 const leaveMultiSelect = () => { if (multi) { multi = false; updateChrome(); } };
@@ -144,6 +149,7 @@ const properties = createPropertiesPanel({ body: $("propsBody"), title: $("props
 // ---- tools: one rail, one drawer ------------------------------------------------------------------------------------------------------------------
 // On a phone a bottom sheet covers the lower part of the stage: scroll the selection up into the part that stays visible above it.
 function revealSelection() {
+  if (mobile?.active()) { canvas.revealSelection(); return; }   // phones: the canvas is fitted above the sheet; only a zoomed view needs scrolling
   if (!isPhone() || !document.body.classList.contains("is-sheet-open")) return;
   const box = $("stageHost").querySelector(".ed-sel");
   if (!box) return;
@@ -161,12 +167,14 @@ function openTool(name) {
   if (!isPhone() && name === "props") return;
   document.body.dataset.tool = name;
   document.body.classList.add("is-sheet-open");
+  mobile?.toolOpened();
   tools?.update();
   afterToolChange();
 }
+function closeTools() { document.body.classList.remove("is-sheet-open"); afterToolChange(); mobile?.update(); }
 function toggleTool(name) {
   const open = document.body.classList.contains("is-sheet-open") && document.body.dataset.tool === name;
-  if (isPhone() && open) { document.body.classList.remove("is-sheet-open"); afterToolChange(); return; }
+  if (isPhone() && open) { closeTools(); return; }
   openTool(name);
 }
 for (const button of document.querySelectorAll("#rail [data-tool]")) button.addEventListener("click", () => toggleTool(button.dataset.tool));
@@ -180,6 +188,7 @@ const tools = createTools({
   startFreeform: () => pathEditor?.startPen(),
 });
 pathEditor = createPathEditor({ host: $("stageHost"), bar: $("pathBar"), getScale: () => canvas.scale, session, run, notify, onFinish: () => openTool("props") });
+mobile = createMobileShell({ session, canvas, run, openTool, closeTools, toggleTool, layerName: element => layerName(element), isWorkspaceVisible: () => workspaceVisible });
 $("assetUpload").addEventListener("click", () => { placeNextUpload = false; assetFile.click(); });
 assetFile.addEventListener("change", async () => {
   const file = assetFile.files?.[0];
@@ -207,6 +216,7 @@ function updateChrome() {
   const chosen = new Set(session.state.selection);
   $("selInfo").textContent = selectionSummary(session.stage ? session.stage.elements.filter(element => chosen.has(element.id)) : []);
   $("multiBtn").setAttribute("aria-pressed", String(multi));
+  mobile?.update();
 }
 
 // ---- stages (the global Stages bar, 2026-10-20) and layers (Layout) ---------------------------------------------------------------------------------
@@ -336,6 +346,7 @@ function renderAll() {
   tools.update();
   const key = session.state.selection.join(",");
   if (key !== lastSelectionKey) { lastSelectionKey = key; if (key) requestAnimationFrame(revealSelection); }
+  mobile?.update();   // after the stages, layers and Properties above: the phone shell mirrors their final state
 }
 
 // ---- actions -----------------------------------------------------------------------------------------------------------------------------------------
@@ -482,7 +493,7 @@ function renderPreview() {
 $("previewBtn").addEventListener("click", () => { $("preview").hidden = false; renderPreview(); $("previewScroll").scrollTop = 0; });
 $("previewMobile").addEventListener("click", () => { previewMode = "mobile"; renderPreview(); });
 $("previewDesktop").addEventListener("click", () => { previewMode = "desktop"; renderPreview(); });
-$("previewClose").addEventListener("click", () => { players?.destroyAll(); players = null; details?.closeAll(); previewVideos?.clear(); previewVideos = null; $("preview").hidden = true; $("previewColumn").replaceChildren(); });
+$("previewClose").addEventListener("click", () => { players?.destroyAll(); players = null; details?.closeAll(); previewVideos?.clear(); previewVideos = null; $("preview").hidden = true; $("previewColumn").replaceChildren(); mobile?.update(); });
 
 // ---- keyboard (desktop) ------------------------------------------------------------------------------------------------------------------------------
 document.addEventListener("keydown", event => {
@@ -504,6 +515,9 @@ document.addEventListener("keydown", event => {
 });
 
 window.addEventListener("beforeunload", event => { if (session.dirty) { event.preventDefault(); event.returnValue = ""; } });
+// An interrupted gesture (the app goes to the background, a call, a system dialog) is dropped: nothing half-done is committed.
+document.addEventListener("visibilitychange", () => { if (document.hidden && canvas.busy) canvas.cancel(); });
+window.addEventListener("blur", () => { if (canvas.busy) canvas.cancel(); });
 window.addEventListener("resize", () => { if (workspaceVisible) canvas.render(); });
 if (typeof ResizeObserver === "function") {
   const observer = new ResizeObserver(() => { if (workspaceVisible) canvas.render(); });

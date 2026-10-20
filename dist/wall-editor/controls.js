@@ -17,6 +17,7 @@ import { ALT_MAX, MASKS, BLENDS, CROP_PRESETS, SPLIT_COUNTS, EFFECT_LIMITS, FADE
 import { DATA_FIELD_INFO, DATA_ITEMS, dataTextStyle, renderGamidDataPayload, isDataText, isDataCollection, isSectionItem } from "../wall-kit/gamid-data.js";
 import { resolveGamidData } from "../wall-kit/gamid-data-paint.js";
 import { GAMID_LAYOUTS, GAMES_INITIAL, GAMID_STYLE_ENUMS, GAMID_STYLE_RANGES, resolveGamidStyle } from "../wall-kit/gamid.js";
+import { PHONE_QUERY } from "./phone.js";
 
 const h = (tag, attributes = {}, ...children) => {
   const node = document.createElement(tag);
@@ -181,7 +182,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       box.append(colorField({ label: "Colour", get: nested("glow", "color", "#62e7ff"), set: setNested("glow", "color", glowDefaults), key: "glowColor" }));
       box.append(numberSlider({ label: "Blur", min: 0, max: 100, step: 1, get: nested("glow", "blur", 16), set: setNested("glow", "blur", glowDefaults), key: "glowBlur" }));
     } }));
-    if (effectsRoot) livingFireGroup(root, { read, write });   // desktop only: the phone panel is unchanged
+    if (effectsRoot) livingFireGroup(root, { read, write });   // desktop and the Mobile V2 phone panel (both pass effectsRoot); the 600-899px panel is unchanged
     gradientGroup(root, "Gradient fill", { read, write });
   }
 
@@ -817,6 +818,9 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
   // for every later text selection in this editor session. Each heading is a real button (Enter / Space toggle; Up / Down / Home / End move between headings).
   // Below 900px, and for every other element type, the panel is exactly what it was.
   const desktopProps = typeof matchMedia === "function" ? matchMedia("(min-width: 900px)") : null;
+  // Mobile Wall Editor V2 (2026-10-20): on a phone the same controls are ordered common first, the rest in collapsible sections (Text effects with Living Fire,
+  // Position & size with nudge, Arrange & align). The 600-899px tablet panel is unchanged.
+  const phoneProps = typeof matchMedia === "function" ? matchMedia(PHONE_QUERY) : null;
   const TEXT_SECTIONS = [["content", "Content & Typography"], ["effects", "Text Effects"], ["geometry", "Position & Size"], ["arrange", "Arrange"], ["align", "Align to Stage"]];
   const textSectionOpen = { content: true, effects: true, geometry: false, arrange: false, align: false };
   // Icon Group (desktop, 2026-10-19): the same accordion, with its own remembered open / closed state. Move to stage stays the first control, above it.
@@ -891,6 +895,7 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       actionControls(sections.arrange, targets, single, { alignRoot: sections.align });
       return;
     }
+    if (phoneProps?.matches) { phoneRebuild(targets, types, single, groupedSelection); return; }
     if (types.length === 1 && types[0] === "text") textControls(body);
     else if (types.length === 1 && types[0] === "rect") shapeControls(body);
     else if (types.length === 1 && types[0] === "image") imageControls(body, targets);
@@ -903,11 +908,45 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     actionControls(body, targets, single);
   }
 
+  // the phone panel: the type's own controls (common ones first), then Position & size and Arrange & align one tap away
+  function phoneRebuild(targets, types, single, groupedSelection) {
+    const later = (label, open = false) => { const holder = h("div"); const inner = section(holder, label, open); return { node: holder.firstChild, inner }; };
+    const one = types.length === 1 ? types[0] : null;
+    if (one === "text") {
+      const effects = later("Text effects");
+      textControls(body, { effectsRoot: effects.inner });
+      body.append(effects.node);
+    } else if (one === "rect") shapeControls(body);
+    else if (one === "image") imageControls(body, targets);
+    else if (one === "gamidData") dataControls(body, targets);
+    else if (one === "embed" && single) embedControls(body);
+    else if (one === "gamid") gamidControls(body);
+    else if (one === "icons" && single) iconsControls(body);
+    const geometry = later("Position & size");
+    if (single && !groupedSelection) { geometryControls(geometry.inner, { titled: false }); nudgeControls(geometry.inner); }
+    else { geometry.inner.append(h("p", { class: "ed-hint", text: groupedSelection ? "Groups move and resize as one unit. Ungroup to edit an element on its own." : "Multiple elements selected. Move and resize them together on the canvas." })); nudgeControls(geometry.inner); }
+    body.append(geometry.node);
+    const arrange = later("Arrange & align");
+    actionControls(arrange.inner, targets, single);
+    body.append(arrange.node);
+  }
+  // Nudge (phone): moves the selection by 1 stage unit (10 with "Big steps"), one undo step per burst - the touch counterpart of the arrow keys.
+  function nudgeControls(root) {
+    let big = false;
+    const step = () => (big ? 10 : 1);
+    const nudge = (dx, dy) => exec(ops.moveElements(session.doc, session.state.selection, dx * step(), dy * step()), { coalesce: "nudge" });
+    const arrow = (label, text, dx, dy) => h("button", { class: "ed-btn ed-nudge", type: "button", "aria-label": label, text, onclick: () => nudge(dx, dy) });
+    const size = h("button", { class: "ed-btn", type: "button", "aria-pressed": "false", text: "Big steps (10)", onclick: () => { big = !big; size.setAttribute("aria-pressed", String(big)); } });
+    root.append(h("div", { class: "ed-group-title", text: "Nudge" }),
+      h("div", { class: "ed-btn-row ed-nudge-row", role: "group", "aria-label": "Nudge the selection" }, arrow("Nudge left", "←", -1, 0), arrow("Nudge up", "↑", 0, -1), arrow("Nudge down", "↓", 0, 1), arrow("Nudge right", "→", 1, 0)),
+      h("div", { class: "ed-btn-row" }, size));
+  }
+
   const panel = {
     update() {
       const targets = selectedElements();
       // (an embed's presentation is part of the key: switching Card <-> Player changes which controls apply, e.g. Shape)
-      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}${element.type === "image" ? `:${element.payload.slice?.set ?? "-"}` : ""}${element.type === "text" ? `:${element.payload.link ? "link" : "-"}` : ""}${element.type === "rect" ? `:${element.payload.shape ?? "-"}:${element.payload.path?.points.length ?? ""}` : ""}${element.type === "icons" ? `:${(element.payload.items ?? []).map(item => item.providerKey ?? "other").join("+")}` : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}|${desktopProps?.matches ? 1 : 0}`;
+      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}${element.type === "image" ? `:${element.payload.slice?.set ?? "-"}` : ""}${element.type === "text" ? `:${element.payload.link ? "link" : "-"}` : ""}${element.type === "rect" ? `:${element.payload.shape ?? "-"}:${element.payload.path?.points.length ?? ""}` : ""}${element.type === "icons" ? `:${(element.payload.items ?? []).map(item => item.providerKey ?? "other").join("+")}` : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}|${desktopProps?.matches ? 1 : 0}|${phoneProps?.matches ? 1 : 0}`;
       if (key !== builtKey) { builtKey = key; rebuild(targets); }
       if (targets.length) for (const sync of syncers) sync(targets);
     },
@@ -921,5 +960,6 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     },
   };
   desktopProps?.addEventListener?.("change", () => panel.update());
+  phoneProps?.addEventListener?.("change", () => panel.update());
   return panel;
 }

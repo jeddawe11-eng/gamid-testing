@@ -6,6 +6,9 @@ html, body { height: 100%; }
 body { margin: 0; min-width: 320px; background: var(--bg); color: var(--text); overflow: hidden; -webkit-tap-highlight-color: transparent; }
 button, input, select, textarea { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
+/* Mobile Wall Editor V2 (2026-10-20): the phone shell (editor-mobile.css) exists on phones only - everywhere else (tablet, desktop) its elements are not shown.
+   This query is the exact complement of the phone query in phone.js / index.html. */
+@media (min-width: 900px), (min-width: 600px) and (min-height: 501px) { .mw-only { display: none !important; } }
 
 /* ---- top bar ---- */
 .ed-top { height: var(--top); display: flex; align-items: center; gap: .5rem; padding: 0 .6rem; border-bottom: 1px solid var(--line); background: #0c0a13; }

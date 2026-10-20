@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="editor.css" />
   <link rel="stylesheet" href="templates.css" />
   <link rel="stylesheet" href="editor-desktop.css" media="(min-width: 900px)" />
+  <link rel="stylesheet" href="editor-mobile.css" media="(max-width: 599px), (max-width: 899px) and (max-height: 500px)" />
 </head>
 <body data-tool="add">
   <header class="ed-top">
@@ -24,6 +25,18 @@
       <button id="saveBtn" class="ed-btn ed-primary" type="button" disabled>Save</button>
       <button id="publishBtn" class="ed-btn ed-publish" type="button" disabled>Publish</button>
     </div>
+  </header>
+
+  <!-- Mobile Wall Editor V2 (2026-10-20, phones only - editor-mobile.css / mobile-shell.js): compact top toolbar. Every button drives the same editor action as
+       its desktop counterpart; Save and Publish stay separate. -->
+  <header id="mwTop" class="mw-top mw-only" hidden>
+    <a class="mw-btn mw-back" href="../account/" aria-label="Back to your GamID"><i class="mw-i" data-i="back" aria-hidden="true"></i></a>
+    <button id="mwStage" class="mw-stage" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="mwStages"><span id="mwStageText">1/1</span></button>
+    <button id="mwUndo" class="mw-btn" type="button" aria-label="Undo" disabled><i class="mw-i" data-i="undo" aria-hidden="true"></i></button>
+    <button id="mwRedo" class="mw-btn" type="button" aria-label="Redo" disabled><i class="mw-i" data-i="redo" aria-hidden="true"></i></button>
+    <button id="mwSave" class="mw-save" type="button" data-state="loading" disabled>Loading&hellip;</button>
+    <button id="mwPreview" class="mw-btn" type="button" aria-label="Preview" disabled><i class="mw-i" data-i="eye" aria-hidden="true"></i></button>
+    <button id="mwMenuBtn" class="mw-btn" type="button" aria-label="Wall menu: publishing and options" aria-haspopup="true" aria-expanded="false" aria-controls="mwWall"><i class="mw-i" data-i="dots" aria-hidden="true"></i></button>
   </header>
 
   <!-- Stages (2026-10-20): one global bar, always visible with the workspace, whichever tool is open. Add Stage always appends at the end. -->
@@ -75,6 +88,7 @@
     </nav>
 
     <aside id="drawer" class="ed-panel ed-drawer" aria-label="Tool panel">
+      <div class="mw-sheet-head mw-only"><button class="mw-grab" type="button" data-mw-grab aria-label="Make this panel taller or shorter"><span aria-hidden="true"></span></button><h2 id="mwDrawerTitle" class="mw-sheet-title" tabindex="-1">Add</h2><button class="mw-close" type="button" data-mw-close aria-label="Close panel"><i class="mw-i" data-i="close" aria-hidden="true"></i></button></div>
       <section class="ed-section" data-tool-panel="add">
         <h2>Add</h2>
         <p class="ed-add-sub">Add elements to your wall</p>
@@ -85,6 +99,9 @@
           <button class="ed-btn" type="button" data-add-action="embed"><b>&#9654;</b><span>Link / Embed<small>Paste a link to media</small></span></button>
           <button class="ed-btn" type="button" data-add-action="gamid"><b>G</b><span>GamID block<small>Real profile, roles, games</small></span></button>
           <button class="ed-btn" type="button" data-add-action="gamidData"><b>&#9673;</b><span>GamID data<small>Live name, picture, bio, a role, a game&hellip;</small></span></button>
+          <button class="ed-btn mw-only" type="button" data-mw-add="image"><b>&#9654;</b><span>Video<small>Your MP4 or WebM: plays muted, on a loop</small></span></button>
+          <button class="ed-btn mw-only" type="button" data-mw-add="embed"><b>&#10070;</b><span>Icons<small>Platform icons or an Icon Group that open your links</small></span></button>
+          <button class="ed-btn mw-only" type="button" data-mw-add="templates"><b>&#10022;</b><span>Template<small>Start a stage or the whole Wall from a design</small></span></button>
         </div>
       </section>
 
@@ -168,6 +185,7 @@
 
       <section class="ed-section" data-tool-panel="layout">
         <h2>Layers <small>(top first)</small></h2>
+        <div id="mwLayerActions" class="mw-layer-actions mw-only" role="group" aria-label="Selected layer"></div>
         <p class="ed-hint">Stages are in the Stages bar above the editor. To move elements to another stage, select them and use <strong>Move to stage</strong> at the top of Properties.</p>
         <ul id="layerList" class="ed-layers"></ul>
       </section>
@@ -201,12 +219,74 @@
       </div>
       <div id="pathBar" class="ed-path-bar" role="toolbar" aria-label="Freeform shape" hidden></div>
       <div id="viewport" class="ed-viewport"><div id="stageHost" class="ed-stage-host"></div></div>
+      <div id="mwZoom" class="mw-zoom mw-only" role="group" aria-label="Canvas zoom (view only, the Wall is not changed)">
+        <button id="mwZoomOut" class="mw-zbtn" type="button" aria-label="Zoom out"><i class="mw-i" data-i="minus" aria-hidden="true"></i></button>
+        <button id="mwZoomFit" class="mw-zbtn mw-zfit" type="button" aria-label="Fit the stage to the screen"><span id="mwZoomText">Fit</span></button>
+        <button id="mwZoomIn" class="mw-zbtn" type="button" aria-label="Zoom in"><i class="mw-i" data-i="plus" aria-hidden="true"></i></button>
+      </div>
     </section>
 
     <aside id="props" class="ed-panel ed-right" aria-label="Properties">
+      <div class="mw-sheet-head mw-only"><button class="mw-grab" type="button" data-mw-grab aria-label="Make this panel taller or shorter"><span aria-hidden="true"></span></button><h2 class="mw-sheet-title" tabindex="-1">Edit</h2><button class="mw-close" type="button" data-mw-close aria-label="Close panel"><i class="mw-i" data-i="close" aria-hidden="true"></i></button></div>
       <section class="ed-section"><h2 id="propsTitle">Properties</h2><div id="propsBody"></div></section>
     </aside>
   </div>
+
+  <!-- Mobile Wall Editor V2: the selected element's quick actions, the bottom toolbar, and the Stages / More tools / Wall menu sheets -->
+  <div id="mwSelBar" class="mw-selbar mw-only" role="toolbar" aria-label="Selected element" hidden></div>
+  <nav id="mwBar" class="mw-bar mw-only" aria-label="Editor tools" hidden>
+    <button type="button" data-mw="add" aria-expanded="false"><i class="mw-i" data-i="plus" aria-hidden="true"></i><span>Add</span></button>
+    <button type="button" data-mw="layout" aria-expanded="false"><i class="mw-i" data-i="layers" aria-hidden="true"></i><span>Layers</span></button>
+    <button type="button" data-mw="stages" aria-expanded="false" aria-controls="mwStages"><i class="mw-i" data-i="stages" aria-hidden="true"></i><span>Stages</span></button>
+    <button type="button" data-mw="assets" aria-expanded="false"><i class="mw-i" data-i="image" aria-hidden="true"></i><span>Assets</span></button>
+    <button type="button" data-mw="more" aria-expanded="false" aria-controls="mwMore"><i class="mw-i" data-i="grid" aria-hidden="true"></i><span>More</span></button>
+  </nav>
+  <aside id="mwStages" class="mw-sheet mw-only" data-mw-sheet="stages" aria-labelledby="mwStagesTitle" hidden>
+    <div class="mw-sheet-head"><button class="mw-grab" type="button" data-mw-grab aria-label="Make this panel taller or shorter"><span aria-hidden="true"></span></button><h2 id="mwStagesTitle" class="mw-sheet-title" tabindex="-1">Stages</h2><button class="mw-close" type="button" data-mw-close aria-label="Close panel"><i class="mw-i" data-i="close" aria-hidden="true"></i></button></div>
+    <div class="mw-sheet-body">
+      <ol id="mwStageList" class="mw-stage-list" aria-label="Wall stages"></ol>
+      <button id="mwStageAdd" class="ed-btn ed-primary mw-wide" type="button">+ Add stage at the end</button>
+      <div class="mw-stage-tools" role="group" aria-label="Current stage">
+        <button id="mwStageEarlier" class="ed-btn" type="button">&larr; Move earlier</button>
+        <button id="mwStageLater" class="ed-btn" type="button">Move later &rarr;</button>
+        <button id="mwStageDelete" class="ed-btn ed-danger" type="button">Delete stage</button>
+      </div>
+      <div id="mwStageConfirm" class="ed-confirm" role="alertdialog" aria-labelledby="mwStageConfirmText" hidden>
+        <p id="mwStageConfirmText"></p>
+        <div class="ed-row"><button id="mwStageConfirmYes" class="ed-btn ed-danger" type="button">Delete</button><button id="mwStageConfirmNo" class="ed-btn" type="button">Cancel</button></div>
+      </div>
+      <p class="ed-hint">New stages are always added at the end. Stages have no names; they are numbered in Wall order.</p>
+    </div>
+  </aside>
+  <aside id="mwMore" class="mw-sheet mw-only" data-mw-sheet="more" aria-labelledby="mwMoreTitle" hidden>
+    <div class="mw-sheet-head"><button class="mw-grab" type="button" data-mw-grab aria-label="Make this panel taller or shorter"><span aria-hidden="true"></span></button><h2 id="mwMoreTitle" class="mw-sheet-title" tabindex="-1">More tools</h2><button class="mw-close" type="button" data-mw-close aria-label="Close panel"><i class="mw-i" data-i="close" aria-hidden="true"></i></button></div>
+    <div class="mw-sheet-body">
+      <div class="mw-tool-grid">
+        <button class="mw-tool" type="button" data-mw-tool="text"><b aria-hidden="true">T</b><span>Text &amp; fonts</span></button>
+        <button class="mw-tool" type="button" data-mw-tool="media"><b aria-hidden="true">&#9654;</b><span>Media &amp; Links</span></button>
+        <button class="mw-tool" type="button" data-mw-tool="shapes"><b aria-hidden="true">&#9632;</b><span>Shapes</span></button>
+        <button class="mw-tool" type="button" data-mw-tool="gamid"><b aria-hidden="true">G</b><span>GamID</span></button>
+        <button class="mw-tool" type="button" data-mw-tool="background"><b aria-hidden="true">&#9638;</b><span>Background</span></button>
+        <button class="mw-tool" type="button" data-mw-tool="templates"><b aria-hidden="true">&#10022;</b><span>Templates</span></button>
+      </div>
+      <button id="mwMulti" class="ed-btn mw-wide" type="button" aria-pressed="false">Multi-select: off</button>
+      <p class="ed-hint">Multi-select: each tap adds or removes an element, so several can be moved, grouped or aligned together.</p>
+    </div>
+  </aside>
+  <aside id="mwWall" class="mw-sheet mw-only" data-mw-sheet="wall" aria-labelledby="mwWallTitle" hidden>
+    <div class="mw-sheet-head"><button class="mw-grab" type="button" data-mw-grab aria-label="Make this panel taller or shorter"><span aria-hidden="true"></span></button><h2 id="mwWallTitle" class="mw-sheet-title" tabindex="-1">Wall</h2><button class="mw-close" type="button" data-mw-close aria-label="Close panel"><i class="mw-i" data-i="close" aria-hidden="true"></i></button></div>
+    <div class="mw-sheet-body">
+      <p class="mw-line"><span>Draft</span><strong id="mwSaveText">Loading&hellip;</strong></p>
+      <p class="mw-line"><span>Visitors</span><strong id="mwPublishText">Checking&hellip;</strong></p>
+      <p class="ed-hint">Save keeps your private draft. Publish is separate: it shows the saved draft to visitors of your GamID. Nothing is published unless you tap Publish.</p>
+      <button id="mwPublish" class="ed-btn ed-publish mw-wide" type="button" disabled>Publish</button>
+      <a id="mwPublicLink" class="ed-btn mw-wide mw-link" target="_blank" rel="noopener" hidden>View public page</a>
+      <button id="mwUnpublish" class="ed-btn mw-wide" type="button" hidden>Unpublish</button>
+      <button id="mwFit" class="ed-btn mw-wide" type="button">Fit canvas to screen</button>
+      <p class="ed-hint">Canvas: pinch with two fingers on empty canvas to zoom, drag empty canvas to pan. Touch an element to select and drag it; two fingers on a selected element resize it. Zoom only changes your view, never the Wall.</p>
+    </div>
+  </aside>
+  <span id="mwStatus" class="ed-stage-status mw-only" role="status" aria-live="polite"></span>
 
   <div id="preview" class="ed-preview" hidden>
     <div class="ed-preview-bar">

@@ -43,7 +43,7 @@ test("Text Effects: Neon is the existing glow (no new payload field); Living Fir
   assert.match(read("dist/wall-editor/editor.js"), /revealProps: section => properties\.reveal\(section\),/);
   assert.doesNotMatch(tools + controls, /webgl|getContext\(/i, "the editor holds no graphics code: the renderer lives in wall-kit and is loaded on demand");
 });
-test("Properties: five independent text sections on desktop, remembered across selections, keyboard operable; other types and the phone are unchanged", () => {
+test("Properties: five independent text sections on desktop, remembered across selections, keyboard operable; other types and the 600-899px panel are unchanged", () => {
   assert.match(controls, /const TEXT_SECTIONS = \[\["content", "Content & Typography"\], \["effects", "Text Effects"\], \["geometry", "Position & Size"\], \["arrange", "Arrange"\], \["align", "Align to Stage"\]\];/);
   assert.match(controls, /const textSectionOpen = \{/, "one open / closed state for the whole editor session, not per element");
   assert.match(controls, /"aria-expanded": String\(state\[key\]\), "aria-controls": id/);
@@ -57,5 +57,5 @@ test("Properties: five independent text sections on desktop, remembered across s
   assert.match(controls, /else root\.append\(h\("div", \{ class: "ed-group-title", text: "Effects" \}\)\);/);
   assert.match(controls, /if \(titled\) root\.append\(h\("div", \{ class: "ed-group-title", text: "Position and size" \}\)\);/);
   assert.match(controls, /if \(!alignRoot\) root\.append\(h\("div", \{ class: "ed-group-title", text: "Arrange" \}\)\);/);
-  assert.match(controls, /\|\$\{desktopProps\?\.matches \? 1 : 0\}`;/, "crossing the breakpoint rebuilds the panel");
+  assert.match(controls, /\|\$\{desktopProps\?\.matches \? 1 : 0\}\|\$\{phoneProps\?\.matches \? 1 : 0\}`;/, "crossing the desktop (or the Mobile V2 phone) breakpoint rebuilds the panel");
 });

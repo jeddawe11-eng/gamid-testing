@@ -117,9 +117,10 @@ test("migration 20261019100000: additive - one revoked helper and the text valid
   assert.equal(body(sql).replace("  if private.wall_is_set(p -> 'fire') and not private.wall_fire_ok(p -> 'fire') then errs := array_append(errs, 'INVALID_FIRE'); end if;\n", ""), body(previous));
 });
 
-test("editor: Living Fire controls live in the desktop Text Effects section only; the phone panel is unchanged", () => {
+test("editor: Living Fire controls live in the Text Effects section of the desktop and the Mobile V2 phone panels; the 600-899px panel is unchanged", () => {
   const controls = read("dist/wall-editor/controls.js");
-  assert.match(controls, /if \(effectsRoot\) livingFireGroup\(root, \{ read, write \}\);   \/\/ desktop only/);
+  assert.match(controls, /if \(effectsRoot\) livingFireGroup\(root, \{ read, write \}\);   \/\/ desktop and the Mobile V2 phone panel/);
+  assert.match(controls, /const effects = later\("Text effects"\);\n\s+textControls\(body, \{ effectsRoot: effects\.inner \}\);/, "the phone passes its own Text effects section");
   for (const label of ['"Style"', '"Intensity %"', '"Speed ×"', '"Turbulence %"', '"Colour"', '"Flames"', '"Sparks"']) assert.ok(controls.includes(`label: ${label}`) || controls.includes(`(${label}`), label);
   assert.match(controls, /set: style => write\(\{ fire: \{ \.\.\.defaults, \.\.\.\(read\(selectedElements\(\)\[0\]\)\.fire \?\? \{\}\), style, \.\.\.FIRE_STYLE_DEFAULTS\[style\] \} \}\)/, "a style starts from its own V3 tuning");
   assert.match(read("dist/wall-kit/messages.js"), /INVALID_FIRE: "/);

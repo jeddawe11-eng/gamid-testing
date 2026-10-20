@@ -15,7 +15,8 @@ const TOOLS = ["add", "text", "media", "shapes", "background", "gamid", "layout"
 
 test("the redesign stylesheet is linked for the desktop layout only (>= 900px, the editor's own desktop breakpoint), after the existing editor styles", () => {
   const links = [...html.matchAll(/<link rel="stylesheet" href="([^"]+)"([^>]*)\/>/g)].map(match => [match[1], match[2].trim()]);
-  assert.deepEqual(links.map(link => link[0]), ["../wall-kit/wall-kit.css", "../wall-kit/game-details.css", "editor.css", "templates.css", "editor-desktop.css"]);
+  // (Mobile Wall Editor V2, 2026-10-20: the phone stylesheet follows, for phones only - it never applies at 900px and wider; see wall-editor-mobile-v2.test.js)
+  assert.deepEqual(links.map(link => link[0]), ["../wall-kit/wall-kit.css", "../wall-kit/game-details.css", "editor.css", "templates.css", "editor-desktop.css", "editor-mobile.css"]);
   assert.equal(links.find(link => link[0] === "editor-desktop.css")[1], 'media="(min-width: 900px)"');
   assert.match(base, /@media \(min-width: 900px\)/, "900px is the editor's desktop breakpoint");
 });
