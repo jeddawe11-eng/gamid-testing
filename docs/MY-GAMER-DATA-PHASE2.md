@@ -2,7 +2,7 @@
 
 This covers Mazen's task "GAMID — MY GAMER DATA — PHASE 2 — Dynamic Classic-to-Wall Import Foundation" (2026-10-19, TESTING only).
 
-**Status (2026-10-19):** Mazen approved the database gate. Both migrations are **APPLIED on TESTING** and the frontend is **deployed** (`fe77637`, run `39254434384`). It is **PENDING Mazen's manual acceptance**; see §9. Sections 4–6 below are the proposal as it was approved.
+**Status (2026-10-19):** Mazen approved the database gate. Both migrations are **APPLIED on TESTING** and the frontend is **deployed** (`fe77637`, run `39254434384`). Mazen granted **final TESTING acceptance on 2026-10-20** following the Favorite Games Display Style visual, save/reopen and Preview checks (REV-0017). Artwork remains provisional TESTING-only pending provider permission; see §9. Sections 4–6 below are the proposal as it was approved.
 
 The design follows `docs/CLASSIC-WALL-IMPORT-AUDIT.md` §6 and §9. It builds on Phase 1 (`docs/WALL-EDITOR-DESKTOP-REDESIGN.md`, *My Gamer Data panel*).
 
