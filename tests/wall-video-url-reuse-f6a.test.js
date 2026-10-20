@@ -157,6 +157,11 @@ test("F6-A the public page forgets a Wall that is not public / not published, an
   const page = read("dist/public/public.js");
   assert.match(page, /if \(!identity && !identityLookupFailed && !ownerPreview && handle\) forgetPublishedWallVideos\(handle\);/);
   assert.match(page, /catch \{ identity = null; identityLookupFailed = true; \}/, "a failed identity lookup is not an answer");
+  // both flags are declared (in the same function) before they are first used - a missing declaration is a ReferenceError a syntax check cannot see
+  for (const flag of ["identityLookupFailed", "wallLookupFailed"]) {
+    const declared = page.indexOf(`let ${flag} = false;`), used = page.search(new RegExp(`(?<!let )${flag}(?! = false;)`));
+    assert.ok(declared >= 0 && declared < used, `${flag} declared before use`);
+  }
   assert.match(page, /if \(!ownerPreview && !wallLookupFailed && !published\?\.document\) forgetPublishedWallVideos\(identity\.gamid_handle\);/);
   assert.match(page, /getPublicWall\(identity\.gamid_handle\)\.catch\(\(\) => \{ wallLookupFailed = true; return null; \}\)/, "a failed / aborted Wall lookup never forgets");
   const wall = read("dist/public/public-wall.js");

@@ -342,6 +342,7 @@ async function render() {
   const qrToken = (params.get("qr") || "").trim();
 
   let identity = null;
+  let identityLookupFailed = false;   // F6-A: a failed / aborted lookup is not "not public" - only a successful answer may forget cached Wall video URLs
   if (handle) {
     try { identity = await getPublicIdentity(handle); } catch { identity = null; identityLookupFailed = true; }
   } else if (qrToken) {
