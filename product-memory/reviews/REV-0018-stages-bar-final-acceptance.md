@@ -12,7 +12,7 @@ review_type: ACCEPTANCE
 outcome: PASS
 reviewer: Mazen
 truth_refs: [wall-editor-stages-bar]
-checkpoints: [60ca21c]
+checkpoints: [60ca21ca127b20b1241895e70ec0c889803bef4d]
 sources: [PROJECT_HANDOFF.md, docs/WALL-EDITOR-DESKTOP-REDESIGN.md]
 ---
 
