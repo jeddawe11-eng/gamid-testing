@@ -48,6 +48,9 @@ export async function preparePublicWall(published, handle, api = defaultApi, vid
     }))).catch(() => null)
     : null;
   const list = Array.isArray(published.assets) ? published.assets : [];
+  // F7-A: pictures used only by later stages wait for their stage; stage 1's (and the whole-Wall background) load now, during the Intro, as before
+  const later = new Map([...pictureStages(doc)].filter(([, stages]) => !stages.has(0)));
+  const loader = createPictureLoader(path => api.loadPublicWallPicture(path), pictures);
   // F6-A: a cached video URL belongs to this Wall, this publication and this asset; the fresh manifest is the only list that may use (or keep) one
   const publication = typeof published.published_at === "string" ? published.published_at : "";
   const scoped = list.filter(asset => typeof asset?.asset_id === "string" && typeof asset?.storage_path === "string" && isVideoMime(asset.mime_type))
@@ -63,6 +66,8 @@ export async function preparePublicWall(published, handle, api = defaultApi, vid
         const url = videoCache ? await videoCache.get({ bucket: defaultApi.publicWallBucketFor(path, asset.mime_type), path, sign, scope: { handle, publishedAt: publication, assetId: id } }) : await sign();
         if (url) videos.set(id, url);
       }
+      // F7-A: a picture no stage-1 element needs is fetched when its stage comes near (createPublicWallView), through the same RLS-checked read
+      else if (later.has(id)) loader.defer(id, path, later.get(id));
       else { const url = await api.loadPublicWallPicture(path); if (url) pictures.set(id, url); }
     } catch { /* this one asset shows its placeholder */ }
   }));
@@ -72,10 +77,50 @@ export async function preparePublicWall(published, handle, api = defaultApi, vid
   const view = await loadPublicView(api, handle, { duoLink: { newTab: false, href: duo => gamidHref(duo, { from: handle, pathname }) }, crewLink: { newTab: false, href: crewId => crewWallHref(crewId, { pathname, from: handle }) }, sections: usesGamerSections(doc) }).catch(() => null);
   return {
     doc: normalizeEmbedLayering(doc).doc,   // the same layering rule Preview applies (nothing is drawn over a player)
-    assets: { urlFor: id => pictures.get(id) ?? null, videoUrlFor: id => videos.get(id) ?? null },
+    assets: { urlFor: id => pictures.get(id) ?? null, videoUrlFor: id => videos.get(id) ?? null, whenPicture: (id, fill) => loader.whenPicture(id, fill) },
+    pictureLoader: loader,
     gamid: visitorSnapshot(view),
     // Game Covers: Classic's visitor artwork read for this PUBLIC GamID (game-artwork, the route Classic uses), only when the Wall shows covers
     artwork: usesGamerCovers(doc) ? createArtworkStore(() => fetchGameArtwork(api.SUPABASE_URL ?? defaultApi.SUPABASE_URL, handle)) : null,
+  };
+}
+
+// F7-A: assetId -> the stage indexes that show it as a picture (an artwork element or a stage background). The whole-Wall background shows on every stage, so it
+// counts as stage 1 (loaded with the Intro). Videos are not pictures here (F3 gates them).
+export function pictureStages(doc) {
+  const map = new Map();
+  const add = (id, index) => { if (typeof id !== "string" || !id) return; if (!map.has(id)) map.set(id, new Set()); map.get(id).add(index); };
+  if (doc?.background?.kind === "image") add(doc.background.assetId, 0);
+  (Array.isArray(doc?.stages) ? doc.stages : []).forEach((stage, index) => {
+    if (stage?.background?.kind === "image") add(stage.background.assetId, index);
+    for (const element of Array.isArray(stage?.elements) ? stage.elements : []) if (element?.type === "image" && element.payload?.media !== "video") add(element.payload?.assetId, index);
+  });
+  return map;
+}
+
+// F7-A: the later pictures. One read per asset, shared by every frame that shows it; a frame registered after the read finished is filled at once (or gets the
+// placeholder when the read failed). Nothing here decides access: the read is the same RLS-checked anonymous one, for assets of the fresh manifest only.
+export function createPictureLoader(load, pictures = new Map()) {
+  const paths = new Map(), stagesOf = new Map(), waiting = new Map(), started = new Map(), done = new Set();
+  const finish = id => { done.add(id); const url = pictures.get(id) ?? null; for (const fill of waiting.get(id) ?? []) { try { fill(url); } catch { /* a detached frame */ } } waiting.delete(id); };
+  const start = id => {
+    if (started.has(id) || !paths.has(id)) return;
+    started.set(id, Promise.resolve().then(() => load(paths.get(id))).then(url => { if (url) pictures.set(id, url); }, () => {}).then(() => finish(id)));
+  };
+  return {
+    defer(id, path, stages) { paths.set(id, path); stagesOf.set(id, new Set(stages)); },
+    // -> true when the painter should wait for this picture (it is a later one); false: not a later picture (the painter shows its usual placeholder)
+    whenPicture(id, fill) {
+      if (!paths.has(id)) return false;
+      if (done.has(id)) { const url = pictures.get(id) ?? null; queueMicrotask(() => fill(url)); return true; }
+      if (!waiting.has(id)) waiting.set(id, []);
+      waiting.get(id).push(fill);
+      return true;
+    },
+    requestStage(index) { for (const [id, stages] of stagesOf) if (stages.has(index)) start(id); },
+    requestAll() { for (const id of paths.keys()) start(id); },
+    get pending() { return [...paths.keys()].filter(id => !started.has(id)).length; },
+    get deferred() { return paths.size; },
   };
 }
 
@@ -114,6 +159,21 @@ export function createPublicWallView({ host, prepared, handle, api = defaultApi,
     host.replaceChildren(column);
     videos.resume();
     paintedWidth = target;
+    watchStages(ready.pictureLoader, painted.stages);
+  }
+  // F7-A: a stage's later pictures are fetched once the stage is within one viewport height of the screen (above or below); without IntersectionObserver
+  // every later picture is fetched at once (the previous behaviour)
+  let stageObserver = null;
+  function watchStages(loader, stages) {
+    stageObserver?.disconnect();
+    stageObserver = null;
+    if (!loader?.pending) return;
+    if (typeof win.IntersectionObserver !== "function") { loader.requestAll(); return; }
+    stageObserver = new win.IntersectionObserver(entries => {
+      for (const entry of entries) if (entry.isIntersecting) loader.requestStage(stages.indexOf(entry.target));
+      if (!loader.pending) { stageObserver?.disconnect(); stageObserver = null; }
+    }, { rootMargin: "100% 0px", threshold: 0 });
+    for (const stage of stages) stageObserver.observe(stage);
   }
   const onResize = () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (showing && Math.abs(width() - paintedWidth) > 1) paint(); }, 150); };
   // the column follows its container's real width (which changes when the page's own scrollbar appears, not only when the window is resized)

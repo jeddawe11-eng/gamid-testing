@@ -288,11 +288,20 @@ function paintImage(node, content, scale, item, createNode, ctx) {
   if (video) node.setAttribute("data-media", "video");
   const url = video ? safeMediaUrl(ctx.assets?.videoUrlFor?.(content.assetId)) : safeBlobUrl(ctx.assets?.urlFor?.(content.assetId));
   if (url) { frame.append(video ? artworkVideo(createNode, content, url, legacy, item, ctx) : artworkPicture(createNode, content, url, legacy)); return; }
+  // F7-A (visitor page only): a picture that is loaded later (its stage is not near yet) keeps an empty frame and is filled in place when it arrives - no repaint,
+  // so a running player is never reset. A resolver without whenPicture (editor, Preview) shows the placeholder as before.
+  if (!video && typeof ctx.assets?.whenPicture === "function" && ctx.assets.whenPicture(content.assetId, later => {
+    const ready = safeBlobUrl(later);
+    frame.replaceChildren(ready ? artworkPicture(createNode, content, ready, legacy) : missingPicture(createNode, scale, "Image"));
+  })) return;
+  frame.append(missingPicture(createNode, scale, video ? "Video" : "Image"));
+}
+function missingPicture(createNode, scale, label) {
   const missing = createNode("div");
   missing.className = "wall-image-missing";
-  missing.textContent = video ? "Video" : "Image";
+  missing.textContent = label;
   for (const [name, value] of [["display", "grid"], ["place-items", "center"], ["height", "100%"], ["color", "#8f88a3"], ["font", `700 ${px(28 * scale)} system-ui, sans-serif`]]) missing.style.setProperty(name, value);
-  frame.append(missing);
+  return missing;
 }
 
 // The CSS transform for a background's flips (validated booleans only).
@@ -316,11 +325,14 @@ function paintBackgroundLayer(background, { createNode, ctx, width, height, inde
     const flip = backgroundFlip(background);
     if (background.kind === "image") {
       const url = safeBlobUrl(ctx.assets?.urlFor?.(background.assetId));
-      if (url) {
-        const picture = pictureNode(createNode, { url, fit: background.fit, posX: background.posX, posY: background.posY, opacity: background.opacity });
-        if (flip !== "none") picture.style.setProperty("transform", flip);
-        layer.append(picture);
-      }
+      const picture = ready => {
+        const node = pictureNode(createNode, { url: ready, fit: background.fit, posX: background.posX, posY: background.posY, opacity: background.opacity });
+        if (flip !== "none") node.style.setProperty("transform", flip);
+        return node;
+      };
+      if (url) layer.append(picture(url));
+      // F7-A: a stage background loaded later goes in UNDER its overlay (the first child) once it arrives
+      else if (typeof ctx.assets?.whenPicture === "function") ctx.assets.whenPicture(background.assetId, later => { const ready = safeBlobUrl(later); if (ready) layer.prepend(picture(ready)); });
     } else {
       // a background VIDEO (video-background.js): muted, looping, inline, no controls, never a tap target; the same fit / position / opacity model as an image
       const url = safeMediaUrl(ctx.assets?.videoUrlFor?.(background.assetId));
