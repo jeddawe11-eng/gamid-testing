@@ -79,9 +79,11 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0006 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0019 |
+| REV | Reviews | reviews/ | REV-0020 |
 
 ## Register
+
+2026-10-20: Mazen granted final TESTING acceptance of YOUR GAMID Mobile V2 Profile Deck. REV-0020 records this acceptance and Truth your-gamid-editor-mobile is ACCEPTED. Mobile Public Profile Visitor V2 was already ACCEPTED; Mobile Wall Editor and Mobile Wall Visitor are explicitly excluded.
 
 2026-10-20: Mazen explicitly accepted the desktop Wall Editor theme consistency pass (Layers, Assets, Templates, Properties and Stages confirmation; TESTING run 39412009748). REV-0019 records scoped acceptance; GamID Truth unchanged (cosmetic only).
 
@@ -160,6 +162,7 @@ Rules:
 | REV-0013 | Living Fire V3 - final capability acceptance | COMPLETED | [REV-0013-living-fire-v3-final-acceptance.md](reviews/REV-0013-living-fire-v3-final-acceptance.md) |
 | REV-0014 | Desktop Media & Links and Icon Group UI refinement - Mazen acceptance | COMPLETED | [REV-0014-desktop-media-links-icon-group-acceptance.md](reviews/REV-0014-desktop-media-links-icon-group-acceptance.md) |
 | REV-0015 | Shapes V2 - final capability acceptance | COMPLETED | [REV-0015-shapes-v2-final-acceptance.md](reviews/REV-0015-shapes-v2-final-acceptance.md) |
+| REV-0020 | YOUR GAMID Mobile V2 Profile Deck — final TESTING acceptance | COMPLETED | [REV-0020-mobile-profile-editor-final-acceptance.md](reviews/REV-0020-mobile-profile-editor-final-acceptance.md) |
 | REV-0019 | My Wall desktop theme consistency — final TESTING acceptance | COMPLETED | [REV-0019-wall-editor-theme-acceptance.md](reviews/REV-0019-wall-editor-theme-acceptance.md) |
 | REV-0018 | Global Stages bar and append-only stage creation — Mazen final TESTING acceptance | COMPLETED | [REV-0018-stages-bar-final-acceptance.md](reviews/REV-0018-stages-bar-final-acceptance.md) |
 | REV-0017 | Favorite Games Display Style — Mazen final TESTING acceptance | COMPLETED | [REV-0017-favorite-games-cover-visual-check.md](reviews/REV-0017-favorite-games-cover-visual-check.md) |
