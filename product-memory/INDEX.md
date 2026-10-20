@@ -79,9 +79,11 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0006 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0017 |
+| REV | Reviews | reviews/ | REV-0018 |
 
 ## Register
+
+2026-10-20: Mazen explicitly confirmed the global responsive Stages bar and append-only Add Stage work correctly on TESTING and granted final acceptance. REV-0018 records his acceptance; GamID Truth wall-editor-stages-bar ACCEPTED. Product 60ca21c, TESTING run 39382427651. No Production release.
 
 2026-10-20: Mazen gave final TESTING acceptance of Favorite Games Display Style after confirming Save/Reload and Preview; REV-0017 upgraded to PASS. Truth my-gamer-data ACCEPTED; artwork remains TESTING-only pending provider permission.
 
@@ -156,5 +158,6 @@ Rules:
 | REV-0013 | Living Fire V3 - final capability acceptance | COMPLETED | [REV-0013-living-fire-v3-final-acceptance.md](reviews/REV-0013-living-fire-v3-final-acceptance.md) |
 | REV-0014 | Desktop Media & Links and Icon Group UI refinement - Mazen acceptance | COMPLETED | [REV-0014-desktop-media-links-icon-group-acceptance.md](reviews/REV-0014-desktop-media-links-icon-group-acceptance.md) |
 | REV-0015 | Shapes V2 - final capability acceptance | COMPLETED | [REV-0015-shapes-v2-final-acceptance.md](reviews/REV-0015-shapes-v2-final-acceptance.md) |
+| REV-0018 | Global Stages bar and append-only stage creation — Mazen final TESTING acceptance | COMPLETED | [REV-0018-stages-bar-final-acceptance.md](reviews/REV-0018-stages-bar-final-acceptance.md) |
 | REV-0017 | Favorite Games Display Style — Mazen final TESTING acceptance | COMPLETED | [REV-0017-favorite-games-cover-visual-check.md](reviews/REV-0017-favorite-games-cover-visual-check.md) |
 | REV-0016 | Desktop Background panel redesign - final acceptance | COMPLETED | [REV-0016-desktop-background-final-acceptance.md](reviews/REV-0016-desktop-background-final-acceptance.md) |
