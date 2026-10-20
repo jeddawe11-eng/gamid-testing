@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-20",
+  "updated": "2026-10-21",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -715,6 +715,26 @@
       ],
       "checkpoint": "660d91100a78f94c86288168c279e2b536dcdb0f",
       "record": "PROJECT_HANDOFF.md §30, §38-§40; migrations 20261010140000_visitor_storage_signing.sql and 20261010141000_visitor_storage_signing_ban.sql; security remediation explicitly accepted by Mazen on TESTING 2026-10-11 (PROJECT_HANDOFF.md §40); Product Memory ISS-0009 (VERIFIED), DEC-0005"
+    },
+    {
+      "id": "wall-video-url-reuse",
+      "name": "Published Wall video URL reuse across tabs (F6-A)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/@<handle>"
+      ],
+      "contracts": [
+        {
+          "id": "wall-video-url-reuse-scope",
+          "rule": "A visitor's browser may reuse a published-Wall video lease issued by public-media in any of its tabs and after a restart, only for an asset of the CURRENT, freshly fetched publication manifest, and only for the same Wall (handle), the same publication (published_at), the same asset id and the same exact object. Reuse ends 30 minutes before the earlier of the lease token's expiry and its issue time + 6 hours; the server-chosen lifetimes (visitor-media-leases) are unchanged and never extended. The cache is never an authorization decision."
+        },
+        {
+          "id": "wall-video-url-reuse-forgetting",
+          "rule": "Every fresh manifest drops that Wall's cached URLs it no longer lists (removed or replaced media, an earlier publication); a GamID that is not PUBLIC, or has no published, enabled Wall, drops all of them; sign-out clears the cache. Corrupt, foreign or tampered entries and blocked storage are ignored (the page signs again). URLs are never logged. As before (visitor-media-access), an already issued lease stays valid on the server until it expires, and downloaded or browser-cached bytes are not remotely revocable."
+        }
+      ],
+      "checkpoint": "ca2d6f1140ceab060e3711130fdafc49eeca80bc",
+      "record": "docs/WALL-VIDEO-URL-REUSE-F6A.md; PROJECT_HANDOFF.md section 104; plan docs/WALL-BANDWIDTH-F6-F8-PLAN.md (F6-A). Implemented under Mazen's authorization of 2026-10-21 (F8-A paused by his decision: storage-contract and worker-deployment blockers). Awaiting Mazen's manual acceptance."
     },
     {
       "id": "profile-banner",
