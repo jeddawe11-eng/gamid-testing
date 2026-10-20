@@ -4452,3 +4452,32 @@ Mazen's task "GAMID — SAFE WALL + INTRO BANDWIDTH OPTIMIZATION" authorized the
 - **Unchanged:** Google Cloud, R2, F6-B, F7-B and F8-B (none changed or implemented).
 
 **Truth: UPDATED** (new `wall-video-faststart` PENDING_ACCEPTANCE at `51e3972`). Product Memory: no writes; the earlier DEC proposal (F8-A paused) is superseded by Mazen's authorization and should not be saved as written. **STOP for Mazen's acceptance and the migration decision.**
+
+## 107. F1–F8 final bandwidth and performance benchmark (2026-10-21, measurement only, PENDING Mazen's review)
+
+Mazen's task "GAMID — F1–F8 FINAL BANDWIDTH & PERFORMANCE BENCHMARK", run after his F8-A manual smoke test (a new MP4 uploaded, published and played on the visitor Wall). Details and raw evidence: `docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md`.
+
+- **Run:** on TESTING `5600d06` with the baseline's own protocol and harness (5 runs, @black, anonymous). Nothing was deployed or changed.
+- **Content changes since the baseline:**
+  - the new 4K MP4 on stage 3 (50.55 MB, hash `feef7322ef`), counted separately;
+  - a replaced Intro: 1920×1080, 11.04 s, 6.97 MB, within F2; Intro bytes and reveal timings are non-comparable.
+- **Comparable results** (excl. Intro and the new MP4):
+  - new-tab visit 30.10 → 0.08 MB (F6-A);
+  - cold first visit −5.26 MB desktop / about −3.1 MB mobile (F7-C covers −3.26; F7-A GIF −2.01 on desktop);
+  - all three stages −3.2 to −3.4 MB;
+  - same-tab reload unchanged (0.08 MB);
+  - Wall video per complete session 60.00 → 30.00 MB;
+  - Supabase bytes excl. Intro 65.34 → 35.33 MB per desktop session.
+  - Full profile now: 92.77 MB for a cold view of all stages.
+- **F8-A:**
+  - the new video is verified fast start (anonymous lease, box headers);
+  - whether the remux or the source made it so cannot be determined;
+  - existing MP4s are not migrated;
+  - **the revisit saving is not confirmed**: under throttling, the fast-start 4K file was re-downloaded (49.51 MB) on the new-tab visit, because Chrome's media cache could not serve the large range-filled entry.
+- **Regressions:**
+  - 15 live security scenarios pass;
+  - 0 video / page errors;
+  - console errors only the pre-existing `favicon.ico` 404s.
+- **Billed Supabase Egress:** not measured (owner's Usage page).
+
+**Truth: NO CHANGE REQUIRED.** Product Memory: a REV proposal awaits Mazen. **STOP for Mazen's review.**
