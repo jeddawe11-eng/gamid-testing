@@ -4254,7 +4254,7 @@ Mazen's task "GAMID — MY WALL EDITOR — FINAL THEME CONSISTENCY PASS". Detail
 
 Mazen's task "GAMID — MOBILE WALL EDITOR V2 — Complete Mobile-First Redesign, Implementation & TESTING Deployment". Details: `docs/WALL-EDITOR-MOBILE-V2.md`.
 
-- **Product:** `81c06ba` (`81c06bab1919ebe5a4e99b9f7146ad3751d52d34`). TESTING deployment: see the end of this section.
+- **Product:** `81c06ba` (`81c06bab1919ebe5a4e99b9f7146ad3751d52d34`), deployed `22cbc85` (`22cbc85b86b8f2eddf4cfb0c1a077e5f59c75b5e`, run `39440094448`, full project validation in the workflow passed). Served `mobile-shell.js`, `phone.js`, `editor-mobile.css`, `canvas.js`, `controls.js`, `editor.js`, `editor.css` and `editor-desktop.css` are byte-identical (SHA-256) to the commit; the signed-out live page boots at 390 and 1440 with the sign-in gate.
 - **Scope: phones only.**
   - The phone query is in `dist/wall-editor/phone.js`: below 600px wide, or below 900px when at most 500px tall.
   - Tablets (600–899px, taller than 500px) and desktops keep their editors.
@@ -4294,3 +4294,5 @@ Mazen's task "GAMID — MOBILE WALL EDITOR V2 — Complete Mobile-First Redesign
   8. Save; reload; Preview and back.
   9. Check that Publish happens only from the Wall menu.
   10. Open the same Wall on desktop.
+
+**Truth: UPDATED** (`wall-editor-mobile-v2` PENDING_ACCEPTANCE; two phone clauses repointed). Product Memory: no record (none proposed for saving without Mazen's approval). **STOP for Mazen's manual acceptance.**
