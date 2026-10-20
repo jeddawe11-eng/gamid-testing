@@ -719,7 +719,7 @@
     {
       "id": "wall-video-url-reuse",
       "name": "Published Wall video URL reuse across tabs (F6-A)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/@<handle>"
       ],
@@ -734,12 +734,13 @@
         }
       ],
       "checkpoint": "5d599b490f629ebe20875dd0fe9b21854b778536",
-      "record": "docs/WALL-VIDEO-URL-REUSE-F6A.md; PROJECT_HANDOFF.md section 104; plan docs/WALL-BANDWIDTH-F6-F8-PLAN.md (F6-A). Product ca2d6f1 + forgetting fix a788607 + 5d599b4. Implemented under Mazen's authorization of 2026-10-21 (F8-A paused by his decision: storage-contract and worker-deployment blockers). Awaiting Mazen's manual acceptance."
+      "record": "docs/WALL-VIDEO-URL-REUSE-F6A.md; PROJECT_HANDOFF.md sections 104, 107, 108; benchmark docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md; Product Memory REV-0022. Product ca2d6f1 + forgetting fix a788607 + 5d599b4. ACCEPTED by Mazen 2026-10-21, scoped as below.",
+      "notes": "Accepted scope: cross-tab and restart reuse of published-Wall video URLs, as the two contracts state. Reuse only lets the browser use its own cache; it does not guarantee zero re-download. The browser may still fetch a large video again, notably one cached in several ranges (accepted, documented limitation)."
     },
     {
       "id": "wall-video-faststart",
       "name": "Fast-start MP4 Wall video uploads (F8-A, lossless remux in the owner's browser)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/wall-editor/"
       ],
@@ -754,7 +755,40 @@
         }
       ],
       "checkpoint": "51e397259ec6487c4fe5cb63597e40d8399cedf8",
-      "record": "docs/WALL-VIDEO-FASTSTART-F8A.md; PROJECT_HANDOFF.md section 106; research docs/WALL-BANDWIDTH-PHASE2-RESEARCH.md section 2 (option A). Implemented under Mazen's authorization of 2026-10-21 (single-copy lossless fast start). Rewriting EXISTING files needs a separately approved migration plan. Awaiting Mazen's manual acceptance."
+      "record": "docs/WALL-VIDEO-FASTSTART-F8A.md; PROJECT_HANDOFF.md sections 106-108; benchmark docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md; Product Memory REV-0022. Mazen's manual smoke test (new MP4 uploaded, published, played on the visitor Wall) and FUNCTIONAL acceptance 2026-10-21.",
+      "notes": "Functionally accepted only. The two contracts above (lossless, verified-or-unchanged) and normal upload, publication and playback are accepted for NEW uploads. Not accepted as product guarantees: the earlier first frame (measured in a local lab only) and any repeat-visit bandwidth reduction (not proven). Migrating existing stored MP4s is NOT approved."
+    },
+    {
+      "id": "wall-picture-stage-loading",
+      "name": "Stage-aware Wall picture loading on the visitor page (F7-A)",
+      "status": "ACCEPTED",
+      "surfaces": [
+        "/@<handle>"
+      ],
+      "contracts": [
+        {
+          "id": "wall-picture-stage-loading-rule",
+          "rule": "On the public Wall visitor page, the pictures used by stage 1 and the whole-Wall background are read with the Intro. A picture used only by later stages is read once, when its stage comes within one viewport of the visible area, and fills its frames in place; it shows the usual Image placeholder if the read fails. Without IntersectionObserver every picture is read at once. The read itself, its visibility checks and the publication manifest rule are unchanged; the Wall editor and Preview are unaffected."
+        }
+      ],
+      "checkpoint": "97b3fdc5dc6e4725debf8a21154d82210499851e",
+      "record": "docs/WALL-PICTURES-COVERS-F7.md; PROJECT_HANDOFF.md sections 105, 107, 108; benchmark docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md; Product Memory REV-0022. ACCEPTED by Mazen 2026-10-21."
+    },
+    {
+      "id": "game-cover-thumbnails",
+      "name": "Same-art Favorite Games cover thumbnails (F7-C)",
+      "status": "ACCEPTED",
+      "surfaces": [
+        "/@<handle>"
+      ],
+      "contracts": [
+        {
+          "id": "game-cover-thumbnail-rule",
+          "rule": "A Favorite Games cover drawn by the shared artwork module offers the provider's thumbnail of the SAME grid artwork (267 px wide) beside the full 600 px image. The browser picks by displayed width x device pixel ratio, so high-density screens keep the full image. A failing thumbnail falls back to the full image once, and a failing full image leaves the initials. Provider CDN, no-referrer loading and game-artwork-provisional are unchanged; icons, grids and heroes are unaffected."
+        }
+      ],
+      "checkpoint": "97b3fdc5dc6e4725debf8a21154d82210499851e",
+      "record": "docs/WALL-PICTURES-COVERS-F7.md; PROJECT_HANDOFF.md sections 105, 107, 108; benchmark docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md; Product Memory REV-0022. ACCEPTED by Mazen 2026-10-21 (Mazen chose same-art thumbnails over a WebP filter)."
     },
     {
       "id": "profile-banner",

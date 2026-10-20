@@ -1,4 +1,6 @@
-# F7-A stage-aware Wall pictures + F7-C same-art cover thumbnails (TESTING, PENDING Mazen's final acceptance)
+# F7-A stage-aware Wall pictures + F7-C same-art cover thumbnails (TESTING, ACCEPTED 2026-10-21)
+
+> **2026-10-21:** both ACCEPTED by Mazen. Truth: `wall-picture-stage-loading` and `game-cover-thumbnails`; Product Memory REV-0022. The "Truth: NO CHANGE REQUIRED" line below was correct at delivery time; the acceptance added the two capabilities. The text below is the delivery record.
 
 Mazen's task "Continue GamID Wall bandwidth optimization on TESTING only" (2026-10-21).
 

@@ -1,4 +1,12 @@
-# F8-A: fast-start MP4 Wall video uploads, lossless (TESTING, PENDING Mazen's acceptance)
+# F8-A: fast-start MP4 Wall video uploads, lossless (TESTING, FUNCTIONALLY ACCEPTED 2026-10-21)
+
+> **2026-10-21:** FUNCTIONALLY ACCEPTED by Mazen, for new uploads only:
+> - functional correctness and playback: accepted;
+> - the local first-frame improvement: measured, not a guarantee;
+> - a repeat-visit bandwidth reduction: NOT PROVEN (the final benchmark saw a throttled refetch of a fast-start 4K file);
+> - the existing-files migration below: NOT APPROVED.
+>
+> See Truth `wall-video-faststart`, Product Memory REV-0022 and `docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md`. The text below is the delivery record.
 
 Mazen's task "GAMID — SAFE WALL + INTRO BANDWIDTH OPTIMIZATION" (2026-10-21) authorizes the single-copy lossless faststart direction (research `docs/WALL-BANDWIDTH-PHASE2-RESEARCH.md` §2, option A), within these limits:
 - no re-encode, no lost audio, no infrastructure change;

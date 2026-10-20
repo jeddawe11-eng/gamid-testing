@@ -1,4 +1,6 @@
-# F6-A: cross-tab reuse of published Wall video URLs (TESTING, PENDING Mazen's acceptance)
+# F6-A: cross-tab reuse of published Wall video URLs (TESTING, ACCEPTED 2026-10-21)
+
+> **2026-10-21:** ACCEPTED by Mazen, with the documented large-file cache limitation: reuse lets the browser use its cache but cannot force it; a large range-filled video may still be re-downloaded. See `docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md`, Product Memory REV-0022 and Truth `wall-video-url-reuse`. The text below is the delivery record.
 
 Mazen's task "GAMID — AUTHORIZED F8-A + F6-A IMPLEMENTATION AND PRODUCT MEMORY SYNC" (2026-10-21).
 

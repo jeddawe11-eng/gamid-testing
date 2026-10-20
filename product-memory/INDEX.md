@@ -79,9 +79,11 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0006 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0021 |
+| REV | Reviews | reviews/ | REV-0022 |
 
 ## Register
+
+2026-10-21: Mazen approved saving Claude Code's F1–F8 final bandwidth benchmark (TESTING 5600d06 vs baseline 22cbc85) with his scoped acceptance decisions. REV-0022: F6-A, F7-A, F7-C ACCEPTED; F8-A FUNCTIONALLY ACCEPTED only (no performance guarantee, repeat-visit saving not proven, existing-MP4 migration not approved). F1–F8 not complete; Truth updated.
 
 2026-10-21: Mazen approved saving Claude Code's measured TESTING Public Wall bandwidth baseline before F6–F8. REV-0021 records actual browser wire bytes, repeated signed-video downloads, caveats and research-only next step. No optimization implemented or accepted; GamID Truth unchanged.
 
@@ -171,3 +173,4 @@ Rules:
 | REV-0017 | Favorite Games Display Style — Mazen final TESTING acceptance | COMPLETED | [REV-0017-favorite-games-cover-visual-check.md](reviews/REV-0017-favorite-games-cover-visual-check.md) |
 | REV-0016 | Desktop Background panel redesign - final acceptance | COMPLETED | [REV-0016-desktop-background-final-acceptance.md](reviews/REV-0016-desktop-background-final-acceptance.md) |
 | REV-0021 | Public Wall bandwidth baseline before F6–F8 | COMPLETED | [REV-0021-public-wall-bandwidth-baseline.md](reviews/REV-0021-public-wall-bandwidth-baseline.md) |
+| REV-0022 | F1–F8 Final Bandwidth Benchmark | COMPLETED | [REV-0022-f1-f8-final-bandwidth-benchmark.md](reviews/REV-0022-f1-f8-final-bandwidth-benchmark.md) |
