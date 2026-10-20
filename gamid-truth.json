@@ -733,8 +733,8 @@
           "rule": "Every fresh manifest drops that Wall's cached URLs it no longer lists (removed or replaced media, an earlier publication); a GamID that is not PUBLIC, or has no published, enabled Wall, drops all of them; sign-out clears the cache. Corrupt, foreign or tampered entries and blocked storage are ignored (the page signs again). URLs are never logged. As before (visitor-media-access), an already issued lease stays valid on the server until it expires, and downloaded or browser-cached bytes are not remotely revocable."
         }
       ],
-      "checkpoint": "a788607f03662c0f5adca458456e401373d42b74",
-      "record": "docs/WALL-VIDEO-URL-REUSE-F6A.md; PROJECT_HANDOFF.md section 104; plan docs/WALL-BANDWIDTH-F6-F8-PLAN.md (F6-A). Product ca2d6f1 + forgetting fix a788607. Implemented under Mazen's authorization of 2026-10-21 (F8-A paused by his decision: storage-contract and worker-deployment blockers). Awaiting Mazen's manual acceptance."
+      "checkpoint": "5d599b490f629ebe20875dd0fe9b21854b778536",
+      "record": "docs/WALL-VIDEO-URL-REUSE-F6A.md; PROJECT_HANDOFF.md section 104; plan docs/WALL-BANDWIDTH-F6-F8-PLAN.md (F6-A). Product ca2d6f1 + forgetting fix a788607 + 5d599b4. Implemented under Mazen's authorization of 2026-10-21 (F8-A paused by his decision: storage-contract and worker-deployment blockers). Awaiting Mazen's manual acceptance."
     },
     {
       "id": "profile-banner",
