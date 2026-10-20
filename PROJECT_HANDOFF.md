@@ -4219,3 +4219,33 @@ Mazen's task "GAMID — MY WALL EDITOR — GLOBAL STAGES BAR + APPEND-ONLY STAGE
   6. On the phone, swipe the strip with many stages; + and the stage actions stay reachable; nothing covers the canvas.
 
 **Truth: UPDATED** with new capability `wall-editor-stages-bar` (PENDING_ACCEPTANCE; contracts stages-bar-global, stages-add-appends). Product Memory: REV-0017 validation fix (approved); no new record. **STOP for Mazen's acceptance.**
+
+## 100. Wall editor theme consistency pass (2026-10-20, PENDING visual acceptance)
+
+Mazen's task "GAMID — MY WALL EDITOR — FINAL THEME CONSISTENCY PASS". Details: `docs/WALL-EDITOR-DESKTOP-REDESIGN.md` (Theme consistency pass).
+
+- **Product:** `39ed7a7`, deployed `b2352fe` (run `39412009748`), served files exact.
+- **Product Memory:** before deploying, Mazen approved the mechanical fix of REV-0018 (the full checkpoint SHA; nothing else).
+- **Changed areas (desktop only, presentation only):**
+  - Layers;
+  - Assets;
+  - Templates (Apply to selector, review and confirmation);
+  - Properties' Move to stage select and button, and checkboxes (also in Background);
+  - the Stages bar's delete confirmation;
+  - new line icons lock / unlock / check.
+- **Not changed:**
+  - behaviour, data and contracts;
+  - phone and tablet;
+  - the canvas and Wall rendering;
+  - the already-themed panels (Add, Text, Media & Links, Shapes, Background, My Gamer Data, the Properties accordions).
+- **Other agents:** no other agent's Layers work existed in the repository (nothing to preserve).
+- **Validation:** see the doc. **Pre-existing:** Background 768 video-frame noise only.
+- **Mazen's visual review** (desktop Chrome at 1440 and 1280, signed in, https://gamid-testing-static.gamid.workers.dev/wall-editor/):
+  1. Layout: select a layer, hover others, use the forward / backward arrows, lock and unlock an artwork.
+  2. Assets: upload cards, the IN USE badge, Add and Delete.
+  3. Templates: open Apply to (mouse and keyboard), Review replacement, Cancel and Replace.
+  4. Properties: Move to stage, and the Gradient / Border checkboxes of a shape.
+  5. Stages bar: Delete stage confirmation.
+  6. A phone check: nothing should look different there.
+
+**Truth: NO CHANGE REQUIRED** (presentation only; no capability or contract changed). Product Memory: REV-0018 mechanical fix (approved); no new record. **STOP for Mazen's visual acceptance.**

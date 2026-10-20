@@ -227,3 +227,34 @@ Mazen's task "GAMID — MY WALL EDITOR — GLOBAL STAGES BAR + APPEND-ONLY STAGE
 ## Stages bar final TESTING acceptance (2026-10-20)
 
 Mazen explicitly confirmed the deployed global responsive Stages bar and append-only Add Stage behavior are correct and granted final TESTING acceptance. Product checkpoint `60ca21c`; TESTING deployment `39382427651`; acceptance review `product-memory/reviews/REV-0018-stages-bar-final-acceptance.md`. This does not authorize Production release.
+
+## Theme consistency pass (2026-10-20)
+
+Mazen's task "GAMID — MY WALL EDITOR — FINAL THEME CONSISTENCY PASS". Desktop only (900px and wider), presentation only, in `editor-desktop.css`, reusing the approved tokens (navy cards with thin gold frames, purple for selected / primary, `--font-ui`, the line-icon family). Product `39ed7a7`, deployed `b2352fe` (run `39412009748`).
+
+- **Layers:**
+  - rows take the panel-card frame; the selected layer is purple with gold;
+  - the drag markers are gold;
+  - Bring forward / Send backward and Lock / Unlock keep their buttons, labels and `aria` but draw line icons (new `--i-lock`, `--i-unlock`) instead of ▲ ▼ 🔒 🔓;
+  - a dashed empty state.
+- **Assets:**
+  - the primary Upload button;
+  - the Background panel's upload cards: framed thumbnails, an Add / Delete row, a gold IN USE badge.
+- **Templates:**
+  - a framed card with the name in the UI font and a gold category line;
+  - the Apply to `<select>` in the Properties field look;
+  - the primary Review replacement button;
+  - a danger-framed confirmation with themed buttons.
+- **Properties:**
+  - only the controls that kept the legacy look: Move to stage's select and Move button;
+  - checkboxes, which stay native `<input>`, drawn framed and filled purple with a check (`--i-check`), with keyboard and focus unchanged; also in Background;
+  - dark option lists where the browser allows.
+- **Stages bar:** the delete confirmation uses the theme surface instead of the old maroon box.
+- **Safety:** every new `display` rule respects `[hidden]` (`:not([hidden])`). Native controls stay native.
+- **Guard:** `tests/wall-editor-desktop-ui.test.js` was extended deliberately to exactly these panels and controls. Wall content, the shared field controls and global control rules stay forbidden.
+- **Validation:**
+  - 2047 tests, lint and typecheck;
+  - behaviour checks 21 / 21: Layers select / reorder / lock, Assets Add / IN USE / Delete, template Apply to by keyboard, review / cancel / replace / undo, checkbox by keyboard, Move to stage, append-only Add stage, save / reload / Preview;
+  - Stages 40 / 40; Display Style 24 / 24; Shapes and Icon Group pass; Background passes except the known video-frame noise;
+  - phone / tablet pixel-identical (390 / 768 / 899 for Layout, Assets, Templates, Background);
+  - in the 59-state grid only Layout / Assets / Templates at 1280–1920 changed.
