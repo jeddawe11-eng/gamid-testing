@@ -441,7 +441,7 @@
         },
         {
           "id": "shapes-v2-library",
-          "rule": "The desktop editor (900px and wider) offers a library of 38 vector shapes in six categories (Basic, Polygons & stars, Arrows, Callouts, Badges & banners, Gaming) and a Freeform entry; the phone keeps its three shape buttons. Every library shape takes the same fill, gradient, border and opacity, and paints the same in the editor, Preview and the published Wall. Proportion-sensitive library shapes start with their aspect ratio locked."
+          "rule": "The desktop editor (900px and wider) offers a library of 38 vector shapes in six categories (Basic, Polygons & stars, Arrows, Callouts, Badges & banners, Gaming) and a Freeform entry; on phones the library (without the desktop Freeform pen) is part of the Mobile Wall Editor V2 Shapes sheet (wall-editor-mobile-v2, PENDING_ACCEPTANCE); 600-899px tablets keep their three shape buttons. Every library shape takes the same fill, gradient, border and opacity, and paints the same in the editor, Preview and the published Wall. Proportion-sensitive library shapes start with their aspect ratio locked."
         },
         {
           "id": "shapes-v2-freeform",
@@ -513,6 +513,42 @@
       "record": "PROJECT_HANDOFF.md section 99; docs/WALL-EDITOR-DESKTOP-REDESIGN.md (Stages bar). Implemented under Mazen's task of 2026-10-20; product 60ca21c, deployed 2430282 (run 39382427651, which also carries the approved REV-0017 validation fix), served files exact. Awaiting Mazen's manual acceptance."
     },
     {
+      "id": "wall-editor-mobile-v2",
+      "name": "Mobile Wall Editor V2 (phone editing shell)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/"
+      ],
+      "contracts": [
+        {
+          "id": "wall-mobile-scope",
+          "rule": "The Mobile Wall Editor V2 applies only to phones: viewports below 600px wide, and below 900px wide when at most 500px tall (landscape phones). 600-899px tablets taller than 500px and 900px-and-wider desktops keep their existing Wall editor unchanged; a phone 900px or wider in landscape gets the desktop layout. It is a presentation shell over the same Wall engine: the same Wall Document (no phone format), operations, undo / redo, save / load / conflict handling, validation, permissions, assets, uploads and limits, fonts, renderer and Preview, so a Wall edited on a phone reopens identically on desktop and the reverse. The Wall Visitor is not part of it."
+        },
+        {
+          "id": "wall-mobile-toolbars",
+          "rule": "Phone layout: a compact top toolbar (Back, the current stage as N/total opening the Stages sheet, Undo, Redo, Save whose label is the save status - Save when there are unsaved changes, Saved, Saving..., Retry save, Conflict - Preview using the real Preview, and a Wall menu with draft and visitor status, Publish / Publish changes, View public page, Unpublish and Fit canvas); the accepted global Stages bar (stages-bar-global) below it; the canvas; and a bottom toolbar Add, Layers, Stages, Assets, More (Text & fonts, Media & Links, Shapes, GamID, Background, Templates, Multi-select). Save and Publish are separate actions: nothing is published or made visible unless Publish is tapped. Unsaved-change warnings on leaving are unchanged."
+        },
+        {
+          "id": "wall-mobile-canvas",
+          "rule": "The canvas fills the space the toolbars and any open sheet leave and never scrolls the page. Canvas zoom is view-only (1x to 6x of the fitted size, at most 3 screen px per stage unit) and never changes saved geometry: a pinch with two fingers zooms around the midpoint unless the first finger is on the already selected element (then it scales the selection), one finger on empty canvas pans a zoomed canvas, and zoom - / Fit / + buttons are always available; opening another stage fits again. Tap selects, tap on empty canvas deselects, one-finger drag moves, the touch handles resize (minimum sizes and locked aspects kept) and rotate. An interrupted gesture (second finger during a drag, touch cancel, the app going to the background) commits nothing; a pinch on the toolbars or sheets never zooms the page."
+        },
+        {
+          "id": "wall-mobile-sheets",
+          "rule": "Tools and Properties open as bottom sheets (half height, or full height by the grab handle; side sheets in landscape); Close and Escape close them and a closed sheet is out of focus and screen-reader reach. While something is selected and no sheet is open, quick actions show: Edit, Duplicate, Bring forward, Send backward, Lock / Unlock (artwork), Delete (undoable), Deselect. Add lists Text, Artwork, Video, Shape, Icons, Link / Embed, GamID block, GamID data and Template; a new element is placed by the existing code, selected and its Edit sheet opened. Layers keeps the existing list and order controls and adds the selected layer's Duplicate, Delete, Lock / Unlock and Move to stage. The Stages sheet lists the stages and offers Add stage (append-only, stages-add-appends), Move earlier / later and Delete with the existing confirmation; stages have no names. Assets, Templates, Background, Media & Links, GamID and Text & fonts (with font search, My Fonts and the Text Effects list) are the existing panels; Shapes shows the shape library without the desktop Freeform pen."
+        },
+        {
+          "id": "wall-mobile-properties",
+          "rule": "The phone Edit sheet uses the existing controls with common settings first and collapsible sections: for text, Text effects (Outline, Shadow, Neon glow, Living Fire with all its settings, Gradient fill); for every element, Position & size (X, Y, width, height, rotation, size steps and a nudge pad of 1 or 10 stage units) and Arrange & align (duplicate, delete, layer order, group / ungroup, align to stage, Keep inside stage). Artwork keeps Crop, Mask, Split, Appearance, Effects and Layering; Move to stage stays the first control. Not offered because the Wall model has none: stage names, layer show / hide, Living Ice; the Freeform pen and Edit Points stay desktop-only."
+        },
+        {
+          "id": "wall-mobile-keyboard-a11y",
+          "rule": "While the software keyboard is open, the open sheet sits above it and fills the visible space above it, the focused field is scrolled into view and phone inputs use 16px text so the page is not zoomed; closing the keyboard restores the layout with the draft kept. Phone controls are at least 44px, labelled, keyboard operable, state is never shown by colour alone (Save says its status), changes are announced in a live region, safe-area insets and dynamic viewport height are respected and reduced motion is honoured. Visual identity: deep navy surfaces, purple primary / active, gold highlights, one family of line icons."
+        }
+      ],
+      "checkpoint": "81c06bab1919ebe5a4e99b9f7146ad3751d52d34",
+      "record": "docs/WALL-EDITOR-MOBILE-V2.md; PROJECT_HANDOFF.md section 101. Implemented under Mazen's task of 2026-10-20 (Mobile Wall Editor V2, TESTING only); product 81c06ba. Browser emulation (Chrome touch) at 320-430px and the Android Emulator (not a physical device); iOS Safari not tested. Awaiting Mazen's manual acceptance."
+    },
+    {
       "id": "custom-wall-fonts",
       "name": "Custom Wall fonts (Upload My Font / My Fonts)",
       "status": "PENDING_ACCEPTANCE",
@@ -578,7 +614,7 @@
         },
         {
           "id": "living-fire-editor",
-          "rule": "Desktop editor (900px and wider): one Living Fire entry in the Text panel's Text Effects toggles it on the selected text(s) and opens Text Effects in Properties, where Style, Intensity, Speed, Turbulence, Colour, Flames (Full fire / Letters only) and Sparks are set. The phone editor's controls are unchanged."
+          "rule": "Desktop editor (900px and wider): one Living Fire entry in the Text panel's Text Effects toggles it on the selected text(s) and opens Text Effects in Properties, where Style, Intensity, Speed, Turbulence, Colour, Flames (Full fire / Letters only) and Sparks are set. On phones (Mobile Wall Editor V2, wall-editor-mobile-v2, PENDING_ACCEPTANCE) the same Living Fire settings are in Edit > Text effects and the Text sheet's Text Effects list; the 600-899px tablet controls are unchanged."
         },
         {
           "id": "living-fire-rendering",

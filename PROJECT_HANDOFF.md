@@ -4249,3 +4249,48 @@ Mazen's task "GAMID — MY WALL EDITOR — FINAL THEME CONSISTENCY PASS". Detail
   6. A phone check: nothing should look different there.
 
 **Truth: NO CHANGE REQUIRED** (presentation only; no capability or contract changed). Product Memory: REV-0018 mechanical fix (approved); no new record. **STOP for Mazen's visual acceptance.**
+
+## 101. Mobile Wall Editor V2 (2026-10-20, PENDING Mazen's acceptance)
+
+Mazen's task "GAMID — MOBILE WALL EDITOR V2 — Complete Mobile-First Redesign, Implementation & TESTING Deployment". Details: `docs/WALL-EDITOR-MOBILE-V2.md`.
+
+- **Product:** `81c06ba` (`81c06bab1919ebe5a4e99b9f7146ad3751d52d34`). TESTING deployment: see the end of this section.
+- **Scope: phones only.**
+  - The phone query is in `dist/wall-editor/phone.js`: below 600px wide, or below 900px when at most 500px tall.
+  - Tablets (600–899px, taller than 500px) and desktops keep their editors.
+  - The Classic Editor and Visitor and the Wall Visitor (desktop and mobile) are untouched: no file outside `dist/wall-editor/` changed.
+- **What it is:** a new phone shell (`mobile-shell.js`, `editor-mobile.css`) over the same Wall engine.
+  - Compact top toolbar: Save = save status; Preview; Wall menu with the separate Publish.
+  - The accepted global Stages bar is kept on phones.
+  - View-only canvas zoom, pan and Fit.
+  - Selection quick actions.
+  - Bottom toolbar: Add, Layers, Stages, Assets, More, with half / full sheets (side sheets in landscape).
+  - Keyboard-aware sheets.
+  - Phone Properties: Living Fire; collapsible Position & size with nudge; Arrange & align.
+  - The shape library on phones (no Freeform pen).
+- **Not changed:** the document format, ops, save / load, validation, permissions, assets and limits, renderer, Preview, publishing.
+- **Truth:**
+  - new `wall-editor-mobile-v2` PENDING_ACCEPTANCE;
+  - phone clauses of the ACCEPTED `wall-shapes-v2` / `shapes-v2-library` and `living-fire-text` / `living-fire-editor` repointed to it (statuses unchanged);
+  - `wall-editor-stages-bar` preserved as is.
+- **Not offered (not in the model):** stage names, layer show / hide, Living Ice. Freeform pen / Edit Points stay desktop-only.
+- **Limitations:**
+  - a phone 900px or wider in landscape (e.g. 932×430) gets the desktop layout;
+  - iOS Safari and physical devices are not tested: browser emulation plus the Android Emulator only.
+- **Validation** (details in the doc):
+  - E2E touch workflow: 71 checks × 6 phone sizes, ALL PASS.
+  - Android Emulator: render, Add > Text, real software keyboard.
+  - Desktop / tablet non-regression: 8 sizes × 11 states style-identical; tablets pixel-identical.
+  - `npm test`: 2055 tests, 2054 pass, 0 fail, 1 skipped.
+  - typecheck, lint and build: pass.
+- **Mazen's review** (TESTING, signed in, on a phone or the Android Emulator: https://gamid-testing-static.gamid.workers.dev/wall-editor/):
+  1. Open the Wall; switch stages (Stages bar, stage indicator, Stages sheet).
+  2. Add > Text; edit the text and font; Living Fire under Edit > Text effects.
+  3. Move with a finger; resize with a handle; nudge under Position & size.
+  4. Add a picture from Assets and adjust it; add a library shape.
+  5. In Layers: reorder; lock / unlock; duplicate / delete; move to stage.
+  6. Background; a template with its confirmation; Undo / Redo.
+  7. Pinch to zoom, pan, Fit; check that nothing in the Wall changes.
+  8. Save; reload; Preview and back.
+  9. Check that Publish happens only from the Wall menu.
+  10. Open the same Wall on desktop.
