@@ -737,6 +737,26 @@
       "record": "docs/WALL-VIDEO-URL-REUSE-F6A.md; PROJECT_HANDOFF.md section 104; plan docs/WALL-BANDWIDTH-F6-F8-PLAN.md (F6-A). Product ca2d6f1 + forgetting fix a788607 + 5d599b4. Implemented under Mazen's authorization of 2026-10-21 (F8-A paused by his decision: storage-contract and worker-deployment blockers). Awaiting Mazen's manual acceptance."
     },
     {
+      "id": "wall-video-faststart",
+      "name": "Fast-start MP4 Wall video uploads (F8-A, lossless remux in the owner's browser)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/"
+      ],
+      "contracts": [
+        {
+          "id": "wall-video-faststart-lossless",
+          "rule": "When the owner adds a NEW MP4 Wall video whose index (moov) comes after its media, the browser stores it fast start: the moov box is moved in front of the media and only its chunk offsets change. Every video and audio packet, every track (audio included), the metadata, the resolution, frame rate, duration and the file size are unchanged; nothing is re-encoded. Only one copy is stored, under the usual new asset path, and it counts toward Global Usage exactly as the original would."
+        },
+        {
+          "id": "wall-video-faststart-verified-or-unchanged",
+          "rule": "The fast-start copy is used only after it is verified from its own bytes (layout, every chunk of every track byte-identical with the original, every other byte unchanged). An MP4 that is already fast start, any WebM, and any file that cannot be proven safe (fragmented, encrypted, external data, item locations, an unusual layout, a read error) are uploaded exactly as chosen. The server's registration checks are unchanged. Existing stored files are never rewritten by this capability."
+        }
+      ],
+      "checkpoint": "51e397259ec6487c4fe5cb63597e40d8399cedf8",
+      "record": "docs/WALL-VIDEO-FASTSTART-F8A.md; PROJECT_HANDOFF.md section 106; research docs/WALL-BANDWIDTH-PHASE2-RESEARCH.md section 2 (option A). Implemented under Mazen's authorization of 2026-10-21 (single-copy lossless fast start). Rewriting EXISTING files needs a separately approved migration plan. Awaiting Mazen's manual acceptance."
+    },
+    {
       "id": "profile-banner",
       "name": "Classic Profile Banner (Profile Editor upload / crop / replace / remove; shown on the desktop Classic Profile)",
       "status": "ACCEPTED",
