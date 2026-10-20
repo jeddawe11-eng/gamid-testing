@@ -4481,3 +4481,34 @@ Mazen's task "GAMID — F1–F8 FINAL BANDWIDTH & PERFORMANCE BENCHMARK", run af
 - **Billed Supabase Egress:** not measured (owner's Usage page).
 
 **Truth: NO CHANGE REQUIRED.** Product Memory: a REV proposal awaits Mazen. **STOP for Mazen's review.**
+
+## 108. F6–F8 scoped acceptance, REV-0022, F8-B feasibility study (2026-10-21, documentation and study only)
+
+Mazen's task "GAMID — F6–F8 Acceptance, Product Memory & F8-B Feasibility Study". The reviewed state:
+- branch `feature/play-together-notifications` at `d7aad91`;
+- TESTING serving `5600d06` = the benchmark checkpoint (no product commit since);
+- benchmark docs `cd3180b`.
+
+**Mazen's scoped acceptance decisions:**
+
+| Feature | Decision | Scope |
+|---|---|---|
+| F6-A | ACCEPTED | cross-tab / restart video URL reuse, with the documented large-file cache limitation |
+| F7-A | ACCEPTED | stage-aware picture loading |
+| F7-C | ACCEPTED | same-art cover thumbnails |
+| F8-A | FUNCTIONALLY ACCEPTED | fast start for new MP4 uploads only. Correctness and playback accepted; local first-frame gain measured but not a guarantee; repeat-visit bandwidth reduction NOT PROVEN; existing-MP4 migration NOT APPROVED |
+
+**The F1–F8 program is not complete.** Still open: F6-B, F7-B, F8-B and the existing-MP4 migration.
+
+**Truth: UPDATED.**
+- `wall-video-url-reuse` → ACCEPTED, with a scope note on the limitation.
+- `wall-video-faststart` → ACCEPTED, with a note that the acceptance is functional only.
+- New ACCEPTED capabilities at `97b3fdc`: `wall-picture-stage-loading` (F7-A) and `game-cover-thumbnails` (F7-C).
+
+**Product Memory:** REV-0022 "F1–F8 Final Bandwidth Benchmark" saved with Mazen's approval, and the Register and counter updated.
+- **Blocker:** the full validation fails only because of **IDEA-0003**, pushed by another agent in `ae5c64b` / `d7aad91`: missing sections, the save_approval format, a title mismatch and the IDEA counter. It was not touched here.
+- REV-0022 validates in an isolated check: 47 records pass once IDEA-0003 is set aside.
+
+**F8-B:** a feasibility study only, in `docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md`. It uses local isolated copies and a synthetic clip; no TESTING media, upload policy, database, storage or quota changed. Nothing was implemented or deployed.
+
+**STOP for Mazen's separate implementation authorization.**
