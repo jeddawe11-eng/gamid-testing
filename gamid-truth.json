@@ -102,7 +102,7 @@
     {
       "id": "your-gamid-editor-mobile",
       "name": "YOUR GAMID Mobile V2 (Profile Deck)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/account/"
       ],
@@ -129,7 +129,7 @@
           "rule": "Mobile V2 is presentation only: section cards are moved with restoration slots, never recreated, so drafts, form ownership, uploads, save paths, workflow actions, privacy and limits are unchanged. Crossing 1024px in either direction restores the exact DOM for the other layout, keeps every draft and keeps the open editor open. The accepted Desktop editor (1024px and wider) is unchanged. Language behavior is unchanged; the layout uses logical properties so later right-to-left localization is not blocked."
         }
       ],
-      "record": "docs/PROFILE-EDITOR-MOBILE-V2.md; PROJECT_HANDOFF.md §71. Implemented under Mazen's authorization of 2026-10-17 from the 11-board Profile Deck proposal; deployed to TESTING as bceb676c1c64f599c980daa4ddc79be9f5dd0bdf (run 39001472361), awaiting his Android Emulator review. Visual parity audit 2026-10-17: media and summary content aligned with Desktop at checkpoint 15e204d, deployed to TESTING as 4786c5914f7dc8c42deb0d0f3da2f4430d4bd9e0 (run 39007625520). Mazen manually accepted these visual parity fixes on 2026-10-17 with his real account in the Android Emulator (Product Memory REV-0009). The overall capability is not accepted and remains PENDING_ACCEPTANCE."
+      "record": "docs/PROFILE-EDITOR-MOBILE-V2.md; PROJECT_HANDOFF.md §71. Implemented under Mazen's authorization of 2026-10-17 from the 11-board Profile Deck proposal; deployed to TESTING as bceb676c1c64f599c980daa4ddc79be9f5dd0bdf (run 39001472361), awaiting his Android Emulator review. Visual parity audit 2026-10-17: media and summary content aligned with Desktop at checkpoint 15e204d, deployed to TESTING as 4786c5914f7dc8c42deb0d0f3da2f4430d4bd9e0 (run 39007625520). Mazen manually accepted these visual parity fixes on 2026-10-17 with his real account in the Android Emulator (Product Memory REV-0009). Mazen granted final TESTING acceptance of the complete Mobile V2 Profile Deck on 2026-10-20 (REV-0020). This acceptance excludes Mobile Wall Editor and Mobile Wall Visitor, which remain separate unfinished scopes."
     },
     {
       "id": "my-socials",
