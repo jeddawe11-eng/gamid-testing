@@ -83,6 +83,8 @@ Rules:
 
 ## Register
 
+2026-10-20: Mazen gave final TESTING acceptance of Favorite Games Display Style after confirming Save/Reload and Preview; REV-0017 upgraded to PASS. Truth my-gamer-data ACCEPTED; artwork remains TESTING-only pending provider permission.
+
 2026-10-19: Mazen approved saving a scoped visual PASS for Favorite Games Game Covers on TESTING (product e686d7f, run 39261690232): four covers in Classic order, names shown, within the Wall element. REV-0017 records the partial review; save/reload, Preview, Refresh, visitor/privacy and final acceptance remain pending. GamID Truth unchanged.
 
 2026-10-19: Mazen explicitly accepted desktop Background panel visual refinement (product c59a922, TESTING run 39199875542). REV-0016 records scoped acceptance; GamID Truth unchanged because no capability or contract changed. Shapes V2 database parity proposal remains unapplied.
@@ -154,5 +156,5 @@ Rules:
 | REV-0013 | Living Fire V3 - final capability acceptance | COMPLETED | [REV-0013-living-fire-v3-final-acceptance.md](reviews/REV-0013-living-fire-v3-final-acceptance.md) |
 | REV-0014 | Desktop Media & Links and Icon Group UI refinement - Mazen acceptance | COMPLETED | [REV-0014-desktop-media-links-icon-group-acceptance.md](reviews/REV-0014-desktop-media-links-icon-group-acceptance.md) |
 | REV-0015 | Shapes V2 - final capability acceptance | COMPLETED | [REV-0015-shapes-v2-final-acceptance.md](reviews/REV-0015-shapes-v2-final-acceptance.md) |
-| REV-0017 | Favorite Games cover display — desktop Wall Editor visual check | COMPLETED | [REV-0017-favorite-games-cover-visual-check.md](reviews/REV-0017-favorite-games-cover-visual-check.md) |
+| REV-0017 | Favorite Games Display Style — Mazen final TESTING acceptance | COMPLETED | [REV-0017-favorite-games-cover-visual-check.md](reviews/REV-0017-favorite-games-cover-visual-check.md) |
 | REV-0016 | Desktop Background panel redesign - final acceptance | COMPLETED | [REV-0016-desktop-background-final-acceptance.md](reviews/REV-0016-desktop-background-final-acceptance.md) |
