@@ -4296,3 +4296,34 @@ Mazen's task "GAMID — MOBILE WALL EDITOR V2 — Complete Mobile-First Redesign
   10. Open the same Wall on desktop.
 
 **Truth: UPDATED** (`wall-editor-mobile-v2` PENDING_ACCEPTANCE; two phone clauses repointed). Product Memory: no record (none proposed for saving without Mazen's approval). **STOP for Mazen's manual acceptance.**
+
+
+## 102. Public Wall bandwidth baseline (2026-10-21, measurement only)
+
+Mazen's task "GAMID — FULL WALL BANDWIDTH BASELINE AUDIT". Report and the repeatable protocol: `docs/WALL-BANDWIDTH-BASELINE.md`; tools: `scripts/wall-bandwidth/`.
+
+- **Method:** the deployed TESTING visitor page `@black` (stamp `22cbc85`), read anonymously; Playwright + Chrome 155 with CDP network events.
+  - Desktop 1440×900 and Pixel 7 emulation; one throttled mobile session.
+  - Every key scenario ran 3× per profile, with results identical within 0.01 MB.
+- **Baseline:**
+
+| Measure | Desktop | Mobile |
+|---|---:|---:|
+| Initial Wall load, before any interaction | 19.06 MB | 28.5–28.8 MB (stage 2 is on screen at reveal) |
+| All stages | 41.46 MB | 41.46 MB |
+| Full playback / replay / pause / seek | 0 MB | 0 MB (files fully buffered on first view, also throttled) |
+| Warm reload | 2.28 MB (the Intro again) | 2.28 MB |
+| Second visit in a new tab | 32.30 MB (every Wall video again: new signed URLs miss the browser and CDN caches) | 32.30 MB |
+| Complete session | 76.04 MB | 76.04 MB |
+
+  - Video is 77.7% of a cold view and 87.6% of a session.
+- **Largest problems:**
+  1. repeat-visit video re-downloads;
+  2. 30 MB of video per cold view;
+  3. the Intro re-downloaded on every load;
+  4. pictures of every stage loaded up front (incl. 2.01 MB for stage 3);
+  5. 3.56 MB of third-party covers.
+- **Not measured:** Supabase billed Egress / Cached Egress (dashboard only; the browser bytes are split by `cf-cache-status` instead); physical devices; iOS Safari.
+- **Nothing changed:** no product, database, storage, cache or deployment change. Mobile Wall Editor V2 is untouched and still PENDING.
+
+**Truth: NO CHANGE REQUIRED** (measurement findings are not product truth). **STOP: F6–F8 wait for Mazen's approval.**
