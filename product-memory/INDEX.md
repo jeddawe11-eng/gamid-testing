@@ -79,9 +79,11 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0006 |
 | IDEA | Ideas | ideas/ | IDEA-0002 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0020 |
+| REV | Reviews | reviews/ | REV-0021 |
 
 ## Register
+
+2026-10-21: Mazen approved saving Claude Code's measured TESTING Public Wall bandwidth baseline before F6–F8. REV-0021 records actual browser wire bytes, repeated signed-video downloads, caveats and research-only next step. No optimization implemented or accepted; GamID Truth unchanged.
 
 2026-10-20: Mazen granted final TESTING acceptance of YOUR GAMID Mobile V2 Profile Deck. REV-0020 records this acceptance and Truth your-gamid-editor-mobile is ACCEPTED. Mobile Public Profile Visitor V2 was already ACCEPTED; Mobile Wall Editor and Mobile Wall Visitor are explicitly excluded.
 
@@ -167,3 +169,4 @@ Rules:
 | REV-0018 | Global Stages bar and append-only stage creation — Mazen final TESTING acceptance | COMPLETED | [REV-0018-stages-bar-final-acceptance.md](reviews/REV-0018-stages-bar-final-acceptance.md) |
 | REV-0017 | Favorite Games Display Style — Mazen final TESTING acceptance | COMPLETED | [REV-0017-favorite-games-cover-visual-check.md](reviews/REV-0017-favorite-games-cover-visual-check.md) |
 | REV-0016 | Desktop Background panel redesign - final acceptance | COMPLETED | [REV-0016-desktop-background-final-acceptance.md](reviews/REV-0016-desktop-background-final-acceptance.md) |
+| REV-0021 | Public Wall bandwidth baseline before F6–F8 | COMPLETED | [REV-0021-public-wall-bandwidth-baseline.md](reviews/REV-0021-public-wall-bandwidth-baseline.md) |
