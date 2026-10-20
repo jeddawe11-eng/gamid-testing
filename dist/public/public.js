@@ -9,6 +9,7 @@ import { createIntroSourceResolver } from "../account/intro-source.js";
 import { createFlowLayout } from "../flow-layout.js";
 import { normalizeLibrary, renderGamesPreview, createGamesLibrary } from "./public-games.js";
 import { preparePublicWall, createPublicWallView } from "./public-wall.js";
+import { forgetPublishedWallVideos } from "./published-video-url-cache.js";
 import { backHandle, crewIdFromSearch, normalizeCrews, crewWallHref } from "./identity-link.js";
 import { createVisitorNav } from "./visitor-nav.js";
 import { duoSection } from "./public-duo.js";
@@ -356,6 +357,7 @@ async function render() {
   if (visitorNav) document.body.append(visitorNav.element);
   if (visitorNav && fromCrew) getPublicCrewWall(fromCrew).then(view => visitorNav.setBackName(view?.crew_name), () => {});
 
+  if (!identity && !ownerPreview && handle) forgetPublishedWallVideos(handle);   // F6-A: not public (any more): no cached Wall video URL is kept for it
   if (!identity) { loading.hidden = true; notFound.hidden = false; return; }
   introSource = createIntroSourceResolver({
     baseUrl: SUPABASE_URL,
@@ -413,6 +415,7 @@ async function render() {
   const favoritesRequest = hasGames ? getPublicFavoriteGames(identity.gamid_handle).catch(() => []) : Promise.resolve([]);   // Favorite Games (only with public My Games)   // the desktop profile's Member Since / Banner / About Me (in parallel)
   const [built, published] = await Promise.all([buildConfig(identity, loadPublicAvatar), ownerPreview ? Promise.resolve(null) : getPublicWall(identity.gamid_handle).catch(() => null)]);
   const extras = await extrasRequest;
+  if (!ownerPreview && !published?.document) forgetPublishedWallVideos(identity.gamid_handle);   // F6-A: no published, enabled Wall: forget its cached video URLs
   if (published?.document) {
     const host = node("section", "public-wall");
     host.id = "publicWall";

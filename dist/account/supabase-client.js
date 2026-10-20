@@ -172,6 +172,8 @@ export async function signOut() {
     if (token) await request("/auth/v1/logout", { method: "POST", token });
   } finally {
     persist(null);
+    // F6-A: signing out also forgets the anonymous published-Wall video URLs this browser kept (the key of dist/public/published-video-url-cache.js)
+    try { globalThis.localStorage?.removeItem("gamid.testing.published-wall-video-urls.v2"); } catch { /* storage unavailable */ }
   }
 }
 

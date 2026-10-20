@@ -38,7 +38,7 @@ export function visitorSnapshot(view) {
 // live GamID data. A media file that cannot be loaded just shows its placeholder; it never breaks the page. -> { doc, assets, gamid } | null (not a valid Wall)
 export async function preparePublicWall(published, handle, api = defaultApi, videoCache = api === defaultApi ? publishedVideoUrls : null) {
   const doc = published?.document;
-  if (!doc || !validateDocument(doc).valid) return null;
+  if (!doc || !validateDocument(doc).valid) { videoCache?.forget?.(handle); return null; }
   const pictures = new Map(), videos = new Map();
   // Custom fonts the published Wall uses (only these are readable by visitors - storage policy "published wall fonts are readable"), registered on this page
   // before it is painted. Asked for only when the snapshot names one; a font that cannot load leaves its text in the catalog fallback.
@@ -48,6 +48,11 @@ export async function preparePublicWall(published, handle, api = defaultApi, vid
     }))).catch(() => null)
     : null;
   const list = Array.isArray(published.assets) ? published.assets : [];
+  // F6-A: a cached video URL belongs to this Wall, this publication and this asset; the fresh manifest is the only list that may use (or keep) one
+  const publication = typeof published.published_at === "string" ? published.published_at : "";
+  const scoped = list.filter(asset => typeof asset?.asset_id === "string" && typeof asset?.storage_path === "string" && isVideoMime(asset.mime_type))
+    .map(asset => ({ bucket: defaultApi.publicWallBucketFor(asset.storage_path, asset.mime_type), path: asset.storage_path, scope: { handle, publishedAt: publication, assetId: asset.asset_id } }));
+  videoCache?.retain?.(handle, scoped);
   await Promise.all(list.map(async asset => {
     const id = asset?.asset_id, path = asset?.storage_path;
     if (typeof id !== "string" || typeof path !== "string") return;
@@ -55,7 +60,7 @@ export async function preparePublicWall(published, handle, api = defaultApi, vid
       if (isVideoMime(asset.mime_type)) {
         // Only the current server-returned published asset list can consult the anonymous cache.
         const sign = () => api.signPublicWallVideo(path, asset.mime_type);
-        const url = videoCache ? await videoCache.get({ bucket: defaultApi.publicWallBucketFor(path, asset.mime_type), path, sign }) : await sign();
+        const url = videoCache ? await videoCache.get({ bucket: defaultApi.publicWallBucketFor(path, asset.mime_type), path, sign, scope: { handle, publishedAt: publication, assetId: id } }) : await sign();
         if (url) videos.set(id, url);
       }
       else { const url = await api.loadPublicWallPicture(path); if (url) pictures.set(id, url); }
