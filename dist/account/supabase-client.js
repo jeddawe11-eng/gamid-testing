@@ -1,5 +1,6 @@
 import { uploadResumable, STORAGE_QUOTA_MESSAGE } from "./resumable-upload.js";
 import { INTRO_SOURCE_MAX_BYTES } from "./domain.js";
+import { prepareFaststartUpload } from "./mp4-faststart.js";
 
 export const SUPABASE_PROJECT_ID = "upvtrczefcvigxdyuylw";
 export const SUPABASE_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co`;
@@ -361,8 +362,10 @@ export async function uploadWallVideo(file, userId, { onProgress } = {}) {
   await restoreSession();
   if (!session?.access_token) throw new ApiError("Sign in again to add a video.", 401, "unauthenticated");
   const path = `${userId}/${crypto.randomUUID()}.${extension}`;
+  // F8-A: an MP4 whose index comes after its media is uploaded fast start (lossless remux, verified in mp4-faststart.js); anything else goes up exactly as chosen
+  const upload = extension === "mp4" ? (await prepareFaststartUpload(file)).blob : file;
   try {
-    await uploadResumable({ endpoint: STORAGE_UPLOAD_URL, bucketName: "wall-video", objectName: path, contentType: file.type, file, token: session.access_token, apikey: PUBLISHABLE_KEY, onProgress, terminateOnFailure:true });
+    await uploadResumable({ endpoint: STORAGE_UPLOAD_URL, bucketName: "wall-video", objectName: path, contentType: file.type, file: upload, token: session.access_token, apikey: PUBLISHABLE_KEY, onProgress, terminateOnFailure:true });
   } catch (error) {
     if(error?.code==='ACCOUNT_STORAGE_QUOTA_EXCEEDED') throw new ApiError(error.message,413,error.code);
     // gateway refusals keep their own code (an expired or conflicting upload can be retried; an oversized chunk cannot); a dropped connection is a network error
