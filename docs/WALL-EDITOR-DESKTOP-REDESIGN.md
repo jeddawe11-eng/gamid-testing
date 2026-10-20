@@ -195,3 +195,31 @@ Mazen's task "GAMID — MY GAMER DATA — PHASE 1 IMPLEMENTATION": desktop only 
   - 2024 tests (0 failures, 1 pre-existing environment skip);
   - lint and typecheck;
   - 43 browser checks in the local lab with a synthetic GamID, all passing. They cover every choice against the old panel, the accordion, keyboard use, the selected state, Refresh (loading, one read, success, error kept, retry), save / reload, Preview, the visitor view, a legacy collection, and phone / tablet pixels.
+
+## Stages bar (2026-10-20)
+
+Mazen's task "GAMID — MY WALL EDITOR — GLOBAL STAGES BAR + APPEND-ONLY STAGE CREATION", on **all** screen sizes. Product `60ca21c`, deployed `2430282` (run `39382427651`).
+
+- **One stage interface:** `<nav id="stageBar">` sits between the header and the workspace, and is shown and hidden with the workspace (never on the sign-in gate). It holds:
+  - the strip of **Stage 1 … N** tabs (`#stageChips`, `role="tablist"`), with the current tab highlighted;
+  - **+ Add stage**;
+  - **← Stage earlier** / **Stage later →** and **Delete stage**, for the current stage.
+  - The Delete confirmation, unchanged in wording and rules, now opens anchored under the bar.
+  - The element ids are the same as before; the controls moved and are not duplicated.
+  - **Layout** keeps Layers and a hint about Move to stage; Move to stage stays first in Properties.
+- **Add stage appends:** `ops.addStage(session.doc)` with no position puts the new empty stage after the last one, whichever stage is open. The open stage stays open, and the new tab scrolls into view.
+  - It is announced through a polite live region (`#stageStatus`), so no banner shifts the layout.
+  - Reordering is only Stage earlier / later. `ops.addStage`'s optional `afterIndex` remains in the op API, but the editor never uses it.
+- **Keyboard:** the strip is one tab stop. Left / Right / Home / End open the previous, next, first or last stage, and the event stops at the strip, so it never nudges selected elements.
+- **Responsive:**
+  - The bar's fixed height (`--stages`: 3.25rem, 3.3rem on desktop) is subtracted from the workspace, so there is no page overflow and the header, rail and tool sheets are unchanged (pixel-identical at 390 / 768 / 899).
+  - Tabs scroll sideways inside the strip when they do not fit.
+  - Below 600px, Add, earlier / later and Delete show as `+` `←` `→` `✕` (the labels stay as `aria-label`).
+  - Touch targets are at least 2.5rem.
+  - The desktop theme matches the canvas bar (navy / gold / purple).
+- **Validation:**
+  - 2047 tests, including `tests/wall-editor-stages-bar.test.js` (append-only from Stages 1, 2 and 3, wiring, layout), lint and typecheck;
+  - lab browser checks: 40 / 40;
+  - @zshot's real published 3-stage Wall as the draft at 1440 / 1280 / 768 / 390: 16 / 16;
+  - the deployed signed-out editor shows the gate with no bar;
+  - Shapes, Icon Group and Display Style functional checks pass. Pixel comparisons that include the canvas differ, as intended: the canvas area is 52px shorter.

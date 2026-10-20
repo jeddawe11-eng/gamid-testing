@@ -4196,3 +4196,26 @@ Mazen authorized both migrations and editor CSP option A. Details: `docs/MY-GAME
   8. On the phone, the editor is unchanged (Display Style is desktop-only); the visitor Wall shows the covers.
 
 **Truth: UPDATED**: `my-gamer-data` gains contract `gamer-data-display-style`; `gamer-data-first-sections` no longer says "text cards (no artwork)"; checkpoint `e686d7f`; still PENDING_ACCEPTANCE. Product Memory: no record. **STOP for Mazen's final acceptance.**
+
+## 99. Wall editor Stages bar + append-only Add stage (2026-10-20, PENDING acceptance)
+
+Mazen's task "GAMID — MY WALL EDITOR — GLOBAL STAGES BAR + APPEND-ONLY STAGE CREATION". Details: `docs/WALL-EDITOR-DESKTOP-REDESIGN.md` (Stages bar).
+
+- **Product:** `60ca21c`, deployed `2430282` (run `39382427651`), served files exact.
+  - Before deploying, Mazen approved a mechanical validation fix of REV-0017, the record another agent pushed after his Favorite Games acceptance. The fix uses the full checkpoint SHA, repository sources, and a History of IN_PROGRESS → COMPLETED in date order; the content is unchanged.
+- **Bug fixed:** the editor called `ops.addStage(doc, { afterIndex: <open stage> })`, which inserted the new stage after the open one. It now always appends at the end and keeps the open stage open.
+- **Validation:**
+  - 2047 tests;
+  - lab 40 / 40;
+  - @zshot's real 3-stage Wall 16 / 16;
+  - header and tool sheets pixel-identical on phone and tablet.
+- **Pre-existing failures:** none in the automated suite once REV-0017 was fixed.
+- **Mazen's manual review** (signed in, on desktop and on a phone, with a Wall that has 2 or more stages):
+  1. Open https://gamid-testing-static.gamid.workers.dev/wall-editor/. The Stages bar is under the header; switch through every tool and confirm the bar stays.
+  2. Open Stage 1, then + Add stage. The new stage appears last, the others keep their order and content, and Stage 1 stays open. Repeat from a middle stage and from the last stage.
+  3. Use Stage earlier / later; delete the new stage (the confirmation appears); Undo / Redo.
+  4. Select an element, then Properties → Move to stage → another stage.
+  5. Save, reload, Preview; publish if wanted and check `/@<handle>`.
+  6. On the phone, swipe the strip with many stages; + and the stage actions stay reachable; nothing covers the canvas.
+
+**Truth: UPDATED** with new capability `wall-editor-stages-bar` (PENDING_ACCEPTANCE; contracts stages-bar-global, stages-add-appends). Product Memory: REV-0017 validation fix (approved); no new record. **STOP for Mazen's acceptance.**

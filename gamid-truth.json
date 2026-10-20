@@ -493,6 +493,26 @@
       "record": "docs/MY-GAMER-DATA-PHASE2.md; docs/WALL-EDITOR-DESKTOP-REDESIGN.md (My Gamer Data panel); docs/CLASSIC-WALL-IMPORT-AUDIT.md §10-§11; PROJECT_HANDOFF.md §94-§96. Phase 1 product e1a43c2 (run 39203875352); Phase 2 product 12c8b3b with migrations 20261019120000_gamer_data_sections and 20261019120100_wall_gamer_data_binding APPLIED on TESTING 2026-10-19 under Mazen's authorization; deployed fe77637 (run 39254434384), served files exact. Awaiting Mazen's manual acceptance. Favorite Games Display Style: migrations 20261019140000_gamer_data_artwork and 20261019140100_wall_gamer_data_display APPLIED on TESTING 2026-10-19 under Mazen's authorization (with editor CSP option A); deployed e686d7f (runs 39261023816, 39261690232), served files exact; awaiting Mazen's manual acceptance."
     },
     {
+      "id": "wall-editor-stages-bar",
+      "name": "Wall editor Stages bar (global stage navigation, append-only Add stage)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/"
+      ],
+      "contracts": [
+        {
+          "id": "stages-bar-global",
+          "rule": "The Wall editor has one stage interface, a Stages bar directly below the editor header on every screen size (desktop, tablet, phone), visible whenever the editor workspace is shown, whatever tool or element is selected: a strip of Stage 1 .. N tabs with the current stage highlighted (scrolling sideways when they do not fit, never the page), + Add stage, Stage earlier / Stage later and Delete stage for the current stage, Delete always asking for confirmation first. The Layout panel keeps Layers and no stage controls; Move to stage stays the first control in Properties."
+        },
+        {
+          "id": "stages-add-appends",
+          "rule": "Add stage always appends a new empty stage after the last existing stage, whichever stage is open; no existing stage moves, is renumbered relative to the others or changes, and the open stage stays open. Stage order changes only through Stage earlier / Stage later. Add stage is undoable like every edit."
+        }
+      ],
+      "checkpoint": "60ca21ca127b20b1241895e70ec0c889803bef4d",
+      "record": "PROJECT_HANDOFF.md section 99; docs/WALL-EDITOR-DESKTOP-REDESIGN.md (Stages bar). Implemented under Mazen's task of 2026-10-20; product 60ca21c, deployed 2430282 (run 39382427651, which also carries the approved REV-0017 validation fix), served files exact. Awaiting Mazen's manual acceptance."
+    },
+    {
       "id": "custom-wall-fonts",
       "name": "Custom Wall fonts (Upload My Font / My Fonts)",
       "status": "PENDING_ACCEPTANCE",
