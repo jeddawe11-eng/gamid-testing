@@ -495,7 +495,7 @@
     {
       "id": "wall-editor-stages-bar",
       "name": "Wall editor Stages bar (global stage navigation, append-only Add stage)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/wall-editor/"
       ],
