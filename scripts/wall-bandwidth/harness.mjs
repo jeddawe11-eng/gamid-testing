@@ -1,5 +1,5 @@
 // GamID Public Wall bandwidth baseline harness (Playwright + Chrome DevTools Protocol). READ-ONLY: an anonymous visitor of a published Wall on TESTING.
-// Usage: node scripts/wall-bandwidth/harness.mjs <profile desktop|mobile> <runLabel> [--plan full|key|revisit] [--simulate-shared-leases] [--throttle] [--handle black] [--out <dir>] [--playwright <dir with node_modules/playwright>]
+// Usage: node scripts/wall-bandwidth/harness.mjs <profile desktop|mobile> <runLabel> [--plan full|key|revisit|restart] [--simulate-shared-leases] [--throttle] [--handle black] [--out <dir>] [--playwright <dir with node_modules/playwright>]
 // Protocol and the 2026-10-20 baseline: docs/WALL-BANDWIDTH-BASELINE.md.
 // Output: <outDir>/<profile>-<run>.json - every network request (sanitized: no query strings, no tokens, storage object paths hashed), per-phase byte attribution,
 // video element telemetry and page timing. Bytes = CDP encodedDataLength (bytes received from the network incl. headers); cache reads are kept separate.
@@ -44,7 +44,8 @@ const pick = headers => { const out = {}; for (const [k, v] of Object.entries(he
 
 const userDataDir = mkdtempSync(join(tmpdir(), "gamid-bw-"));   // empty profile = cold HTTP cache
 const device = profile === "mobile" ? { ...devices["Pixel 7"] } : { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 };
-const ctx = await chromium.launchPersistentContext(userDataDir, { channel: "chrome", headless: true, ...device });
+const launch = () => chromium.launchPersistentContext(userDataDir, { channel: "chrome", headless: true, ...device });
+let ctx = await launch();
 const browserVersion = ctx.browser()?.version() ?? null;
 const pages = [];
 const requests = new Map();   // key: `${tab}:${requestId}`
@@ -184,6 +185,17 @@ try {
     await page.close();
     report.loads.secondVisit = await openWall(page2, "11-second-visit");
     setPhase("11-second-visit-play"); report.playback.secondVisit = []; for (let i = 1; i <= report.stages; i++) report.playback.secondVisit.push(await playStage(page2, i, { cap: 90 }));
+  } else if (plan === "restart") {
+    // restart plan: cold load + every stage, then the browser is CLOSED and reopened on the same profile (disk cache + localStorage kept) + every stage
+    setPhase("4-stages"); for (let i = 1; i <= report.stages; i++) { await scrollToStage(page, i); await wait(page, 8000); }
+    report.videoEvents0 = await page.evaluate(() => window.__bw?.events ?? []).catch(() => []);
+    await ctx.close(); pages.length = 0;
+    ctx = await launch();
+    const page2 = await ctx.newPage(); pages.push(page2);
+    await page2.addInitScript(TELEMETRY);
+    await instrument(page2, "tab2");
+    report.loads.secondVisit = await openWall(page2, "11-second-visit");
+    setPhase("11-second-visit-stages"); for (let i = 1; i <= report.stages; i++) { await scrollToStage(page2, i); await wait(page2, 8000); }
   } else if (plan === "revisit") {
     // revisit plan: cold load + every stage, then a NEW tab of the same profile + every stage (optionally carrying the F4 URL cache across tabs)
     setPhase("4-stages"); for (let i = 1; i <= report.stages; i++) { await scrollToStage(page, i); await wait(page, 8000); }

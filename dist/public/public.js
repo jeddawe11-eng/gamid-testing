@@ -343,7 +343,7 @@ async function render() {
 
   let identity = null;
   if (handle) {
-    try { identity = await getPublicIdentity(handle); } catch { identity = null; }
+    try { identity = await getPublicIdentity(handle); } catch { identity = null; identityLookupFailed = true; }
   } else if (qrToken) {
     try { identity = await getPublicIdentityByQr(qrToken); } catch { identity = null; }
   }
@@ -357,7 +357,7 @@ async function render() {
   if (visitorNav) document.body.append(visitorNav.element);
   if (visitorNav && fromCrew) getPublicCrewWall(fromCrew).then(view => visitorNav.setBackName(view?.crew_name), () => {});
 
-  if (!identity && !ownerPreview && handle) forgetPublishedWallVideos(handle);   // F6-A: not public (any more): no cached Wall video URL is kept for it
+  if (!identity && !identityLookupFailed && !ownerPreview && handle) forgetPublishedWallVideos(handle);   // F6-A: not public (any more): no cached Wall video URL is kept for it
   if (!identity) { loading.hidden = true; notFound.hidden = false; return; }
   introSource = createIntroSourceResolver({
     baseUrl: SUPABASE_URL,
@@ -413,9 +413,10 @@ async function render() {
   // the published Wall is looked up alongside the Intro config (one anonymous call); its media and data load while the Intro plays
   const extrasRequest = getPublicProfileExtras(identity.gamid_handle).catch(() => null);
   const favoritesRequest = hasGames ? getPublicFavoriteGames(identity.gamid_handle).catch(() => []) : Promise.resolve([]);   // Favorite Games (only with public My Games)   // the desktop profile's Member Since / Banner / About Me (in parallel)
-  const [built, published] = await Promise.all([buildConfig(identity, loadPublicAvatar), ownerPreview ? Promise.resolve(null) : getPublicWall(identity.gamid_handle).catch(() => null)]);
+  let wallLookupFailed = false;   // F6-A: as above - a failed get_public_wall never forgets cached URLs
+  const [built, published] = await Promise.all([buildConfig(identity, loadPublicAvatar), ownerPreview ? Promise.resolve(null) : getPublicWall(identity.gamid_handle).catch(() => { wallLookupFailed = true; return null; })]);
   const extras = await extrasRequest;
-  if (!ownerPreview && !published?.document) forgetPublishedWallVideos(identity.gamid_handle);   // F6-A: no published, enabled Wall: forget its cached video URLs
+  if (!ownerPreview && !wallLookupFailed && !published?.document) forgetPublishedWallVideos(identity.gamid_handle);   // F6-A: no published, enabled Wall: forget its cached video URLs
   if (published?.document) {
     const host = node("section", "public-wall");
     host.id = "publicWall";

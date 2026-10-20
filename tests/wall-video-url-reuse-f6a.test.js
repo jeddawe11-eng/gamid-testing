@@ -155,8 +155,10 @@ test("F6-A the per-tab F4 cache is removed when seen; sign-out clears the shared
 
 test("F6-A the public page forgets a Wall that is not public / not published, and keeps owner signing out of the cache", () => {
   const page = read("dist/public/public.js");
-  assert.match(page, /if \(!identity && !ownerPreview && handle\) forgetPublishedWallVideos\(handle\);/);
-  assert.match(page, /if \(!ownerPreview && !published\?\.document\) forgetPublishedWallVideos\(identity\.gamid_handle\);/);
+  assert.match(page, /if \(!identity && !identityLookupFailed && !ownerPreview && handle\) forgetPublishedWallVideos\(handle\);/);
+  assert.match(page, /catch \{ identity = null; identityLookupFailed = true; \}/, "a failed identity lookup is not an answer");
+  assert.match(page, /if \(!ownerPreview && !wallLookupFailed && !published\?\.document\) forgetPublishedWallVideos\(identity\.gamid_handle\);/);
+  assert.match(page, /getPublicWall\(identity\.gamid_handle\)\.catch\(\(\) => \{ wallLookupFailed = true; return null; \}\)/, "a failed / aborted Wall lookup never forgets");
   const wall = read("dist/public/public-wall.js");
   assert.match(wall, /videoCache\?\.retain\?\.\(handle, scoped\);/);
   assert.match(wall, /if \(!doc \|\| !validateDocument\(doc\)\.valid\) \{ videoCache\?\.forget\?\.\(handle\); return null; \}/);

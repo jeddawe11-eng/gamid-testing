@@ -137,7 +137,7 @@ test("V2 /@handle: Intro -> Published Wall when one exists (it replaces the prof
   // the accepted handshake lines are unchanged
   for (const line of ['replayButton.hidden = !hasIntro || event.data.state !== "profile";', 'sectionsPanel.hidden = !hasSections || event.data.state !== "profile";', 'gamesBlock.hidden = !hasGames || event.data.state !== "profile";', 'layout.setProfileShowing(event.data.state === "profile");']) assert.ok(page.includes(line), line);
   assert.match(page, /if \(wall\) showWall\(event\.data\.state\);/, "the Wall only exists once a published one was found");
-  assert.match(page, /const \[built, published\] = await Promise\.all\(\[buildConfig\(identity, loadPublicAvatar\), ownerPreview \? Promise\.resolve\(null\) : getPublicWall\(identity\.gamid_handle\)\.catch\(\(\) => null\)\]\);/, "owner Classic Preview bypasses Wall; a visitor lookup failure still falls back to the Public Profile");
+  assert.match(page, /const \[built, published\] = await Promise\.all\(\[buildConfig\(identity, loadPublicAvatar\), ownerPreview \? Promise\.resolve\(null\) : getPublicWall\(identity\.gamid_handle\)\.catch\(\(\) => \{ wallLookupFailed = true; return null; \}\)\]\);/, "owner Classic Preview bypasses Wall; a visitor lookup failure still falls back to the Public Profile (F6-A only notes the failure, so it never forgets cached video URLs)");
   assert.match(page, /if \(published\?\.document\) \{/);
   assert.match(page, /if \(state === "profile" \|\| state === "transitioning"\) \{\s+sectionsPanel\.hidden = true; gamesBlock\.hidden = true;/);
   assert.match(page, /if \(!wall\.showing\) \{ root\.classList\.add\("is-public-wall"\); wall\.show\(\); scrollTo\(0, 0\); \}/);
