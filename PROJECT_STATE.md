@@ -84,7 +84,8 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `22cbc85b86b8f2eddf4cfb0c1a077e5f59c75b5e`** (successful run `39440094448`, Mobile Wall Editor V2, `PROJECT_HANDOFF.md` §101).
+- **TESTING serves `8ebacef644bfd06b658130c74eba111127bf2fec`** (successful run `39475915468`, F6-A, `PROJECT_HANDOFF.md` §104).
+- **Previously served `22cbc85b86b8f2eddf4cfb0c1a077e5f59c75b5e`** (successful run `39440094448`, Mobile Wall Editor V2, `PROJECT_HANDOFF.md` §101).
 - **Previously served `b2352fee4f0fb4df5c119ea07ad89b3ad882b9bc`** (successful run `39412009748`, Wall editor theme consistency pass, `PROJECT_HANDOFF.md` §100).
 - **Previously served `24302822fd9d1c3701c7ccd00105f707f55773dc`** (successful run `39382427651`, Wall editor Stages bar, `PROJECT_HANDOFF.md` §99).
 - **Previously served `e686d7f39a8040cf972d31b6c38dfd00660127d9`** (successful run `39261690232`, Favorite Games Display Style, `PROJECT_HANDOFF.md` §98).
@@ -143,7 +144,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-21, F6–F8 plan):** research and planning only (§103, `docs/WALL-BANDWIDTH-F6-F8-PLAN.md`). Recommended order: F8-A, F6-A, F6-B, F7-A/C, F7-B, F8-B (optional). Nothing implemented or deployed; Truth unchanged. **Next:** Mazen's decision on the plan; Mobile Wall Editor V2 acceptance still pending.
+**Latest continuation (2026-10-21, F6-A + Product Memory sync):** F6-A (cross-tab Wall video URL reuse) is on TESTING, final head `8ebacef` (run `39475915468`), product `ca2d6f1` + fixes `a788607` / `5d599b4` (§104, `docs/WALL-VIDEO-URL-REUSE-F6A.md`). Truth `wall-video-url-reuse` PENDING_ACCEPTANCE. REV-0021 synced. F8-A paused by Mazen (storage contract + Cloud Run access). **Next:** Mazen's acceptance of F6-A; Mobile Wall Editor V2 acceptance still pending; F6-B / F7 / F8-B not authorized.
+
+**Previous continuation (2026-10-21, F6–F8 plan):** research and planning only (§103, `docs/WALL-BANDWIDTH-F6-F8-PLAN.md`). Recommended order: F8-A, F6-A, F6-B, F7-A/C, F7-B, F8-B (optional). Nothing implemented or deployed; Truth unchanged. **Next:** Mazen's decision on the plan; Mobile Wall Editor V2 acceptance still pending.
 
 **Previous continuation (2026-10-21, Public Wall bandwidth baseline):** measurement only (§102, `docs/WALL-BANDWIDTH-BASELINE.md`, tools `scripts/wall-bandwidth/`). Baseline on TESTING `22cbc85` with @black: 41.46 MB to view all stages, 32.30 MB per new-tab revisit, 2.28 MB per reload. Nothing deployed; Truth unchanged. **Next:** Mazen's approval before any F6 / F7 / F8 work; Mobile Wall Editor V2 manual acceptance is still pending (below).
 

@@ -4351,3 +4351,34 @@ Mazen's task "GAMID — F6–F8 Engineering Research & Optimization Plan". The p
   - lossy quality thresholds.
 
 **Truth: NO CHANGE REQUIRED** (research only). **STOP: no optimization starts without Mazen's explicit approval.**
+
+## 104. F6-A cross-tab Wall video URL reuse + Product Memory sync (2026-10-21, PENDING Mazen's acceptance)
+
+Mazen's task "GAMID — AUTHORIZED F8-A + F6-A IMPLEMENTATION AND PRODUCT MEMORY SYNC". Details: `docs/WALL-VIDEO-URL-REUSE-F6A.md`.
+
+- **Product Memory sync:**
+  - REV-0021 (saved by ChatGPT on `feature/product-memory-wall-bandwidth-baseline`, `19dc0f2`) was cherry-picked here as `2f4e5e7` + `41e60aa`;
+  - the mechanical full-SHA fix approved by Mazen is `662271a`;
+  - 46 records validate.
+- **F6-A:**
+  - product `ca2d6f1`, with fixes `a788607` and `5d599b4`, both found by the live security validation;
+  - deployed: final head `8ebacef` (run `39475915468`), earlier `a142afe` (`39465524147`) and `104e393` (`39472709013`);
+  - the four changed files are served byte-identical.
+  - Published-Wall video leases are reused across tabs and restarts of one browser:
+    - scoped to Wall + publication + asset + object;
+    - forgotten when the fresh manifest drops them or the Wall / GamID is no longer public;
+    - cleared on sign-out;
+    - lifetimes unchanged (6 h server lease, 30 min margin).
+- **Measured** (deployed TESTING, @black):
+  - new-tab revisit 32.30 → **2.28 MB** on desktop (3 runs) and 2.28 / 8.13 MB on mobile (2 runs);
+  - browser-restart revisit 2.29 MB;
+  - complete session 76.04 → **46.02 MB** (−39.5%);
+  - 0 video leases on a revisit;
+  - the intermittent mobile residual is the moov-at-end MP4 (F8-A's target).
+- **Security:** 15 live scenarios pass (`scripts/wall-bandwidth/f6a-security.mjs`); unit tests 10 + 7.
+- **F8-A paused by Mazen's decision.** Two blockers:
+  - a playback copy would double-count in Global Usage, which counts every object under `<uid>/`, so it needs a storage contract;
+  - a worker redeploy needs Google Cloud access that this machine lacks.
+- **Not started:** F6-B, F7, F8-B.
+
+**Truth: UPDATED** (new `wall-video-url-reuse` PENDING_ACCEPTANCE at `5d599b4`). Product Memory: REV-0021 synced; a DEC proposal (F8-A paused) awaits Mazen. **STOP for Mazen's manual acceptance.**
