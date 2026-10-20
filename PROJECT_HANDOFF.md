@@ -4382,3 +4382,46 @@ Mazen's task "GAMID — AUTHORIZED F8-A + F6-A IMPLEMENTATION AND PRODUCT MEMORY
 - **Not started:** F6-B, F7, F8-B.
 
 **Truth: UPDATED** (new `wall-video-url-reuse` PENDING_ACCEPTANCE at `5d599b4`). Product Memory: REV-0021 synced; a DEC proposal (F8-A paused) awaits Mazen. **STOP for Mazen's manual acceptance.**
+
+## 105. F7-A stage-aware Wall pictures + F7-C same-art cover thumbnails; phase-2 resource audit (2026-10-21, PENDING Mazen's final acceptance)
+
+Mazen's task "Continue GamID Wall bandwidth optimization on TESTING only". It included his mid-task clarification:
+- audit **every** Public Wall and Intro resource;
+- any optimization that changes visual quality, storage accounting, an approved contract or infrastructure waits for his approval;
+- comprehensive acceptance testing waits for the final phase.
+
+Details: `docs/WALL-PICTURES-COVERS-F7.md` (implementation) and `docs/WALL-BANDWIDTH-PHASE2-RESEARCH.md` (audit + decisions).
+
+- **F7-C design choice:** Mazen chose the provider's same-art thumbnail via `srcset` over the WebP filter, because the filter could pick different artwork.
+- **Product:** `97b3fdc5dc6e4725debf8a21154d82210499851e`, deployed (run `39486918858`); the served changed files are byte-identical to the commit.
+  - **F7-A:** on the visitor page only, pictures used only by stages 2+ are read when their stage comes within one viewport.
+    - Stage 1 and the whole-Wall background still load with the Intro.
+    - Frames are filled in place, with no repaint.
+    - Unchanged: the read, the RLS check, the manifest rule, F3 gating, and the editor / Preview.
+  - **F7-C:** Favorite Games covers offer `thumb/<hash>.jpg` (267 px, the same artwork) beside the 600 px grid.
+    - The browser chooses by displayed width × DPR.
+    - A failing thumbnail falls back to the full image once.
+- **Measured live (@black; not the final benchmark):**
+  - desktop DPR 1: covers 3.56 → 0.30 MB, and the stage-3 GIF (2.01 MB) is deferred until stage 3 is near;
+  - DPR 2 keeps the full covers;
+  - on mobile, stage 3 is within the margin at reveal, so nothing is deferred on this short Wall;
+  - no page errors; all split pieces drawn.
+- **Tests:**
+  - new: 5 F7-A + 4 F7-C;
+  - full suite: 2074 tests, 2073 pass, 0 fail, 1 skipped;
+  - lint and typecheck pass;
+  - F6-A live security regression after F7 (`scripts/wall-bandwidth/f6a-security.mjs`): see the completion report of this task.
+- **Audit:** every resource, with bytes, caching and an opportunity, in research §1.
+  - Fire effects and text effects are procedural: about 12 KB of JS, no media.
+  - The remaining large items are all media decisions.
+- **Pending decisions (research only, not implemented):**
+  - **F8-A:** recommended option A, a lossless in-place faststart remux.
+    - Stream hashes are verified before the original is replaced; audio is kept.
+    - It needs Mazen's OK because the file bytes change.
+    - Deploying it needs Google Cloud access.
+  - **F6-B:** Cloudflare's CDN terms restrict video not hosted on Cloudflare (Stream / Images / R2), so the planned Worker proxy is not recommended.
+    - The terms-clean route is an R2-hosted Intro, a separate infrastructure decision.
+    - The existing crawler `intro.webm` route should be reviewed against the same terms.
+- **Waiting for approval:** F7-B, F8-B, avatar display copies and JS bundling / immutable URLs.
+
+**Truth: NO CHANGE REQUIRED** (delivery optimizations only). Product Memory: no writes; the earlier DEC proposal (F8-A paused) still awaits Mazen. **STOP for Mazen's decisions.**

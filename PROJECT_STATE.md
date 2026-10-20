@@ -84,7 +84,8 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `8ebacef644bfd06b658130c74eba111127bf2fec`** (successful run `39475915468`, F6-A, `PROJECT_HANDOFF.md` §104).
+- **TESTING serves `97b3fdc5dc6e4725debf8a21154d82210499851e`** (successful run `39486918858`, F7-A stage-aware Wall pictures + F7-C same-art cover thumbnails, `PROJECT_HANDOFF.md` §105).
+- **Previously served `8ebacef644bfd06b658130c74eba111127bf2fec`** (successful run `39475915468`, F6-A, `PROJECT_HANDOFF.md` §104).
 - **Previously served `22cbc85b86b8f2eddf4cfb0c1a077e5f59c75b5e`** (successful run `39440094448`, Mobile Wall Editor V2, `PROJECT_HANDOFF.md` §101).
 - **Previously served `b2352fee4f0fb4df5c119ea07ad89b3ad882b9bc`** (successful run `39412009748`, Wall editor theme consistency pass, `PROJECT_HANDOFF.md` §100).
 - **Previously served `24302822fd9d1c3701c7ccd00105f707f55773dc`** (successful run `39382427651`, Wall editor Stages bar, `PROJECT_HANDOFF.md` §99).
@@ -144,7 +145,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-21, F6-A + Product Memory sync):** F6-A (cross-tab Wall video URL reuse) is on TESTING, final head `8ebacef` (run `39475915468`), product `ca2d6f1` + fixes `a788607` / `5d599b4` (§104, `docs/WALL-VIDEO-URL-REUSE-F6A.md`). Truth `wall-video-url-reuse` PENDING_ACCEPTANCE. REV-0021 synced. F8-A paused by Mazen (storage contract + Cloud Run access). **Next:** Mazen's acceptance of F6-A; Mobile Wall Editor V2 acceptance still pending; F6-B / F7 / F8-B not authorized.
+**Latest continuation (2026-10-21, F7-A + F7-C + phase-2 research):** F7-A (pictures used only by later stages load when their stage comes near) and F7-C (Favorite Games covers use the provider's same-art thumbnail via `srcset`) are on TESTING at `97b3fdc` (run `39486918858`; §105, `docs/WALL-PICTURES-COVERS-F7.md`). Truth unchanged (`wall-video-url-reuse` still PENDING_ACCEPTANCE). Full Wall + Intro resource audit and the two pending decisions (F8-A: one losslessly remuxed faststart file vs original + playback copy; F6-B: Cloudflare terms conflict) are in `docs/WALL-BANDWIDTH-PHASE2-RESEARCH.md`. **Next:** Mazen's decisions on F8-A and F6-B; F7-B, F8-B, avatar display copies and JS delivery wait for his approval; the comprehensive bandwidth benchmark, cross-browser review and his manual acceptance are reserved for the final optimization phase; Mobile Wall Editor V2 acceptance still pending.
+
+**Previous continuation (2026-10-21, F6-A + Product Memory sync):** F6-A (cross-tab Wall video URL reuse) is on TESTING, final head `8ebacef` (run `39475915468`), product `ca2d6f1` + fixes `a788607` / `5d599b4` (§104, `docs/WALL-VIDEO-URL-REUSE-F6A.md`). Truth `wall-video-url-reuse` PENDING_ACCEPTANCE. REV-0021 synced. F8-A paused by Mazen (storage contract + Cloud Run access). **Next:** Mazen's acceptance of F6-A; Mobile Wall Editor V2 acceptance still pending; F6-B / F7 / F8-B not authorized.
 
 **Previous continuation (2026-10-21, F6–F8 plan):** research and planning only (§103, `docs/WALL-BANDWIDTH-F6-F8-PLAN.md`). Recommended order: F8-A, F6-A, F6-B, F7-A/C, F7-B, F8-B (optional). Nothing implemented or deployed; Truth unchanged. **Next:** Mazen's decision on the plan; Mobile Wall Editor V2 acceptance still pending.
 
