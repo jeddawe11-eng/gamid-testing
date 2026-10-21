@@ -151,6 +151,10 @@ if (command === "encode") {
 } else if (command === "f2-smoke") {
   const { smokeIntroDerivative } = await import("./intro-f2-smoke.mjs");
   console.log(JSON.stringify(await smokeIntroDerivative(encodeD3)));
+} else if (command === "rendition-smoke") {
+  // F8-B1: synthetic, in-image only (no credentials, Storage or user data); proves the VMAF-only binary and the real gate inside the deployed image
+  const { renditionSmoke } = await import("./wall-rendition.mjs");
+  console.log(JSON.stringify(await renditionSmoke()));
 } else if (command === "intro-timing-smoke") {
   const { smokeIntroFrameTiming } = await import("./intro-timing-smoke.mjs");
   const {url,key}=environment();

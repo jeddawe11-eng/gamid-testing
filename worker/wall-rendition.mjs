@@ -74,8 +74,11 @@ export function renditionArgs(input, output, plan) {
   ];
 }
 
+// Mazen's choice (2026-10-21): VMAF is measured with a SEPARATE pinned static FFmpeg that has libvmaf (worker/Dockerfile, GAMID_VMAF_FFMPEG); every encode
+// (Intro F2, HEVC conversion, these renditions) keeps the image's Debian FFmpeg. Without that binary the gate cannot run, so nothing becomes READY.
+export const VMAF_FFMPEG = process.env.GAMID_VMAF_FFMPEG || "ffmpeg";
 export async function hasVmaf() {
-  try { const { stdout } = await run("ffmpeg", ["-hide_banner", "-filters"], { maxBuffer: 4 * 1024 * 1024 }); return /\slibvmaf\s/.test(stdout); } catch { return false; }
+  try { const { stdout } = await run(VMAF_FFMPEG, ["-hide_banner", "-filters"], { maxBuffer: 4 * 1024 * 1024 }); return /\slibvmaf\s/.test(stdout); } catch { return false; }
 }
 
 const filterPath = p => p.replace(/\\/g, "/").replace(/:/g, "\\:");
@@ -83,7 +86,7 @@ const filterPath = p => p.replace(/\\/g, "/").replace(/:/g, "\\:");
 // frames on real files - F8-B study). -> { mean, p5, frames }
 export async function measureVmaf(source, rendition, plan, dir) {
   const [tw, th] = plan.target, fps = plan.fps.toFixed(6), log = join(dir, "vmaf.json");
-  await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-nostdin", "-i", rendition, "-i", source, "-lavfi",
+  await run(VMAF_FFMPEG, ["-hide_banner", "-loglevel", "error", "-nostdin", "-i", rendition, "-i", source, "-lavfi",
     `[0:v]setsar=1,format=yuv420p,settb=AVTB,setpts=N/(${fps}*TB)[d];[1:v]scale=${tw}:${th}:flags=lanczos,setsar=1,format=yuv420p,settb=AVTB,setpts=N/(${fps}*TB)[r];[d][r]libvmaf=log_fmt=json:log_path='${filterPath(log)}':n_threads=${RENDITION.threads}:shortest=1`,
     "-f", "null", "-"], { maxBuffer: 16 * 1024 * 1024 });
   const scores = JSON.parse(await readFile(log, "utf8")).frames.map(f => f.metrics.vmaf).sort((a, b) => a - b);
@@ -193,6 +196,30 @@ export async function processOneWallVideoRendition(backend, { fetchImpl = fetch,
     try { await rm(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); } catch { /* the container's /tmp is discarded with it */ }
     try { await sweepWallVideoRenditions(backend, { fetchImpl, call }); } catch { /* the next run sweeps */ }
   }
+}
+
+// In-image smoke (no credentials, no Storage, no user data): a synthetic 3 s 4K30 clip with AAC audio through the REAL plan -> encode -> validation -> audio
+// hashes -> VMAF -> gate, with the image's encoder and the VMAF-only binary. -> { ok, vmafAvailable, target, sizes, vmaf, audioIdentical, gate, encodeMs }
+export async function renditionSmoke() {
+  const dir = await mkdtemp(join(tmpdir(), "gamid-rendition-smoke-"));
+  try {
+    const input = join(dir, "source.mp4"), output = join(dir, "rendition.mp4");
+    const vmafAvailable = await hasVmaf();
+    await run("ffmpeg", ["-hide_banner", "-loglevel", "error", "-nostdin", "-f", "lavfi", "-i", "testsrc2=size=3840x2160:rate=30,gblur=sigma=6", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000", "-t", "3",
+      "-c:v", "libx264", "-preset", "ultrafast", "-crf", "12", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", input], { maxBuffer: 4 * 1024 * 1024 });
+    const plan = renditionPlan(await probeMedia(input));
+    if (!plan.ok) return { ok: false, vmafAvailable, code: plan.code };
+    const started = performance.now();
+    await renditionTools.encode(input, output, plan);
+    const encodeMs = Math.round(performance.now() - started);
+    validateRendition(plan, await probeMedia(output), await topLevelBoxes(output));
+    const [before, after] = [await audioHashes(input), await audioHashes(output)];
+    const audioIdentical = before.length === 1 && after.length === 1 && before[0] === after[0];
+    const vmaf = vmafAvailable ? await measureVmaf(input, output, plan, dir) : null;
+    const sizes = [(await stat(input)).size, (await stat(output)).size];
+    const gate = vmaf ? renditionGate({ vmaf, bytes: sizes[1], sourceBytes: sizes[0], frames: vmaf.frames, plan }) : { ok: false, code: "VMAF_UNAVAILABLE" };
+    return { ok: vmafAvailable && audioIdentical && gate.ok === true, renditionSmoke: true, vmafAvailable, target: plan.target, sizes, vmaf, audioIdentical, gate, encodeMs };
+  } finally { await rm(dir, { recursive: true, force: true }); }
 }
 
 // Deletes exactly what the database's storage-driven sweep lists: rendition objects that are not a live READY rendition nor the current attempt.

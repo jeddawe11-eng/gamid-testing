@@ -7,6 +7,7 @@
 !worker/intro-timing-smoke.mjs
 !worker/intro-dispatcher.mjs
 !worker/wall-video.mjs
+!worker/wall-rendition.mjs
 !worker/usage-upload.mjs
 !worker/usage-smoke.mjs
 !worker/cloud-run/
