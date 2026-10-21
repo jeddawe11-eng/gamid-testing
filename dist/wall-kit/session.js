@@ -169,6 +169,22 @@ export function createEditorSession({ persistence, onChange = () => {}, now = ()
     },
     // After an error the owner can try again; the document is untouched.
     retry() { if (state.status === "error") { setStatus(api.dirty ? "unsaved" : "saved"); } },
+    // Universal deletion: a deleted resource's references were removed on the server (the database applies the SAME pure transform to the saved draft, which
+    // becomes `revision`; null = the saved draft did not use it and keeps its revision). The editor applies `transform` to its document, to its saved baseline and to
+    // every undo / redo snapshot: the owner's other unsaved edits stay exactly as they were (still unsaved - nothing is saved on their behalf), "Saved" stays
+    // "Saved", and no state can bring the deleted reference back. The baseline is transformed here rather than copied from the server, whose JSON key order differs.
+    rebase(revision, transform) {
+      if (typeof transform !== "function" || (revision !== null && !Number.isInteger(revision))) return false;
+      state.doc = transform(state.doc);
+      history.rewrite(transform);
+      if (state.savedJson !== null) state.savedJson = snapshot(transform(JSON.parse(state.savedJson)));
+      if (revision !== null) state.revision = revision;
+      lastCoalesce = { key: null, at: 0 };
+      keepSelectionValid();
+      refreshStatus();
+      emit();
+      return true;
+    },
   };
   return api;
 }

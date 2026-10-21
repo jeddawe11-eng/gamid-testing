@@ -4611,3 +4611,27 @@ Mazen ran `worker/cloud-run/deploy-f8b1-testing.sh 3bb2871` in Cloud Shell: buil
 **Acceptance.** Mazen explicitly ACCEPTED F8-B1 on TESTING on 2026-10-21: final acceptance of the implemented scope. Further improvements are separate future tasks. The known limitations are listed in the doc's §12.
 
 **Truth: UPDATED** — `wall-video-renditions` ACCEPTED (checkpoint `3bb2871`). Product Memory: DEC-0007 and REV-0023 proposed, not saved. Not merged; TESTING serves `feature/f8b1-video-renditions` (`764e3b8`).
+## 113. Universal Delete UX & Reference Cleanup (2026-10-21, implemented on a branch, NOT deployed)
+
+Mazen's task "GAMID — UNIVERSAL DELETE UX & REFERENCE CLEANUP". Branch `feature/universal-delete-ux`, from `1f7d203`. Full record: `docs/UNIVERSAL-DELETE-UX.md`.
+
+**What changed:**
+- **One rule** for every Wall asset (image, GIF or video) and custom font, in Assets, the Background panel (desktop and phone) and My Fonts: unused → deleted at once; in use → one modal confirmation; confirm → deleted, with references resolved; cancel → nothing.
+- **Server side:** a new additive migration, `20261022100000_universal_delete_resolve.sql`. It provides two owner RPCs that delete the resource and, in ONE transaction, strip it from the saved draft (at the editor's revision) and the published snapshot. On a conflict, an invalid result or an unknown reference place, everything rolls back.
+- **Editor:** it follows the server's revision through `session.rebase`. Unsaved edits are kept, and undo and redo are rewritten.
+
+**Validation:**
+- tests: 22 new (9 DB on PGlite, 13 editor and client);
+- the guard tests that pinned the superseded refusal rule were deliberately updated;
+- full suite 2121 tests, 0 failures; lint and typecheck clean;
+- the dialog layout was checked at 1280×800, 375×812 and 740×360.
+
+**Exceptions for Mazen:**
+- stage delete still always confirms (`stages-bar-global`);
+- there is no orphan cleanup for Wall media whose file removal fails after the row is deleted (an existing gap; a design is ready, but it is not built without approval);
+- the published Wall changes immediately on a confirmed deletion;
+- the old refusing RPCs remain for cached pages.
+
+**Deployment** (separately authorized): apply the migration on TESTING, then deploy the site from the branch. No Edge Function or infrastructure changes.
+
+GamID Truth: NO CHANGE REQUIRED yet. TESTING still runs the refusing behaviour that `custom-font-delete` describes; the replacement text is prepared in the doc's §8 for the deployment task. Product Memory: PROPOSED (DEC-0008, ISS-0015), not saved. Not merged; TESTING unchanged (`764e3b8`).

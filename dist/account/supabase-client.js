@@ -398,13 +398,6 @@ export async function loadWallAsset(path) {
   return URL.createObjectURL(blob);
 }
 
-export async function deleteWallAsset(assetId) {
-  const rows = await rpc("delete_my_wall_asset", { candidate_asset_id: assetId });
-  const path = rows?.[0]?.storage_path;
-  if (path) { await request(`/functions/v1/usage-upload/object/${wallBucketFor(path)}/${path}`, { method: "DELETE", token: session?.access_token }); }
-  return true;
-}
-
 // ---- Custom Wall fonts (owner; 2026-10-18) --------------------------------------------------------------------------------------------------------
 // A WOFF2 the owner uploads goes ONLY through the usage-upload gateway, which validates its structure, checks that its SHA-256 is the file name
 // (<uid>/fonts/<sha256>.woff2 - one object per font per account), reserves quota, enforces the 3-font limit in the database and registers it. The checks here are
@@ -437,12 +430,33 @@ export async function uploadWallFont(file, userId, { name = "", licenseAccepted 
   });
   return result?.font ? { ...result.font, converted: Boolean(result.converted), format: result.format ?? format } : null;
 }
-// The owner RPC refuses while the saved draft or a published Wall uses the font; only then is the stored file removed through the gateway.
-export async function deleteWallFont(fontId) {
-  const path = await rpc("delete_my_wall_font", { candidate_font_id: fontId });
-  if (typeof path === "string" && path) await request(`/functions/v1/usage-upload/object/wall-fonts/${encodeStoragePath(path)}`, { method: "DELETE", token: session?.access_token });
-  return true;
+// (Deleting a Wall asset or font: deleteWallAssetResolving / deleteWallFontResolving below.)
+
+// ---- Universal deletion (Mazen's approved contract 2026-10-21; migration 20261022100000_universal_delete_resolve.sql) --------------------------------------
+// One call per resource: `resolve: false` deletes it only when no saved draft or published Wall uses it (otherwise nothing changes and the answer says where it
+// is used); `resolve: true` - after the owner confirmed - deletes it and removes every reference from the saved draft (at `expectedRevision` only) and the
+// published Wall in ONE transaction. The stored file then goes through the usage gateway; the database row is already gone, so a file delete that still fails
+// after a few tries is reported (`storageCleanup: "pending"`) instead of failing a deletion that has happened.
+const DELETE_FILE_TRIES = 3;
+async function deleteStoredFile(bucket, path, wait) {
+  for (let attempt = 1; ; attempt += 1) {
+    try { await request(`/functions/v1/usage-upload/object/${bucket}/${encodeStoragePath(path)}`, { method: "DELETE", token: session?.access_token }); return "done"; }
+    catch (error) { if (error?.status === 404) return "done"; if (attempt >= DELETE_FILE_TRIES) return "pending"; await wait(attempt * 400); }
+  }
 }
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+async function deleteResolving(name, idKey, id, { resolve = false, expectedRevision = null, wait = pause } = {}, bucketOf) {
+  await restoreSession();
+  const rows = await rpc(name, { [idKey]: id, candidate_resolve: Boolean(resolve), candidate_expected_revision: Number.isInteger(expectedRevision) ? expectedRevision : null });
+  const row = Array.isArray(rows) ? rows[0] : rows;
+  if (!row) throw new ApiError("The deletion could not be confirmed.", 500, "DELETE_NO_ANSWER");
+  // draftRevision: the saved draft's new revision when this deletion changed it (the editor rebases onto it), else null
+  const draftRevision = row.deleted && row.in_draft && Number.isInteger(Number(row.draft_revision)) ? Number(row.draft_revision) : null;
+  const storageCleanup = row.deleted && typeof row.storage_path === "string" && row.storage_path ? await deleteStoredFile(bucketOf(row.storage_path), row.storage_path, wait) : "none";
+  return { deleted: Boolean(row.deleted), inDraft: Boolean(row.in_draft), inPublished: Boolean(row.in_published), publishedChanged: Boolean(row.published_changed), draftRevision, storageCleanup };
+}
+export const deleteWallAssetResolving = (assetId, options) => deleteResolving("delete_my_wall_asset_resolving", "candidate_asset_id", assetId, options, wallBucketFor);
+export const deleteWallFontResolving = (fontId, options) => deleteResolving("delete_my_wall_font_resolving", "candidate_font_id", fontId, options, () => "wall-fonts");
 // -> the font's bytes (the owner's own object, read with the owner's session)
 export async function loadWallFont(path) {
   if (!path) return null;

@@ -394,6 +394,47 @@ export function assetUsage(doc, assetId) {
   return places;
 }
 
+// ---- universal deletion (Mazen's approved contract 2026-10-21) --------------------------------------------------------------------------------------------
+// Confirmed deletion of an in-use resource resolves its references everywhere. These two are the editor's copy of the database's own transforms
+// (private.wall_document_strip_asset / private.wall_jsonb_strip_font_ref, migration 20261022100000) and must stay identical to them: a pure removal, nothing else
+// in the document changes (no z renumbering, no other element, setting or stage is touched). Tests compare both on the same documents.
+const usesAsset = (value, assetId) => !!value && typeof value === "object" && (value.assetId === assetId || Object.values(value).some(child => usesAsset(child, assetId)));
+// Removes every placement of one asset: the Whole Wall background, any stage background and every element whose payload names it. -> { ok, doc, removed }
+export function removeAssetReferences(doc, assetId) {
+  const next = clone(doc);
+  let elements = 0, backgrounds = 0;
+  if (usesAsset(next.background, assetId)) { delete next.background; backgrounds += 1; }
+  for (const stage of next.stages) {
+    if (usesAsset(stage.background, assetId)) { delete stage.background; backgrounds += 1; }
+    const kept = stage.elements.filter(element => !usesAsset(element.payload, assetId));
+    elements += stage.elements.length - kept.length;
+    stage.elements = kept;
+  }
+  return { ok: true, doc: next, removed: { elements, backgrounds } };
+}
+// Every place a custom font is applied ("3 texts on Stage 1") - empty when unused. fontRef is the stored "font:<id>".
+const countRef = (value, ref) => (!value || typeof value !== "object" ? 0 : (value.fontRef === ref ? 1 : 0) + Object.entries(value).reduce((n, [key, child]) => n + (key === "fontRef" ? 0 : countRef(child, ref)), 0));
+export function fontUsage(doc, fontId) {
+  const ref = `font:${fontId}`, places = [];
+  doc.stages.forEach((stage, index) => {
+    const texts = stage.elements.filter(element => countRef(element.payload, ref) > 0).length;
+    if (texts) places.push(texts === 1 ? `a text on Stage ${index + 1}` : `${texts} texts on Stage ${index + 1}`);
+  });
+  if (countRef(doc.background, ref)) places.push("the Whole Wall background");
+  return places;
+}
+// Removes the font reference wherever it is: each text keeps its content, position and other styling, and falls back to its own catalog fontFamily.
+const stripRef = (value, ref) => {
+  if (Array.isArray(value)) return value.map(child => stripRef(child, ref));
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value).filter(([key, child]) => !(key === "fontRef" && child === ref)).map(([key, child]) => [key, stripRef(child, ref)]));
+};
+export function removeFontReferences(doc, fontId) {
+  const ref = `font:${fontId}`;
+  const texts = countRef(doc, ref);
+  return { ok: true, doc: stripRef(doc, ref), removed: { texts } };
+}
+
 // The aspect ratio (width / height) an element is held to while it is resized, or null for a free resize. The value itself is the lock - resizing never falls back
 // to whatever shape the box happens to have:
 //   - a PLAYER keeps the aspect SELECTED for it (the provider's default, or the owner's choice from the adapter's own list): a 9:16 player stays 9:16 (video is never

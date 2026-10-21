@@ -21,9 +21,9 @@ test("sections: Images open, Videos closed, Fit & Position and Appearance open; 
 test("desktop only: the phone keeps its exact panel (headings, card order, Fit field) and the rebuild key follows the breakpoint", () => {
   assert.match(tools, /const desktop = accordionOn\(\);/);
   assert.match(tools, /if \(assets\.images\.length\) controlsBox\.append\(h\("h4", \{ class: "ed-sub", text: "Images" \}\), imageGrid\(null,/, "phone headings unchanged");
-  assert.match(tools, /: h\("div", \{ class: "ed-asset" \}, thumb, h\("div", \{ class: "meta", text: `Video \$\{index \+ 1\} · \$\{size\}` \}\), h\("div", \{ class: "row" \}, use\), remove\)\);/, "phone video card unchanged");
+  assert.match(tools, /: h\("div", \{ class: "ed-asset" \}, thumb, h\("div", \{ class: "meta", text: `Video \$\{index \+ 1\} · \$\{size\}` \}\), h\("div", \{ class: "row" \}, use\), \.\.\.remove\)\);/, "phone video card unchanged (its delete controls: In use + Delete since universal deletion)");
   assert.match(tools, /else controlsBox\.append\(h\("label", \{ class: "ed-field" \}, h\("span", \{ text: "Fit" \}\), h\("div", \{ class: "ed-inline" \}, fitSelect\)\), posX, posY\);/, "phone Fit field unchanged");
-  assert.match(tools, /\[\.\.\.ops\.assetsInUse\(doc\(\)\)\]\.sort\(\)\.join\(\), accordionOn\(\)\]\);/);
+  assert.match(tools, /JSON\.stringify\(assets\.assets\.map\(asset => \[asset\.asset_id, ops\.assetUsage\(doc\(\), asset\.asset_id\)\]\)\), accordionOn\(\)\]\);/, "the panel rebuilds when where an upload is used changes");
 });
 
 test("look: one even grid of type buttons, equal upload cards, Use / Delete in one row, an in-use badge; scoped to the Background panel", () => {

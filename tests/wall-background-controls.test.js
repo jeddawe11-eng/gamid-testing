@@ -93,23 +93,23 @@ test("B4 normal canvas pictures are untouched: an image ELEMENT never gets a fli
   assert.equal(validateDocument({ ...doc, stages: [{ ...doc.stages[0], elements: [{ ...doc.stages[0].elements[0], payload: { ...doc.stages[0].elements[0].payload, flipX: true } }] }] }).valid, true, "(image elements keep their own schema - flipX there is ignored data, not a new control)");
 });
 
-test("B5 safe deletion: the Background panel knows exactly where an asset is used and never offers Delete for it", () => {
+// (B5's "in use -> no Delete" was superseded on 2026-10-21 by Mazen's universal deletion contract: in use -> one confirmation -> deleted and resolved; see
+// tests/universal-delete-ux.test.js for the flow itself.)
+test("B5 + universal deletion: the Background panel says exactly where an asset is used, and its Delete goes through the one shared flow", () => {
   const doc = createDocument({ stageCount: 3 });
   doc.background = createVideoBackground(VID);
   doc.stages[1].background = createImageBackground(IMG, { flipY: true });
   doc.stages[2].elements = [createElement({ id: "a", type: "image", x: 0, y: 0, width: 100, height: 100, z: 0, payload: createImagePayload(IMG) }), createElement({ id: "b", type: "image", x: 200, y: 0, width: 100, height: 100, z: 1, payload: createImagePayload(IMG) })];
   assert.deepEqual(ops.assetUsage(doc, VID), ["Whole Wall background"]);
   assert.deepEqual(ops.assetUsage(doc, IMG), ["Stage 2 background", "2 images on Stage 3"]);
-  assert.deepEqual(ops.assetUsage(doc, OTHER), [], "unused -> deletable (after confirmation)");
+  assert.deepEqual(ops.assetUsage(doc, OTHER), [], "unused -> deleted at once");
   const tools = text("dist/wall-editor/tools.js");
-  assert.match(tools, /const usage = ops\.assetUsage\(doc\(\), asset\.asset_id\);\s*if \(usage\.length\) return h\("div", \{ class: "ed-asset-inuse"/, "in use: no Delete, the places are listed");
-  assert.match(tools, /Delete this \$\{noun\} permanently\?/, "an explicit confirmation step");
-  assert.match(tools, /text: "Delete permanently", onclick: async \(\) => \{\s*const result = await assets\.remove\(asset\.asset_id, doc\(\)\);/, "only the confirm button deletes, through the checked store");
-  assert.match(tools, /result\.code === "WALL_ASSET_IN_USE" \? `This \$\{noun\} is still used by your saved Wall/, "the database's refusal (saved Wall still uses it) is explained");
-  assert.equal((tools.match(/deleteControls\(asset, "(image|video)"\)/g) ?? []).length, 2, "offered for background images and background videos only");
-  const assetsPanel = tools.slice(tools.indexOf("// ---- Assets ---"));
-  assert.doesNotMatch(assetsPanel, /deleteControls/, "the normal Assets panel is unchanged by this task");
-  assert.match(text("dist/wall-editor/assets.js"), /if \(doc && assetsInUse\(doc\)\.has\(assetId\)\) return \{ ok: false, code: "WALL_ASSET_IN_USE"/, "the store refuses an in-use asset too");
+  assert.match(tools, /const usage = ops\.assetUsage\(doc\(\), asset\.asset_id\);/);
+  assert.match(tools, /return usage\.length \? \[h\("div", \{ class: "ed-asset-inuse", text: `In use: \$\{usage\.join\(", "\)\}` \}\), button\] : \[button\];/, "in use: the places are listed beside Delete");
+  assert.match(tools, /const outcome = await deleteAssetNow\(asset\);/, "Delete goes through the shared flow (it asks first when the asset is in use)");
+  assert.doesNotMatch(tools, /assets\.remove|Delete permanently|pendingDelete/, "no second, panel-local delete path");
+  assert.equal((tools.match(/deleteControls\(asset, "(image|video)"\)/g) ?? []).length, 2, "offered for background images and background videos");
+  assert.equal((tools.match(/await deleteAssetNow\(asset\)/g) ?? []).length, 2, "the Background panel and the Assets panel use the same flow");
 });
 
 test("B7 Remove background clears only the chosen scope's assignment, never the asset; the upload then becomes deletable", () => {
@@ -129,7 +129,7 @@ test("B7 Remove background clears only the chosen scope's assignment, never the 
   assert.deepEqual(noWall.stages[1].background, doc.stages[1].background, "the stage override is untouched");
   assert.deepEqual(ops.assetUsage(noWall, IMG), []);
   const tools = text("dist/wall-editor/tools.js");
-  assert.match(tools, /text: "Remove background",[\s\S]{0,200}onclick: \(\) => \{ pendingDelete = null; deleteStatus = ""; setBg\(null\); \}/, "Remove only clears the assignment (no assets.remove)");
+  assert.match(tools, /text: "Remove background",[\s\S]{0,200}onclick: \(\) => \{ deleteStatus = ""; setBg\(null\); \}/, "Remove only clears the assignment (it never deletes the upload)");
   assert.match(tools, /if \(!bg && \(assets\.images\.length \|\| assets\.videos\.length\)\)/, "with no background the uploads (and their Delete) stay reachable");
 });
 

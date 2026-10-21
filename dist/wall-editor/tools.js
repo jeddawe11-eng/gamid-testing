@@ -21,6 +21,7 @@ import { ICON_LIMITS, createIconsPayload, defaultIconGroupSize, iconItemFromInpu
 import { mediaCapabilities } from "../wall-kit/embed/index.js";
 import { fitFrame } from "../wall-kit/embed/player.js";
 import { createVideoPreviews } from "./video-preview.js";
+import { createDeleteFlow, openDeleteDialog } from "./delete-flow.js";
 import { renderUploadError, classifyUploadError } from "../app/upload-feedback.js";
 import { createTransientMessage } from "../account/transient-message.js";
 
@@ -87,7 +88,9 @@ export const OTHER_TEXT_MAX = 120;
 export const OTHER_LINK_STYLE = Object.freeze({ fontFamily: "system-sans", fontSize: 64, fontWeight: 700, underline: true, color: "#62e7ff", align: "center", lineHeight: 1.2, wrap: true });
 export const OTHER_LINK_SIZE = Object.freeze({ width: 800, height: 120 });
 
-export function createTools({ session, run, notify, assets, fonts = null, getGamid, refreshGamid, setTool, pickImage, revealProps = () => {}, startFreeform = () => {} }) {
+export function createTools({ session, run, notify, assets, fonts = null, getGamid, refreshGamid, setTool, pickImage, revealProps = () => {}, startFreeform = () => {}, onResourceDeleted = () => {} }) {
+  // Universal deletion: every Delete in these panels (Assets, Background images / videos, My Fonts) goes through this one flow and its one confirmation.
+  const deletion = createDeleteFlow({ session, assets, fonts, confirm: (details, perform) => openDeleteDialog(document, details, perform), onDeleted: onResourceDeleted });
   const videoPreviews = createVideoPreviews();   // one still frame per video asset, shared by Assets and the background video list
   const doc = () => session.doc;
   const stageId = () => session.state.stageId;
@@ -234,23 +237,18 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     FONT_CONVERSION_UNAVAILABLE: "TTF and OTF uploads are not available right now. Upload a WOFF2 version of the font.",
     WALL_FONT_LICENSE_REQUIRED: "Tick the licence confirmation first: only upload fonts you own or are licensed to use on the web.",
     FONT_HASH_MISMATCH: "The file changed on the way. Try the upload again.",
-    WALL_FONT_PUBLISHED: "Your published Wall uses this font. Choose another font for that text, publish again, then delete it.",
-    WALL_FONT_IN_USE: "Your saved Wall uses this font. Choose another font for that text and save, then delete it.",
-    WALL_FONT_NOT_FOUND: "This font is no longer in My Fonts.",
     NETWORK_ERROR: "The connection dropped. Check it and try again.",
     unauthenticated: "Sign in again to manage your fonts.",
     upload: "The font could not be uploaded. Try again.",
-    delete: "The font could not be deleted. Try again.",
   };
   const sayFont = (text, kind = "info") => { if (!fontMessage) return; fontMessage.textContent = text; fontMessage.dataset.kind = kind; };
-  const usesFontNow = fontId => (doc()?.stages ?? []).some(stage => stage.elements.some(element => element.type === "text" && customFontId(element.payload?.fontRef) === fontId));
-  let pendingFont = null, confirmingDelete = null, confirmTimer = 0, myFontsShown = "", fontBusy = false;
+  let pendingFont = null, myFontsShown = "", fontBusy = false;
   function renderMyFonts() {
     if (!myFontList || !fonts) return;
     const { limit, fonts: list } = fonts.state;
     myFontsCount.textContent = `${list.length}/${limit}`;
     myFontsCount.setAttribute("aria-label", `${list.length} of ${limit} custom fonts used`);
-    const shown = JSON.stringify([list.map(font => [font.font_id, font.display_name, font.in_draft, font.in_published, fonts.isUsable(font.font_id)]), pendingFont?.name ?? null, confirmingDelete]);
+    const shown = JSON.stringify([list.map(font => [font.font_id, font.display_name, font.in_draft, font.in_published, fonts.isUsable(font.font_id)]), pendingFont?.name ?? null]);
     if (shown === myFontsShown) return;
     myFontsShown = shown;
     const cards = list.map(font => {
@@ -263,8 +261,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
         if (!ids.length) { notify("Select a text element first, then choose a font."); return; }
         run(ops.updatePayloadMany(doc(), ids, { fontRef: ref }));
       } }, font.display_name, status ? h("small", { class: "ed-myfont-status", text: status }) : null, sample);
-      const confirming = confirmingDelete === font.font_id;
-      const remove = h("button", { class: `ed-myfont-delete${confirming ? " is-confirming" : ""}`, type: "button", "aria-label": confirming ? `Confirm deleting ${font.display_name}` : `Delete ${font.display_name}`, title: confirming ? "Click again to delete" : "Delete font", text: confirming ? "Delete?" : "", onclick: () => deleteFont(font) });
+      const remove = h("button", { class: "ed-myfont-delete", type: "button", "aria-label": `Delete ${font.display_name}`, title: "Delete font", onclick: () => deleteFont(font) });
       return h("div", { class: "ed-myfont", "data-custom-font": font.font_id }, apply, remove);
     });
     if (pendingFont) {
@@ -276,20 +273,15 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     myFontList.replaceChildren(...cards);
     renderFontSelection();
   }
+  // Deleting a font follows the universal rule (delete-flow.js): an unused font goes at once; a used one asks first, and on Delete its texts switch to their library font.
   async function deleteFont(font) {
-    if (fontBusy) return;
-    if (confirmingDelete !== font.font_id) {
-      confirmingDelete = font.font_id; clearTimeout(confirmTimer);
-      confirmTimer = setTimeout(() => { confirmingDelete = null; renderMyFonts(); }, 6000);
-      renderMyFonts(); myFontList.querySelector(`[data-custom-font="${font.font_id}"] .ed-myfont-delete`)?.focus();
-      return;
-    }
-    confirmingDelete = null; clearTimeout(confirmTimer);
-    if (usesFontNow(font.font_id)) { sayFont("This font is used on your Wall. Choose another font for that text first, then delete it.", "error"); renderMyFonts(); return; }
-    fontBusy = true; sayFont(`Deleting "${font.display_name}"…`);
-    try { await fonts.remove(font.font_id); sayFont(`"${font.display_name}" was deleted. Its slot is free.`, "ok"); }
-    catch (error) { sayFont(FONT_MESSAGES[error?.code] ?? FONT_MESSAGES.delete, "error"); }
-    finally { fontBusy = false; renderMyFonts(); }
+    if (fontBusy || deletion.busy) return;
+    fontBusy = true; sayFont("");
+    try {
+      const outcome = await deletion.deleteFont(font);
+      if (outcome.status === "deleted") sayFont(`${outcome.message} Its slot is free.`, "ok");
+      else if (outcome.status === "failed") sayFont(outcome.message, "error");
+    } finally { fontBusy = false; renderMyFonts(); }
   }
   async function uploadFontFile(file) {
     const name = String(file?.name ?? "").replace(/\.(woff2|ttf|otf)$/i, "").trim().slice(0, 60) || "My font";
@@ -567,28 +559,17 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   let lastBgKind = null;
   let videoStatus = "";
   let videoError = null;   // ISS-0001: a failed background video upload / conversion { message, code, status, file?, target? } - persistent until dismissed or resolved
-  // Background asset deletion: never one click. An asset the Wall uses (Whole Wall / a stage background / a picture element) cannot be deleted - the panel says
-  // where it is used; an unused one asks for confirmation first. The database refuses again if the SAVED Wall still uses it (nothing is ever left broken).
-  let pendingDelete = null;       // asset id awaiting confirmation
+  // Background asset deletion follows the universal rule (delete-flow.js), exactly as in Assets: an unused upload is deleted at once; one the Wall uses says where
+  // ("In use: ...") and its Delete asks first, then removes it from every place - this background included.
   let deleteStatus = "";
   function deleteControls(asset, noun) {
     const usage = ops.assetUsage(doc(), asset.asset_id);
-    if (usage.length) return h("div", { class: "ed-asset-inuse", text: `In use: ${usage.join(", ")}` });
-    if (pendingDelete !== asset.asset_id) {
-      return h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete", "aria-label": `Delete this ${noun}`, onclick: () => { pendingDelete = asset.asset_id; deleteStatus = ""; renderBackground(true); } });
-    }
-    return h("div", { class: "ed-confirm", role: "group", "aria-label": `Delete this ${noun}?` },
-      h("p", { text: `Delete this ${noun} permanently? It is removed from your uploads and cannot be undone.` }),
-      h("div", { class: "ed-row" },
-        h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete permanently", onclick: async () => {
-          const result = await assets.remove(asset.asset_id, doc());
-          pendingDelete = null;
-          if (result.ok) resolveUsageErrors();
-          deleteStatus = result.ok ? `The ${noun} was deleted.`
-            : result.code === "WALL_ASSET_IN_USE" ? `This ${noun} is still used by your saved Wall. Save your changes first, then delete it.` : result.message;
-          renderBackground(true);
-        } }),
-        h("button", { class: "ed-btn", type: "button", text: "Cancel", onclick: () => { pendingDelete = null; renderBackground(true); } })));
+    const button = h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete", "aria-label": `Delete this ${noun}`, onclick: async () => {
+      deleteStatus = "";
+      const outcome = await deleteAssetNow(asset);
+      if (outcome.status === "deleted" || outcome.status === "failed") { deleteStatus = outcome.message; renderBackground(true); }
+    } });
+    return usage.length ? [h("div", { class: "ed-asset-inuse", text: `In use: ${usage.join(", ")}` }), button] : [button];
   }
   // MP4 background upload (background only - videos never appear in Assets or as artwork). Resumable, with progress; the server checks the stored file.
   const videoInput = h("input", { type: "file", accept: "video/mp4", hidden: true });
@@ -641,7 +622,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     const current = currentBackground();
     // rebuild only when the STRUCTURE changes (scope, stage, kind, picture, fit, overlay on/off, asset list) - never while a slider is being dragged
     const key = JSON.stringify([scope, stageId(), current?.kind ?? null, current?.assetId ?? null, current?.fit ?? null, !!current?.overlay, assets.assets.length, assets.images.filter(asset => assets.urlFor(asset.asset_id)).length, assets.videos.map(asset => !!assets.videoUrlFor(asset.asset_id)).join(), doc().stages.length, scope === "stage" ? !!doc().background : null, videoStatus, videoError?.message ?? null,
-      current?.flipX === true, current?.flipY === true, pendingDelete, deleteStatus, [...ops.assetsInUse(doc())].sort().join(), accordionOn()]);
+      current?.flipX === true, current?.flipY === true, deleteStatus, JSON.stringify(assets.assets.map(asset => [asset.asset_id, ops.assetUsage(doc(), asset.asset_id)])), accordionOn()]);
     if (!force && key === bgKey) return;
     bgKey = key;
     for (const button of document.querySelectorAll("[data-bg-scope]")) button.setAttribute("aria-pressed", String(button.dataset.bgScope === scope));
@@ -676,7 +657,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     // Remove background: clears THIS scope's assignment only (a stage then falls back to the Whole Wall background). The uploaded file is never touched here;
     // once nothing uses it any more, its Delete appears in the background uploads below.
     if (bg) controlsBox.append(h("div", { class: "ed-row ed-wrap" }, h("button", { class: "ed-btn", type: "button", text: "Remove background",
-      "aria-label": scope === "wall" ? "Remove the Whole Wall background" : "Remove this stage's own background", onclick: () => { pendingDelete = null; deleteStatus = ""; setBg(null); } })));
+      "aria-label": scope === "wall" ? "Remove the Whole Wall background" : "Remove this stage's own background", onclick: () => { deleteStatus = ""; setBg(null); } })));
     // the background uploads (Use + Delete); `onUse` assigns one, `selectedId` marks the current one
     const imageGrid = (selectedId, onUse) => {
       const grid = h("div", { class: "ed-assets" });
@@ -686,7 +667,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
         if (url) thumb.append(h("img", { src: url, alt: "" })); else thumb.textContent = "…";
         const use = h("button", { class: "ed-btn", type: "button", "aria-pressed": String(asset.asset_id === selectedId), text: asset.asset_id === selectedId ? "Selected" : "Use", onclick: () => onUse(asset.asset_id) });
         const remove = deleteControls(asset, "image");
-        grid.append(desktop ? h("div", { class: "ed-asset ed-bg-asset" }, thumb, h("div", { class: "ed-bg-actions" }, use, remove)) : h("div", { class: "ed-asset" }, thumb, use, remove));
+        grid.append(desktop ? h("div", { class: "ed-asset ed-bg-asset" }, thumb, h("div", { class: "ed-bg-actions" }, use, ...remove)) : h("div", { class: "ed-asset" }, thumb, use, ...remove));
       }
       return grid;
     };
@@ -699,8 +680,8 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
         const size = `${asset.width}×${asset.height} · ${Math.max(1, Math.round(asset.byte_size / (1024 * 1024)))} MB`;
         const use = h("button", { class: "ed-btn", type: "button", "aria-pressed": String(selected), text: selected ? "Selected" : "Use", onclick: () => onUse(asset.asset_id) });
         const remove = deleteControls(asset, "video");
-        list.append(desktop ? h("div", { class: "ed-asset ed-bg-asset" }, thumb, h("div", { class: "meta" }, h("b", { text: `Video ${index + 1}` }), h("span", { text: size })), h("div", { class: "ed-bg-actions" }, use, remove))
-          : h("div", { class: "ed-asset" }, thumb, h("div", { class: "meta", text: `Video ${index + 1} · ${size}` }), h("div", { class: "row" }, use), remove));
+        list.append(desktop ? h("div", { class: "ed-asset ed-bg-asset" }, thumb, h("div", { class: "meta" }, h("b", { text: `Video ${index + 1}` }), h("span", { text: size })), h("div", { class: "ed-bg-actions" }, use, ...remove))
+          : h("div", { class: "ed-asset" }, thumb, h("div", { class: "meta", text: `Video ${index + 1} · ${size}` }), h("div", { class: "row" }, use), ...remove));
       });
       return list;
     };
@@ -945,7 +926,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
 
   // ---- Assets --------------------------------------------------------------------------------------------------------------------------------
   // Pictures (JPG / PNG / WebP / AVIF / GIF) and VIDEOS (MP4 / WebM) side by side. "Add" places either as a media layer with the same artwork controls; a video layer
-  // plays muted and looping. Deleting follows the same safe rule as before (an asset the Wall uses is never deleted from under it).
+  // plays muted and looping. Deleting follows the universal rule (delete-flow.js): unused -> at once; in use -> one confirmation, then removed from every place.
   const grid = $("assetGrid"), message = $("assetMessage");
   const say = text => { message.textContent = text; };
   // ISS-0001: a failed upload is ONE persistent inline box under Upload (reason and next step, Retry only when retryable, View Usage for the storage quota or a
@@ -968,6 +949,13 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     if (assetError && classifyUploadError(assetError).usage) { assetError = null; renderAssetError(); }
     if (videoError && classifyUploadError(videoError).usage) { videoError = null; renderBackground(true); }
   };
+  // Assets and the Background panel delete through the same flow (one deletion at a time across both)
+  async function deleteAssetNow(asset) {
+    if (deletion.busy) return { status: "busy", message: "" };
+    const outcome = await deletion.deleteAsset(asset);
+    if (outcome.status === "deleted") resolveUsageErrors();
+    return outcome;
+  }
   let assetsKey = "";
   const videoKind = asset => (asset.mime_type === "video/webm" ? "WebM" : "MP4");
   const sizeLabel = bytes => (bytes >= 1024 * 1024 ? `${Math.round(bytes / (1024 * 1024))} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
@@ -991,7 +979,10 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
         inUse ? h("div", { class: "used", text: "IN USE" }) : null,
         h("div", { class: "row" },
           h("button", { class: "ed-btn", type: "button", text: "Add", "aria-label": `Add this ${noun.toLowerCase()} to the stage`, onclick: () => addImageElement(asset) }),
-          h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete", onclick: async () => { const result = await assets.remove(asset.asset_id, doc()); say(result.ok ? `${noun} deleted.` : result.message); if (result.ok) resolveUsageErrors(); } }))));
+          h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete", "aria-label": `Delete this ${noun.toLowerCase()}`, onclick: async () => {
+            const outcome = await deleteAssetNow(asset);
+            if (outcome.status === "deleted" || outcome.status === "failed") say(outcome.message);
+          } }))));
     }
   }
   // Places an asset as a media layer: a picture (image / GIF) or a video (MP4 / WebM - `media: "video"`), at its own proportions.

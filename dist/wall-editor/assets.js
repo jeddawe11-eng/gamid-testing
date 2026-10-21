@@ -1,7 +1,6 @@
 // The owner's Wall assets in the editor: list, upload, delete and hand pictures to the painter as blob: URLs. All network goes through the accepted account client (injected as
 // `api`, so this is testable); every rule from wall-kit/assets.js is checked before anything is sent, and the storage bucket and database enforce the same rules again.
 import { checkAssetFile, checkAssetDimensions, checkAssetCount, describeAssetError, checkVideoFile, checkVideoMetadata, isVideoAsset } from "../wall-kit/assets.js";
-import { assetsInUse } from "../wall-kit/ops.js";
 
 async function decodeSize(file) {
   if (typeof createImageBitmap === "function") {
@@ -43,6 +42,13 @@ export function createAssetStore({ api, userId, onChange = () => {}, decode = de
   const loading = new Set();    // assetIds being fetched
   const videoUrls = new Map();  // assetId -> { url, at } (signed https: stream address)
   const byId = id => assets.find(asset => asset.asset_id === id) ?? null;
+  const forget = id => {
+    assets = assets.filter(asset => asset.asset_id !== id);
+    const url = urls.get(id);
+    if (url) { URL.revokeObjectURL(url); urls.delete(id); }
+    videoUrls.delete(id);
+    onChange();
+  };
 
   function ensureUrl(id) {
     if (urls.has(id) || loading.has(id)) return;
@@ -117,21 +123,15 @@ export function createAssetStore({ api, userId, onChange = () => {}, decode = de
         return { ok: false, code: error?.code, status: error?.status, message: describeAssetError(error) };
       }
     },
-    // The Wall being edited is checked first (a picture in use is never deleted from under it); the database checks the SAVED draft too.
-    async remove(assetId, doc) {
-      if (doc && assetsInUse(doc).has(assetId)) return { ok: false, code: "WALL_ASSET_IN_USE", message: describeAssetError({ code: "WALL_ASSET_IN_USE" }) };
-      try {
-        await api.deleteWallAsset(assetId);
-        assets = assets.filter(asset => asset.asset_id !== assetId);
-        const url = urls.get(assetId);
-        if (url) { URL.revokeObjectURL(url); urls.delete(assetId); }
-        videoUrls.delete(assetId);
-        onChange();
-        return { ok: true };
-      } catch (error) {
-        return { ok: false, code: error?.code, message: describeAssetError(error) };
-      }
+    // Deletion, by the universal rule (delete-flow.js decides when): `resolve: false` deletes only an asset no saved / published Wall uses; `resolve: true` (after
+    // the owner confirmed) also removes its references there. The Wall being edited is checked by the flow first, so an asset placed in unsaved edits is never
+    // deleted without the owner's confirmation. -> the server's answer ({ deleted, inDraft, inPublished, draftRevision, storageCleanup, ... }); throws ApiError.
+    async deleteResolving(assetId, options) {
+      const result = await api.deleteWallAssetResolving(assetId, options);
+      if (result.deleted) forget(assetId);
+      return result;
     },
+    has(assetId) { return !!byId(assetId); },
     // Follows one server-side conversion until it is READY (the H.264 copy exists and is registered) or FAILED. -> Promise<{ state, asset?, failureCode? }>
     async watchVideoJob(jobId, { intervalMs = 4000, timeoutMs = 45 * 60 * 1000, wait = ms => new Promise(resolve => setTimeout(resolve, ms)), onState = () => {} } = {}) {
       const started = now();

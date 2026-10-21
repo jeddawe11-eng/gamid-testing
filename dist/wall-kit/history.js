@@ -26,6 +26,8 @@ export function createHistory(limit = HISTORY_LIMIT) {
       return future.pop();
     },
     clear() { past = []; future = []; },
+    // Applies `transform` to every kept snapshot (universal deletion: undo / redo can never bring back a reference to a deleted asset or font).
+    rewrite(transform) { past = past.map(transform); future = future.map(transform); },
     get canUndo() { return past.length > 0; },
     get canRedo() { return future.length > 0; },
     get depth() { return past.length; },

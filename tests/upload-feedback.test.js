@@ -189,6 +189,7 @@ test("Wall editor wiring: one upload at a time, a persistent box under Upload / 
   assert.match(tools, /renderUploadError\(document, failed, \{ id: "assetUploadError"/);
   assert.match(tools, /renderUploadError\(document, videoError, \{ id: "bgVideoError"/);
   assert.match(tools, /if \(videoBusy\(\)\) \{ notify\("A background video is already being added/);
-  assert.equal((tools.match(/if \(result\.ok\) resolveUsageErrors\(\);/g) ?? []).length, 2, "both delete paths resolve a limit / quota error");
+  assert.match(tools, /const outcome = await deletion\.deleteAsset\(asset\);\s*if \(outcome\.status === "deleted"\) resolveUsageErrors\(\);/, "every asset delete (Assets and Background share it) resolves a limit / quota error");
+  assert.equal((tools.match(/await deleteAssetNow\(asset\)/g) ?? []).length, 2, "both delete entry points use it");
   assert.doesNotMatch(tools, /\.append\([^)]*videoErrorBox\(\)\)/, "never appends a possibly-null box");
 });

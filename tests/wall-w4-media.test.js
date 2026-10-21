@@ -118,7 +118,14 @@ function fakeApi(over = {}) {
     listWallAssets: async () => [...rows],
     uploadWallAsset: async (file, userId, size) => { calls.push(["upload", userId, size, file.type]); const row = { asset_id: `${rows.length + 1}0000000-0000-4000-8000-000000000000`, storage_path: `${userId}/x.png`, mime_type: file.type, byte_size: file.size, width: size.width, height: size.height }; rows.unshift(row); return row; },
     loadWallAsset: async path => `blob:test/${path}`,
-    deleteWallAsset: async id => { calls.push(["delete", id]); rows.splice(rows.findIndex(row => row.asset_id === id), 1); return true; },
+    // the server's universal-deletion answer: unused (or resolve) -> deleted; used and not resolving -> nothing changes
+    deleteWallAssetResolving: async (id, options) => {
+      calls.push(["delete", id, options]);
+      const used = api.usedOnServer?.has(id) ?? false;
+      if (used && !options?.resolve) return { deleted: false, inDraft: true, inPublished: false, draftRevision: null, storageCleanup: "none" };
+      rows.splice(rows.findIndex(row => row.asset_id === id), 1);
+      return { deleted: true, inDraft: used, inPublished: false, draftRevision: used ? 8 : null, storageCleanup: "done" };
+    },
     ...over,
   };
   return api;
@@ -157,20 +164,23 @@ test("asset store: the per-owner limit is checked before uploading, and a server
   const refusing = createAssetStore({ api: fakeApi({ uploadWallAsset: async () => { const error = new Error("WALL_ASSET_TOO_LARGE"); throw error; } }), userId: "u", decode: async () => ({ width: 10, height: 10 }) });
   assert.match((await refusing.upload(file())).message, /5 MB/);
 });
-test("asset store: a picture in use is never deleted from under the Wall being edited; an unused one is", async () => {
+// (Since universal deletion, 2026-10-21, WHEN to delete is decided by delete-flow.js - see tests/universal-delete-ux.test.js; the store follows the server's answer.)
+test("asset store: deletion follows the server's answer - a deleted asset leaves the list and its URLs; one still in use (not resolving) stays", async () => {
   const api = fakeApi();
   const store = createAssetStore({ api, userId: "u", decode: async () => ({ width: 10, height: 10 }) });
   const { asset } = await store.upload(file());
-  const using = docWith(createElement({ id: "i", type: "image", x: 0, y: 0, width: 10, height: 10, payload: createImagePayload(asset.asset_id) }));
-  const blocked = await store.remove(asset.asset_id, using);
-  assert.equal(blocked.code, "WALL_ASSET_IN_USE");
-  assert.equal(api.calls.some(call => call[0] === "delete"), false);
-  const usedByBackground = createDocument();
-  usedByBackground.background = createImageBackground(asset.asset_id);
-  assert.equal((await store.remove(asset.asset_id, usedByBackground)).code, "WALL_ASSET_IN_USE", "a background counts as use");
-  assert.equal((await store.remove(asset.asset_id, createDocument())).ok, true);
+  const second = (await store.upload(file())).asset;
+  api.usedOnServer = new Set([second.asset_id]);
+  const kept = await store.deleteResolving(second.asset_id, { resolve: false });
+  assert.equal(kept.deleted, false);
+  assert.equal(store.has(second.asset_id), true, "used by the saved Wall and not confirmed: nothing changes");
+  const resolved = await store.deleteResolving(second.asset_id, { resolve: true, expectedRevision: 7 });
+  assert.deepEqual([resolved.deleted, resolved.draftRevision], [true, 8]);
+  assert.deepEqual(api.calls.at(-1), ["delete", second.asset_id, { resolve: true, expectedRevision: 7 }]);
+  assert.equal(store.has(second.asset_id), false);
+  assert.equal((await store.deleteResolving(asset.asset_id, { resolve: false })).deleted, true);
   assert.equal(store.assets.length, 0);
-  assert.equal((await createAssetStore({ api: fakeApi({ deleteWallAsset: async () => { throw Object.assign(new Error("WALL_ASSET_IN_USE"), { code: "PT409" }); } }), userId: "u" }).remove("x", createDocument())).ok, false, "the server's own refusal is respected too");
+  await assert.rejects(createAssetStore({ api: fakeApi({ deleteWallAssetResolving: async () => { throw Object.assign(new Error("NETWORK_ERROR"), { code: "NETWORK_ERROR" }); } }), userId: "u" }).deleteResolving("x", {}), /NETWORK_ERROR/, "a failure reaches the flow, which settles it");
 });
 
 // ---------- backgrounds ----------

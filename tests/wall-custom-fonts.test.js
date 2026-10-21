@@ -287,13 +287,14 @@ test("editor: My Fonts in the desktop Text panel - count n/3, a required licence
   assert.ok(order.every((at, index) => at > 0 && (index === 0 || at > order[index - 1])), `Text panel order ${order}`);
   assert.ok(panel.indexOf('id="fontLicense"') > panel.indexOf('id="fontUploadBox"') && panel.indexOf('id="fontUpload"') > panel.indexOf('id="fontUploadBox"'), "the licence confirmation and the upload are in Upload My Font");
   assert.match(tools, /myFontsCount\.textContent = `\$\{list\.length\}\/\$\{limit\}`;/, "n/3 from the server's own limit");
-  for (const key of ["WALL_FONT_LIMIT", "ACCOUNT_STORAGE_QUOTA_EXCEEDED", "FONT_TOO_LARGE", "INVALID_FONT", "INVALID_FONT_TYPE", "WALL_FONT_LICENSE_REQUIRED", "WALL_FONT_PUBLISHED", "WALL_FONT_IN_USE"])
+  // (WALL_FONT_PUBLISHED / WALL_FONT_IN_USE refusals are gone from the editor since universal deletion, 2026-10-21: a used font is confirmed, then resolved)
+  for (const key of ["WALL_FONT_LIMIT", "ACCOUNT_STORAGE_QUOTA_EXCEEDED", "FONT_TOO_LARGE", "INVALID_FONT", "INVALID_FONT_TYPE", "WALL_FONT_LICENSE_REQUIRED"])
     assert.match(tools, new RegExp(`${key}: "`), `a message for ${key}`);
   assert.match(tools, /already in My Fonts - no extra slot was used/, "the duplicate message");
   assert.match(tools, /if \(!fontLicense\?\.checked\) \{ sayFont\(FONT_MESSAGES\.WALL_FONT_LICENSE_REQUIRED/, "no file dialog before the licence is confirmed");
   assert.match(tools, /const family = await previewFontFile\(await file\.arrayBuffer\(\)\);/, "the real preview before uploading");
   assert.match(tools, /run\(ops\.updatePayloadMany\(doc\(\), ids, \{ fontRef: ref \}\)\)/, "applying a custom font keeps the catalog font as the fallback");
-  assert.match(tools, /if \(usesFontNow\(font\.font_id\)\) \{ sayFont\("This font is used on your Wall\./, "unsaved uses are caught before asking the server");
+  assert.match(tools, /const outcome = await deletion\.deleteFont\(font\);/, "deleting goes through the universal flow (unsaved uses are part of its in-use check)");
   assert.match(read("dist/wall-editor/controls.js"), /write\(\{ fontFamily: fontSelect\.value, fontRef: undefined \}\)/, "the Properties font menu replaces a custom font too");
   assert.match(base, /\.ed-myfonts \{ display: none; \}|, \.ed-myfonts \{ display: none; \}/, "desktop only");
   assert.match(desktop, /\.ed-myfonts \{ display: block;/);

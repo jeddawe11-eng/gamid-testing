@@ -186,6 +186,7 @@ const tools = createTools({
   pickImage: () => { placeNextUpload = true; assetFile.click(); },
   revealProps: section => properties.reveal(section),
   startFreeform: () => pathEditor?.startPen(),
+  onResourceDeleted: () => refreshPublication(),   // a confirmed deletion may have updated the published Wall (and kept it up to date)
 });
 pathEditor = createPathEditor({ host: $("stageHost"), bar: $("pathBar"), getScale: () => canvas.scale, session, run, notify, onFinish: () => openTool("props") });
 mobile = createMobileShell({ session, canvas, run, openTool, closeTools, toggleTool, layerName: element => layerName(element), isWorkspaceVisible: () => workspaceVisible });

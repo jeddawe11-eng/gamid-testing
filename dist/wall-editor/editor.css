@@ -216,12 +216,22 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-asset .meta { color: var(--muted); font-size: .62rem; }
 .ed-asset .used { color: var(--warn); font-size: .58rem; letter-spacing: .1em; font-weight: 800; }
 .ed-asset .row { display: flex; gap: .25rem; }
-/* background asset library: where an asset is in use (no Delete), and the inline delete confirmation */
+/* background asset library: where an asset is in use (its Delete then asks first - see the deletion dialog below) */
 .ed-asset-inuse { color: var(--warn); font-size: .62rem; line-height: 1.3; }
-.ed-asset .ed-confirm { margin-top: .2rem; padding: .45rem; font-size: .66rem; }
-.ed-asset .ed-confirm p { margin: 0 0 .35rem; }
-.ed-asset .ed-confirm .ed-row { flex-wrap: wrap; gap: .25rem; }
-.ed-asset .ed-confirm .ed-btn { flex: 1 1 auto; min-height: 2.2rem; padding: .2rem .35rem; font-size: .66rem; }
+/* Universal deletion (delete-flow.js): the ONE confirmation for deleting an asset or font in use - a modal dialog in the browser's top layer, so no panel, drawer
+   or bottom sheet can clip or cover it; full width on a phone, a readable card on a desktop; long names wrap; it scrolls inside itself if the screen is short. */
+.ed-delete-dialog { box-sizing: border-box; width: min(30rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow: auto; margin: auto; padding: 1.1rem 1.2rem 1rem; border: 1px solid #754151; border-radius: .9rem; background: #1a1220; color: var(--text); font-size: .85rem; line-height: 1.45; }
+.ed-delete-dialog::backdrop { background: rgba(4, 3, 8, .72); }
+.ed-delete-dialog h2 { margin: 0 0 .35rem; font-size: 1.05rem; }
+.ed-delete-dialog p { margin: .45rem 0; overflow-wrap: break-word; }
+.ed-delete-name { font-weight: 800; color: #fff; }
+.ed-delete-places { margin: .3rem 0 .6rem; padding-left: 1.2rem; color: var(--warn); }
+.ed-delete-final { color: var(--muted); }
+.ed-delete-status { color: var(--warn); }
+.ed-delete-actions { position: sticky; bottom: -1rem; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; margin: .8rem 0 -1rem; padding: .6rem 0 1rem; background: #1a1220; }   /* Delete / Cancel stay in view on a short screen */
+.ed-delete-actions .ed-btn { min-width: 7rem; }
+.ed-btn.ed-delete-confirm { background: #7a1830; border-color: #ff7890; color: #fff; }
+@media (max-width: 599px) { .ed-delete-dialog { width: calc(100vw - 2rem); } .ed-delete-actions .ed-btn { flex: 1 1 8rem; } }
 .ed-asset .row .ed-btn { flex: 1; min-width: 0; min-height: 2.4rem; padding: .2rem .3rem; font-size: .68rem; }
 .ed-reserved { padding: .9rem; border: 1px dashed #4a3e78; border-radius: .9rem; color: var(--muted); font-size: .8rem; line-height: 1.5; }
 .ed-reserved p { margin: .2rem 0; }
