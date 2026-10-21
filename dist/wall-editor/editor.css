@@ -216,6 +216,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-asset .meta { color: var(--muted); font-size: .62rem; }
 .ed-asset .used { color: var(--warn); font-size: .58rem; letter-spacing: .1em; font-weight: 800; }
 .ed-asset .row { display: flex; gap: .25rem; }
+.ed-asset .row.ed-asset-actions { flex-direction: column; }   /* My Assets: Add to Canvas / Set as Background / Delete, one per line (readable at every width) */
 /* background asset library: where an asset is in use (its Delete then asks first - see the deletion dialog below) */
 .ed-asset-inuse { color: var(--warn); font-size: .62rem; line-height: 1.3; }
 /* Universal deletion (delete-flow.js): the ONE confirmation for deleting an asset or font in use - a modal dialog in the browser's top layer, so no panel, drawer
@@ -270,13 +271,13 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-rail button { flex: 0 0 auto; min-width: 4.6rem; padding: .3rem .5rem; border: 0; background: none; color: var(--muted); cursor: pointer; display: grid; place-items: center; gap: .05rem; font-weight: 800; font-size: .6rem; letter-spacing: .04em; }
 .ed-rail button i { font-style: normal; font-size: 1.05rem; color: inherit; }
 .ed-rail button span { white-space: nowrap; }
-body[data-tool="add"] .ed-rail [data-tool="add"], body[data-tool="text"] .ed-rail [data-tool="text"], body[data-tool="media"] .ed-rail [data-tool="media"], body[data-tool="shapes"] .ed-rail [data-tool="shapes"], body[data-tool="background"] .ed-rail [data-tool="background"],
+body[data-tool="add"] .ed-rail [data-tool="add"], body[data-tool="text"] .ed-rail [data-tool="text"], body[data-tool="media"] .ed-rail [data-tool="media"], body[data-tool="shapes"] .ed-rail [data-tool="shapes"],
 body[data-tool="gamid"] .ed-rail [data-tool="gamid"], body[data-tool="layout"] .ed-rail [data-tool="layout"], body[data-tool="assets"] .ed-rail [data-tool="assets"], body[data-tool="templates"] .ed-rail [data-tool="templates"], body[data-tool="props"] .ed-rail [data-tool="props"] { color: var(--cyan); box-shadow: inset 0 2px 0 var(--cyan); }
 
 /* bottom sheets (phone): the drawer shows the active tool, the inspector shows for "Edit" */
 .ed-panel { position: fixed; left: 0; right: 0; bottom: calc(var(--bar) + env(safe-area-inset-bottom)); z-index: 30; max-height: 48dvh; overflow: auto; border-radius: 1rem 1rem 0 0; transform: translateY(120%); transition: transform .18s ease; box-shadow: 0 -1rem 2rem rgba(0, 0, 0, .5); overscroll-behavior: contain; }
 [data-tool-panel] { display: none; }
-body[data-tool="add"] [data-tool-panel="add"], body[data-tool="text"] [data-tool-panel="text"], body[data-tool="media"] [data-tool-panel="media"], body[data-tool="shapes"] [data-tool-panel="shapes"], body[data-tool="background"] [data-tool-panel="background"],
+body[data-tool="add"] [data-tool-panel="add"], body[data-tool="text"] [data-tool-panel="text"], body[data-tool="media"] [data-tool-panel="media"], body[data-tool="shapes"] [data-tool-panel="shapes"], 
 body[data-tool="gamid"] [data-tool-panel="gamid"], body[data-tool="layout"] [data-tool-panel="layout"], body[data-tool="assets"] [data-tool-panel="assets"], body[data-tool="templates"] [data-tool-panel="templates"] { display: block; }
 body.is-sheet-open:not([data-tool="props"]) .ed-drawer { transform: none; }
 body.is-sheet-open[data-tool="props"] .ed-right { transform: none; }

@@ -184,7 +184,7 @@ test("avatar: a stored avatar the profile never took is removed only when the re
 
 test("Wall editor wiring: one upload at a time, a persistent box under Upload / beside the background video, resolved by a delete", () => {
   const tools = read("dist/wall-editor/tools.js");
-  assert.match(tools, /if \(uploading\) \{ say\("An upload is already in progress\. Wait for it to finish\."\); return null; \}/);
+  assert.match(tools, /if \(uploading \|\| videoBusy\(\)\) \{ say\("An upload is already in progress\. Wait for it to finish\."\); return null; \}/, "one upload at a time across My Assets and Background");
   assert.match(tools, /uploadButton\.disabled = true;[\s\S]*finally \{\s*uploading = false;\s*if \(uploadButton\) uploadButton\.disabled = false;/);
   assert.match(tools, /renderUploadError\(document, failed, \{ id: "assetUploadError"/);
   assert.match(tools, /renderUploadError\(document, videoError, \{ id: "bgVideoError"/);

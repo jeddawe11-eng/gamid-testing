@@ -26,11 +26,11 @@ test("desktop only: the phone keeps its exact panel (headings, card order, Fit f
   assert.match(tools, /JSON\.stringify\(assets\.assets\.map\(asset => \[asset\.asset_id, ops\.assetUsage\(doc\(\), asset\.asset_id\)\]\)\), accordionOn\(\)\]\);/, "the panel rebuilds when where an upload is used changes");
 });
 
-test("look: one even grid of type buttons, equal upload cards, Use / Delete in one row, an in-use badge; scoped to the Background panel", () => {
-  assert.match(css, /\[data-tool-panel="background"\] #bgKinds \{ grid-template-columns: repeat\(6, minmax\(0, 1fr\)\); \}/);
-  assert.match(css, /\[data-tool-panel="background"\] \.ed-bg-section-body \.ed-assets \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); grid-auto-rows: 1fr;/);
-  assert.match(css, /\[data-tool-panel="background"\] \.ed-bg-asset \.thumb \{ width: 100%; height: 5\.2rem;/);
-  assert.match(css, /\[data-tool-panel="background"\] \.ed-bg-actions \.ed-asset-inuse \{/);
+test("look: one even grid of type buttons, equal upload cards, Use / Delete in one row, an in-use badge; scoped to the Background area (inside Assets since 2026-10-21)", () => {
+  assert.match(css, /\[data-assets-area="background"\] #bgKinds \{ grid-template-columns: repeat\(6, minmax\(0, 1fr\)\); \}/);
+  assert.match(css, /\[data-assets-area="background"\] \.ed-bg-section-body \.ed-assets \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); grid-auto-rows: 1fr;/);
+  assert.match(css, /\[data-assets-area="background"\] \.ed-bg-asset \.thumb \{ width: 100%; height: 5\.2rem;/);
+  assert.match(css, /\[data-assets-area="background"\] \.ed-bg-actions \.ed-asset-inuse \{/);
   const background = [...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/(^|\})\s*([^{}@]+)\{/g)].map(m => m[2].trim()).filter(selector => selector.includes("ed-bg") || selector.includes("bgKinds") || selector.includes("bgControls"));
-  for (const selector of background) assert.match(selector, /^\[data-tool-panel="background"\]/, selector);
+  for (const selector of background) assert.match(selector, /^\[data-assets-area="background"\]/, selector);
 });

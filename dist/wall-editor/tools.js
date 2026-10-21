@@ -534,12 +534,24 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   mediaUrl.addEventListener("paste", () => setTimeout(detectNow, 0));
   mediaUrl.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); detectNow(); } });
 
-  // ---- Background ----------------------------------------------------------------------------------------------------------------------------
+  // ---- Assets: My Assets + Background (Mazen's approved organization, 2026-10-21) ------------------------------------------------------------------
+  // ONE tool for the owner's uploaded Wall media and the Wall background: My Assets (the library) and Background (Whole Wall / This stage only, the five types and
+  // their settings) are two areas of the Assets panel, on desktop and phone alike. The area last shown is kept for this editor session; anything that still opens
+  // "background" opens this tool on Background (editor.js openTool). Both areas use the same uploaded files - nothing is copied or uploaded twice.
+  let assetsArea = "library";
+  function showAssetsArea(area) {
+    assetsArea = area === "background" ? "background" : "library";
+    for (const button of document.querySelectorAll("[data-assets-show]")) button.setAttribute("aria-pressed", String(button.dataset.assetsShow === assetsArea));
+    for (const box of document.querySelectorAll("[data-assets-area]")) box.hidden = box.dataset.assetsArea !== assetsArea;
+  }
+  for (const button of document.querySelectorAll("[data-assets-show]")) button.addEventListener("click", () => showAssetsArea(button.dataset.assetsShow));
+
+  // ---- Background (inside Assets) -----------------------------------------------------------------------------------------------------------------
   let scope = "wall";
   const scopeId = () => (scope === "wall" ? "wall" : stageId());
   const currentBackground = () => (scope === "wall" ? doc().background ?? null : session.stage?.background ?? null);
   const setBg = (background, options) => run(ops.setBackground(doc(), scopeId(), background), options);
-  for (const button of document.querySelectorAll("[data-bg-scope]")) button.addEventListener("click", () => { scope = button.dataset.bgScope; renderBackground(); });
+  for (const button of document.querySelectorAll("[data-bg-scope]")) button.addEventListener("click", () => { scope = button.dataset.bgScope; renderBackground(); renderAssets(); });
   const controlsBox = $("bgControls"), kindsBox = $("bgKinds");
 
   function bgSlider(label, min, max, step, value, onInput) {
@@ -571,31 +583,54 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     } });
     return usage.length ? [h("div", { class: "ed-asset-inuse", text: `In use: ${usage.join(", ")}` }), button] : [button];
   }
-  // MP4 background upload (background only - videos never appear in Assets or as artwork). Resumable, with progress; the server checks the stored file.
-  const videoInput = h("input", { type: "file", accept: "video/mp4", hidden: true });
+  // Uploading FOR the background: the same asset store, checks, limits and quota as My Assets - the new file is a normal asset (listed in My Assets too, never a
+  // copy) and is assigned to the scope the owner chose when they picked it, even if they switch stage meanwhile. One upload at a time across both areas.
+  //   a video -> the background video path (resumable, with progress; an H.265 / HEVC one is converted on the server and attached when it is ready);
+  //   a picture -> the picture upload, then assigned.
+  const BG_ACCEPT = { video: "video/mp4", image: "image/jpeg,image/png,image/webp,image/avif,image/gif", any: "image/jpeg,image/png,image/webp,image/avif,image/gif,video/mp4,video/webm" };
+  const videoInput = h("input", { type: "file", accept: BG_ACCEPT.video, hidden: true });
   document.body.append(videoInput);
   videoInput.addEventListener("change", async () => {
     const file = videoInput.files?.[0];
     videoInput.value = "";
     if (!file) return;
-    // the scope the owner chose when they picked the file: a converted video lands exactly there, even if they switched stage meanwhile
-    await uploadBackgroundVideo(file, scopeId());
+    await uploadForBackground(file, scopeId());
   });
   const videoBusy = () => /^(Checking|Uploading|Processing)/.test(videoStatus);
+  const uploadForBackground = (file, target) => (isVideoFileType(file.type) ? uploadBackgroundVideo(file, target) : uploadBackgroundImage(file, target));
   async function uploadBackgroundVideo(file, target) {
-    if (videoBusy()) { notify("A background video is already being added. Wait for it to finish."); return; }
+    if (videoBusy() || uploading) { notify("An upload is already in progress. Wait for it to finish."); return; }
     videoError = null;
     videoStatus = "Checking the video…";
     renderBackground(true);
     const result = await assets.uploadVideo(file, { onProgress: (done, total) => showVideoStatus(`Uploading… ${Math.round((done / total) * 100)}%`) });
     if (!result.ok) { videoStatus = ""; videoError = { message: result.message, code: result.code, status: result.status, file, target }; notify(result.message); renderBackground(true); return; }
-    if (result.asset) { videoStatus = "Video added."; setBg(createVideoBackground(result.asset.asset_id)); return; }
+    if (result.asset) { videoStatus = "Video added."; run(ops.setBackground(doc(), target, createVideoBackground(result.asset.asset_id))); return; }
     // HEVC / H.265: converted to H.264 on the server at the SAME resolution. Nothing is attached until it is READY; a failure changes nothing on the Wall.
     await followConversion(result.job.job_id, target, { attach: true });
   }
-  // the persistent error box for the background video (rebuilt with the panel); Retry re-sends the same file to the scope it was meant for
+  async function uploadBackgroundImage(file, target) {
+    if (videoBusy() || uploading) { notify("An upload is already in progress. Wait for it to finish."); return; }
+    videoError = null;
+    videoStatus = "Uploading the image…";
+    uploading = true;
+    if (uploadButton) uploadButton.disabled = true;
+    renderBackground(true);
+    try {
+      const result = await assets.upload(file);
+      if (!result.ok) { videoStatus = ""; videoError = { message: result.message, code: result.code, status: result.status, file, target }; notify(result.message); return; }
+      videoStatus = "Image added to your assets and set as the background.";
+      run(ops.setBackground(doc(), target, createImageBackground(result.asset.asset_id)));
+    } finally {
+      uploading = false;
+      if (uploadButton) uploadButton.disabled = false;
+      renderBackground(true);
+    }
+  }
+  const pickForBackground = kind => { if (videoBusy() || uploading) { notify("An upload is already in progress. Wait for it to finish."); return; } videoStatus = ""; videoInput.accept = BG_ACCEPT[kind]; videoInput.click(); };
+  // the persistent error box for a background upload (rebuilt with the panel); Retry re-sends the same file to the scope it was meant for
   const videoErrorBox = () => (videoError ? renderUploadError(document, videoError, { id: "bgVideoError",
-    onRetry: videoError.file ? (() => { const { file, target } = videoError; uploadBackgroundVideo(file, target); }) : null,
+    onRetry: videoError.file ? (() => { const { file, target } = videoError; uploadForBackground(file, target); }) : null,
     onDismiss: () => { videoError = null; renderBackground(true); controlsBox.querySelector(".ed-primary")?.focus(); } }) : null);
   const videoErrorBoxes = () => (videoError ? [videoErrorBox()] : []);
   const showVideoStatus = text => { videoStatus = text; const line = $("bgVideoStatus"); if (line) line.textContent = text; else renderBackground(true); };
@@ -616,7 +651,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   }
   // a conversion still running from an earlier visit: show its progress and say when it is ready (it is not attached to anything by itself)
   setTimeout(async () => { for (const job of await assets.pendingVideoJobs?.() ?? []) followConversion(job.job_id, null, { attach: false }); }, 1500);
-  const pickVideo = () => { if (videoBusy()) { notify("A background video is already being added. Wait for it to finish."); return; } videoStatus = ""; videoInput.click(); };
+  const pickVideo = () => { if (videoBusy()) { notify("A background video is already being added. Wait for it to finish."); return; } pickForBackground("video"); };
 
   function renderBackground(force = false) {
     const current = currentBackground();
@@ -645,7 +680,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     for (const [value, label] of [["none", "None"], ["color", "Colour"], ["gradient", "Gradient"], ["image", "Image"], ["video", "Video"]]) {
       kindsBox.append(h("button", { type: "button", "aria-pressed": String(kind === value), text: label, onclick: () => {
         if (value === "none") setBg(null);
-        else if (value === "image") { const first = assets.images[0]; if (first) setBg(createImageBackground(first.asset_id)); else { notify("Upload an image first (Assets), then use it as a background."); setTool("assets"); } }
+        else if (value === "image") { const first = assets.images[0]; if (first) setBg(createImageBackground(first.asset_id)); else pickForBackground("image"); }
         else if (value === "video") { const first = assets.videos[0]; if (first) setBg(createVideoBackground(first.asset_id)); else pickVideo(); }
         else setBg(defaultBackground(value));
       } }));
@@ -686,15 +721,18 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
       return list;
     };
     const deleteLine = () => (deleteStatus ? [h("p", { class: "ed-hint", role: "status", text: deleteStatus })] : []);
+    // a new file for THIS background, through the shared upload (it then appears in My Assets too)
+    const uploadRow = (label, kindOfFile) => h("div", { class: "ed-row ed-wrap" }, h("button", { class: "ed-btn ed-primary", type: "button", text: label, onclick: () => pickForBackground(kindOfFile), disabled: videoBusy() || uploading }));
     if (bg?.kind === "color") controlsBox.append(bgColor("Colour", bg.color, value => setBg({ ...live(), color: value }, co)));
     if (bg?.kind === "gradient") controlsBox.append(bgColor("From", bg.from, value => setBg({ ...live(), from: value }, co)), bgColor("To", bg.to, value => setBg({ ...live(), to: value }, co)), bgSlider("Angle", 0, 360, 1, bg.angle, value => setBg({ ...live(), angle: value }, co)));
     if (bg?.kind === "image") {
       if (desktop) controlsBox.append(section("images", "Images", assets.images.length, [imageGrid(bg.assetId, assetId => setBg({ ...live(), assetId }))]), ...deleteLine());
       else controlsBox.append(imageGrid(bg.assetId, assetId => setBg({ ...live(), assetId })), ...deleteLine());
+      controlsBox.append(uploadRow("Upload image", "image"));
     }
     // no background here: the uploads stay reachable (choosing Image / Video would assign one straight away, so an unused upload could never be deleted)
     if (!bg && (assets.images.length || assets.videos.length)) {
-      controlsBox.append(h("p", { class: "ed-hint", text: "Your background uploads. Use one here, or delete one that nothing uses." }));
+      controlsBox.append(h("p", { class: "ed-hint", text: "Your uploads - the same files as in My Assets. Use one as this background." }));
       if (desktop) {
         if (assets.images.length) controlsBox.append(section("images", "Images", assets.images.length, [imageGrid(null, assetId => setBg(createImageBackground(assetId)))]));
         if (assets.videos.length) controlsBox.append(section("videos", "Videos", assets.videos.length, [videoList(null, assetId => setBg(createVideoBackground(assetId)))]));
@@ -704,6 +742,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
       }
       controlsBox.append(...deleteLine());
     }
+    if (!bg) controlsBox.append(uploadRow("Upload image or video", "any"));
     if (bg?.kind === "video") {
       controlsBox.append(desktop ? section("videos", "Videos", assets.videos.length, [videoList(bg.assetId, assetId => setBg({ ...live(), assetId }))]) : videoList(bg.assetId, assetId => setBg({ ...live(), assetId })), ...deleteLine(), h("div", { class: "ed-row ed-wrap" }, h("button", { class: "ed-btn ed-primary", type: "button", text: "Upload MP4", onclick: pickVideo, disabled: /^(Checking|Uploading|Processing)/.test(videoStatus) })),
         h("p", { id: "bgVideoStatus", class: "ed-hint", role: "status", text: videoStatus }), ...videoErrorBoxes(),
@@ -959,9 +998,22 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   let assetsKey = "";
   const videoKind = asset => (asset.mime_type === "video/webm" ? "WebM" : "MP4");
   const sizeLabel = bytes => (bytes >= 1024 * 1024 ? `${Math.round(bytes / (1024 * 1024))} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`);
+  // Set as Background: the background the Background area is set to (Whole Wall, or this stage only)
+  const targetLabel = () => (scope === "wall" ? "Whole Wall" : `Stage ${doc().stages.findIndex(stage => stage.id === stageId()) + 1}`);
+  // Two explicit actions on every upload, never one by accident: Add to Canvas makes an independent element; Set as Background assigns the SAME stored file as the
+  // background (a picture or video background already there keeps its fit, position and appearance and only changes its file). Nothing is copied or uploaded again.
+  function setAsBackground(asset) {
+    const video = isVideoAsset(asset), now = currentBackground();
+    const next = now?.kind === (video ? "video" : "image") ? { ...now, assetId: asset.asset_id } : (video ? createVideoBackground : createImageBackground)(asset.asset_id);
+    const result = run(ops.setBackground(doc(), scopeId(), next));
+    if (result.ok) say(`${video ? "Video" : "Image"} set as the ${targetLabel()} background. Fit, position and appearance are under Background.`);
+    return result;
+  }
   function renderAssets(force = false) {
     const used = ops.assetsInUse(doc());
-    const key = JSON.stringify([assets.assets.map(asset => [asset.asset_id, isVideoAsset(asset) ? !!assets.videoUrlFor(asset.asset_id) : !!assets.urlFor(asset.asset_id)]), [...used].sort()]);
+    const target = $("assetBgTarget");
+    if (target) target.textContent = `Set as Background applies to: ${scope === "wall" ? "the Whole Wall" : `${targetLabel()} only`} (choose under Background).`;
+    const key = JSON.stringify([assets.assets.map(asset => [asset.asset_id, isVideoAsset(asset) ? !!assets.videoUrlFor(asset.asset_id) : !!assets.urlFor(asset.asset_id)]), [...used].sort(), scope, scope === "stage" ? stageId() : null]);
     if (!force && key === assetsKey) return;
     assetsKey = key;
     videoPreviews.retain(new Set(assets.videos.map(asset => asset.asset_id)));   // a deleted video's cached frame is dropped
@@ -977,8 +1029,9 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
       grid.append(h("div", { class: "ed-asset" }, thumb,
         h("div", { class: "meta", text: `${video ? `${videoKind(asset)} video · ` : ""}${asset.width}×${asset.height} · ${sizeLabel(asset.byte_size)}` }),
         inUse ? h("div", { class: "used", text: "IN USE" }) : null,
-        h("div", { class: "row" },
-          h("button", { class: "ed-btn", type: "button", text: "Add", "aria-label": `Add this ${noun.toLowerCase()} to the stage`, onclick: () => addImageElement(asset) }),
+        h("div", { class: "row ed-asset-actions" },
+          h("button", { class: "ed-btn", type: "button", text: "Add to Canvas", "aria-label": `Add this ${noun.toLowerCase()} to the stage as its own element`, onclick: () => addImageElement(asset) }),
+          h("button", { class: "ed-btn", type: "button", text: "Set as Background", "aria-label": `Set this ${noun.toLowerCase()} as the ${targetLabel()} background`, onclick: () => setAsBackground(asset) }),
           h("button", { class: "ed-btn ed-danger", type: "button", text: "Delete", "aria-label": `Delete this ${noun.toLowerCase()}`, onclick: async () => {
             const outcome = await deleteAssetNow(asset);
             if (outcome.status === "deleted" || outcome.status === "failed") say(outcome.message);
@@ -995,7 +1048,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   }
   // Upload -> (optionally) place it. Used by Assets > Upload and Add > Image. A video goes up resumably with progress; the server checks the stored file.
   async function uploadFile(file, { place = false } = {}) {
-    if (uploading) { say("An upload is already in progress. Wait for it to finish."); return null; }
+    if (uploading || videoBusy()) { say("An upload is already in progress. Wait for it to finish."); return null; }
     uploading = true;
     if (uploadButton) uploadButton.disabled = true;
     assetError = null;
@@ -1009,7 +1062,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
         assetError = { message: result.message, code: result.code, status: result.status, file, place };
         renderAssetError();
         notify(result.message);
-        if (place) setTool("assets");   // Add > Image: the error is shown where the upload lives
+        if (place) { showAssetsArea("library"); setTool("assets"); }   // Add > Image: the error is shown where the upload lives (My Assets)
         return null;
       }
       if (result.job) { say("Processing video… it will appear in your assets when it is ready."); return null; }
@@ -1023,7 +1076,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   }
 
   return {
-    addImageElement, uploadFile,
+    addImageElement, uploadFile, showAssetsArea,
     update() { templates.update(); renderBackground(); renderAssets(); renderGamidStatus(); renderGamidData(); renderGamerData(); renderMyFonts(); renderFontSelection(); renderShapeSelection(); },
     invalidate() { renderBackground(true); renderAssets(true); },
     renderAssets, renderBackground,

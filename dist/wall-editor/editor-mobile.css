@@ -185,6 +185,8 @@ body.is-mw-keyboard .mw-bar, body.is-mw-keyboard .mw-selbar { visibility: hidden
 .ed-layer button.ed-mini[aria-pressed="true"] { color: var(--warn); border-color: rgba(255, 200, 87, .5); }
 .ed-layer button.ed-mini[aria-pressed="true"]::before { -webkit-mask-image: var(--mi-lock); mask-image: var(--mi-lock); }
 .ed-layer button.ed-mini { min-width: 2.75rem; min-height: 2.75rem; }
+/* Assets (My Assets / Background, 2026-10-21): the area switch, the Background scope and type choices and the upload cards' buttons are full 44px touch targets */
+[data-tool-panel="assets"] .ed-seg button, [data-tool-panel="assets"] .ed-asset .row .ed-btn { min-height: 2.75rem; }
 
 /* Stages sheet */
 .mw-stage-list { list-style: none; margin: 0 0 .5rem; padding: 0; display: grid; gap: .35rem; }

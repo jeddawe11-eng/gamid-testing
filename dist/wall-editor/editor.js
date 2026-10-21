@@ -165,6 +165,8 @@ function afterToolChange() { setTimeout(() => { canvas.render(); setTimeout(reve
 // Opens a tool (desktop: the drawer always shows one tool and the Edit inspector is always visible; phone: the tool opens as a bottom sheet).
 function openTool(name) {
   if (!isPhone() && name === "props") return;
+  // Background lives inside Assets (2026-10-21): anything that still opens "background" gets Assets on its Background area
+  if (name === "background") { name = "assets"; tools?.showAssetsArea("background"); }
   document.body.dataset.tool = name;
   document.body.classList.add("is-sheet-open");
   mobile?.toolOpened();
@@ -173,6 +175,7 @@ function openTool(name) {
 }
 function closeTools() { document.body.classList.remove("is-sheet-open"); afterToolChange(); mobile?.update(); }
 function toggleTool(name) {
+  if (name === "background") { openTool(name); return; }
   const open = document.body.classList.contains("is-sheet-open") && document.body.dataset.tool === name;
   if (isPhone() && open) { closeTools(); return; }
   openTool(name);

@@ -79,7 +79,6 @@
       <button type="button" data-tool="text"><i aria-hidden="true">T</i><span>Text</span></button>
       <button type="button" data-tool="media"><i aria-hidden="true">&#9654;</i><span>Media &amp; Links</span></button>
       <button type="button" data-tool="shapes"><i aria-hidden="true">&#9632;</i><span>Shapes</span></button>
-      <button type="button" data-tool="background"><i aria-hidden="true">&#9638;</i><span>Background</span></button>
       <button type="button" data-tool="gamid"><i aria-hidden="true">G</i><span>GamID</span></button>
       <button type="button" data-tool="layout"><i aria-hidden="true">&#9776;</i><span>Layout</span></button>
       <button type="button" data-tool="assets"><i aria-hidden="true">&#9635;</i><span>Assets</span></button>
@@ -157,16 +156,6 @@
         <p class="ed-hint">Fill, gradient, border, corner radius and opacity are in <b>Edit</b> once a shape is selected.</p>
       </section>
 
-      <section class="ed-section" data-tool-panel="background">
-        <h2>Background</h2>
-        <div class="ed-seg" role="group" aria-label="Where the background applies">
-          <button type="button" data-bg-scope="wall" aria-pressed="true">Whole Wall</button>
-          <button type="button" data-bg-scope="stage" aria-pressed="false">This stage only</button>
-        </div>
-        <div id="bgKinds" class="ed-seg" role="group" aria-label="Background type"></div>
-        <div id="bgControls"></div>
-        <p id="bgNote" class="ed-hint"></p>
-      </section>
 
       <section class="ed-section" data-tool-panel="gamid">
         <h2>GamID blocks</h2>
@@ -190,15 +179,33 @@
         <ul id="layerList" class="ed-layers"></ul>
       </section>
 
+      <!-- Assets (2026-10-21, Mazen's approved organization): the ONE home for the owner's uploaded Wall media and the Wall background. My Assets = the library
+           (upload, browse, Add to Canvas, Set as Background, Delete); Background = Whole Wall / This stage only, the five types and their settings. -->
       <section class="ed-section" data-tool-panel="assets">
         <h2>Assets</h2>
-        <div class="ed-row ed-wrap">
-          <button id="assetUpload" class="ed-btn ed-primary" type="button">Upload image or video</button>
-          <input id="assetFile" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif,video/mp4,video/webm" hidden />
+        <div class="ed-seg ed-assets-switch" role="group" aria-label="Assets area">
+          <button type="button" data-assets-show="library" aria-pressed="true" aria-controls="assetsLibrary">My Assets</button>
+          <button type="button" data-assets-show="background" aria-pressed="false" aria-controls="assetsBackground">Background</button>
         </div>
-        <p id="assetMessage" class="ed-hint" role="status"></p>
-        <div id="assetGrid" class="ed-assets"></div>
-        <p class="ed-hint">Images: JPG, PNG, WebP, AVIF or GIF (GIFs stay animated), up to 5 MB each. Videos: MP4 (H.264) or WebM (VP8 / VP9 - keeps transparency), up to 50 MB; they play muted and on a loop. Your uploads are private to you.</p>
+        <div id="assetsLibrary" data-assets-area="library" role="region" aria-label="My Assets">
+          <div class="ed-row ed-wrap">
+            <button id="assetUpload" class="ed-btn ed-primary" type="button">Upload image or video</button>
+            <input id="assetFile" type="file" accept="image/jpeg,image/png,image/webp,image/avif,image/gif,video/mp4,video/webm" hidden />
+          </div>
+          <p id="assetMessage" class="ed-hint" role="status"></p>
+          <p id="assetBgTarget" class="ed-hint"></p>
+          <div id="assetGrid" class="ed-assets"></div>
+          <p class="ed-hint">Images: JPG, PNG, WebP, AVIF or GIF (GIFs stay animated), up to 5 MB each. Videos: MP4 (H.264) or WebM (VP8 / VP9 - keeps transparency), up to 50 MB; they play muted and on a loop. Your uploads are private to you.</p>
+        </div>
+        <div id="assetsBackground" data-assets-area="background" role="region" aria-label="Background" hidden>
+          <div class="ed-seg" role="group" aria-label="Where the background applies">
+            <button type="button" data-bg-scope="wall" aria-pressed="true">Whole Wall</button>
+            <button type="button" data-bg-scope="stage" aria-pressed="false">This stage only</button>
+          </div>
+          <div id="bgKinds" class="ed-seg" role="group" aria-label="Background type"></div>
+          <div id="bgControls"></div>
+          <p id="bgNote" class="ed-hint"></p>
+        </div>
       </section>
 
       <section class="ed-section" data-tool-panel="templates">
@@ -266,7 +273,6 @@
         <button class="mw-tool" type="button" data-mw-tool="media"><b aria-hidden="true">&#9654;</b><span>Media &amp; Links</span></button>
         <button class="mw-tool" type="button" data-mw-tool="shapes"><b aria-hidden="true">&#9632;</b><span>Shapes</span></button>
         <button class="mw-tool" type="button" data-mw-tool="gamid"><b aria-hidden="true">G</b><span>GamID</span></button>
-        <button class="mw-tool" type="button" data-mw-tool="background"><b aria-hidden="true">&#9638;</b><span>Background</span></button>
         <button class="mw-tool" type="button" data-mw-tool="templates"><b aria-hidden="true">&#10022;</b><span>Templates</span></button>
       </div>
       <button id="mwMulti" class="ed-btn mw-wide" type="button" aria-pressed="false">Multi-select: off</button>

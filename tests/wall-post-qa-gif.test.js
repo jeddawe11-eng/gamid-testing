@@ -135,7 +135,7 @@ test("I client: GIF is an accepted image everywhere the owner adds pictures; the
   // (video media layers task: the Assets picker also takes MP4 / WebM - videos go through their own resumable upload and check; GIF stays a picture)
   assert.match(html, /accept="image\/jpeg,image\/png,image\/webp,image\/avif,image\/gif,video\/mp4,video\/webm"/);
   const tools = read("dist/wall-editor/tools.js");
-  assert.match(tools, /accept: "video\/mp4"/, "GIF is not video: MP4 is a separate, background-only upload (split hardening + video background pass)");
+  assert.match(tools, /video: "video\/mp4"/,"GIF is not video: MP4 is a separate, background-only upload (split hardening + video background pass)");
   assert.match(read("supabase/config.toml"), /\[functions\.wall-asset-register\]\nverify_jwt = true/);
   assert.match(read("supabase/migrations/20260927110000_wall_gif_assets.sql"), /revoke execute on function public\.register_my_wall_asset\(text, text, integer, integer, integer\), private\.register_my_wall_asset_impl\(text, text, integer, integer, integer\) from authenticated;/);
 });

@@ -11,7 +11,7 @@ const base = read("dist/wall-editor/editor.css");
 const stripComments = text => text.replace(/\/\*[\s\S]*?\*\//g, "");
 const rules = stripComments(css);
 const ADD_ACTIONS = ["text", "shape", "image", "embed", "gamid", "gamidData"];
-const TOOLS = ["add", "text", "media", "shapes", "background", "gamid", "layout", "assets", "templates"];
+const TOOLS = ["add", "text", "media", "shapes", "gamid", "layout", "assets", "templates"];   // Background lives inside Assets since 2026-10-21 (Mazen's approved organization)
 
 test("the redesign stylesheet is linked for the desktop layout only (>= 900px, the editor's own desktop breakpoint), after the existing editor styles", () => {
   const links = [...html.matchAll(/<link rel="stylesheet" href="([^"]+)"([^>]*)\/>/g)].map(match => [match[1], match[2].trim()]);
@@ -33,10 +33,10 @@ test("scope: no rule restyles element Properties controls, Layers, the stage int
   const selectors = [...rules.matchAll(/(^|\})\s*([^{}@]+)\{/g)].map(match => match[2].trim()).flatMap(group => group.split(",").map(part => part.trim()));
   // Later desktop tasks (Mazen, 2026-10-19): the Media & Links panel's cards and forms, and the Icon Group rows inside the Properties accordion, are restyled on desktop.
   // ... and (Shapes V2, 2026-10-19) the Shapes panel library and the Freeform pen / Edit Points bar and layer; (My Gamer Data, 2026-10-19) the GamID panel's library.
-  const allowedScope = selector => selector.startsWith('[data-tool-panel="media"]') || selector.startsWith("#propsBody .ed-acc-body .ed-icon-") || selector.startsWith('[data-tool-panel="shapes"]') || selector.startsWith('[data-tool-panel="background"]') || selector.startsWith('[data-tool-panel="gamid"]') ||
+  const allowedScope = selector => selector.startsWith('[data-tool-panel="media"]') || selector.startsWith("#propsBody .ed-acc-body .ed-icon-") || selector.startsWith('[data-tool-panel="shapes"]') || selector.startsWith('[data-assets-area="background"]') || selector.startsWith('[data-tool-panel="assets"] > .ed-assets-switch') || selector.startsWith('[data-tool-panel="gamid"]') ||
     // Theme consistency pass (Mazen, 2026-10-20): the Layers (Layout), Assets and Templates panels, the Stages bar's delete confirmation, and in Properties ONLY the
     // controls that kept the legacy look (Move to stage's select and button, checkboxes, option lists); Wall content and the shared field controls stay out of reach.
-    ['[data-tool-panel="layout"]', '[data-tool-panel="assets"]', '[data-tool-panel="templates"]', '.ed-stage-confirm', '#propsBody .ed-btn-row > select', '#propsBody select option', '#propsBody .ed-btn.ed-btn-primary', '#propsBody input[type="checkbox"]'].some(prefix => selector.startsWith(prefix)) || /^\.ed-path-/.test(selector) || selector === ".ed-shape-library";
+    ['[data-tool-panel="layout"]', '[data-assets-area="library"]', '[data-tool-panel="templates"]', '.ed-stage-confirm', '#propsBody .ed-btn-row > select', '#propsBody select option', '#propsBody .ed-btn.ed-btn-primary', '#propsBody input[type="checkbox"]'].some(prefix => selector.startsWith(prefix)) || /^\.ed-path-/.test(selector) || selector === ".ed-shape-library";
   for (const selector of selectors) {
     if (allowedScope(selector)) { assert.doesNotMatch(selector, /\.wall-|\.ed-text-line|\.ed-field|^\.ed-btn\b/, `media / Icon Group scope must not reach Wall content or shared controls: ${selector}`); continue; }
     assert.doesNotMatch(selector, /\.ed-field|\.ed-seg|\.ed-text-input|\.ed-text-line|\.ed-layer|\.ed-props-section|\.ed-group-title|\.ed-asset|\.ed-provider|\.ed-handle|\.ed-sel(?![\w-])|\.ed-pad|\.ed-boundary|\.ed-guide|\.ed-overlay|\.ed-artboard|\.wall-(?!stage)|\.ed-preview|\.ed-banner|\.ed-gate/, `out of scope: ${selector}`);
@@ -46,7 +46,7 @@ test("scope: no rule restyles element Properties controls, Layers, the stage int
   assert.deepEqual(selectors.filter(selector => /wall-stage|stage-host/.test(selector)), [".ed-stage-host .wall-stage"]);
   assert.match(rules, /\.ed-stage-host \.wall-stage \{ box-shadow:/);
   // buttons are restyled only inside the header, the canvas bar, the rail and the Add panel
-  for (const selector of selectors.filter(selector => /\.ed-btn/.test(selector))) assert.match(selector, /^(\.ed-top|\.ed-canvas-bar|\[data-tool-panel="add"\]|\[data-tool-panel="text"\] #textPresets|#propsBody \.ed-acc-body \.ed-icon-actions|\[data-tool-panel="media"\] \.ed-provider-info \.ed-btn-row|\.ed-path-bar \.ed-btn|\[data-tool-panel="background"\] |\[data-tool-panel="(templates|assets)"\] |#propsBody \.ed-btn\.ed-btn-primary|#propsBody \.ed-btn-row > select|\.ed-stage-confirm \.ed-btn)/, selector);   // + the theme consistency pass (2026-10-20)   // the Background panel (2026-10-19) styles its own buttons   // Phase 2 added the Text panel presets
+  for (const selector of selectors.filter(selector => /\.ed-btn/.test(selector))) assert.match(selector, /^(\.ed-top|\.ed-canvas-bar|\[data-tool-panel="add"\]|\[data-tool-panel="text"\] #textPresets|#propsBody \.ed-acc-body \.ed-icon-actions|\[data-tool-panel="media"\] \.ed-provider-info \.ed-btn-row|\.ed-path-bar \.ed-btn|\[data-assets-area="(background|library)"\] |\[data-tool-panel="assets"\] > \.ed-assets-switch |\[data-tool-panel="templates"\] |#propsBody \.ed-btn\.ed-btn-primary|#propsBody \.ed-btn-row > select|\.ed-stage-confirm \.ed-btn)/, selector);   // + the theme consistency pass (2026-10-20)   // the Background panel (2026-10-19) styles its own buttons   // Phase 2 added the Text panel presets
 });
 
 test("no behavior, layout model or data change: only presentation properties, no position-changing JS hooks, no inline style, no external or script resources", () => {

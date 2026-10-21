@@ -12,9 +12,9 @@ const read = path => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 const html = read("dist/wall-editor/index.html");
 const walk = (dir, out = []) => { for (const name of readdirSync(dir)) { const full = join(dir, name); if (statSync(full).isDirectory()) walk(full, out); else out.push(full); } return out; };
 const uiFiles = walk("dist/wall-editor").filter(file => /\.(js|html)$/.test(file));
-const TOOLS = ["add", "text", "media", "shapes", "background", "gamid", "layout", "assets", "templates"];
+const TOOLS = ["add", "text", "media", "shapes", "gamid", "layout", "assets", "templates"];   // Background is an area of Assets since 2026-10-21
 
-test("information architecture: the tool rail has exactly the nine product sections (+ the phone-only Edit tab), each with its own panel", () => {
+test("information architecture: the tool rail has exactly the eight product sections (+ the phone-only Edit tab), each with its own panel; Background is inside Assets", () => {
   const rail = [...html.matchAll(/<button type="button" data-tool="([a-z]+)"/g)].map(match => match[1]);
   assert.deepEqual(rail, [...TOOLS, "props"]);
   for (const tool of TOOLS) assert.equal((html.match(new RegExp(`data-tool-panel="${tool}"`, "g")) ?? []).length, 1, `${tool} has exactly one panel`);
@@ -43,7 +43,7 @@ test("Media & Links: paste an address (a URL field, not an embed-code box); supp
   assert.match(media, /identity[\s\S]*Wall content|Wall content[\s\S]*identity/i, "the identity-vs-content distinction is explained");
 });
 test("Background: Whole Wall vs This stage, Colour / Gradient / Image / Video (MP4 background)", () => {
-  const panel = html.slice(html.indexOf('data-tool-panel="background"'), html.indexOf('data-tool-panel="gamid"'));
+  const panel = html.slice(html.indexOf('data-assets-area="background"'), html.indexOf('data-tool-panel="templates"'));   // (inside Assets since 2026-10-21)
   assert.match(panel, /data-bg-scope="wall"/);
   assert.match(panel, /data-bg-scope="stage"/);
   assert.deepEqual([...BACKGROUND_KINDS], ["color", "gradient", "image", "video"]);

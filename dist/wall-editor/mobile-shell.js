@@ -5,7 +5,7 @@
 //
 //   top toolbar:    Back, stage (opens Stages), Undo, Redo, Save (its label is the save status), Preview, Wall menu (publishing, fit)
 //   canvas:         view-only zoom / pan / fit (canvas.js `view`), the selection's quick actions above the bottom toolbar
-//   bottom toolbar: Add, Layers, Stages, Assets, More (Text, Media & Links, Shapes, GamID, Background, Templates, Multi-select)
+//   bottom toolbar: Add, Layers, Stages, Assets (My Assets + Background), More (Text, Media & Links, Shapes, GamID, Templates, Multi-select)
 //   sheets:         the editor's own tool panels and Properties as bottom sheets (half / full height; a side sheet in landscape) + Stages, More, Wall
 import * as ops from "../wall-kit/ops.js";
 import { stageDeleteQuestion } from "../wall-kit/messages.js";
@@ -15,8 +15,8 @@ const $ = id => document.getElementById(id);
 const make = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
 const icon = name => { const node = make("i", "mw-i"); node.dataset.i = name; node.setAttribute("aria-hidden", "true"); return node; };
 const OWN_SHEETS = { stages: "mwStages", more: "mwMore", wall: "mwWall" };
-const TOOL_TITLES = { add: "Add", text: "Text & fonts", media: "Media & Links", shapes: "Shapes", background: "Background", gamid: "GamID", layout: "Layers", assets: "Assets", templates: "Templates" };
-const MORE_TOOLS = new Set(["text", "media", "shapes", "gamid", "background", "templates"]);
+const TOOL_TITLES = { add: "Add", text: "Text & fonts", media: "Media & Links", shapes: "Shapes", gamid: "GamID", layout: "Layers", assets: "Assets", templates: "Templates" };   // Background is inside Assets (2026-10-21)
+const MORE_TOOLS = new Set(["text", "media", "shapes", "gamid", "templates"]);
 const SAVE_LABEL = { loading: "Loading…", saved: "Saved", unsaved: "Save", saving: "Saving…", error: "Retry save", conflict: "Conflict", blocked: "Blocked" };
 const SAVE_ANNOUNCE = { saved: "All changes saved.", unsaved: "Unsaved changes.", saving: "Saving…", error: "Save failed. Tap Retry save.", conflict: "A newer saved version exists.", blocked: "Editing is blocked." };
 
