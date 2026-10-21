@@ -6,6 +6,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ORIGINS = ['https://gamid-testing-static.gamid.workers.dev','https://jeddawe11-eng.github.io'];
 const USER_BUCKETS = ['avatars','wall-media','wall-video','intro-sources','wall-fonts'];
 const OUTPUT_BUCKETS = ['intro-media','wall-video-derived'];
+const WALL_MEDIA_BUCKETS = ['wall-media','wall-video','wall-video-derived'];   // the only buckets the owner's Wall-media orphan cleanup may touch
 export function uploadMetadata(text) {
  const out = {};
  for(const part of (text||'').split(',')) {
@@ -390,7 +391,16 @@ export async function handleUsageUpload({request,env,fetchImpl=fetch,log=()=>{},
     if(typeof path!=='string'||!isFontPath('wall-fonts',path)||path.split('/')[0]!==uid) throw Error('UPLOAD_NOT_OWNED');
     await rpc('authorize_usage_delete',{candidate_owner:uid,candidate_bucket:'wall-fonts',candidate_path:path}); await remove('wall-fonts',path); fonts++;
    }
-   if(cleaned||intro||fonts) await signal(uid); return respond({cleaned,intro,fonts});
+   // Universal deletion (2026-10-21): a Wall image / video file left behind when its asset was deleted but the file delete failed. The database picks them (past a
+   // 1 h grace; never registered, reserved or owned by a conversion; at most 10 a run, 5 tries each, 15 min apart) and re-checks each right before it goes. One
+   // failure never stops the others; a refused or failed one is simply tried again on a later run, until its tries are used up.
+   let media=0,mediaFailed=0;
+   for(const o of (await rpc('claim_wall_media_orphans',{candidate_owner:uid}))||[]) {
+    if(!o||!WALL_MEDIA_BUCKETS.includes(o.bucket)||typeof o.path!=='string'||o.path.split('/')[0]!==uid||o.path.includes('..')) throw Error('UPLOAD_NOT_OWNED');
+    try { await rpc('authorize_wall_media_orphan_delete',{candidate_owner:uid,candidate_bucket:o.bucket,candidate_path:o.path}); await remove(o.bucket,o.path); media++; }
+    catch { mediaFailed++; }
+   }
+   if(cleaned||intro||fonts||media) await signal(uid); return respond({cleaned,intro,fonts,media,mediaFailed});
   }
   if(route==='font' && request.method==='POST') {
    if(worker) return respond({error:'OWNER_UPLOAD_ONLY'},400);

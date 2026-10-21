@@ -565,6 +565,8 @@ async function boot() {
   fontStore.refresh();   // text using a custom font shows its catalog fallback until the font arrives
   refreshGamid().catch(() => { /* blocks show a plain "not available" note */ });
   refreshPublication();
+  // the owner's existing Usage cleanup (also run when Usage opens): it releases what is due - including a Wall file left behind by a deletion whose file removal failed
+  Promise.resolve(api.reconcileUsageUploads?.()).catch(() => { /* retried on the next visit or when Usage opens */ });
 }
 $("gateLink").addEventListener("click", event => {
   const target = accountSignInUrl(location);

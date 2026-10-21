@@ -228,7 +228,7 @@ test("gateway: deleting a registered font object is refused by the database chec
   const orphan = `${OWNER}/fonts/${"c".repeat(64)}.woff2`;
   const g = gateway({ orphans: [orphan] });
   const cleanup = await g.run("cleanup");
-  assert.deepEqual(cleanup.body, { cleaned: 0, intro: 0, fonts: 1 });
+  assert.deepEqual(cleanup.body, { cleaned: 0, intro: 0, fonts: 1, media: 0, mediaFailed: 0 });   // (media: left-behind Wall files, universal deletion 2026-10-21)
   assert.equal(g.deletes(), 1);
   const foreign = await gateway({ orphans: [`${OTHER}/fonts/${"c".repeat(64)}.woff2`] }).run("cleanup");
   assert.equal(foreign.status, 403, "a path in another folder is never deleted");
