@@ -796,7 +796,7 @@
     {
       "id": "wall-universal-delete",
       "name": "Universal deletion of Wall images, GIFs, videos and custom fonts (with reference cleanup and safe orphan file cleanup)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/wall-editor/",
         "/@handle",
@@ -831,12 +831,12 @@
         }
       ],
       "checkpoint": "da4cc5a2f1ad785260309cb6022cdebbba6a6dd1",
-      "record": "docs/UNIVERSAL-DELETE-UX.md; PROJECT_HANDOFF.md sections 113-115. Implemented under Mazen's task of 2026-10-21 and his approval of the stage-deletion exemption and the orphan cleanup the same day. Branch feature/universal-delete-ux (not merged); migrations 20261022100000_universal_delete_resolve and 20261022110000_usage_media_orphans applied on TESTING 2026-10-21 (rehearsed in a rolled-back transaction first); usage-upload v13; site 54e3b43 (run 39595702093). Server-side E2E on TESTING with GM-TEST-01 synthetic media, restored to its baseline. Revised the same day by Mazen (every permanent deletion confirmed, also when unused): site da4cc5a (run 39616006123), no migration. Awaiting Mazen's acceptance."
+      "record": "docs/UNIVERSAL-DELETE-UX.md; PROJECT_HANDOFF.md sections 113-115. Implemented under Mazen's task of 2026-10-21 and his approval of the stage-deletion exemption and the orphan cleanup the same day. Branch feature/universal-delete-ux (not merged); migrations 20261022100000_universal_delete_resolve and 20261022110000_usage_media_orphans applied on TESTING 2026-10-21 (rehearsed in a rolled-back transaction first); usage-upload v13; site 54e3b43 (run 39595702093). Server-side E2E on TESTING with GM-TEST-01 synthetic media, restored to its baseline. Revised the same day by Mazen (every permanent deletion confirmed, also when unused): site da4cc5a (run 39616006123), no migration. Accepted by Mazen on TESTING 2026-10-21 after manually verifying the confirmation and silent behavior."
     },
     {
       "id": "silent-ui-policy",
       "name": "Silent interface (temporary GamID-wide UI sound policy)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/",
         "/account/",
@@ -852,8 +852,9 @@
         }
       ],
       "checkpoint": "da4cc5a2f1ad785260309cb6022cdebbba6a6dd1",
-      "record": "Mazen's decision of 2026-10-21. The audit of every shipped file found no application-owned UI sound (no audio element, Web Audio, oscillator, sound file, speech, vibration or system notification) and no audio infrastructure, so nothing had to be switched off; tests/silent-ui-policy.test.js keeps it so and lists every place that creates a video element (all muted or never played, except the Intro player). docs/UNIVERSAL-DELETE-UX.md section 11; PROJECT_HANDOFF.md section 115. On TESTING with site da4cc5a. Awaiting Mazen's acceptance."
-    },    {
+      "record": "Mazen's decision of 2026-10-21. The audit of every shipped file found no application-owned UI sound (no audio element, Web Audio, oscillator, sound file, speech, vibration or system notification) and no audio infrastructure, so nothing had to be switched off; tests/silent-ui-policy.test.js keeps it so and lists every place that creates a video element (all muted or never played, except the Intro player). docs/UNIVERSAL-DELETE-UX.md section 11; PROJECT_HANDOFF.md section 115. On TESTING with site da4cc5a. Accepted by Mazen on TESTING 2026-10-21 after manually verifying the confirmation and silent behavior."
+    },
+    {
       "id": "wall-picture-stage-loading",
       "name": "Stage-aware Wall picture loading on the visitor page (F7-A)",
       "status": "ACCEPTED",

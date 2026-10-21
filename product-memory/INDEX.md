@@ -76,12 +76,14 @@ Rules:
 | Prefix | Category | Folder | Last issued |
 |---|---|---|---|
 | DIS | Discussions | discussions/ | DIS-0003 |
-| DEC | Decisions | decisions/ | DEC-0006 |
+| DEC | Decisions | decisions/ | DEC-0009 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
-| ISS | Issues | issues/ | ISS-0014 |
+| ISS | Issues | issues/ | ISS-0015 |
 | REV | Reviews | reviews/ | REV-0022 |
 
 ## Register
+
+2026-10-21: Mazen accepted Universal Delete UX on TESTING and approved saving DEC-0008, DEC-0009 and ISS-0015. The two deletion/silent UI capabilities are ACCEPTED in GamID Truth; the existing custom-fonts capability remains independently pending.
 
 2026-10-21: At Mazen's request, IDEA-0003 (Discord LFG Bot, saved earlier the same day with his approval) was corrected to pass validation:
 - template sections added, with the content unchanged and moved under subheadings;
@@ -183,3 +185,7 @@ Status stays DISCUSSION; there is no implementation authorization.
 | REV-0016 | Desktop Background panel redesign - final acceptance | COMPLETED | [REV-0016-desktop-background-final-acceptance.md](reviews/REV-0016-desktop-background-final-acceptance.md) |
 | REV-0021 | Public Wall bandwidth baseline before F6–F8 | COMPLETED | [REV-0021-public-wall-bandwidth-baseline.md](reviews/REV-0021-public-wall-bandwidth-baseline.md) |
 | REV-0022 | F1–F8 Final Bandwidth Benchmark | COMPLETED | [REV-0022-f1-f8-final-bandwidth-benchmark.md](reviews/REV-0022-f1-f8-final-bandwidth-benchmark.md) |
+
+| DEC-0008 | Confirm every permanent Wall resource deletion | ACCEPTED | [DEC-0008-universal-permanent-delete-confirmation.md](decisions/DEC-0008-universal-permanent-delete-confirmation.md) |
+| DEC-0009 | Temporary silent GamID interface | ACCEPTED | [DEC-0009-temporary-silent-ui-policy.md](decisions/DEC-0009-temporary-silent-ui-policy.md) |
+| ISS-0015 | Orphan Wall media file continues counting toward storage | VERIFIED | [ISS-0015-orphan-wall-media-storage-accounting.md](issues/ISS-0015-orphan-wall-media-storage-accounting.md) |

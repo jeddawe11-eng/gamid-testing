@@ -4,7 +4,7 @@ Mazen's task: "GAMID — UNIVERSAL DELETE UX & REFERENCE CLEANUP, ONE COMPLETE I
 
 Branch `feature/universal-delete-ux`, based on `feature/f8b1-video-renditions` at `1f7d203`.
 
-**Status: DEPLOYED ON TESTING, PENDING_ACCEPTANCE** (2026-10-21). Site `da4cc5a` (run `39616006123`; previously `54e3b43`, run `39595702093`), migrations `20261022100000` and `20261022110000` applied, `usage-upload` v13. Not merged. Revised by Mazen the same day: every permanent deletion is confirmed, and the interface is silent (§11). Awaiting Mazen's acceptance (§10, §11).
+**Status: ACCEPTED ON TESTING** (2026-10-21). Site `da4cc5a` (run `39616006123`; previously `54e3b43`, run `39595702093`), migrations `20261022100000` and `20261022110000` applied, `usage-upload` v13. Not merged. Revised by Mazen the same day: every permanent deletion is confirmed, and the interface is silent (§11). Mazen accepted the final signed-in deletion confirmation and silent behavior on 2026-10-21; §10–§11 contain the verification scope.
 
 ## 1. The contract
 
