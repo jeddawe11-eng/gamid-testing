@@ -789,9 +789,9 @@
           "rule": "Visitors receive the rendition only while it is READY and while its ORIGINAL is leasable (the accepted published, enabled, PUBLIC predicate), through public-media's 6 h lease and the F6-A cache. Before READY, after a refusal or failure, and whenever the rendition lease fails, visitors receive the original exactly as before. PRIVATE, Disable, Unpublish and Delete end new rendition leases at once. Owners and the editor always use the original."
         }
       ],
-      "checkpoint": "71441bea7626f8ff35ed693581512c6e8dec6c3a",
-      "record": "docs/WALL-VIDEO-RENDITIONS-F8B1.md; PROJECT_HANDOFF.md sections 109-110; study docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md. Branch feature/f8b1-video-renditions; migration 20261021120000 applied on TESTING 2026-10-21; wall-asset-register v13, public-media v3. Implemented and partly deployed under Mazen's authorization of 2026-10-21; awaiting the worker deployment and his manual acceptance.",
-      "notes": "Partly deployed on TESTING: the database, both Edge Functions and the site are live, but the worker image (with the VMAF-only FFmpeg) and the dispatcher are NOT deployed (no Google Cloud access on the deploying machine). Until they are, no rendition can become READY: eligible uploads only queue as pending, and visitors always receive the original."
+      "checkpoint": "3bb2871dc4eafa0bca67ba039e7d02aad87c9729",
+      "record": "docs/WALL-VIDEO-RENDITIONS-F8B1.md sections 8-11; PROJECT_HANDOFF.md sections 109-111; study docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md. Branch feature/f8b1-video-renditions; migration 20261021120000 applied on TESTING 2026-10-21; wall-asset-register v13, public-media v3, site 764e3b8; worker Job + dispatcher image deployed by Mazen from 3bb2871 (Cloud Build, smokes ok). Validated end to end on TESTING with GM-TEST-01 synthetic media; awaiting Mazen's manual acceptance.",
+      "notes": "Fully deployed on TESTING. The worker measures VMAF with a separate pinned static FFmpeg (libvmaf); every encode keeps the image's Debian FFmpeg. Existing videos are not migrated; HDR, alpha and 10-bit sources are never re-encoded."
     },
     {
       "id": "wall-picture-stage-loading",

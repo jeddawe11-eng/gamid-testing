@@ -210,4 +210,108 @@ Because no rendition exists yet, the table and bucket are empty.
 - **Free plan:** its 5 + 5 GB covers about 125 cold full views of this Wall today versus about 230 with the rendition.
 - **Billing:** the benchmark saw this file served almost entirely as CDN HITs (cached egress). Browser bytes are not billed bytes.
 
-**GamID Truth: UPDATED** — `wall-video-renditions` PENDING_ACCEPTANCE (checkpoint `71441be`), with a note that no rendition can become READY until the worker ships.
+## 10. Worker deployment and TESTING end-to-end validation (2026-10-21)
+
+**Worker + dispatcher:** deployed by Mazen in Cloud Shell with `worker/cloud-run/deploy-f8b1-testing.sh 3bb2871dc4eafa0bca67ba039e7d02aad87c9729`, after the script's sha256 check. The run reported:
+- `F8B1_BUILD_STATUS=SUCCESS`;
+- the image-only updates verified for the Job and the dispatcher;
+- `rendition-smoke` ok=true (VMAF mean 95.85) in the deployed image;
+- `f2-smoke` ok=true (the accepted Intro encoder is unchanged);
+- `F8B1_TESTING_WORKER_AND_DISPATCHER_DEPLOYED`.
+
+The rollback images were printed by the script (`ROLLBACK_JOB_IMAGE` / `ROLLBACK_DISPATCHER_IMAGE`) and stay in that Cloud Shell log.
+
+**End-to-end method:** the synthetic fixture account **GM-TEST-01** (`gm_test_01`) and synthetic media only; @black and @zshot untouched.
+- The originals were uploaded into its own `wall-video` folder, with the usage gateway's own COMPLETE receipt.
+- They were registered with the live `register_verified_wall_asset`, then queued with `create_wall_video_rendition` using the server parser's facts (the exact Edge Function path).
+- The Wall was published temporarily (DRAFT → PUBLIC) and everything restored afterwards (§11).
+
+**Processing on the deployed worker** (`wall_video_renditions` timestamps):
+
+| Clip | Queue → READY / refusal | Worker claim → done | VMAF mean / p5 | Size | Result |
+|---|---|---|---|---|---|
+| E2E-PASS: 4K30 8 s, 43.02 MB, AAC | 08:57:07 → 08:57:57 (50 s, including the Cloud Run cold start) | 33 s (download, encode, VMAF, upload) | 96.325 / 95.254 | 0.78 MB (−98.2%; soft synthetic content compresses far better than real footage) | **READY** 1920×1080 |
+| E2E-REJECT: sharp 4K30 3 s, 32.65 MB | 08:57:07 → 08:57:42 | 18 s | 94.685 / 93.360 | not uploaded | **rejected QUALITY_GATE**; the original stays |
+| E2E-EFFICIENT: 1080p30 20 s, 5.47 MB | — | — | — | — | **not queued** (`RENDITION_NOT_ELIGIBLE` from the database's own re-check) |
+
+- The dispatcher accepted both renditions' dispatches (HTTP 202).
+- The VMAF values equal the local pre-run to three decimals.
+
+**Visitor delivery on TESTING** (`/@gm_test_01`, Chrome, fresh profile, desktop 1440×900, 30 s window). "Original" = the same page with only the rendition's lease refused in the browser: this is also the **fallback test**.
+
+| Link | Served | First frame | Played in 30 s | Dropped | E2E-PASS bytes |
+|---|---|---|---|---|---|
+| unthrottled | **rendition**, 1920×1080 | 0.17–0.48 s | all 8 s, looping | 0 / 867 | **0.78 MB** |
+| unthrottled | original (fallback), 3840×2160 | 0.29–0.61 s | all 8 s, looping | 0 / 861 | 43.03 MB |
+| 9 Mbit/s | **rendition** | 0.17–0.44 s | all 8 s, looping | 0 / 865 | **0.78 MB** |
+| 9 Mbit/s | original (fallback) | 1.95–2.20 s | **1.5 s of 8 (stuck)** | 0 / 48 | 16–25 MB and still loading |
+
+- **Supporting checks:**
+  - 3 rounds per condition;
+  - the "stall" events counted at each loop restart are equal in every condition, so they are excluded as a measure;
+  - 0 page errors.
+- **The other video:** the REJECT clip played its original in every run, as designed.
+
+**Owner, editor and Usage** (owner RPCs called as GM-TEST-01 through a JWT claim, inside a rolled-back transaction):
+- **`list_my_wall_assets`** (what the editor uses) returns only original paths; no rendition is mentioned anywhere.
+- **`get_my_usage_impl`:** `used_bytes` and the Wall media line = **81,138,924 = exactly the three originals**. The 776,489-byte rendition is excluded.
+- **Asset slots:** 4 = 1 pre-existing + 3 synthetic; the rendition created none.
+
+**Revocation** (anonymous manifest + `public-media` lease status for the rendition and its original after each change):
+
+| State | Manifest | Rendition lease | Original lease |
+|---|---|---|---|
+| published, PUBLIC | lists the rendition | 200 | 200 |
+| GamID PRIVATE | none | 404 | 404 |
+| PUBLIC, Wall disabled | none | 404 | 404 |
+| Wall enabled | lists the rendition | 200 | 200 |
+| unpublished | none | 404 | 404 |
+| republished (same document) | lists the rendition | 200 | 200 |
+
+**Deletion:**
+- The owner republished without the video, then `delete_my_wall_asset` (real owner RPC) deleted it, and the original was removed as the client does.
+- The rendition was detached at once (`asset_id` null), dropped from the manifest, and its lease is 404.
+
+**Cleanup by the real worker:**
+- **Waiting out the grace:** once the 30-minute grace had passed (09:28:06), the detached rendition became the single sweep candidate.
+- **The trigger:** re-queuing the REJECT clip dispatched one genuine worker run (09:28:21 → 09:28:49, rejected again).
+- **The result:** its closing sweep deleted the orphan. By 09:29:05 there were 0 rendition objects and an empty sweep list.
+
+## 11. Restore, costs and remaining items
+
+**Restored:** GM-TEST-01 matches its recorded baseline exactly:
+- DRAFT, with only its earlier asset `20694c6e`;
+- 0 publications and the same draft fingerprint;
+- 0 stored objects, 0 bytes, 41 receipts (the 3 test receipts removed).
+
+**Removed:** the synthetic assets went through the owner RPC and their originals through Storage; the synthetic rendition rows were deleted. The whole project then has 0 rendition rows and 0 rendition objects.
+
+**Protected accounts:** @black and @zshot are untouched: both PUBLIC, @black's manifest still 13 assets with no rendition.
+
+**Processing, OBSERVED** (database timestamps of the deployed worker):
+- E2E-PASS: 33 s from claim to READY, 50 s from queue including the Cloud Run start.
+- E2E-REJECT: 18 s from claim; 28–35 s from queue.
+- Cloud Run billing for these executions is not visible here; read it in Google Cloud Billing.
+
+**Processing, ESTIMATED:** at most about 50 s × 2 vCPU per execution ≈ 100 vCPU-s ≈ $0.0018, plus about $0.0002 memory, so **about $0.002 per rendition attempt** (rejected ones cost the same).
+- This test's 4 Job executions plus the 2 deploy smokes are about 600 vCPU-s, inside the free 240,000 vCPU-s per month, so likely $0 billed.
+
+**Delivery, OBSERVED on TESTING** (synthetic E2E-PASS clip): 43.03 → 0.78 MB per view. Soft synthetic content; real footage compresses far less.
+
+**Delivery, real-content figures** (@black's 4K, measured locally in §3): 50.55 → 13.34 MB per view (−73.6%). Wall video bytes for that one file, billed only beyond the plan's included egress (Pro: 250 GB uncached + 250 GB cached):
+
+| Views | Original | Rendition | If all CDN-cached ($0.03 / GB) | If uncached ($0.09 / GB) |
+|---|---:|---:|---|---|
+| 1,000 cold views | 50.6 GB | 13.3 GB | $1.52 → $0.40 | $4.55 → $1.20 |
+| 10,000 cold views | 506 GB | 133 GB | $15.17 → $4.00 | $45.50 → $12.01 |
+| 10,000 views, realistic (40% first visits per browser, F6-A serves repeats from cache; 50% reach the video's stage) | 101 GB | 26.7 GB | $3.03 → $0.80 | $9.10 → $2.40 |
+
+- **Storage:** about +13.3 MB internal per such upload ($0.0003 / month); uncounted for the owner.
+- **Billing:** browser bytes are not billed bytes; the owner's Supabase Usage page shows the billed figures.
+
+**Remaining before acceptance:**
+- **A real browser upload by Mazen:** this test used the Edge Function's exact RPC calls with the server parser's facts, but not the deployed `wall-asset-register` v13 handler itself, because the agent does not sign in as a persona. Upload a new 4K MP4 to a stage and publish, then check READY and the visitor transfer.
+- **Physical devices, Safari and Firefox:** not tested.
+- **Existing videos:** not migrated, by design.
+
+**GamID Truth: UPDATED** — `wall-video-renditions` stays PENDING_ACCEPTANCE (checkpoint `3bb2871`); the note now records the full deployment and this validation.

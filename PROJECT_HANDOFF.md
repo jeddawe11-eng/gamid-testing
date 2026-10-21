@@ -4569,3 +4569,32 @@ Mazen's task "GAMID — F8-B1 TESTING DEPLOYMENT & REAL-WORLD BENCHMARK", with h
 - **Not yet done:** READY, the end-to-end test and the TESTING optimized-delivery benchmark wait for the worker. The local measurements (§3) stand.
 
 **Truth: UPDATED** — `wall-video-renditions` PENDING_ACCEPTANCE at `71441be`, with a note that nothing can be READY until the worker ships. **STOP for Mazen**: worker deployment by someone with Google Cloud access, then the end-to-end test and benchmark, then his manual acceptance.
+
+## 111. F8-B1 worker deployed; TESTING end-to-end validation (2026-10-21, PENDING Mazen's acceptance)
+
+Mazen ran `worker/cloud-run/deploy-f8b1-testing.sh 3bb2871` in Cloud Shell: build SUCCESS, image-only updates verified, `rendition-smoke` ok (VMAF 95.85), `f2-smoke` ok. Then a full end-to-end run on GM-TEST-01 with synthetic media only (details: `docs/WALL-VIDEO-RENDITIONS-F8B1.md` §10–§11).
+
+- **Processing:**
+  - 4K PASS clip: READY in 33 s of worker time (50 s from queue), VMAF 96.325 / 95.254, 43.02 → 0.78 MB;
+  - sharp 4K clip: rejected QUALITY_GATE (VMAF 94.685);
+  - efficient 1080p: never queued (`RENDITION_NOT_ELIGIBLE`);
+  - the dispatcher accepted the dispatches (HTTP 202).
+- **Visitor:**
+  - the page plays the rendition (1920×1080);
+  - a refused rendition lease falls back to the 4K original;
+  - at 9 Mbit/s the rendition plays the whole clip (0.78 MB), while the original plays 1.5 s of 8 in 30 s (first frame 2.2 vs 0.4 s).
+- **Owner, editor, Usage:**
+  - the owner's asset list has only originals;
+  - Usage counts exactly the originals (81,138,924 B) and excludes the 776,489 B rendition;
+  - no slot is created.
+- **Revocation, deletion, cleanup:**
+  - PRIVATE, Disable and Unpublish → 404 for the rendition and the original; enable and republish restore both;
+  - delete detaches the rendition at once;
+  - a real worker run's sweep deleted the orphan after the 30-minute grace.
+- **Restored:** GM-TEST-01 matches its baseline exactly; 0 rendition rows and objects remain; @black and @zshot untouched.
+- **Costs:** observed processing 18–33 s per attempt (about $0.002 estimated; billing not visible). Real-content delivery estimate at 10,000 realistic views: 101 → 27 GB.
+- **Remaining:**
+  - Mazen's own browser upload (the deployed `wall-asset-register` handler itself);
+  - devices, Safari and Firefox.
+
+**Truth: UPDATED** (`wall-video-renditions` note: fully deployed and validated; checkpoint `3bb2871`; still PENDING_ACCEPTANCE). **STOP for Mazen's acceptance.**
