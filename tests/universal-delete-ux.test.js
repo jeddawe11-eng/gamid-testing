@@ -116,28 +116,42 @@ function harness({ doc = wall(), server = {}, fail = null, failAfterCommit = fal
   });
   const assets = makeStore("asset"), fonts = makeStore("font");
   const { session, persistence } = fakeSession(doc);
-  let answer = "confirm";
+  let answer = "confirm", answer2 = "confirm";
   const flow = createDeleteFlow({
     session, assets, fonts, onDeleted: event => deleted.push(event),
-    confirm: async (details, run) => { confirms.push(details); return answer === "confirm" ? run() : null; },
+    // the dialog's behaviour: Delete runs `run`; a "confirm-again" outcome shows the new (detailed) details and is confirmed again
+    confirm: async (details, run) => {
+      confirms.push(details);
+      if (answer !== "confirm") return null;
+      let outcome = await run();
+      while (outcome?.status === "confirm-again") { confirms.push(outcome.details); if (answer2 !== "confirm") return null; outcome = await outcome.run(); }
+      return outcome;
+    },
   });
-  return { flow, session, persistence, calls, confirms, deleted, setAnswer: value => { answer = value; }, published };
+  return { flow, session, persistence, calls, confirms, deleted, setAnswer: value => { answer = value; }, setSecondAnswer: value => { answer2 = value; }, published };
 }
 
-test("1 unused asset: deleted at once - no confirmation, nothing else changes", async () => {
+test("1 / 2 / 3 unused asset: a simple confirmation first (no usage list); Cancel sends nothing and keeps it; Delete deletes it", async () => {
+  const cancelled = harness();
+  await cancelled.session.load();
+  cancelled.setAnswer("cancel");
+  assert.equal((await cancelled.flow.deleteAsset(UNUSED)).status, "cancelled");
+  assert.equal(cancelled.confirms.length, 1, "the confirmation is always shown");
+  assert.deepEqual(cancelled.confirms[0], { kind: "asset", noun: "image", name: "Image · 10×10 · 1 KB", inUse: false, places: [], publishedNote: null, consequence: "" }, "the simple one: no usage warnings");
+  assert.deepEqual(cancelled.calls, [], "nothing is sent before the owner confirms");
+  assert.deepEqual(cancelled.deleted, []);
   const h = harness();
   await h.session.load();
   const before = structuredClone(h.session.doc);
   const outcome = await h.flow.deleteAsset(UNUSED);
   assert.equal(outcome.status, "deleted");
   assert.match(outcome.message, /was deleted\.$/);
-  assert.deepEqual(h.confirms, [], "no question for an unused asset");
-  assert.deepEqual(h.calls, [["asset", SPARE, { resolve: false }]]);
+  assert.equal(h.confirms.length, 1);
+  assert.deepEqual(h.calls, [["asset", SPARE, { resolve: false }]], "confirmed as unused: the server deletes it only if it is still unused");
   assert.deepEqual(h.session.doc, before);
   assert.equal(h.session.status, "saved");
   assert.deepEqual(h.deleted, [{ kind: "asset", id: SPARE, publishedChanged: false }]);
 });
-
 test("2 / 3 / 4 used background + stage images (several places, several stages): one confirmation listing them, then removed everywhere", async () => {
   const h = harness({ server: { [IMG]: { inDraft: true, inPublished: true } } });
   await h.session.load();
@@ -164,18 +178,37 @@ test("2 / 3 / 4 used background + stage images (several places, several stages):
   assert.equal(v.session.doc.background, undefined);
 });
 
-test("used only by the saved / published Wall (removed here, not saved yet): the server says so, then the same confirmation", async () => {
-  const doc = ops.removeAssetReferences(wall(), IMG).doc;
-  const h = harness({ doc, server: { [IMG]: { inDraft: true, inPublished: false } } });
+test("removed here but still in the saved Wall: the detailed confirmation at once (from the saved draft the editor holds) - nothing is sent first", async () => {
+  const h = harness({ server: { [IMG]: { inDraft: true, inPublished: false } } });
   await h.session.load();
+  h.session.apply(ops.removeAssetReferences(h.session.doc, IMG));
+  assert.equal(h.session.status, "unsaved");
   const outcome = await h.flow.deleteAsset(ASSET);
-  assert.deepEqual(h.calls.map(call => call[2]), [{ resolve: false }, { resolve: true, expectedRevision: 5 }]);
+  assert.equal(h.confirms.length, 1);
+  assert.equal(h.confirms[0].inUse, true);
   assert.deepEqual(h.confirms[0].places, ["your saved Wall (you removed it here, but that is not saved yet)"]);
-  assert.equal(h.confirms[0].publishedNote, null, "the server already said whether the published Wall uses it");
+  assert.deepEqual(h.calls.map(call => call[2]), [{ resolve: true, expectedRevision: 5 }]);
   assert.equal(outcome.status, "deleted");
+  assert.equal(h.session.status, "saved", "the owner's only edit was that removal, which the server has now made");
 });
 
-test("5 used font: a warning that text appearance changes (naming the fallback font), then every text falls back; 6 unused font: deleted at once", async () => {
+test("confirmed as unused, but the server finds it used (an older published Wall, another tab): nothing is deleted and the same dialog asks again in detail", async () => {
+  const h = harness({ doc: ops.removeAssetReferences(wall(), IMG).doc, server: { [IMG]: { inDraft: false, inPublished: true } } });
+  await h.session.load();
+  const outcome = await h.flow.deleteAsset(ASSET);
+  assert.deepEqual(h.confirms.map(details => details.inUse), [false, true]);
+  assert.deepEqual(h.confirms[1].places, ["your published Wall"]);
+  assert.equal(h.confirms[1].publishedNote, null, "the server already said where");
+  assert.deepEqual(h.calls.map(call => call[2]), [{ resolve: false }, { resolve: true, expectedRevision: 5 }]);
+  assert.equal(outcome.status, "deleted");
+  const cancelled = harness({ doc: ops.removeAssetReferences(wall(), IMG).doc, server: { [IMG]: { inDraft: false, inPublished: true } } });
+  await cancelled.session.load();
+  cancelled.setSecondAnswer("cancel");
+  assert.equal((await cancelled.flow.deleteAsset(ASSET)).status, "cancelled");
+  assert.deepEqual(cancelled.calls.map(call => call[2]), [{ resolve: false }], "the refused first try deleted nothing; Cancel then sends nothing more");
+  assert.deepEqual(cancelled.deleted, []);
+});
+test("5 used font: a warning that text appearance changes (naming the fallback font), then every text falls back; 6 unused font: the simple confirmation", async () => {
   const h = harness({ server: { [FONT]: { inDraft: true, inPublished: true } } });
   await h.session.load();
   const outcome = await h.flow.deleteFont(FONT_ROW);
@@ -190,7 +223,11 @@ test("5 used font: a warning that text appearance changes (naming the fallback f
   const unused = harness();
   await unused.session.load();
   assert.equal((await unused.flow.deleteFont({ ...FONT_ROW, font_id: "f0000000-0000-4000-8000-000000000002", in_draft: false, in_published: false })).status, "deleted");
-  assert.deepEqual(unused.confirms, []);
+  assert.deepEqual(unused.confirms.map(details => [details.noun, details.inUse, details.places.length]), [["font", false, 0]]);
+  const publishedOnly = harness();
+  await publishedOnly.session.load();
+  await publishedOnly.flow.deleteFont({ ...FONT_ROW, font_id: "f0000000-0000-4000-8000-000000000003", in_draft: false, in_published: true });
+  assert.deepEqual([publishedOnly.confirms[0].inUse, publishedOnly.confirms[0].places], [true, ["your published Wall"]], "My Fonts' own in_published counts as use");
 });
 
 test("7 cancel: nothing is deleted and nothing changes", async () => {
@@ -272,7 +309,7 @@ test("10 storage: a file the gateway could not remove yet is reported honestly (
 function fakeDocument() {
   const make = tag => {
     const node = { tag, children: [], attrs: {}, listeners: {}, textContent: "", disabled: false, open: false, removed: false, className: "",
-      append(...items) { node.children.push(...items); }, setAttribute(key, value) { node.attrs[key] = value; }, addEventListener(type, fn) { node.listeners[type] = fn; },
+      append(...items) { node.children.push(...items); }, replaceChildren(...items) { node.children = [...items]; }, setAttribute(key, value) { node.attrs[key] = value; }, addEventListener(type, fn) { node.listeners[type] = fn; },
       showModal() { node.open = true; }, close() { node.open = false; }, remove() { node.removed = true; }, focus() { doc.focused = node; } };
     return node;
   };
@@ -280,7 +317,7 @@ function fakeDocument() {
   return doc;
 }
 const walk = (node, out = []) => { out.push(node); for (const child of node.children ?? []) if (typeof child === "object") walk(child, out); return out; };
-const DETAILS = { noun: "image", name: "Image · 640×360 · 2 KB", places: ["Stage 1 background", "2 images on Stage 2"], consequence: "Deleting it removes the image.", publishedNote: null };
+const DETAILS = { noun: "image", name: "Image · 640×360 · 2 KB", inUse: true, places: ["Stage 1 background", "2 images on Stage 2"], consequence: "Deleting it removes the image.", publishedNote: null };
 
 test("dialog: a modal with the name, the places, the consequence and Delete / Cancel; Cancel is focused; Cancel and Escape change nothing; Delete runs once", async () => {
   const documentRef = fakeDocument();
@@ -315,6 +352,39 @@ test("dialog: a modal with the name, the places, the consequence and Delete / Ca
   assert.deepEqual(await confirmed, { status: "deleted", message: "ok" }, "Cancel cannot interrupt a deletion in progress");
 });
 
+test("dialog, not in use: the simple confirmation - not in use, permanent, cannot be undone, Cancel / Delete image - and no usage list", async () => {
+  const documentRef = fakeDocument();
+  const simple = { noun: "image", name: "Image · 10×10 · 1 KB", inUse: false, places: [], publishedNote: null, consequence: "" };
+  const pending = openDeleteDialog(documentRef, simple, async () => ({ status: "deleted", message: "ok" }));
+  const nodes = walk(documentRef.body.children[0]), texts = nodes.map(node => node.textContent);
+  for (const line of ["Delete this image?", "This image is not currently in use.", "Are you sure you want to permanently delete it?", "This action cannot be undone."]) assert.ok(texts.includes(line), line);
+  assert.equal(nodes.some(node => node.tag === "ul"), false, "no list of affected places");
+  assert.equal(texts.some(value => /is in use/.test(value)), false, "no misleading usage warning");
+  const [cancel, confirm] = nodes.filter(node => node.tag === "button");
+  assert.deepEqual([cancel.textContent, confirm.textContent], ["Cancel", "Delete image"]);
+  assert.equal(documentRef.focused, cancel);
+  cancel.listeners.click();
+  assert.equal(await pending, null, "Cancel changes nothing");
+});
+
+test("dialog: when the server finds the resource still in use, the same dialog switches to the detailed confirmation and waits again", async () => {
+  const documentRef = fakeDocument();
+  const simple = { noun: "video", name: "MP4 video · 1920×1080 · 9 MB", inUse: false, places: [], publishedNote: null, consequence: "" };
+  const detailed = { noun: "video", name: simple.name, inUse: true, places: ["your published Wall"], publishedNote: null, consequence: "Deleting it removes the video from every place it is used." };
+  let second = 0;
+  const pending = openDeleteDialog(documentRef, simple, async () => ({ status: "confirm-again", details: detailed, run: async () => { second += 1; return { status: "deleted", message: "done" }; } }));
+  const dialog = documentRef.body.children[0];
+  const [cancel, confirm] = walk(dialog).filter(node => node.tag === "button");
+  await confirm.listeners.click();
+  assert.equal(dialog.open, true, "still open: nothing was deleted yet");
+  const texts = walk(dialog).map(node => node.textContent);
+  assert.ok(texts.includes("This video is in use:") && texts.includes("your published Wall") && texts.includes("This deletes it permanently. It cannot be undone."));
+  assert.ok(texts.some(value => /Nothing was deleted/.test(value)));
+  assert.deepEqual([cancel.disabled, confirm.disabled, confirm.textContent], [false, false, "Delete video"]);
+  await confirm.listeners.click();
+  assert.equal(second, 1);
+  assert.deepEqual(await pending, { status: "deleted", message: "done" });
+});
 // ---- the account client -------------------------------------------------------------------------------------------------------------------------------
 test("client: one RPC with resolve / expected revision, then the file goes through the usage gateway (right bucket), retried, 404 = gone, else reported pending", async () => {
   const store = new Map([["gamid.testing.auth.session.v1", JSON.stringify({ access_token: "a.b.c", refresh_token: "r", expires_at: Math.floor(Date.now() / 1000) + 3600, user: { id: "u" } })]]);
@@ -377,5 +447,10 @@ test("every entry point uses the one flow: Assets, Background images / videos (d
   assert.doesNotMatch(dialogCss, /animation|transition/, "no motion");
   const flow = read("dist/wall-editor/delete-flow.js");
   assert.doesNotMatch(flow, /innerHTML|insertAdjacentHTML/);
+  // every permanent deletion is confirmed first (Mazen, 2026-10-21): the server is asked to delete only from inside a confirmation's Delete
+  assert.equal((flow.match(/store\.deleteResolving\(/g) ?? []).length, 2, "two calls: the simple confirmation's Delete and the detailed one's (resolveNow)");
+  assert.match(flow, /outcome = await confirm\(simple, async \(\) => \{\s*let server;\s*try \{ server = await resource\.store\.deleteResolving\(resource\.id, \{ resolve: false \}\); \}/);
+  assert.match(flow, /outcome = await confirm\(usedDetails\([\s\S]{0,160}\), \(\) => resolveNow\(resource\)\);/);
+  assert.equal((flow.match(/\(\) => resolveNow\(resource\)/g) ?? []).length, 2, "resolveNow runs only as a confirmation's Delete (detailed, or detailed after the server's refusal)");
   assert.match(read("package.json"), /node --check dist\/wall-editor\/delete-flow\.js/);
 });

@@ -273,7 +273,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     myFontList.replaceChildren(...cards);
     renderFontSelection();
   }
-  // Deleting a font follows the universal rule (delete-flow.js): an unused font goes at once; a used one asks first, and on Delete its texts switch to their library font.
+  // Deleting a font follows the universal rule (delete-flow.js): always confirmed first - simply when unused; in detail when used, and on Delete its texts switch to their library font.
   async function deleteFont(font) {
     if (fontBusy || deletion.busy) return;
     fontBusy = true; sayFont("");
@@ -559,7 +559,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   let lastBgKind = null;
   let videoStatus = "";
   let videoError = null;   // ISS-0001: a failed background video upload / conversion { message, code, status, file?, target? } - persistent until dismissed or resolved
-  // Background asset deletion follows the universal rule (delete-flow.js), exactly as in Assets: an unused upload is deleted at once; one the Wall uses says where
+  // Background asset deletion follows the universal rule (delete-flow.js), exactly as in Assets: every Delete is confirmed first (simply when unused); one the Wall uses says where
   // ("In use: ...") and its Delete asks first, then removes it from every place - this background included.
   let deleteStatus = "";
   function deleteControls(asset, noun) {
@@ -926,7 +926,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
 
   // ---- Assets --------------------------------------------------------------------------------------------------------------------------------
   // Pictures (JPG / PNG / WebP / AVIF / GIF) and VIDEOS (MP4 / WebM) side by side. "Add" places either as a media layer with the same artwork controls; a video layer
-  // plays muted and looping. Deleting follows the universal rule (delete-flow.js): unused -> at once; in use -> one confirmation, then removed from every place.
+  // plays muted and looping. Deleting follows the universal rule (delete-flow.js): always confirmed (simply when unused; in detail, then removed from every place, when in use).
   const grid = $("assetGrid"), message = $("assetMessage");
   const say = text => { message.textContent = text; };
   // ISS-0001: a failed upload is ONE persistent inline box under Upload (reason and next step, Retry only when retryable, View Usage for the storage quota or a

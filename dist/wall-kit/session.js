@@ -43,6 +43,8 @@ export function createEditorSession({ persistence, onChange = () => {}, now = ()
     state,
     get doc() { return state.doc; },
     get dirty() { return state.savedJson !== null && snapshot(state.doc) !== state.savedJson; },
+    // the SAVED draft as this editor last loaded / saved it (a fresh copy; null before loading) - e.g. to tell whether a resource is still used by the saved Wall
+    get savedDocument() { return state.savedJson === null ? null : JSON.parse(state.savedJson); },
     get canUndo() { return history.canUndo; },
     get canRedo() { return history.canRedo; },
     get stage() { return findStage(state.doc, state.stageId); },
