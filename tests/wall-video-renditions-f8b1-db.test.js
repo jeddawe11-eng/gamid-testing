@@ -43,6 +43,12 @@ async function fixture() {
     create table private.usage_policy (singleton boolean primary key default true, quota_bytes bigint, approaching numeric, near_limit numeric, gateway_required boolean);
     create table private.usage_media_categories (bucket text primary key, category text not null);
     create function private.usage_reserved_bytes(u uuid) returns bigint language sql as $$ select 0::bigint $$;`);
+  // the REAL usage functions as they stand on TESTING: the gateway originals, then the custom-fonts migration's in-place patch (the Custom Fonts quota line)
+  const gateway = read("supabase/migrations/20261004170252_global_usage_gateway.sql"), fonts = read("supabase/migrations/20261018120000_wall_custom_fonts.sql");
+  const slice = (text, from, to) => { const a = text.indexOf(from); return text.slice(a, text.indexOf(to, a) + to.length); };
+  await db.exec(slice(gateway, "create function private.usage_stored_bytes(u uuid)", "\n$$;"));
+  await db.exec(slice(gateway, "create function private.get_my_usage_impl()", "end $$;"));
+  await db.exec(slice(fonts.slice(fonts.indexOf("-- 9. Usage Center")), "do $$\ndeclare original text; revised text;", "end $$;"));
   await db.exec(read("supabase/migrations/20261009170000_wall_public_publishing_toggle.sql"));
   // the accepted lease predicate before F8-B1 (20261010140000), so the migration's replacement is exercised
   await db.exec(`create function private.public_media_lease_allowed(candidate_bucket text, candidate_path text) returns boolean language sql stable security definer set search_path = '' as $$ select false $$;`);
@@ -190,8 +196,13 @@ test("F8-B1 quota: the original keeps counting toward the owner's storage; the i
   await f.object("wall-video", ORIGINAL, 50 * MB - 7);
   await f.object("wall-video-renditions", `${A}/aaaaaaaa-0000-4000-8000-000000000001/bbbbbbbb-0000-4000-8000-000000000001.mp4`, 13 * MB);
   assert.equal(Number((await f.one("select private.usage_stored_bytes($1) n", [A])).n), 50 * MB - 7);
-  const body = MIGRATION.slice(MIGRATION.indexOf("create or replace function private.get_my_usage_impl"));
-  assert.match(body.slice(0, body.indexOf("end $$;")), /split_part\(o\.name,'\/',1\)=u::text and o\.bucket_id<>'wall-video-renditions' and coalesce/, "the Usage page media summary skips it too");
+  // patched in place: the Usage page media summary skips the bucket AND every later addition (the Custom Fonts quota line) is kept exactly
+  const usage = (await f.one("select pg_get_functiondef('private.get_my_usage_impl()'::regprocedure) def")).def;
+  assert.match(usage, /split_part\(o\.name,'\/',1\)=u::text and o\.bucket_id<>'wall-video-renditions' and coalesce/, "the Usage page media summary skips it too");
+  assert.match(usage, /'key','wall\.fonts','name','Custom Fonts'/, "the live Custom Fonts quota line survives");
+  const stored = (await f.one("select pg_get_functiondef('private.usage_stored_bytes(uuid)'::regprocedure) def")).def;
+  assert.equal(stored.split("o.bucket_id<>'wall-video-renditions'").length - 1, 2, "both the size check and the sum skip it");
+  assert.doesNotMatch(MIGRATION, /create or replace function private\.(usage_stored_bytes|get_my_usage_impl)\b/, "never a copied body that could revert later changes");
   assert.doesNotMatch(MIGRATION, /quota_bytes\s*=|wall_asset_limit\(\)\s*returns|wall_video_limit\(\)\s*returns/, "quota, asset and video limits untouched");
   const bucket = await f.one("select public, file_size_limit, allowed_mime_types from storage.buckets where id = 'wall-video-renditions'");
   assert.deepEqual([bucket.public, Number(bucket.file_size_limit), bucket.allowed_mime_types], [false, 39321600, ["video/mp4"]]);

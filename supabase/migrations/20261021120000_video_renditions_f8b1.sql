@@ -16,9 +16,8 @@
 --      its asset's ORIGINAL is leasable (the accepted published / enabled / PUBLIC predicate), so PRIVATE, Disable, Unpublish and Delete end new leases at once.
 --   6. lifecycle: deleting the asset detaches its rendition (asset_id set null); the sweep deletes every rendition object that is not the current READY or
 --      in-flight one, after a grace period.
--- Rollback: drop the trigger, the functions and the table; restore private.usage_stored_bytes, private.get_my_usage_impl,
--- private.get_public_wall_impl and private.public_media_lease_allowed from 20261004170252 / 20261009170000 / 20261010140000; delete the bucket's objects
--- with the worker, then the bucket.
+-- Rollback: docs/WALL-VIDEO-RENDITIONS-F8B1.md section 8 (reverse the two in-place usage patches; restore get_public_wall_impl and
+-- public_media_lease_allowed from 20261009170000 / 20261010140000; drop the trigger, functions and table; delete the bucket's objects, then the bucket).
 
 -- ---------------------------------------------------------------------------------------------
 -- 1. Storage (no policies: service role only)
@@ -28,44 +27,22 @@ values ('wall-video-renditions', 'wall-video-renditions', false, 39321600, array
 on conflict (id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
 -- ---------------------------------------------------------------------------------------------
--- 2. Quota: the internal rendition never counts toward the owner's storage (bodies otherwise identical to 20261004170252_global_usage_gateway.sql)
+-- 2. Quota: the internal rendition never counts toward the owner's storage. Both functions are patched IN PLACE from their live definitions (the custom-fonts
+--    migration's pattern), so every other part of them - including the later Custom Fonts quota line - is kept exactly; a missing target aborts the migration.
 -- ---------------------------------------------------------------------------------------------
-create or replace function private.usage_stored_bytes(u uuid) returns bigint
-language plpgsql stable security definer set search_path='' as $$
+do $$
+declare original text; revised text;
 begin
- if exists(select 1 from storage.objects o where split_part(o.name,'/',1)=u::text and o.bucket_id<>'wall-video-renditions' and coalesce(o.metadata->>'size','') !~ '^[0-9]+$') then raise exception 'UNVERIFIED_STORAGE_SIZE';end if;
- return (select coalesce(sum((o.metadata->>'size')::bigint),0)::bigint from storage.objects o where split_part(o.name,'/',1)=u::text and o.bucket_id<>'wall-video-renditions');
-end
-$$;
-
-create or replace function private.get_my_usage_impl() returns jsonb language plpgsql stable security definer set search_path='' as $$
-declare u uuid:=auth.uid(); used bigint; reserved bigint; p private.usage_policy%rowtype; entity uuid; doc jsonb; assets integer; videos integer; layers integer; media jsonb; crew_quotas jsonb;
-begin
- if u is null then raise exception using errcode='42501',message='AUTH_REQUIRED'; end if;
- select * into p from private.usage_policy where singleton;
- used:=private.usage_stored_bytes(u); reserved:=private.usage_reserved_bytes(u);
- select m.entity_id into entity from public.entity_memberships m join public.entities e on e.entity_id=m.entity_id where m.user_id=u and m.role='OWNER' and e.entity_type='SOLO' limit 1;
- select document into doc from public.wall_drafts where entity_id=entity;
- select count(*) into layers from jsonb_array_elements(coalesce(doc->'stages','[]')) s cross join lateral jsonb_array_elements(s->'elements');
- select count(*),count(*) filter(where mime_type like 'video/%') into assets,videos from public.wall_assets where entity_id=entity;
- select coalesce(jsonb_object_agg(category,bytes),'{}') into media from (
-  select coalesce(c.category,'other') category,
-   sum((o.metadata->>'size')::bigint) bytes from storage.objects o left join private.usage_media_categories c on c.bucket=o.bucket_id where split_part(o.name,'/',1)=u::text and o.bucket_id<>'wall-video-renditions' and coalesce(o.metadata->>'size','') ~ '^[0-9]+$' group by 1
- ) m;
- select coalesce(jsonb_agg(q),'[]') into crew_quotas from (
-  select jsonb_build_object('key','crew.members.'||c.crew_id,'name',c.name||' · Crew members','used',(select count(*) from public.crew_members a where a.crew_id=c.crew_id and a.status='ACTIVE'),'limit',cp.max_members) q
-  from public.crews c cross join private.crew_policy cp where c.owner_entity_id=entity and cp.singleton
-  union all
-  select jsonb_build_object('key','crew.stages.'||c.crew_id,'name',c.name||' · Crew Wall stages','used',coalesce(w.stage_count,1),'limit',private.crew_wall_stage_allowance(c.crew_id))
-  from public.crews c left join public.crew_walls w on w.crew_id=c.crew_id where c.owner_entity_id=entity
- ) cq;
- return jsonb_build_object('version',1,'storage',jsonb_build_object('quota_bytes',p.quota_bytes,'used_bytes',used,'remaining_bytes',greatest(0,p.quota_bytes-used),'reserved_bytes',reserved,'available_bytes',greatest(0,p.quota_bytes-used-reserved),'percentage',round(100.0*used/p.quota_bytes,2),'state',case when used>=p.quota_bytes then 'FULL' when used>=p.quota_bytes*p.near_limit then 'NEAR_LIMIT' when used>=p.quota_bytes*p.approaching then 'APPROACHING_LIMIT' else 'NORMAL' end,'enforcement_active',p.gateway_required),'media',media,'quotas',jsonb_build_array(
-  jsonb_build_object('key','wall.layers','name','Wall Layers','used',layers,'limit',null),
-  jsonb_build_object('key','wall.assets','name','Wall Assets (images + videos)','used',assets,'limit',private.wall_asset_limit()),
-  jsonb_build_object('key','wall.videos','name','Wall Videos','used',videos,'limit',private.wall_video_limit()),
-  jsonb_build_object('key','wall.images','name','Wall Images','used',assets-videos,'limit',null,'note','Shares the Wall Assets allowance'))||crew_quotas);
+  original := pg_get_functiondef('private.usage_stored_bytes(uuid)'::regprocedure);
+  revised := replace(original, $o$split_part(o.name,'/',1)=u::text$o$, $n$split_part(o.name,'/',1)=u::text and o.bucket_id<>'wall-video-renditions'$n$);
+  if revised = original or (length(revised) - length(original)) <> 2 * length($n$ and o.bucket_id<>'wall-video-renditions'$n$) then raise exception 'RENDITION_USAGE_PATCH_FAILED'; end if;
+  execute revised;
+  original := pg_get_functiondef('private.get_my_usage_impl()'::regprocedure);
+  revised := replace(original, $o$where split_part(o.name,'/',1)=u::text and coalesce(o.metadata->>'size','') ~ '^[0-9]+$' group by 1$o$,
+                               $n$where split_part(o.name,'/',1)=u::text and o.bucket_id<>'wall-video-renditions' and coalesce(o.metadata->>'size','') ~ '^[0-9]+$' group by 1$n$);
+  if revised = original then raise exception 'RENDITION_USAGE_SUMMARY_PATCH_FAILED'; end if;
+  execute revised;
 end $$;
-
 -- ---------------------------------------------------------------------------------------------
 -- 3. The registry + queue
 -- ---------------------------------------------------------------------------------------------
