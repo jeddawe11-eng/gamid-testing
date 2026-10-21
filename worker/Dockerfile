@@ -5,6 +5,7 @@ COPY worker/intro-worker.mjs ./intro-worker.mjs
 COPY worker/intro-f2-smoke.mjs ./intro-f2-smoke.mjs
 COPY worker/intro-timing-smoke.mjs ./intro-timing-smoke.mjs
 COPY worker/wall-video.mjs ./wall-video.mjs
+COPY worker/wall-rendition.mjs ./wall-rendition.mjs
 COPY worker/usage-upload.mjs ./usage-upload.mjs
 COPY worker/usage-smoke.mjs ./usage-smoke.mjs
 COPY worker/intro-dispatcher.mjs ./intro-dispatcher.mjs

@@ -183,7 +183,16 @@ export function parseMoov(b) {
     // the number of pictures (stsz sample count): the transcoding budget for an HEVC source
     const stsz = child(b, stbl, "stsz");
     const samples = stsz && stsz.end - stsz.start >= 12 ? u32be(b, stsz.start + 8) : null;
-    return { ok: true, mime: "video/mp4", width, height, codec, frames: null, samples, transcode: hevc };
+    // F8-B1: the video track's own duration (mdhd timescale / duration; version 1 = 64-bit times), for the rendition rule below; null when unreadable
+    const mdhd = child(b, mdia, "mdhd");
+    let duration = null;
+    if (mdhd && mdhd.end - mdhd.start >= 24) {
+      const v1 = b[mdhd.start] === 1;
+      const scale = u32be(b, mdhd.start + (v1 ? 20 : 12));
+      const units = v1 ? (mdhd.end - mdhd.start >= 36 ? u32be(b, mdhd.start + 24) * 2 ** 32 + u32be(b, mdhd.start + 28) : null) : u32be(b, mdhd.start + 16);
+      if (scale > 0 && units > 0) duration = units / scale;
+    }
+    return { ok: true, mime: "video/mp4", width, height, codec, frames: null, samples, duration, transcode: hevc };
   }
   return { ok: false, code: unsupported ? "VIDEO_CODEC_UNSUPPORTED" : "INVALID_VIDEO" };
 }
@@ -323,6 +332,25 @@ export async function inspectWebm(read, total) {
   return { ok: false, code: "INVALID_VIDEO" };
 }
 
+// ---- F8-B1: conditional visitor renditions (Mazen's authorization 2026-10-21) ----------------------------------------------------------------------------
+// A NEW direct H.264 MP4 is queued for an internal 1080p visitor rendition only when it exceeds what any Wall display needs: larger than 1920x1080 (either
+// orientation), or a bitrate above 8 Mbit/s at 1080p30, scaled by its pixel count and frame rate. Already-efficient uploads are never re-encoded. The worker
+// decides again from ffprobe, and a rendition reaches visitors only through the quality and savings gate (worker + database). Inputs are the server's own
+// moov reading, never a browser claim. Size includes audio: a small, conservative overestimate of the video rate.
+export const RENDITION_RULES = Object.freeze({ boxLong: 1920, boxShort: 1080, bitsPerSecondAt1080p30: 8_000_000, minBytes: 1024 * 1024, maxPixelFrames: 3840 * 2160 * 30 * 60 });
+// -> { eligible: boolean, reason }
+export function renditionEligibility({ width, height, bytes, duration, samples } = {}) {
+  const r = RENDITION_RULES;
+  if (!(Number.isInteger(width) && Number.isInteger(height) && width > 0 && height > 0)) return { eligible: false, reason: "SIZE_UNREADABLE" };
+  if (!(Number.isSafeInteger(bytes) && bytes >= r.minBytes)) return { eligible: false, reason: "SMALL" };
+  if (!(duration > 0) || !(samples > 0)) return { eligible: false, reason: "TIMING_UNREADABLE" };
+  const fps = samples / duration;
+  if (width * height * samples > r.maxPixelFrames) return { eligible: false, reason: "TOO_LONG" };
+  if (Math.max(width, height) > r.boxLong || Math.min(width, height) > r.boxShort) return { eligible: true, reason: "OVERSIZED" };
+  const threshold = r.bitsPerSecondAt1080p30 * (width * height) / (1920 * 1080) * (fps / 30);
+  return bytes * 8 / duration > threshold ? { eligible: true, reason: "HIGH_BITRATE" } : { eligible: false, reason: "EFFICIENT" };
+}
+
 export function videoProblem(video, byteLength, { transcodeEnabled = false } = {}) {
   if (!Number.isSafeInteger(byteLength) || byteLength < 1 || byteLength > WALL_VIDEO_LIMITS.maxBytes) return "VIDEO_TOO_LARGE";
   if (!video.ok) return video.code;
@@ -444,6 +472,21 @@ export async function handleWallAssetRegister({ request, env, fetchImpl = fetch,
     const row = Array.isArray(payload) ? payload[0] : null;
     if (!row) { await discard(); return json({ error: "register_failed" }, 502, cors); }
     log("wall-asset", `registered_${extension}${image.alpha ? "_alpha" : ""}`);
+    // F8-B1: an oversized / high-bitrate H.264 MP4 is queued for an internal visitor rendition. Best effort: the upload is already registered and is never
+    // refused or delayed by this; until a rendition is READY (and if it never is), visitors play the original.
+    if (extension === "mp4" && (image.codec === "avc1" || image.codec === "avc3") && typeof row.asset_id === "string") {
+      const plan = renditionEligibility({ width: image.width, height: image.height, bytes: byteLength, duration: image.duration, samples: image.samples });
+      if (plan.eligible) {
+        try {
+          const queued = await fetchImpl(`${base}/rest/v1/rpc/create_wall_video_rendition`, {
+            method: "POST",
+            headers: { ...service, "Content-Type": "application/json" },
+            body: JSON.stringify({ candidate_owner: userId, candidate_asset_id: row.asset_id, candidate_bytes: byteLength, candidate_width: image.width, candidate_height: image.height, candidate_duration_ms: Math.round(image.duration * 1000), candidate_frames: image.samples }),
+          });
+          log("wall-asset", queued.ok ? `rendition_queued_${plan.reason}` : "rendition_queue_failed");
+        } catch { log("wall-asset", "rendition_queue_failed"); }
+      }
+    }
     return json({ asset: row, ...(image.alpha ? { alpha: true } : {}) }, 200, cors);
   } catch {
     log("wall-asset", "exception");

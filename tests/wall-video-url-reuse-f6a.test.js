@@ -167,7 +167,8 @@ test("F6-A the public page forgets a Wall that is not public / not published, an
   const wall = read("dist/public/public-wall.js");
   assert.match(wall, /videoCache\?\.retain\?\.\(handle, scoped\);/);
   assert.match(wall, /if \(!doc \|\| !validateDocument\(doc\)\.valid\) \{ videoCache\?\.forget\?\.\(handle\); return null; \}/);
-  assert.match(wall, /scope: \{ handle, publishedAt: publication, assetId: id \}/);
+  // (F8-B1 names the scope once per video, for the original and its READY rendition alike)
+  assert.match(wall, /(?:scope: |const scope = )\{ handle, publishedAt: publication, assetId: id \}/);
   // the lease lifetimes are the server's, unchanged
   assert.match(read("supabase/functions/_shared/public-media.js"), /"wall-video": 6 \* 60 \* 60, "wall-video-derived": 6 \* 60 \* 60/);
 });

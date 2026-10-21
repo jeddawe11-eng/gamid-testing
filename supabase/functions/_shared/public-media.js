@@ -11,7 +11,8 @@
 // Every refusal (unknown, PRIVATE, DRAFT, unpublished, disabled, detached, malformed) is the same body-less 404, so nothing can be enumerated. Both functions
 // are rate limited by a hashed client key (never an IP is stored). Service credentials never appear in a response, a log line or a URL handed out.
 export const SITE_ORIGINS = Object.freeze(["https://gamid-testing-static.gamid.workers.dev", "https://jeddawe11-eng.github.io"]);
-export const LEASE_SECONDS = Object.freeze({ "intro-media": 120, "wall-video": 6 * 60 * 60, "wall-video-derived": 6 * 60 * 60 });
+// F8-B1: a READY internal rendition of a published Wall video is leased like the video itself (same 6 h; decided by its ORIGINAL's published predicate)
+export const LEASE_SECONDS = Object.freeze({ "intro-media": 120, "wall-video": 6 * 60 * 60, "wall-video-derived": 6 * 60 * 60, "wall-video-renditions": 6 * 60 * 60 });
 export const BANNER_MAX_BYTES = 5 * 1024 * 1024;
 export const LIMITS = Object.freeze({ mediaPerClient: 240, bannerPerClient: 120, bannerPerHandle: 600 });
 const PATH = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[A-Za-z0-9._-]{1,120}(\/[A-Za-z0-9._-]{1,120}){0,2}$/;

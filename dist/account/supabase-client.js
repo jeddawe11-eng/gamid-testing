@@ -848,6 +848,13 @@ export async function signPublicWallVideo(path, mime) {
   if (!path) return null;
   return publicMediaLease(publicWallBucketFor(path, mime), path);
 }
+// F8-B1: the READY internal visitor rendition the manifest names for a published video (the server leases it only while its ORIGINAL is leasable)
+export const PUBLIC_WALL_RENDITION_BUCKET = "wall-video-renditions";
+export const isRenditionPath = path => typeof path === "string" && /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.mp4$/.test(path);
+export async function signPublicWallRendition(path) {
+  if (!isRenditionPath(path)) return null;
+  return publicMediaLease(PUBLIC_WALL_RENDITION_BUCKET, path);
+}
 
 // F5: the visitor's Intro lease is issued by public-media (at most 120 s, enforced by the server); the owner's own signer below is unchanged. No media download.
 export async function signPublicIntroMedia(path) {

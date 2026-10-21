@@ -53,8 +53,15 @@ export async function preparePublicWall(published, handle, api = defaultApi, vid
   const loader = createPictureLoader(path => api.loadPublicWallPicture(path), pictures);
   // F6-A: a cached video URL belongs to this Wall, this publication and this asset; the fresh manifest is the only list that may use (or keep) one
   const publication = typeof published.published_at === "string" ? published.published_at : "";
+  // F8-B1: a video whose internal rendition is READY names it in the fresh manifest; visitors play it, and the original stays the fallback (both scoped here)
+  const renditionOf = asset => (typeof api.signPublicWallRendition === "function" && defaultApi.isRenditionPath(asset?.rendition_path) ? asset.rendition_path : null);
   const scoped = list.filter(asset => typeof asset?.asset_id === "string" && typeof asset?.storage_path === "string" && isVideoMime(asset.mime_type))
-    .map(asset => ({ bucket: defaultApi.publicWallBucketFor(asset.storage_path, asset.mime_type), path: asset.storage_path, scope: { handle, publishedAt: publication, assetId: asset.asset_id } }));
+    .flatMap(asset => {
+      const scope = { handle, publishedAt: publication, assetId: asset.asset_id };
+      const rendition = renditionOf(asset);
+      return [{ bucket: defaultApi.publicWallBucketFor(asset.storage_path, asset.mime_type), path: asset.storage_path, scope },
+        ...(rendition ? [{ bucket: defaultApi.PUBLIC_WALL_RENDITION_BUCKET, path: rendition, scope }] : [])];
+    });
   videoCache?.retain?.(handle, scoped);
   await Promise.all(list.map(async asset => {
     const id = asset?.asset_id, path = asset?.storage_path;
@@ -62,8 +69,12 @@ export async function preparePublicWall(published, handle, api = defaultApi, vid
     try {
       if (isVideoMime(asset.mime_type)) {
         // Only the current server-returned published asset list can consult the anonymous cache.
-        const sign = () => api.signPublicWallVideo(path, asset.mime_type);
-        const url = videoCache ? await videoCache.get({ bucket: defaultApi.publicWallBucketFor(path, asset.mime_type), path, sign, scope: { handle, publishedAt: publication, assetId: id } }) : await sign();
+        const scope = { handle, publishedAt: publication, assetId: id };
+        const lease = (bucket, objectPath, sign) => (videoCache ? videoCache.get({ bucket, path: objectPath, sign, scope }) : sign());
+        const rendition = renditionOf(asset);
+        let url = rendition ? await lease(defaultApi.PUBLIC_WALL_RENDITION_BUCKET, rendition, () => api.signPublicWallRendition(rendition)).catch(() => null) : null;
+        // no READY rendition, or its lease failed: the original, exactly as before (the server decides with the same published predicate)
+        if (!url) url = await lease(defaultApi.publicWallBucketFor(path, asset.mime_type), path, () => api.signPublicWallVideo(path, asset.mime_type));
         if (url) videos.set(id, url);
       }
       // F7-A: a picture no stage-1 element needs is fetched when its stage comes near (createPublicWallView), through the same RLS-checked read

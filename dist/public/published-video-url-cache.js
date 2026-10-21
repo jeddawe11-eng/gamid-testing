@@ -16,7 +16,7 @@ import { WALL_VIDEO_URL_SECONDS } from "../account/supabase-client.js";
 const LIFETIME = WALL_VIDEO_URL_SECONDS * 1000; // canonical existing lifetime, never extended
 const MARGIN = 30 * 60 * 1000;
 const MAX_ENTRIES = 120;
-const BUCKETS = ["wall-video", "wall-video-derived"];
+const BUCKETS = ["wall-video", "wall-video-derived", "wall-video-renditions"];   // F8-B1: a READY internal rendition is reused under the same rules
 const text = (value, max = 512) => typeof value === "string" && value.length > 0 && value.length <= max;
 const normHandle = handle => (text(handle, 64) ? handle.toLowerCase() : null);
 

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { processOneWallVideoJob, transcodeWallBackground } from "./wall-video.mjs";
+import { processOneWallVideoRendition } from "./wall-rendition.mjs";
 import { uploadGatewayFile, deleteGatewayObject } from './usage-upload.mjs';
 
 const run = promisify(execFile);
@@ -120,7 +121,10 @@ export async function processOneRemoteJob() {
     // no Intro waiting: the same Job execution serves one queued Wall background video (HEVC -> H.264, see wall-video.mjs)
     const { url,key } = environment();
     const wall = await processOneWallVideoJob({ url, headers:contentType => backendRequestHeaders(key, contentType ? "" : undefined, contentType) });
-    return wall.processed ? { processed:true, kind:"wall-video", ...wall } : { processed:false };
+    if (wall.processed) return { processed:true, kind:"wall-video", ...wall };
+    // F8-B1: no conversion waiting either: one queued internal visitor rendition (see wall-rendition.mjs); the original always stays the owner's video
+    const rendition = await processOneWallVideoRendition({ url, headers:contentType => backendRequestHeaders(key, contentType ? "" : undefined, contentType) });
+    return rendition.processed ? { processed:true, kind:"wall-video-rendition", ...rendition } : { processed:false };
   }
   const dir = await mkdtemp(join(tmpdir(),"gamid-intro-")); const input=join(dir,"source"); const output=join(dir,"intro-d3.webm");
   try {

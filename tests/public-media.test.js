@@ -34,7 +34,9 @@ const lease = (b, body, headers = {}) => handlePublicMedia({ request: new Reques
 const banner = (b, handle = "gm_test_01", method = "GET") => handleProfileBanner({ request: new Request(`${BASE}/functions/v1/profile-banner/${handle}`, { method, headers: { "cf-connecting-ip": "203.0.113.7" } }), env, fetchImpl: b.fetchImpl });
 
 test("public-media: the server chooses the lifetime (Intro 120 s, Wall video 6 h) and the accepted predicates decide; visitor-supplied lifetimes are ignored", async () => {
-  for (const [bucket, path] of [["intro-media", INTRO], ["wall-video", WALL], ["wall-video-derived", `${UID}/33333333-3333-4333-8333-333333333333.h264.mp4`]]) {
+  // (F8-B1: a READY internal rendition, <owner>/<rendition>/<attempt>.mp4, is leased like the video itself; the database predicate decides)
+  for (const [bucket, path] of [["intro-media", INTRO], ["wall-video", WALL], ["wall-video-derived", `${UID}/33333333-3333-4333-8333-333333333333.h264.mp4`],
+    ["wall-video-renditions", `${UID}/44444444-4444-4444-8444-444444444444/55555555-5555-4555-8555-555555555555.mp4`]]) {
     const b = backend();
     const r = await lease(b, { bucket, path, expiresIn: 31536000 });
     assert.equal(r.status, 200, bucket);
@@ -48,7 +50,7 @@ test("public-media: the server chooses the lifetime (Intro 120 s, Wall video 6 h
     assert.equal(r.headers.get("Access-Control-Allow-Origin"), SITE);
     assert.doesNotMatch(JSON.stringify(body), /private-service-fixture/);
   }
-  assert.deepEqual(LEASE_SECONDS, { "intro-media": 120, "wall-video": 21600, "wall-video-derived": 21600 });
+  assert.deepEqual(LEASE_SECONDS, { "intro-media": 120, "wall-video": 21600, "wall-video-derived": 21600, "wall-video-renditions": 21600 });
 });
 
 test("public-media: not public -> one body-less 404 and nothing is signed; malformed input never reaches the backend", async () => {
