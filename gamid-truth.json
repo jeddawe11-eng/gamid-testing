@@ -584,11 +584,11 @@
         },
         {
           "id": "custom-font-delete",
-          "rule": "Deleting a font follows the universal deletion rule (wall-universal-delete): an unused font is deleted at once and frees its slot; a font in use asks for one confirmation that the text's appearance will change, then is deleted and removed from the saved and published Wall, each text falling back to its library font. A registered font file cannot be deleted directly."
+          "rule": "Deleting a font follows the universal deletion rule (wall-universal-delete): every deletion is confirmed first - simply when the font is unused (it then frees its slot); a font in use gets the detailed confirmation that the text's appearance will change, then is deleted and removed from the saved and published Wall, each text falling back to its library font. A registered font file cannot be deleted directly."
         }
       ],
-      "checkpoint": "54e3b439b96c3dabd228840dc2045596455705fd",
-      "record": "docs/WALL-EDITOR-TEXT-FONTS.md; PROJECT_HANDOFF.md §83, §84. Implemented under Mazen's approval of 2026-10-18 (the documented architecture plus the 3-font rule): migration 20261018120000_wall_custom_fonts applied on TESTING (rehearsed in a rolled-back transaction first), usage-upload v10, static deployment 875bd2d (run 39125819357). TTF / OTF upload added under his task of the same day (usage-upload v12, static e73c79d, run 39127878054; no migration). custom-font-delete changed on 2026-10-21 to the universal deletion rule (wall-universal-delete; site 54e3b43, migration 20261022100000). Awaiting his acceptance."
+      "checkpoint": "da4cc5a2f1ad785260309cb6022cdebbba6a6dd1",
+      "record": "docs/WALL-EDITOR-TEXT-FONTS.md; PROJECT_HANDOFF.md §83, §84. Implemented under Mazen's approval of 2026-10-18 (the documented architecture plus the 3-font rule): migration 20261018120000_wall_custom_fonts applied on TESTING (rehearsed in a rolled-back transaction first), usage-upload v10, static deployment 875bd2d (run 39125819357). TTF / OTF upload added under his task of the same day (usage-upload v12, static e73c79d, run 39127878054; no migration). custom-font-delete changed on 2026-10-21 to the universal deletion rule (wall-universal-delete; site 54e3b43, migration 20261022100000), revised the same day so every deletion is confirmed (site da4cc5a). Awaiting his acceptance."
     },
     {
       "id": "living-fire-text",
@@ -811,7 +811,7 @@
       "contracts": [
         {
           "id": "universal-delete-rule",
-          "rule": "Deleting an uploaded Wall image, GIF or video (Assets, and the Background panel's Images / Videos, desktop and phone) or a custom font (My Fonts) follows one rule. NOT IN USE (by the Wall being edited, unsaved edits included, the saved Wall or the published Wall): deleted at once, without a question. IN USE: one confirmation shows its name, where it is used, what deleting it does and Delete / Cancel (Cancel is the default; Escape cancels). Confirm: it is deleted and every reference to it is resolved. Cancel: nothing changes. Stage deletion is not part of this rule and keeps its own confirmation (wall-editor-stages-bar)."
+          "rule": "Every permanent deletion of an uploaded Wall image, GIF or video (Assets, and the Background panel's Images / Videos, desktop and phone) or of a custom font (My Fonts) asks for confirmation first, and nothing is sent before it. NOT IN USE (by the Wall being edited, unsaved edits included, the saved Wall or the published Wall): a simple confirmation - not currently in use, permanent, cannot be undone, Cancel / Delete <type> - with no usage list; if the server then finds it in use after all, nothing is deleted and the same dialog shows the detailed confirmation. IN USE: the detailed confirmation shows its name, where it is used, what deleting it does and the effect on the published Wall, with Cancel / Delete. Cancel is the default and Escape cancels. Confirm: it is deleted and every reference to it is resolved. Cancel: nothing changes. Stage deletion keeps its own confirmation (wall-editor-stages-bar); removing an element from the canvas is unchanged and undoable."
         },
         {
           "id": "universal-delete-media-resolution",
@@ -830,10 +830,30 @@
           "rule": "If a deleted Wall image or video file could not be removed after its asset was deleted, the owner's existing Usage cleanup (when Usage opens, on Intro actions and when the Wall editor opens) deletes it later through the protected gateway delete path: only the owner's own wall-media / wall-video / wall-video-derived files, older than 1 hour, with no asset row, no active or recent upload receipt and no pending conversion lifecycle, each re-checked right before deletion; at most 10 files a run and 5 tries per file, 15 minutes apart. Renditions, Intro, Avatar, Banner and font files are never considered (fonts keep their own orphan cleanup). Usage counts follow the stored files."
         }
       ],
-      "checkpoint": "54e3b439b96c3dabd228840dc2045596455705fd",
-      "record": "docs/UNIVERSAL-DELETE-UX.md; PROJECT_HANDOFF.md sections 113-114. Implemented under Mazen's task of 2026-10-21 and his approval of the stage-deletion exemption and the orphan cleanup the same day. Branch feature/universal-delete-ux (not merged); migrations 20261022100000_universal_delete_resolve and 20261022110000_usage_media_orphans applied on TESTING 2026-10-21 (rehearsed in a rolled-back transaction first); usage-upload v13; site 54e3b43 (run 39595702093). Server-side E2E on TESTING with GM-TEST-01 synthetic media, restored to its baseline. Awaiting Mazen's acceptance."
+      "checkpoint": "da4cc5a2f1ad785260309cb6022cdebbba6a6dd1",
+      "record": "docs/UNIVERSAL-DELETE-UX.md; PROJECT_HANDOFF.md sections 113-115. Implemented under Mazen's task of 2026-10-21 and his approval of the stage-deletion exemption and the orphan cleanup the same day. Branch feature/universal-delete-ux (not merged); migrations 20261022100000_universal_delete_resolve and 20261022110000_usage_media_orphans applied on TESTING 2026-10-21 (rehearsed in a rolled-back transaction first); usage-upload v13; site 54e3b43 (run 39595702093). Server-side E2E on TESTING with GM-TEST-01 synthetic media, restored to its baseline. Revised the same day by Mazen (every permanent deletion confirmed, also when unused): site da4cc5a (run 39616006123), no migration. Awaiting Mazen's acceptance."
     },
     {
+      "id": "silent-ui-policy",
+      "name": "Silent interface (temporary GamID-wide UI sound policy)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/",
+        "/account/",
+        "/wall-editor/",
+        "/@handle",
+        "/play-together/",
+        "/crew/"
+      ],
+      "contracts": [
+        {
+          "id": "silent-ui",
+          "rule": "GamID's own interface makes no sound: no sound for deleting, saving, uploading, notifications, alerts, dialogs, buttons, menus, navigation, success, failure or warnings. Visual feedback, notifications and accessibility messages are unchanged. The Intro keeps its audio under its own contracts. User media and third-party players keep their existing behaviour (Wall videos always play muted; embedded providers play only when the visitor starts them, under their own controls). Operating-system and browser sounds outside GamID are not affected. Temporary: a future audio-design review may change it."
+        }
+      ],
+      "checkpoint": "da4cc5a2f1ad785260309cb6022cdebbba6a6dd1",
+      "record": "Mazen's decision of 2026-10-21. The audit of every shipped file found no application-owned UI sound (no audio element, Web Audio, oscillator, sound file, speech, vibration or system notification) and no audio infrastructure, so nothing had to be switched off; tests/silent-ui-policy.test.js keeps it so and lists every place that creates a video element (all muted or never played, except the Intro player). docs/UNIVERSAL-DELETE-UX.md section 11; PROJECT_HANDOFF.md section 115. On TESTING with site da4cc5a. Awaiting Mazen's acceptance."
+    },    {
       "id": "wall-picture-stage-loading",
       "name": "Stage-aware Wall picture loading on the visitor page (F7-A)",
       "status": "ACCEPTED",

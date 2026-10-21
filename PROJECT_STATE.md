@@ -84,7 +84,7 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `54e3b439b96c3dabd228840dc2045596455705fd`** (successful run `39595702093`, from `feature/universal-delete-ux`: Universal Delete UX + safe orphan cleanup, `PROJECT_HANDOFF.md` §114; migrations `20261022100000` and `20261022110000` applied; `usage-upload` v13). It contains everything F8-B1 deployed (worker image from `3bb2871`, `wall-asset-register` v13, `public-media` v3).
+- **TESTING serves `da4cc5a2f1ad785260309cb6022cdebbba6a6dd1`** (successful run `39616006123`, from `feature/universal-delete-ux`: Universal Delete UX with every deletion confirmed + silent UI policy, `PROJECT_HANDOFF.md` §115; no migration). Before it: `54e3b43` (run `39595702093`, §114; migrations `20261022100000` and `20261022110000` applied; `usage-upload` v13). It contains everything F8-B1 deployed (worker image from `3bb2871`, `wall-asset-register` v13, `public-media` v3).
 - **Previously served `764e3b8b55eac2ea21a956a38403f0a75f4c043e`** (successful run `39543363692`, from `feature/f8b1-video-renditions`: F8-B1, `PROJECT_HANDOFF.md` §110–§112; migration `20261021120000` applied).
 - **Previously served `5600d0677c5f68a4b9a81c418d644173dfeaf662`** (successful run `39492020998`, F8-A fast-start MP4 uploads, product `51e3972`, `PROJECT_HANDOFF.md` §106).
 - **Previously served `97b3fdc5dc6e4725debf8a21154d82210499851e`** (successful run `39486918858`, F7-A stage-aware Wall pictures + F7-C same-art cover thumbnails, `PROJECT_HANDOFF.md` §105).
@@ -148,7 +148,17 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-21, Universal Delete UX deployed on TESTING, PENDING_ACCEPTANCE):** the universal deletion rule and the safe orphan cleanup Mazen approved are live on TESTING from `feature/universal-delete-ux` at `54e3b43` (§114, `docs/UNIVERSAL-DELETE-UX.md` §7–§10). Server-side E2E on GM-TEST-01 passed, and the account is restored to its baseline. Truth `wall-universal-delete` is PENDING_ACCEPTANCE; `custom-font-delete` is updated. Not merged. **Next:**
+**Latest continuation (2026-10-21, Universal Delete UX final adjustments deployed, PENDING_ACCEPTANCE):** Mazen's two adjustments are live on TESTING at `da4cc5a` (§115, `docs/UNIVERSAL-DELETE-UX.md` §11):
+- every permanent deletion is confirmed (simply when unused);
+- the interface is silent: the audit found no UI sound, and a guard test keeps it so; the Intro keeps its audio.
+
+Truth: `wall-universal-delete` and `custom-font-delete` are revised; `silent-ui-policy` is new. All are PENDING_ACCEPTANCE. **Next:**
+1. Mazen's signed-in acceptance pass (doc §10 checklist + §11).
+2. His decision on the Product Memory proposals (DEC-0008 revised, DEC-0009 silent UI, ISS-0015; none saved).
+
+Then the separately planned tasks.
+
+**Previous continuation (2026-10-21, Universal Delete UX deployed on TESTING, PENDING_ACCEPTANCE):** the universal deletion rule and the safe orphan cleanup Mazen approved are live on TESTING from `feature/universal-delete-ux` at `54e3b43` (§114, `docs/UNIVERSAL-DELETE-UX.md` §7–§10). Server-side E2E on GM-TEST-01 passed, and the account is restored to its baseline. Truth `wall-universal-delete` is PENDING_ACCEPTANCE; `custom-font-delete` is updated. Not merged. **Next:**
 1. Mazen's signed-in acceptance pass (doc §10 checklist).
 2. His decision on the Product Memory proposals DEC-0008 and ISS-0015 (not saved).
 

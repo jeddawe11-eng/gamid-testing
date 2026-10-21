@@ -4676,3 +4676,34 @@ GM-TEST-01 is restored to its exact baseline.
 **Not verified live** (needs Mazen, signed in): the editor UI (dialog, Undo, Stages bar, phone layout) and the cleanup route with a real owner session.
 
 GamID Truth: UPDATED. New `wall-universal-delete` (PENDING_ACCEPTANCE, checkpoint `54e3b43`); the `custom-wall-fonts` `custom-font-delete` contract and checkpoint updated. Product Memory: PROPOSED (DEC-0008, ISS-0015), not saved. TESTING now serves `54e3b43`.
+## 115. Universal Delete UX final adjustments: every deletion confirmed + silent UI (2026-10-21, PENDING Mazen's acceptance)
+
+Mazen approved two adjustments. Full record: `docs/UNIVERSAL-DELETE-UX.md` §11.
+
+**1. Every permanent deletion is confirmed.**
+- An unused image, GIF, video or font gets a simple confirmation ("not currently in use … cannot be undone", Cancel / Delete <type>) with no usage list. A used one keeps the detailed confirmation.
+- Nothing is sent before Delete.
+- A deletion confirmed as unused goes to the server with `resolve = false`. If the server finds it still used, nothing is deleted and the same dialog switches to the detailed confirmation.
+- Unchanged: the stage confirmation, canvas element removal and its Undo, and all server-side safety (one transaction, conflicts, permissions, draft / published consistency, font fallback, orphan cleanup).
+- Files: `delete-flow.js`, and `session.savedDocument` (usage in the saved draft). 18 flow and dialog tests, including a static check that the server is asked only from a confirmation's Delete.
+
+**2. Silent interface.**
+- The audit of every shipped file found no application-owned UI sound at all: no audio element, Web Audio, oscillator, sound file, speech, vibration or system notification, and no audio infrastructure. Nothing had to be disabled or removed.
+- Every `<video>` GamID creates is muted or never played, except the Intro player, which keeps its audio (verified live, unchanged).
+- Third-party players play only when started by the visitor; this is reported, not changed.
+- Policy: the Truth contract `silent-ui-policy`, plus `tests/silent-ui-policy.test.js` (3 tests), so a future UI sound cannot ship unreviewed.
+
+**Validation:**
+- full suite 2135 tests, 0 failures (2 pre-existing skips); lint, typecheck and Truth validation clean;
+- dialog lab checked at 1280×800 and 375×812 (the simple dialog, and the in-place switch).
+
+**Deployment:** site `da4cc5a2f1ad785260309cb6022cdebbba6a6dd1`, run `39616006123`. No migration, no Edge Function change. Stamp verified; deployed modules identical; the unauthenticated `usage-upload` cleanup smoke returns 401.
+
+**Not verified live** (needs Mazen, signed in): the new confirmation and the silence in the live editor.
+
+GamID Truth: UPDATED.
+- `wall-universal-delete`: `universal-delete-rule` revised, checkpoint `da4cc5a`.
+- `custom-wall-fonts`: `custom-font-delete` revised, checkpoint `da4cc5a`.
+- New `silent-ui-policy` (PENDING_ACCEPTANCE).
+
+Product Memory: PROPOSED (DEC-0008 revised, DEC-0009 new, ISS-0015), not saved.
