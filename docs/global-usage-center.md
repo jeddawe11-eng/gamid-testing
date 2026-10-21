@@ -94,6 +94,11 @@ actual deletion. The UI shows reserved versus used bytes distinctly.
 - The active Intro, and the source of a pending or processing Intro, are never deleted.
 - The editor requests this reconciliation after removing an Intro and before uploading a new one.
 
+*Left-behind Wall media files (universal deletion, 2026-10-21)*
+- The same reconciliation also deletes the owner's Wall image / video files whose asset row is gone but whose file delete failed (`claim_wall_media_orphans`, re-checked by `authorize_wall_media_orphan_delete`).
+- Only `wall-media`, `wall-video` and `wall-video-derived` files in the owner's folder, older than 1 hour, with no asset row, no active or recent receipt and no pending conversion lifecycle; at most 10 a run, 5 tries per file, 15 minutes apart.
+- The Wall editor requests this reconciliation when it opens. Since then, `authorize_usage_delete` refuses a registered Wall asset's file (`WALL_ASSET_REGISTERED`). Details: `docs/UNIVERSAL-DELETE-UX.md` §9.
+
 *Historical items*
 - Everything automatic acts only on what became due after `automatic_since` (2026-10-11 13:55:56 UTC). Older items keep their previous treatment until a separate decision.
 

@@ -4,7 +4,7 @@ Mazen's task: "GAMID — UNIVERSAL DELETE UX & REFERENCE CLEANUP, ONE COMPLETE I
 
 Branch `feature/universal-delete-ux`, based on `feature/f8b1-video-renditions` at `1f7d203`.
 
-**Status: implemented and tested on the branch. NOT deployed.** The migration is not applied, and TESTING still serves `764e3b8`. Awaiting Mazen's review.
+**Status: DEPLOYED ON TESTING, PENDING_ACCEPTANCE** (2026-10-21). Site `54e3b43` (run `39595702093`), migrations `20261022100000` and `20261022110000` applied, `usage-upload` v13. Not merged. Awaiting Mazen's acceptance (§10).
 
 ## 1. The contract
 
@@ -149,50 +149,147 @@ The confirmation is a native modal `<dialog>` in the top layer, so no panel, dra
   - `tests/universal-delete-ux.test.js` (13 tests);
   - deliberate updates to the guard tests that pinned the superseded "in use → no Delete / refuse" rule: `wall-background-controls`, `wall-custom-fonts`, `wall-editor-background-desktop`, `wall-w4-media`, `upload-feedback`, and the pinned list in `public-my-games`.
 
-## 5. Exceptions for Mazen's decision
+## 5. Decisions (Mazen, 2026-10-21)
 
-1. **Stage delete.** It always confirms, under the accepted contract `stages-bar-global`. Under the universal rule, an empty stage would be deleted at once. It is left unchanged, because changing an accepted contract is Mazen's call.
-2. **A file that could not be removed after the row was deleted.** This is an existing gap.
-   - Fonts have an owner cleanup (`usage_font_orphans`). Wall images and videos have none, so such a file keeps counting toward the 200 MB.
-   - The client now retries 3 times and says so honestly if it still fails.
-   - A Wall-asset orphan cleanup (files older than 1 h with no asset row, deleted by the gateway's existing owner cleanup) is designed but **not built**: it would be a new automatic storage-deletion path, and it needs Mazen's approval.
-3. **The published Wall changes immediately** when an in-use resource is deleted on confirmation. Visitors stop seeing it without a re-publish. This follows the contract ("resolve all references", no dangling references), and the dialog states it.
-4. **The old refusing RPCs** `delete_my_wall_asset` and `delete_my_wall_font` remain on the server for pages cached before the deploy. Their removal can be a later clean-up.
+1. **Stage delete keeps its confirmation**, including for an empty stage. It is intentionally exempt from the immediate-delete rule, and the accepted Stages contract (`wall-editor-stages-bar`) is unchanged.
+2. **Safe orphan cleanup: approved and built** (§9).
+3. **The published Wall changes immediately** when an in-use resource is deleted on confirmation. This follows the contract, and the dialog states it.
+4. **The old refusing RPCs** `delete_my_wall_asset` and `delete_my_wall_font` remain on the server for pages cached before the deploy. The current site no longer calls them. Removing them can be a later clean-up.
 
 ## 6. Validation (the 12 required items)
 
 | # | Item | Evidence |
 |---|---|---|
-| 1 | Unused asset is deleted at once | DB "1 / 6"; UX "1 unused asset" |
-| 2 | Used background: warning, then confirm | DB "2 / 3 / 4"; UX "2 / 3 / 4" (the Whole Wall video and stage backgrounds) |
+| 1 | Unused asset is deleted at once | DB "1 / 6"; UX "1 unused asset"; TESTING step 1 |
+| 2 | Used background: warning, then confirm | DB "2 / 3 / 4"; UX "2 / 3 / 4"; TESTING steps 2 and 5–6 |
 | 3 | Used stage image or video | Same, including a `media: "video"` layer |
 | 4 | Multi-reference asset | 4 placements across 2 stages, plus the publication |
-| 5 | Used font: warning, then fallback | DB "5"; UX "5" (the fallback is named; the payload is otherwise identical) |
-| 6 | Unused font is deleted at once | DB "1 / 6"; UX "5 / 6" |
+| 5 | Used font: warning, then fallback | DB "5"; UX "5"; TESTING step 7 |
+| 6 | Unused font is deleted at once | DB "1 / 6"; UX "5 / 6"; TESTING step 8 |
 | 7 | Cancel | UX "7 cancel"; dialog Escape and Cancel |
-| 8 | Failure leaves no inconsistent state | DB "8": conflict, invalid result and unknown place all roll back. UX "8": conflict, offline, lost answer after commit, saving, conflict state. |
-| 9 | Permissions | DB "9" and "shape" |
-| 10 | Storage cleanup and Usage | UX client test (bucket, retries, 404, pending); renditions detach; usage triggers unchanged |
-| 11 | Desktop and mobile layouts | Dialog lab at 3 sizes (screenshots reviewed); the shared panels |
-| 12 | Editor and visitor non-regression | Full suite. The visitor page only ever reads a valid published snapshot (proven by DB "2 / 3 / 4"). |
+| 8 | Failure leaves no inconsistent state | DB "8"; UX "8"; TESTING step 3 |
+| 9 | Permissions | DB "9" and "shape"; TESTING steps 4 and 9 |
+| 10 | Storage cleanup and Usage | UX client test; orphan tests (§9); TESTING steps 11–20 |
+| 11 | Desktop and mobile layouts | Dialog lab at 3 sizes; the shared panels |
+| 12 | Editor and visitor non-regression | Full suite; TESTING visitor check (step 10) |
 
-Full suite: 2121 tests, 0 failures (2 pre-existing skips). `npm run lint` and `npm run typecheck` are clean.
+Full suite at `54e3b43`: 2129 tests, 0 failures (2 pre-existing skips). `npm run lint` and `npm run typecheck` are clean. Truth and Product Memory validation pass.
 
-**Not done:** a signed-in end-to-end run on TESTING. It needs the deployment, and a GM-TEST-01 run by Mazen.
+## 7. TESTING deployment (2026-10-21, authorized by Mazen)
 
-## 7. Deployment (needs Mazen's separate authorization)
+- **Target:** Supabase project `upvtrczefcvigxdyuylw` (TESTING), the same ref the site's client uses, and the Cloudflare TESTING Worker through the existing workflow. Production was not touched.
+- **Rehearsal:** both migrations were run against the live schema in one transaction ending with `ROLLBACK`.
+  - The delete-check patch applied, and the fonts line was kept.
+  - The transforms left all 5 live drafts and 2 publications unchanged for an unused id.
+  - The cleanup would have claimed 0 files.
+  - Afterwards, nothing was left behind.
+- **Migrations** `20261022100000_universal_delete_resolve` and `20261022110000_usage_media_orphans` were applied with `db query`, and recorded with `migration repair --status applied`.
+  - 11 functions are present.
+  - `authorize_usage_delete` refuses registered Wall files and keeps its font and Intro protections.
+  - `anon` cannot execute the delete RPCs; `authenticated` cannot call the orphan RPCs.
+- **Edge Function:** `usage-upload` went from v12 to **v13**, with `verify_jwt` still false (as in `supabase/config.toml`). Smoke: an unauthenticated cleanup call returns 401 `AUTH_REQUIRED`.
+- **Site:** run `39595702093` (success, validation and smoke passed) from `feature/universal-delete-ux` at `54e3b439b96c3dabd228840dc2045596455705fd`.
+  - The live stamp reads `54e3b43`.
+  - The deployed editor modules are identical to the tested ones (`session.js` differs only in line endings).
+- **Rollback:**
+  - redeploy the site from `feature/f8b1-video-renditions` at `764e3b8`;
+  - roll `usage-upload` back to v12;
+  - drop the new functions and the attempts table, and remove the `WALL_ASSET_REGISTERED` line from `authorize_usage_delete`.
 
-1. Apply `20261022100000_universal_delete_resolve.sql` on TESTING. It is additive and replaces no live function.
-2. Deploy the site from `feature/universal-delete-ux`.
+## 8. GamID Truth
 
-No Edge Function changes. No infrastructure changes.
+- New capability `wall-universal-delete`, at PENDING_ACCEPTANCE, with checkpoint `54e3b43`. Its contracts: `universal-delete-rule`, `-media-resolution`, `-font-resolution`, `-safety` and `-orphan-cleanup`, plus its limits.
+- `custom-wall-fonts`: the `custom-font-delete` contract now states the universal rule; its checkpoint is `54e3b43`.
 
-## 8. Prepared GamID Truth update (to apply at deployment, not before)
+The accepted capabilities (`game-id-wall`, `global-usage`, `wall-editor-stages-bar`, `wall-video-renditions`) are unchanged.
 
-Today, `custom-font-delete` correctly describes the refusing behaviour that TESTING still runs.
+## 9. Safe orphan cleanup (approved 2026-10-21)
 
-At deployment, replace it with: "Deleting a font follows the universal deletion rule. An unused font is deleted at once. A font in use (in the Wall being edited, the saved Wall or a published Wall) asks for one confirmation, warning that the text's appearance changes. On Delete, the font is deleted and every reference is removed from the draft and the published Wall in one transaction; each text keeps its content, position and styling and falls back to its library font. A registered font file cannot be deleted directly."
+**The gap.** The asset row is deleted first. If every gateway delete of its file fails, the file stays in the owner's folder and counts toward the 200 MB.
 
-Add the matching asset contract to the Wall assets capability: "Deleting an uploaded Wall image or video follows the universal deletion rule. On confirm, it is removed from every background and element in the draft and the published Wall in one transaction, then deleted; nothing else changes."
+**Reuse.** The fix uses no new system. It adds one step to the owner's existing Usage cleanup route (`POST /usage-upload/cleanup`), the same pattern as `usage_font_orphans`. That route runs:
+- when Usage opens;
+- on Intro actions;
+- and now also when the Wall editor opens.
 
-Both contracts are PENDING_ACCEPTANCE until Mazen accepts.
+**Detection** (`private.wall_media_orphan`, from authoritative server state). A file is an orphan only when all of these hold:
+- it is in the owner's own folder, in `wall-media`, `wall-video` or `wall-video-derived`;
+- it is provably the owner's, by the same rule `authorize_usage_delete` uses;
+- it was created more than 1 hour ago;
+- no asset row names it;
+- no upload receipt for it is ACTIVE or changed in the last hour;
+- it is not a conversion source still awaiting its lifecycle delete, nor an in-flight or failed conversion output.
+
+A READY conversion's output is a Wall asset, so it becomes an orphan only once that row is gone. Renditions, Intro, Avatar, Banner and font files are never considered.
+
+**Bounded tries** (`claim_wall_media_orphans`, under the per-account usage lock):
+- at most 10 files a run;
+- each try is recorded in `private.usage_media_orphan_attempts`;
+- at most 5 tries per file, at least 15 minutes apart;
+- a record is forgotten once its file is gone.
+
+**Re-check.** `authorize_wall_media_orphan_delete` runs right before removal. It repeats the full existing delete check, then the orphan rule, so a file registered since the claim is kept.
+
+**Failure isolation.** One refusal or storage failure never stops the others; the route reports `media` and `mediaFailed`. A foreign path or a bucket outside the three stops the run before anything is deleted.
+
+**Hardening.** `authorize_usage_delete` (an asserted in-place patch) now refuses a registered Wall asset's file from every caller (`WALL_ASSET_REGISTERED`). Every existing caller deletes a Wall file only after its row is gone, or for a file that was never registered.
+
+**Files and tests:**
+- `supabase/migrations/20261022110000_usage_media_orphans.sql`;
+- `supabase/functions/_shared/usage-upload.js` (cleanup step);
+- `dist/wall-editor/editor.js` (cleanup on open);
+- `tests/usage-media-orphans.test.js` (8 tests): detection, protected objects, bounded tries and back-off, forgetting, Usage bytes, the re-check, the hardened check, grants, route isolation, the trigger;
+- pinned cleanup responses updated in `intro-storage-lifecycle`, `usage-upload` and `wall-custom-fonts`.
+
+## 10. TESTING E2E (GM-TEST-01, synthetic media only, 2026-10-21)
+
+**Method.** The established one:
+- the owner RPCs ran as GM-TEST-01 by setting its user id in the SQL session (no sign-in);
+- the service RPCs ran as `service_role`;
+- synthetic files were uploaded with the CLI into GM-TEST-01's own folders: 2 tiny PNGs, the 2.8 KB fixture MP4, and 2 bundled WOFF2 fonts.
+
+They were registered through the real registration RPCs. A Wall was saved through `save_my_wall_draft` (the real W1 validator) at revision 2, then published. The Wall used:
+- the image as the Whole Wall background and on both stages;
+- the video as the Stage 1 background and as a Stage 2 layer;
+- the font on 2 texts, one of them grouped.
+
+GM-TEST-01 was made PUBLIC only for the visitor check.
+
+| Step | Result |
+|---|---|
+| 1 unused image, no confirm | Deleted at once. The draft and publication were unchanged (same md5, revision 2). |
+| 2 used image, no confirm | `deleted=false`, `in_draft` and `in_published` true; nothing changed. |
+| 3 used image, stale revision | `WALL_REVISION_CONFLICT`; nothing changed. |
+| 4 gateway delete of a registered file | `WALL_ASSET_REGISTERED` |
+| 5 confirm image (revision 2) | Deleted. Draft and publication went to revision 3 together; both backgrounds and both image layers were removed. |
+| 6 confirm video (revision 3) | Deleted. Revision 4; the Stage 1 background and the video layer were removed. |
+| 7 font, then confirm (revision 4) | First `deleted=false` (in use), then deleted at revision 5. Both texts lost only `fontRef`. |
+| 8 unused font | Deleted at once; revision unchanged. |
+| 9 unknown identity | `IDENTITY_NOT_FOUND`; nothing changed. |
+| 10 anonymous visitor Wall | Valid by the W1 validator and **exactly equal** to the editor's transforms of the original. No deleted id appears; no assets or fonts are exposed. Texts kept their words, position, group and library font (`bebas-neue` / `orbitron`). |
+| 11–12 file deletes after the rows were gone | The gateway check passed for all 4. Only the deliberately left-behind image remained, counting 74 B. |
+| 13 orphan within the grace period | Not claimed. |
+| 14–20 orphan after the grace period (the synthetic file and receipt backdated by 2 h) | Claimed once, not again within the back-off, 1 try recorded, the re-check passed. Then removed; the record was forgotten; Usage stored bytes went to **0**. |
+| F8-B1 | The rendition foreign key is still `ON DELETE SET NULL`; the rendition bucket is never considered by the cleanup. |
+
+**Restored.** GM-TEST-01 is identical to its recorded baseline:
+- SOLO, DRAFT;
+- draft revision 1, md5 `1b12bc34…`;
+- no publication;
+- 1 asset row (the known dangling row);
+- 0 fonts, 0 objects, 41 receipts, 0 jobs and renditions, 0 bytes.
+
+The local synthetic files were removed. No real account (`@black`, `@zshot` or any other) was read or changed.
+
+**Not verified on TESTING (needs Mazen, signed in).** I never sign in as a persona, so the following are covered by unit tests and the dialog lab only:
+- the editor UI on the live site: the dialog, Undo after a deletion, the Stages bar confirmation, and the phone and desktop panels;
+- the gateway's cleanup route called with a real owner session. Its database steps were run directly on TESTING, and the route itself is unit-tested and smoke-tested (401).
+
+**Acceptance checklist for Mazen** (GM-TEST-01 or his own account):
+1. In Assets, Delete an unused image: it goes at once.
+2. Delete a used one: the dialog lists where it is used. Cancel changes nothing; Delete removes it everywhere, and Undo does not bring it back.
+3. In the Background panel, do the same with an image and a video.
+4. In My Fonts, delete a used font: the texts switch to their library font.
+5. Delete an empty stage: it still asks.
+6. Repeat 1–2 on a phone.
+7. Open Usage: the counts follow.

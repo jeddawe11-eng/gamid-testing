@@ -4635,3 +4635,44 @@ Mazen's task "GAMID — UNIVERSAL DELETE UX & REFERENCE CLEANUP". Branch `featur
 **Deployment** (separately authorized): apply the migration on TESTING, then deploy the site from the branch. No Edge Function or infrastructure changes.
 
 GamID Truth: NO CHANGE REQUIRED yet. TESTING still runs the refusing behaviour that `custom-font-delete` describes; the replacement text is prepared in the doc's §8 for the deployment task. Product Memory: PROPOSED (DEC-0008, ISS-0015), not saved. Not merged; TESTING unchanged (`764e3b8`).
+## 114. Universal Delete UX: orphan cleanup, TESTING deployment and E2E (2026-10-21, PENDING Mazen's acceptance)
+
+Mazen approved the remaining decisions and authorized completion and deployment on TESTING. Full record: `docs/UNIVERSAL-DELETE-UX.md` §5–§10.
+
+**Decisions:**
+- Stage deletion keeps its confirmation, including for an empty stage. It is exempt from the immediate-delete rule, and the Stages contract is unchanged.
+- The safe orphan cleanup is approved.
+
+**Orphan cleanup** (`54e3b43`; migration `20261022110000_usage_media_orphans.sql`). A step in the owner's existing Usage cleanup route removes Wall image / video files left behind when a deletion's file removal failed:
+- detection uses authoritative server state, with a 1 h grace;
+- a file is never touched if it is registered, reserved, recently received or owned by a conversion lifecycle;
+- tries are bounded: 10 a run, 5 per file, 15 minutes apart, under the usage lock;
+- each file is re-checked right before deletion;
+- one failure never stops the others.
+
+`authorize_usage_delete` (an asserted in-place patch) now refuses registered Wall asset files. The Wall editor runs the cleanup when it opens. 8 new tests.
+
+**Validation:** full suite 2129 tests, 0 failures (2 pre-existing skips); lint, typecheck, Truth and Product Memory validation clean.
+
+**Deployment** on TESTING `upvtrczefcvigxdyuylw`:
+1. both migrations were rehearsed against the live schema inside a rolled-back transaction, then applied and recorded (`migration repair`);
+2. `usage-upload` v12 → v13 (`verify_jwt` false; the unauthenticated smoke returns 401);
+3. the site from `feature/universal-delete-ux` at `54e3b43`, run `39595702093` (stamp verified; editor modules byte-identical, `session.js` differing only in line endings).
+
+Production was not touched. Nothing was merged.
+
+**E2E on GM-TEST-01** (synthetic files only). All of these were verified at the database level, plus an exact visitor-Wall check:
+- unused deletes are immediate;
+- in-use deletes are refused without confirmation;
+- a stale revision gives a conflict;
+- registered files are protected;
+- confirmed image, video and font deletes resolve every reference in the draft and the publication, which stay in step;
+- the anonymous visitor Wall is valid and exactly equals the editor's transforms;
+- the orphan is claimed after the grace period and removed, and Usage goes to 0 B;
+- the F8-B1 rendition foreign key is intact.
+
+GM-TEST-01 is restored to its exact baseline.
+
+**Not verified live** (needs Mazen, signed in): the editor UI (dialog, Undo, Stages bar, phone layout) and the cleanup route with a real owner session.
+
+GamID Truth: UPDATED. New `wall-universal-delete` (PENDING_ACCEPTANCE, checkpoint `54e3b43`); the `custom-wall-fonts` `custom-font-delete` contract and checkpoint updated. Product Memory: PROPOSED (DEC-0008, ISS-0015), not saved. TESTING now serves `54e3b43`.

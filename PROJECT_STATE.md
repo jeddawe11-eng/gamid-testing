@@ -84,7 +84,8 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `764e3b8b55eac2ea21a956a38403f0a75f4c043e`** (successful run `39543363692`, from `feature/f8b1-video-renditions`: F8-B1 partial deployment, `PROJECT_HANDOFF.md` §110; migration `20261021120000` applied; `wall-asset-register` v13, `public-media` v3; the worker is NOT deployed).
+- **TESTING serves `54e3b439b96c3dabd228840dc2045596455705fd`** (successful run `39595702093`, from `feature/universal-delete-ux`: Universal Delete UX + safe orphan cleanup, `PROJECT_HANDOFF.md` §114; migrations `20261022100000` and `20261022110000` applied; `usage-upload` v13). It contains everything F8-B1 deployed (worker image from `3bb2871`, `wall-asset-register` v13, `public-media` v3).
+- **Previously served `764e3b8b55eac2ea21a956a38403f0a75f4c043e`** (successful run `39543363692`, from `feature/f8b1-video-renditions`: F8-B1, `PROJECT_HANDOFF.md` §110–§112; migration `20261021120000` applied).
 - **Previously served `5600d0677c5f68a4b9a81c418d644173dfeaf662`** (successful run `39492020998`, F8-A fast-start MP4 uploads, product `51e3972`, `PROJECT_HANDOFF.md` §106).
 - **Previously served `97b3fdc5dc6e4725debf8a21154d82210499851e`** (successful run `39486918858`, F7-A stage-aware Wall pictures + F7-C same-art cover thumbnails, `PROJECT_HANDOFF.md` §105).
 - **Previously served `8ebacef644bfd06b658130c74eba111127bf2fec`** (successful run `39475915468`, F6-A, `PROJECT_HANDOFF.md` §104).
@@ -147,7 +148,13 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-21, Universal Delete UX implemented on a branch):** the universal deletion rule for Wall assets and custom fonts is implemented and tested on `feature/universal-delete-ux` (§113, `docs/UNIVERSAL-DELETE-UX.md`). NOT deployed; migration `20261022100000` not applied; TESTING unchanged (`764e3b8`); Truth unchanged (prepared text in the doc's §8). **Next:** Mazen's review, his decisions on the exceptions (doc §5) and the Product Memory proposals, then a separately authorized TESTING deployment (migration + site) and his acceptance.
+**Latest continuation (2026-10-21, Universal Delete UX deployed on TESTING, PENDING_ACCEPTANCE):** the universal deletion rule and the safe orphan cleanup Mazen approved are live on TESTING from `feature/universal-delete-ux` at `54e3b43` (§114, `docs/UNIVERSAL-DELETE-UX.md` §7–§10). Server-side E2E on GM-TEST-01 passed, and the account is restored to its baseline. Truth `wall-universal-delete` is PENDING_ACCEPTANCE; `custom-font-delete` is updated. Not merged. **Next:**
+1. Mazen's signed-in acceptance pass (doc §10 checklist).
+2. His decision on the Product Memory proposals DEC-0008 and ISS-0015 (not saved).
+
+Then the separately planned tasks: the Background-inside-Assets redesign and Mobile Wall Visitor.
+
+**Previous continuation (2026-10-21, Universal Delete UX implemented on a branch):** implemented and tested on `feature/universal-delete-ux` at `23b5943` (§113); not deployed at that point.
 
 **Previous continuation (2026-10-21, F8-B1 ACCEPTED):** Mazen gave final acceptance of F8-B1 on TESTING after the synthetic end-to-end tests and his own 4K upload (READY, visitors served 1080p; §112, `docs/WALL-VIDEO-RENDITIONS-F8B1.md` §12). Truth `wall-video-renditions` ACCEPTED. TESTING serves `feature/f8b1-video-renditions` (`764e3b8`; worker image from `3bb2871`); not merged. **Next:** Mazen's decisions on the Product Memory proposals (DEC-0007 and REV-0023), and any future media task (e.g. F6-B, F7-B, the existing-MP4 migration), each separately authorized.
 

@@ -584,11 +584,11 @@
         },
         {
           "id": "custom-font-delete",
-          "rule": "Deleting a font is refused while the saved Wall (WALL_FONT_IN_USE) or a published Wall (WALL_FONT_PUBLISHED) uses it, until the owner replaces it and saves / publishes again; a registered font file cannot be deleted directly."
+          "rule": "Deleting a font follows the universal deletion rule (wall-universal-delete): an unused font is deleted at once and frees its slot; a font in use asks for one confirmation that the text's appearance will change, then is deleted and removed from the saved and published Wall, each text falling back to its library font. A registered font file cannot be deleted directly."
         }
       ],
-      "checkpoint": "e73c79d4ecf9a3e3ad32ece64b84e53d5e54404f",
-      "record": "docs/WALL-EDITOR-TEXT-FONTS.md; PROJECT_HANDOFF.md §83, §84. Implemented under Mazen's approval of 2026-10-18 (the documented architecture plus the 3-font rule): migration 20261018120000_wall_custom_fonts applied on TESTING (rehearsed in a rolled-back transaction first), usage-upload v10, static deployment 875bd2d (run 39125819357). TTF / OTF upload added under his task of the same day (usage-upload v12, static e73c79d, run 39127878054; no migration). Awaiting his acceptance."
+      "checkpoint": "54e3b439b96c3dabd228840dc2045596455705fd",
+      "record": "docs/WALL-EDITOR-TEXT-FONTS.md; PROJECT_HANDOFF.md §83, §84. Implemented under Mazen's approval of 2026-10-18 (the documented architecture plus the 3-font rule): migration 20261018120000_wall_custom_fonts applied on TESTING (rehearsed in a rolled-back transaction first), usage-upload v10, static deployment 875bd2d (run 39125819357). TTF / OTF upload added under his task of the same day (usage-upload v12, static e73c79d, run 39127878054; no migration). custom-font-delete changed on 2026-10-21 to the universal deletion rule (wall-universal-delete; site 54e3b43, migration 20261022100000). Awaiting his acceptance."
     },
     {
       "id": "living-fire-text",
@@ -792,6 +792,46 @@
       "checkpoint": "3bb2871dc4eafa0bca67ba039e7d02aad87c9729",
       "record": "docs/WALL-VIDEO-RENDITIONS-F8B1.md sections 8-11; PROJECT_HANDOFF.md sections 109-111; study docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md. Branch feature/f8b1-video-renditions; migration 20261021120000 applied on TESTING 2026-10-21; wall-asset-register v13, public-media v3, site 764e3b8; worker Job + dispatcher image deployed by Mazen from 3bb2871 (Cloud Build, smokes ok). Validated end to end on TESTING with GM-TEST-01 synthetic media and with Mazen's own 4K upload (READY, visitors served the 1080p rendition). ACCEPTED by Mazen 2026-10-21 (final acceptance of the implemented scope); Product Memory review proposed as REV-0023.",
       "notes": "Accepted scope: the three contracts above, fully deployed on TESTING. The worker measures VMAF with a separate pinned static FFmpeg (libvmaf); every encode keeps the image's Debian FFmpeg. Not part of the accepted scope: existing videos (not migrated); HDR, alpha and 10-bit sources (never re-encoded); a faster first frame (not a guarantee - the accepted gain is smaller transfers and smoother playback on slower links). Further improvements are separate future tasks."
+    },
+    {
+      "id": "wall-universal-delete",
+      "name": "Universal deletion of Wall images, GIFs, videos and custom fonts (with reference cleanup and safe orphan file cleanup)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/",
+        "/@handle",
+        "/account/"
+      ],
+      "limits": {
+        "orphanGraceSeconds": 3600,
+        "orphanMaxTries": 5,
+        "orphanRetrySeconds": 900,
+        "orphanFilesPerCleanup": 10
+      },
+      "contracts": [
+        {
+          "id": "universal-delete-rule",
+          "rule": "Deleting an uploaded Wall image, GIF or video (Assets, and the Background panel's Images / Videos, desktop and phone) or a custom font (My Fonts) follows one rule. NOT IN USE (by the Wall being edited, unsaved edits included, the saved Wall or the published Wall): deleted at once, without a question. IN USE: one confirmation shows its name, where it is used, what deleting it does and Delete / Cancel (Cancel is the default; Escape cancels). Confirm: it is deleted and every reference to it is resolved. Cancel: nothing changes. Stage deletion is not part of this rule and keeps its own confirmation (wall-editor-stages-bar)."
+        },
+        {
+          "id": "universal-delete-media-resolution",
+          "rule": "A confirmed media deletion removes, in one database transaction, the Whole Wall background, every stage background and every element that uses the file - in the saved draft (only at the revision the editor holds) and in the published Wall - then deletes the asset; nothing else on the Wall changes. A publication that was up to date stays up to date, so visitors never meet a broken reference. A video's internal rendition detaches and follows its existing sweep."
+        },
+        {
+          "id": "universal-delete-font-resolution",
+          "rule": "A confirmed font deletion removes the font from every text in the saved draft and the published Wall in one transaction: each text keeps its words, position, grouping and other styling and is drawn with its own library font (the existing fallback). The confirmation warns that the text's appearance changes and names that library font."
+        },
+        {
+          "id": "universal-delete-safety",
+          "rule": "A deletion happens completely or not at all: a newer saved draft (WALL_REVISION_CONFLICT), a result the Wall rules would reject, or a reference the transforms do not know changes nothing. The editor keeps the owner's other unsaved edits unsaved, rewrites its undo / redo so no deleted reference can come back, runs one deletion at a time, and after a lost connection re-reads the server before reporting. Only the owner can delete; a file that is still a registered Wall asset is never deleted by the usage gateway (WALL_ASSET_REGISTERED)."
+        },
+        {
+          "id": "universal-delete-orphan-cleanup",
+          "rule": "If a deleted Wall image or video file could not be removed after its asset was deleted, the owner's existing Usage cleanup (when Usage opens, on Intro actions and when the Wall editor opens) deletes it later through the protected gateway delete path: only the owner's own wall-media / wall-video / wall-video-derived files, older than 1 hour, with no asset row, no active or recent upload receipt and no pending conversion lifecycle, each re-checked right before deletion; at most 10 files a run and 5 tries per file, 15 minutes apart. Renditions, Intro, Avatar, Banner and font files are never considered (fonts keep their own orphan cleanup). Usage counts follow the stored files."
+        }
+      ],
+      "checkpoint": "54e3b439b96c3dabd228840dc2045596455705fd",
+      "record": "docs/UNIVERSAL-DELETE-UX.md; PROJECT_HANDOFF.md sections 113-114. Implemented under Mazen's task of 2026-10-21 and his approval of the stage-deletion exemption and the orphan cleanup the same day. Branch feature/universal-delete-ux (not merged); migrations 20261022100000_universal_delete_resolve and 20261022110000_usage_media_orphans applied on TESTING 2026-10-21 (rehearsed in a rolled-back transaction first); usage-upload v13; site 54e3b43 (run 39595702093). Server-side E2E on TESTING with GM-TEST-01 synthetic media, restored to its baseline. Awaiting Mazen's acceptance."
     },
     {
       "id": "wall-picture-stage-loading",
