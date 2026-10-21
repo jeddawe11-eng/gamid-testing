@@ -761,7 +761,7 @@
     {
       "id": "wall-video-renditions",
       "name": "Conditional internal 1080p visitor renditions of new oversized / high-bitrate Wall MP4s (F8-B1)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/wall-editor/",
         "/@<handle>"
@@ -790,8 +790,8 @@
         }
       ],
       "checkpoint": "3bb2871dc4eafa0bca67ba039e7d02aad87c9729",
-      "record": "docs/WALL-VIDEO-RENDITIONS-F8B1.md sections 8-11; PROJECT_HANDOFF.md sections 109-111; study docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md. Branch feature/f8b1-video-renditions; migration 20261021120000 applied on TESTING 2026-10-21; wall-asset-register v13, public-media v3, site 764e3b8; worker Job + dispatcher image deployed by Mazen from 3bb2871 (Cloud Build, smokes ok). Validated end to end on TESTING with GM-TEST-01 synthetic media; awaiting Mazen's manual acceptance.",
-      "notes": "Fully deployed on TESTING. The worker measures VMAF with a separate pinned static FFmpeg (libvmaf); every encode keeps the image's Debian FFmpeg. Existing videos are not migrated; HDR, alpha and 10-bit sources are never re-encoded."
+      "record": "docs/WALL-VIDEO-RENDITIONS-F8B1.md sections 8-11; PROJECT_HANDOFF.md sections 109-111; study docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md. Branch feature/f8b1-video-renditions; migration 20261021120000 applied on TESTING 2026-10-21; wall-asset-register v13, public-media v3, site 764e3b8; worker Job + dispatcher image deployed by Mazen from 3bb2871 (Cloud Build, smokes ok). Validated end to end on TESTING with GM-TEST-01 synthetic media and with Mazen's own 4K upload (READY, visitors served the 1080p rendition). ACCEPTED by Mazen 2026-10-21 (final acceptance of the implemented scope); Product Memory review proposed as REV-0023.",
+      "notes": "Accepted scope: the three contracts above, fully deployed on TESTING. The worker measures VMAF with a separate pinned static FFmpeg (libvmaf); every encode keeps the image's Debian FFmpeg. Not part of the accepted scope: existing videos (not migrated); HDR, alpha and 10-bit sources (never re-encoded); a faster first frame (not a guarantee - the accepted gain is smaller transfers and smoother playback on slower links). Further improvements are separate future tasks."
     },
     {
       "id": "wall-picture-stage-loading",

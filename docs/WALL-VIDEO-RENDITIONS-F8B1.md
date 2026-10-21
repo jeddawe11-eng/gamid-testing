@@ -1,12 +1,11 @@
-# F8-B1: conditional internal visitor renditions (PARTLY deployed on TESTING 2026-10-21: no READY until the worker ships)
+# F8-B1: conditional internal visitor renditions (TESTING, ACCEPTED 2026-10-21)
 
-> **Deployment status (2026-10-21, Mazen's choice "partial now, worker later"; details in §8):**
-> - **Live on TESTING:** the migration (applied, history recorded), `wall-asset-register` v13, `public-media` v3, and the site (run `39543363692`, stamp `764e3b8`).
-> - **NOT deployed:** the worker image (with the VMAF-only static FFmpeg) and the dispatcher, because the deploying machine has no Google Cloud access.
-> - **Effect:** eligible new uploads queue as pending and visitors always receive the original.
-> - **Not yet done:** READY renditions, the end-to-end test and the TESTING benchmark wait for the worker.
+> **Status (2026-10-21):** fully deployed on TESTING and **ACCEPTED by Mazen** as final acceptance of the implemented scope (§12).
+> - **Live:** the migration `20261021120000`, `wall-asset-register` v13, `public-media` v3, the site (run `39543363692`, stamp `764e3b8`), and the worker Job + dispatcher image built from `3bb2871` (deployed by Mazen in Cloud Shell, §10).
+> - **Validated:** end to end on GM-TEST-01 with synthetic media (§10–§11) and with Mazen's own 4K upload (§12).
+> - **Later work:** any further improvement is a separate future task.
 >
-> The sections below were written before deployment; §1 and §2 describe the full design.
+> §1–§9 are the implementation and deployment record in the order it happened. The earlier partial-deployment state (database, Edge Functions and site live, worker pending) lasted until §10.
 
 Mazen's task "GAMID — F8-B1 CONDITIONAL VIDEO RENDITIONS" (2026-10-21): an isolated implementation and testing slice.
 
@@ -87,7 +86,7 @@ For a **new** MP4 upload on the direct H.264 path only. HEVC conversion jobs, We
 
 **Full suite:** 2099 tests, 2097 pass, 0 fail, 2 skipped (the existing F2 native test + this opt-in native test). Lint and typecheck pass.
 
-## 5. Deployment needs (each needs Mazen's separate authorization; NONE applied)
+## 5. Deployment needs (as prepared before deployment; all applied since: §8, §10)
 
 1. **Database:** the migration `20261021120000_video_renditions_f8b1.sql`. Rehearse it in a rolled-back transaction first. It adds a bucket, a table, functions and a trigger, and replaces 4 functions (bodies otherwise identical).
 2. **Edge Functions:** redeploy `wall-asset-register` (eligibility + queue) and `public-media` (the renditions bucket).
@@ -147,7 +146,7 @@ For a **new** MP4 upload on the direct H.264 path only. HEVC conversion jobs, We
 | `wall-asset-register` | v13 (`verify_jwt` true, unchanged) | redeploy the `0975104` source (v12) |
 | `public-media` | v3 (`verify_jwt` false, unchanged) | redeploy the `0975104` source (v2) |
 | Site | run `39543363692`, stamp `764e3b8`; `public-wall.js`, `published-video-url-cache.js`, `supabase-client.js` served byte-identical | redeploy `5600d06` through the same workflow |
-| Worker Job + dispatcher | **NOT deployed** | — |
+| Worker Job + dispatcher | not deployed at this step; deployed later by Mazen from `3bb2871` (§10) | `gcloud run jobs update` / `gcloud run services update` to the `ROLLBACK_*` images in his Cloud Shell log |
 
 **Database rollback** (only if needed, in one transaction):
 1. Drop the trigger `dispatch_wall_video_rendition`, the rendition functions and `public.wall_video_renditions`.
@@ -314,4 +313,38 @@ The rollback images were printed by the script (`ROLLBACK_JOB_IMAGE` / `ROLLBACK
 - **Physical devices, Safari and Firefox:** not tested.
 - **Existing videos:** not migrated, by design.
 
-**GamID Truth: UPDATED** — `wall-video-renditions` stays PENDING_ACCEPTANCE (checkpoint `3bb2871`); the note now records the full deployment and this validation.
+## 12. Real-user upload verification and final acceptance (2026-10-21)
+
+**Mazen's own upload.** In his Wall Editor, he uploaded a real 4K color-bar MP4 (about 24 MB) on `@black`, placed it on stage 3, saved and published, and confirmed it plays for a visitor. This was investigated read-only; nothing of his was changed.
+
+| Check | Evidence |
+|---|---|
+| Upload + registration | asset `7f301afd`: 3840×2160, 25,148,899 bytes, 10 s, 300 frames (30 fps); object 09:54:47, registered 09:54:50; direct H.264 path. The file was already fast start (FFmpeg layout `ftyp, moov, free, mdat`), so F8-A correctly left it unchanged. |
+| Rendition job | created 09:54:50, the same second as registration, by the deployed `wall-asset-register` v13 |
+| Status | **READY**, attempt 1: claimed 09:55:03, READY 09:55:58 (55 s on the worker; about 68 s from upload) |
+| Gate | VMAF mean 95.239 (≥ 95), worst-5% 93.710 (≥ 90). Size 3,285,412 bytes = 13.1% of the original (≥ 25% saving). 1920×1080, fast start. Color bars are close to a worst case for the quality metric, hence the narrow margin. |
+| Visitor (anonymous Chrome on `/@black`, stage 3) | the stage-3 video streams the **rendition**: 3.29 MB, decoded 1920×1080, all 10 s played, 0 / 438 frames dropped; 0 bytes of the original |
+| Fallback (only the rendition lease refused in that browser) | the original plays: 25.16 MB, 3840×2160, all 10 s, 0 / 424 frames dropped |
+| Editor | the owner's `list_my_wall_assets` shows the original path; no rendition anywhere |
+| Usage | `used_bytes` 119,919,397 = exactly the counted objects; the 3,285,412-byte rendition is uncounted; 12 of 15 video slots, none taken by the rendition |
+| Processing cost (estimate) | about $0.003 for this conversion; within the Cloud Run free tier (actual billing in Google Cloud Billing) |
+
+**Acceptance:** Mazen explicitly ACCEPTED F8-B1 on TESTING on 2026-10-21, after the synthetic end-to-end tests and this real-upload verification. This is the final acceptance of the implemented scope; further improvements are separate future tasks.
+
+**Accepted scope** (the contracts in Truth `wall-video-renditions`):
+- **Who gets a rendition:** new direct H.264 MP4 uploads above 1920×1080, or above 8 Mbit/s at 1080p30-equivalent.
+- **The rendition:** H.264 CRF 23 within 1920×1080, the source frame rate, all audio kept.
+- **The gate:** VMAF mean ≥ 95 and worst-5% ≥ 90, at least 25% smaller, checked by the worker and the database.
+- **Storage:** the original kept and counted; the internal rendition uncounted, bounded and swept.
+- **Visitors:** they receive it only while it is READY and its original is leasable, with the original as fallback; the owner and editor use the original.
+
+**Known limitations** (accepted as is; any change is future work):
+- **Existing videos** are not converted.
+- **HDR, alpha and 10-bit** sources are never re-encoded.
+- **First frame:** not faster on fast links. The gain is smaller transfers and smooth playback on slower links.
+- **Wasted compute on small clips:** the linear pixel-scaled bitrate rule makes some low-resolution clips candidates that the gate then rejects (a few CPU-seconds each, no visible effect).
+- **Not tested:** physical devices, Safari and Firefox.
+- **Pinned FFmpeg build:** a later image rebuild needs the pinned BtbN archive to still exist; the checksum refuses any substitute.
+- **Sweep timing:** the sweep runs at the end of worker runs, so a deleted asset's internal rendition can wait until the next run. It is never leasable meanwhile.
+
+**GamID Truth: UPDATED** — `wall-video-renditions` is **ACCEPTED** (checkpoint `3bb2871`).

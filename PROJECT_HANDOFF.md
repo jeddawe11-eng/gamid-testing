@@ -4598,3 +4598,16 @@ Mazen ran `worker/cloud-run/deploy-f8b1-testing.sh 3bb2871` in Cloud Shell: buil
   - devices, Safari and Firefox.
 
 **Truth: UPDATED** (`wall-video-renditions` note: fully deployed and validated; checkpoint `3bb2871`; still PENDING_ACCEPTANCE). **STOP for Mazen's acceptance.**
+
+## 112. F8-B1 real-upload verification and FINAL ACCEPTANCE (2026-10-21)
+
+**Mazen's real upload.** A 4K color-bar MP4 (about 24 MB) in his Wall Editor on `@black`, stage 3, published. It was investigated read-only (`docs/WALL-VIDEO-RENDITIONS-F8B1.md` §12):
+- asset `7f301afd`: 25,148,899 B, 3840×2160, 10 s;
+- a rendition job was created by the deployed `wall-asset-register` v13 in the same second as registration;
+- **READY** after 55 s on the worker: VMAF 95.239 / 93.710, 3,285,412 B (−86.9%), 1920×1080;
+- the anonymous visitor streams the rendition (3.29 MB, 0 dropped), and the refused-lease fallback plays the original (25.16 MB);
+- the editor lists the original; Usage counts only the originals (119,919,397 B); 12 of 15 video slots, none taken by the rendition.
+
+**Acceptance.** Mazen explicitly ACCEPTED F8-B1 on TESTING on 2026-10-21: final acceptance of the implemented scope. Further improvements are separate future tasks. The known limitations are listed in the doc's §12.
+
+**Truth: UPDATED** — `wall-video-renditions` ACCEPTED (checkpoint `3bb2871`). Product Memory: DEC-0007 and REV-0023 proposed, not saved. Not merged; TESTING serves `feature/f8b1-video-renditions` (`764e3b8`).
