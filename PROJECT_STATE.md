@@ -146,7 +146,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-21, F6–F8 acceptance + F8-B study):** Mazen accepted F6-A, F7-A and F7-C; F8-A is FUNCTIONALLY accepted only (§108, REV-0022). Truth is updated; TESTING is unchanged at `5600d06`. The F8-B feasibility study is in `docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md`. F1–F8 is not complete: F6-B, F7-B, F8-B and the existing-MP4 migration need separate authorization. Product Memory validation is blocked by IDEA-0003 (another agent's record; needs Mazen's decision). **Next:** Mazen's choice of the next implementation slice.
+**Latest continuation (2026-10-21, F8-B1 implementation on a branch):** conditional internal visitor renditions are implemented and tested on `feature/f8b1-video-renditions` (§109, `docs/WALL-VIDEO-RENDITIONS-F8B1.md`). NOT deployed; the migration is not applied; TESTING still `5600d06`; Truth unchanged. **Next:** Mazen's deployment authorization (migration, two Edge Functions, a worker image with libvmaf + dispatcher, which need Google Cloud access, and the site).
+
+**Previous continuation (2026-10-21, F6–F8 acceptance + F8-B study):** Mazen accepted F6-A, F7-A and F7-C; F8-A is FUNCTIONALLY accepted only (§108, REV-0022). Truth is updated; TESTING is unchanged at `5600d06`. The F8-B feasibility study is in `docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md`. F1–F8 is not complete: F6-B, F7-B, F8-B and the existing-MP4 migration need separate authorization. Product Memory validation is blocked by IDEA-0003 (another agent's record; needs Mazen's decision). **Next:** Mazen's choice of the next implementation slice.
 
 **Previous continuation (2026-10-21, F1–F8 final benchmark):** measurement only on TESTING `5600d06` (§107, `docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md`). F6-A, F7-A, F7-C and F8-A are measured but not accepted; F6-B, F7-B, F8-B and the existing-file F8-A migration remain open. @black's Wall now has a new 4K MP4 (stage 3) and a replaced Intro, so later benchmarks must exclude or report them separately. **Next:** Mazen's review of the benchmark and his acceptance decisions.
 

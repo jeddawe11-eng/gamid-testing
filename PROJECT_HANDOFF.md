@@ -4512,3 +4512,33 @@ Mazen's task "GAMID — F6–F8 Acceptance, Product Memory & F8-B Feasibility St
 **F8-B:** a feasibility study only, in `docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md`. It uses local isolated copies and a synthetic clip; no TESTING media, upload policy, database, storage or quota changed. Nothing was implemented or deployed.
 
 **STOP for Mazen's separate implementation authorization.**
+
+## 109. F8-B1 conditional internal visitor renditions (2026-10-21, implemented on a branch; NOT deployed)
+
+Mazen's task "GAMID — F8-B1 CONDITIONAL VIDEO RENDITIONS". Details, deployment needs and the acceptance plan: `docs/WALL-VIDEO-RENDITIONS-F8B1.md`.
+
+- **Where:**
+  - branch `feature/f8b1-video-renditions`, from `0975104`;
+  - TESTING unchanged at `5600d06`;
+  - migration `20261021120000_video_renditions_f8b1.sql` **prepared, not applied**;
+  - no Edge Function, worker, dispatcher or site deployment.
+- **Implemented:**
+  - the eligibility rule and best-effort queue in `wall-asset-register`;
+  - the rendition registry / queue / database gate / manifest / lease / storage-driven sweep / quota exclusion;
+  - the worker module (plan, encode, validation, bit-identical audio check, VMAF gate; refuses without libvmaf);
+  - the dispatcher's table, and the `public-media` bucket;
+  - the visitor page's rendition preference with fallback to the original.
+- **Measured locally on isolated copies:**
+  - @black's 4K MP4 went from 50.55 to 13.34 MB (−73.6%) at VMAF 99.49 / p5 95.77, audio bit-identical → READY;
+  - the 360p clip was rejected by the gate (VMAF 91.97);
+  - Chrome at 9 Mbit/s: the rendition plays through (13.3 MB) while the original stalls and drops 46% of frames; the first frame is not faster.
+- **Tests:**
+  - 20 new tests (13 unit, 6 PGlite, 1 opt-in native that passed locally);
+  - full suite: 2099 tests, 2097 pass, 0 fail, 2 skipped;
+  - lint and typecheck pass.
+- **Blockers for deployment:**
+  - the worker image's Debian FFmpeg has **no libvmaf** (bookworm and trixie checked), so it needs an image change;
+  - Google Cloud access (image + dispatcher);
+  - Mazen's authorization for the migration, Edge Functions and site.
+
+**Truth: NO CHANGE** (un-deployed). **STOP for Mazen's deployment authorization.**
