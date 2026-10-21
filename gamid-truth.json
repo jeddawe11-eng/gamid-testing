@@ -759,6 +759,41 @@
       "notes": "Functionally accepted only. The two contracts above (lossless, verified-or-unchanged) and normal upload, publication and playback are accepted for NEW uploads. Not accepted as product guarantees: the earlier first frame (measured in a local lab only) and any repeat-visit bandwidth reduction (not proven). Migrating existing stored MP4s is NOT approved."
     },
     {
+      "id": "wall-video-renditions",
+      "name": "Conditional internal 1080p visitor renditions of new oversized / high-bitrate Wall MP4s (F8-B1)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/",
+        "/@<handle>"
+      ],
+      "limits": {
+        "renditionEligibleAboveLongEdge": 1920,
+        "renditionEligibleAboveShortEdge": 1080,
+        "renditionEligibleBitsPerSecondAt1080p30": 8000000,
+        "renditionMinVmafMean": 95,
+        "renditionMinVmafP5": 90,
+        "renditionMinSavingsPercent": 25,
+        "renditionMaxBytes": 39321600
+      },
+      "contracts": [
+        {
+          "id": "wall-video-rendition-eligibility-and-gate",
+          "rule": "A NEW direct H.264 Wall MP4 larger than 1920x1080 (either orientation) or above 8 Mbit/s at 1080p30 (scaled by its pixels and frame rate) is queued for one internal rendition: H.264 CRF 23, within 1920x1080, the source frame rate and every audio stream kept. It is used only after the worker AND the database verify VMAF mean >= 95, 5th percentile >= 90 against the source at the rendition's size, and at least 25% savings. Already-efficient, HDR, alpha, 10-bit and non-H.264 sources, existing videos and HEVC conversions never get one."
+        },
+        {
+          "id": "wall-video-rendition-storage",
+          "rule": "The original upload is never changed and keeps counting toward the owner's 200 MB. The rendition is internal: it does not count toward the quota or the Usage page, creates no Wall asset or video slot (60 / 15 unchanged), is at most one live per asset and <= 37.5 MiB, lives in a private bucket no client can list, read, write or delete, and is removed by a storage-driven sweep once it is no longer the live READY or in-flight one."
+        },
+        {
+          "id": "wall-video-rendition-delivery",
+          "rule": "Visitors receive the rendition only while it is READY and while its ORIGINAL is leasable (the accepted published, enabled, PUBLIC predicate), through public-media's 6 h lease and the F6-A cache. Before READY, after a refusal or failure, and whenever the rendition lease fails, visitors receive the original exactly as before. PRIVATE, Disable, Unpublish and Delete end new rendition leases at once. Owners and the editor always use the original."
+        }
+      ],
+      "checkpoint": "71441bea7626f8ff35ed693581512c6e8dec6c3a",
+      "record": "docs/WALL-VIDEO-RENDITIONS-F8B1.md; PROJECT_HANDOFF.md sections 109-110; study docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md. Branch feature/f8b1-video-renditions; migration 20261021120000 applied on TESTING 2026-10-21; wall-asset-register v13, public-media v3. Implemented and partly deployed under Mazen's authorization of 2026-10-21; awaiting the worker deployment and his manual acceptance.",
+      "notes": "Partly deployed on TESTING: the database, both Edge Functions and the site are live, but the worker image (with the VMAF-only FFmpeg) and the dispatcher are NOT deployed (no Google Cloud access on the deploying machine). Until they are, no rendition can become READY: eligible uploads only queue as pending, and visitors always receive the original."
+    },
+    {
       "id": "wall-picture-stage-loading",
       "name": "Stage-aware Wall picture loading on the visitor page (F7-A)",
       "status": "ACCEPTED",
