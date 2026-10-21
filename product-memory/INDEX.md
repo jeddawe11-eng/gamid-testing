@@ -77,11 +77,20 @@ Rules:
 |---|---|---|---|
 | DIS | Discussions | discussions/ | DIS-0003 |
 | DEC | Decisions | decisions/ | DEC-0006 |
-| IDEA | Ideas | ideas/ | IDEA-0002 |
+| IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0014 |
 | REV | Reviews | reviews/ | REV-0022 |
 
 ## Register
+
+2026-10-21: At Mazen's request, IDEA-0003 (Discord LFG Bot, saved earlier the same day with his approval) was corrected to pass validation:
+- template sections added, with the content unchanged and moved under subheadings;
+- save_approval set to "Mazen 2026-10-21";
+- the non-file source "conversation 2026-10-21" moved into Context;
+- the Register title aligned with the record;
+- the IDEA counter set to IDEA-0003.
+
+Status stays DISCUSSION; there is no implementation authorization.
 
 2026-10-21: Mazen approved saving Claude Code's F1–F8 final bandwidth benchmark (TESTING 5600d06 vs baseline 22cbc85) with his scoped acceptance decisions. REV-0022: F6-A, F7-A, F7-C ACCEPTED; F8-A FUNCTIONALLY ACCEPTED only (no performance guarantee, repeat-visit saving not proven, existing-MP4 migration not approved). F1–F8 not complete; Truth updated.
 
@@ -133,7 +142,7 @@ Rules:
 | DEC-0006 | Wall Icon Display Option & Icon Group | ACCEPTED | [DEC-0006-wall-icon-display-option-and-icon-group.md](decisions/DEC-0006-wall-icon-display-option-and-icon-group.md) |
 | IDEA-0001 | Profile Editor gaming-dashboard redesign | ACCEPTED | [IDEA-0001-profile-editor-dashboard-redesign.md](ideas/IDEA-0001-profile-editor-dashboard-redesign.md) |
 | IDEA-0002 | Monitor permanent coverage growth and gap detection | DISCUSSION | [IDEA-0002-monitor-coverage-growth.md](ideas/IDEA-0002-monitor-coverage-growth.md) |
-| IDEA-0003 | GamID Discord LFG Bot + Play Together cold-start growth and interactive /lfg simulation | DISCUSSION | [IDEA-0003-gamid-discord-lfg-bot.md](ideas/IDEA-0003-gamid-discord-lfg-bot.md) |
+| IDEA-0003 | GamID Discord LFG Bot as a Play Together growth channel | DISCUSSION | [IDEA-0003-gamid-discord-lfg-bot.md](ideas/IDEA-0003-gamid-discord-lfg-bot.md) |
 | ISS-0001 | Unified Upload & Add Error UX | FIXED | [ISS-0001-unified-upload-add-error-ux.md](issues/ISS-0001-unified-upload-add-error-ux.md) |
 | ISS-0002 | Wall video limit text says 10 instead of the authoritative 15 | FIXED | [ISS-0002-wall-video-limit-text-stale.md](issues/ISS-0002-wall-video-limit-text-stale.md) |
 | ISS-0003 | Wall storage quota error incorrectly suggests retry | FIXED | [ISS-0003-wall-quota-error-suggests-retry.md](issues/ISS-0003-wall-quota-error-suggests-retry.md) |
