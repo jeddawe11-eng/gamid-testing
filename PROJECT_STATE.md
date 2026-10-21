@@ -84,7 +84,8 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `5600d0677c5f68a4b9a81c418d644173dfeaf662`** (successful run `39492020998`, F8-A fast-start MP4 uploads, product `51e3972`, `PROJECT_HANDOFF.md` §106).
+- **TESTING serves `764e3b8b55eac2ea21a956a38403f0a75f4c043e`** (successful run `39543363692`, from `feature/f8b1-video-renditions`: F8-B1 partial deployment, `PROJECT_HANDOFF.md` §110; migration `20261021120000` applied; `wall-asset-register` v13, `public-media` v3; the worker is NOT deployed).
+- **Previously served `5600d0677c5f68a4b9a81c418d644173dfeaf662`** (successful run `39492020998`, F8-A fast-start MP4 uploads, product `51e3972`, `PROJECT_HANDOFF.md` §106).
 - **Previously served `97b3fdc5dc6e4725debf8a21154d82210499851e`** (successful run `39486918858`, F7-A stage-aware Wall pictures + F7-C same-art cover thumbnails, `PROJECT_HANDOFF.md` §105).
 - **Previously served `8ebacef644bfd06b658130c74eba111127bf2fec`** (successful run `39475915468`, F6-A, `PROJECT_HANDOFF.md` §104).
 - **Previously served `22cbc85b86b8f2eddf4cfb0c1a077e5f59c75b5e`** (successful run `39440094448`, Mobile Wall Editor V2, `PROJECT_HANDOFF.md` §101).
@@ -146,7 +147,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-21, F8-B1 implementation on a branch):** conditional internal visitor renditions are implemented and tested on `feature/f8b1-video-renditions` (§109, `docs/WALL-VIDEO-RENDITIONS-F8B1.md`). NOT deployed; the migration is not applied; TESTING still `5600d06`; Truth unchanged. **Next:** Mazen's deployment authorization (migration, two Edge Functions, a worker image with libvmaf + dispatcher, which need Google Cloud access, and the site).
+**Latest continuation (2026-10-21, F8-B1 partial TESTING deployment):** the database, both Edge Functions and the site are live on TESTING from `feature/f8b1-video-renditions` (§110). The worker image (VMAF-only FFmpeg) and the dispatcher are NOT deployed (no Google Cloud access here), so no rendition can become READY and visitors always get the original. Truth `wall-video-renditions` PENDING_ACCEPTANCE. **Next:** someone with Google Cloud access runs `worker/cloud-run/deploy-f8b1-testing.sh <commit>`; then the end-to-end test (READY, fallback, revocation, sweep, Usage) and the TESTING benchmark; then Mazen's manual acceptance. TESTING now serves this branch, not `feature/play-together-notifications`.
+
+**Previous continuation (2026-10-21, F8-B1 implementation on a branch):** conditional internal visitor renditions are implemented and tested on `feature/f8b1-video-renditions` (§109, `docs/WALL-VIDEO-RENDITIONS-F8B1.md`). NOT deployed; the migration is not applied; TESTING still `5600d06`; Truth unchanged. **Next:** Mazen's deployment authorization (migration, two Edge Functions, a worker image with libvmaf + dispatcher, which need Google Cloud access, and the site).
 
 **Previous continuation (2026-10-21, F6–F8 acceptance + F8-B study):** Mazen accepted F6-A, F7-A and F7-C; F8-A is FUNCTIONALLY accepted only (§108, REV-0022). Truth is updated; TESTING is unchanged at `5600d06`. The F8-B feasibility study is in `docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md`. F1–F8 is not complete: F6-B, F7-B, F8-B and the existing-MP4 migration need separate authorization. Product Memory validation is blocked by IDEA-0003 (another agent's record; needs Mazen's decision). **Next:** Mazen's choice of the next implementation slice.
 

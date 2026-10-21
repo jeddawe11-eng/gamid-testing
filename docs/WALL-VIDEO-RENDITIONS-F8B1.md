@@ -1,4 +1,12 @@
-# F8-B1: conditional internal visitor renditions (implemented on a branch; NOT deployed, migration NOT applied)
+# F8-B1: conditional internal visitor renditions (PARTLY deployed on TESTING 2026-10-21: no READY until the worker ships)
+
+> **Deployment status (2026-10-21, Mazen's choice "partial now, worker later"; details in §8):**
+> - **Live on TESTING:** the migration (applied, history recorded), `wall-asset-register` v13, `public-media` v3, and the site (run `39543363692`, stamp `764e3b8`).
+> - **NOT deployed:** the worker image (with the VMAF-only static FFmpeg) and the dispatcher, because the deploying machine has no Google Cloud access.
+> - **Effect:** eligible new uploads queue as pending and visitors always receive the original.
+> - **Not yet done:** READY renditions, the end-to-end test and the TESTING benchmark wait for the worker.
+>
+> The sections below were written before deployment; §1 and §2 describe the full design.
 
 Mazen's task "GAMID — F8-B1 CONDITIONAL VIDEO RENDITIONS" (2026-10-21): an isolated implementation and testing slice.
 
@@ -116,4 +124,90 @@ For a **new** MP4 upload on the direct H.264 path only. HEVC conversion jobs, We
 - **Leases:** already issued rendition leases stay valid until expiry, as with every visitor lease (accepted `visitor-media-leases`).
 - **Sweep timing:** the sweep runs at the end of each worker run, so a deleted asset's rendition object can wait until the next run. It is never leasable meanwhile.
 
-**GamID Truth: NO CHANGE** (not deployed). At deployment, the implementing task adds a PENDING_ACCEPTANCE capability with the two contracts in §1–§2.
+## 8. TESTING deployment record (2026-10-21) and rollback
+
+**Reviewed before applying:**
+- **Rehearsal:** the migration was rehearsed twice on TESTING inside a transaction that always aborts. Read-only checks returned only booleans and counts:
+  - @black's manifest (13 assets) and its 11 leasable videos unchanged;
+  - every owner's storage total and the object count unchanged;
+  - bucket, no policy, RLS, privileges, grants, eligibility, empty claim / sweep, trigger.
+  - Nothing persisted (table, bucket and functions were absent afterwards).
+- **A regression the review caught:**
+  - TESTING's live `private.get_my_usage_impl` differs from the repository's first version: the custom-fonts migration patched in the **Custom Fonts** quota line.
+  - The prepared migration had copied the older body and would have removed that line.
+  - Fixed in `71441be`: both usage functions are now patched **in place** from their live definitions (the custom-fonts pattern; a missing target aborts).
+  - The PGlite fixture now reproduces the live state, and the second rehearsal confirmed the line is kept.
+- **Unrelated remote migration:** `20261020114332_wall_text_living_radiation` is unrelated to the four replaced functions. The other three live definitions were fingerprinted (md5 of the body) and equal the repository's.
+
+**Applied:**
+
+| Piece | Version / evidence | Rollback |
+|---|---|---|
+| Migration `20261021120000` | one transaction; `migration repair --status applied`; post-checks all true (bucket, no policy, Custom Fonts line kept, summary exclusion, @black unchanged, 0 rendition rows) | see below |
+| `wall-asset-register` | v13 (`verify_jwt` true, unchanged) | redeploy the `0975104` source (v12) |
+| `public-media` | v3 (`verify_jwt` false, unchanged) | redeploy the `0975104` source (v2) |
+| Site | run `39543363692`, stamp `764e3b8`; `public-wall.js`, `published-video-url-cache.js`, `supabase-client.js` served byte-identical | redeploy `5600d06` through the same workflow |
+| Worker Job + dispatcher | **NOT deployed** | — |
+
+**Database rollback** (only if needed, in one transaction):
+1. Drop the trigger `dispatch_wall_video_rendition`, the rendition functions and `public.wall_video_renditions`.
+2. Restore `private.get_public_wall_impl` (20261009170000) and `private.public_media_lease_allowed` (20261010140000).
+3. Patch the two usage functions back: remove ` and o.bucket_id<>'wall-video-renditions'` with the same in-place `replace`.
+4. Delete the renditions bucket's objects, then the bucket.
+5. `migration repair --status reverted 20261021120000`.
+
+Because no rendition exists yet, the table and bucket are empty.
+
+**Live regression after deployment** (TESTING `764e3b8`, anonymous):
+- **Security:** `f6a-security.mjs` passes all 15 scenarios with the 11-video Wall.
+- **Leases:** `public-media` answers the uniform 404 for an unknown or malformed rendition path.
+- **@black's manifest:** no `rendition_path`; 0 rendition rows.
+- **Benchmark key runs:**
+  - the comparable set is unchanged: desktop 50.03 vs 49.90 MB before; mobile 50.04 vs 50.03 MB;
+  - 0 video and page errors; the only console errors are the pre-existing favicon 404s.
+- **A one-off stall:** in 1 of 3 desktop runs, the 4K **original** stalled after about 0.5 MB (no error, never played). The other two runs, and both pre-deployment runs, played it completely (49.78 MB, 11.03 s). This is an intermittent behaviour of the heavy original, not a change: the original's lease and path are unchanged while no rendition exists.
+
+**Prepared for the worker deployment (`cf425a8`):**
+- **Worker image:** `worker/Dockerfile` gains a separate stage that downloads ONLY a pinned static FFmpeg 8.1.3 GPL build with libvmaf (BtbN `autobuild-2026-10-20-13-08`, `ffmpeg-n8.1.3-18-g46d899d7a0-linux64-gpl-8.1.tar.xz`, sha256 `e2a70912ed207cf412a28aa83f2efde7f9fb5c65370af5ad007ad60076d704a6`). It verifies the checksum and that `libvmaf` is present, then copies the binary to `/opt/vmaf/ffmpeg` (`GAMID_VMAF_FFMPEG`). All encoding keeps Debian's FFmpeg.
+- **Build allowlist:** the Cloud Build allowlist gains `worker/wall-rendition.mjs`; without it the build would have failed.
+- **Smoke command:** `rendition-smoke`, an in-image synthetic check (no credentials, Storage or user data). It passed locally: VMAF 96.02 / 95.31, audio identical, gate ok.
+- **Deploy script:** `worker/cloud-run/deploy-f8b1-testing.sh`, the established F2 pattern. It records the rollback images, builds with Cloud Build, updates the Job **and** the dispatcher service to the same digest, verifies there is no configuration drift for either, and runs `rendition-smoke` and `f2-smoke` (the accepted Intro encoder) in the deployed image.
+- **Worker and dispatcher rollback:** `gcloud run jobs update` / `gcloud run services update` to the printed `ROLLBACK_*` images.
+- **Pinning caveat:** BtbN prunes old autobuild tags. Once built, the image digest persists, but a later rebuild needs the archive still available (the checksum makes any substitute fail).
+
+## 9. Costs (OBSERVED versus ESTIMATED)
+
+**Observed in this task:**
+- **Processing spend:** none. No worker ran on Google Cloud.
+- **Egress:** only the regression and benchmark runs' browser traffic. Billed Supabase Egress is not visible here; it is on the owner's Usage page.
+- **Local processing** (i5-12400F, 2 encoder threads; §3): about 46 s per rendition of the 11-s 4K clip (33.6 s encode + 12.5 s VMAF), and about 11 s for the rejected 360p clip.
+
+**Estimates.** Prices as of 2026-10-21:
+- Supabase Pro: 250 GB uncached + 250 GB cached egress included, then $0.09 / $0.03 per GB; storage 100 GB included, then $0.0213 / GB-month.
+- Cloud Run Jobs: $0.000018 per vCPU-s and $0.000002 per GiB-s; 240,000 vCPU-s free per month.
+- The Cloud Run CPU speed is assumed to equal this desktop's: unverified.
+
+**Per rendition (the 11-s 4K upload):**
+- **Processing:** about 46 s × 2 vCPU ≈ 92 vCPU-s ≈ $0.0017, plus memory (2 GiB × 46 s) ≈ $0.0002 → **≈ $0.002**. The free tier covers about 2,600 per month.
+- **Rejected candidates:** they cost their compute too (the 360p example ≈ $0.0005).
+- **Storage:** +13.34 MB internal ≈ $0.0003 per month on Pro. On the Free plan, the 1 GB project limit is the real constraint.
+- **Image:** about 80 MB more in Artifact Registry (≈ $0.01 / month).
+
+**Delivery** (Wall video only, @black's current Wall viewed through all stages; measured bytes: 79.79 MB per cold view today, 43.30 MB with this rendition READY; the Intro's 6.97 MB per load is unchanged in both):
+
+| Scenario | Today | With F8-B1 | Saved |
+|---|---:|---:|---:|
+| 1,000 cold full views | 79.8 GB | 43.3 GB | 36.5 GB |
+| … if all CDN-cached ($0.03 / GB beyond quota) | $2.39 | $1.30 | $1.09 |
+| … if all uncached ($0.09 / GB beyond quota) | $7.18 | $3.90 | $3.28 |
+| 10,000 cold full views | 798 GB | 433 GB | 365 GB |
+| … cached / uncached beyond quota | $23.9 / $71.8 | $13.0 / $39.0 | $10.9 / $32.8 |
+| 10,000 views, realistic: 40% first visits per browser (60% repeats inside the F6-A lease window cost about 0.08 MB of Wall video), 50% reach stage 3 (where the 4K file is) | ≈ 220 GB | ≈ 147 GB | ≈ 73 GB |
+
+**Reading the table:**
+- **Who saves:** only Walls holding an oversized upload; the comparable older set saves nothing (efficient uploads are not re-encoded).
+- **Pro quota:** the included 250 + 250 GB per month absorb the realistic 10,000-view case either way.
+- **Free plan:** its 5 + 5 GB covers about 125 cold full views of this Wall today versus about 230 with the rendition.
+- **Billing:** the benchmark saw this file served almost entirely as CDN HITs (cached egress). Browser bytes are not billed bytes.
+
+**GamID Truth: UPDATED** — `wall-video-renditions` PENDING_ACCEPTANCE (checkpoint `71441be`), with a note that no rendition can become READY until the worker ships.

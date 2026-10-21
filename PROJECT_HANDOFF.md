@@ -4542,3 +4542,30 @@ Mazen's task "GAMID — F8-B1 CONDITIONAL VIDEO RENDITIONS". Details, deployment
   - Mazen's authorization for the migration, Edge Functions and site.
 
 **Truth: NO CHANGE** (un-deployed). **STOP for Mazen's deployment authorization.**
+
+## 110. F8-B1 partial TESTING deployment (2026-10-21, PENDING: the worker is not deployed)
+
+Mazen's task "GAMID — F8-B1 TESTING DEPLOYMENT & REAL-WORLD BENCHMARK", with his choices "partial now, worker later" and "VMAF-only static FFmpeg". Details, rollback and costs: `docs/WALL-VIDEO-RENDITIONS-F8B1.md` §8–§9.
+
+- **Rehearsal:** two rolled-back rehearsals on TESTING, all checks true.
+  - **Caught a regression:** the prepared migration would have dropped the live **Custom Fonts** quota line from `get_my_usage_impl`.
+  - **Fixed** in `71441be` with in-place patches of the live definitions.
+- **Deployed:**
+  - migration `20261021120000` applied, history recorded;
+  - `wall-asset-register` v13 (was v12) and `public-media` v3 (was v2), JWT settings unchanged;
+  - site run `39543363692` from `feature/f8b1-video-renditions`, stamp `764e3b8`, changed files byte-identical.
+- **Not deployed:**
+  - the worker Job image and dispatcher; this machine has no Google Cloud access;
+  - consequence: no rendition can become READY; eligible uploads queue as pending; visitors always get the original.
+- **Prepared for that deploy** (`cf425a8`):
+  - a pinned, checksum-verified static FFmpeg 8.1.3 with libvmaf used only for VMAF;
+  - the `rendition-smoke` command;
+  - the Cloud Build allowlist entry (its absence would have failed the build);
+  - `worker/cloud-run/deploy-f8b1-testing.sh`.
+- **Live regression:**
+  - 15/15 security scenarios pass;
+  - the comparable benchmark is unchanged;
+  - one intermittent stall of the 4K original (1 of 3 runs, not reproducible).
+- **Not yet done:** READY, the end-to-end test and the TESTING optimized-delivery benchmark wait for the worker. The local measurements (§3) stand.
+
+**Truth: UPDATED** — `wall-video-renditions` PENDING_ACCEPTANCE at `71441be`, with a note that nothing can be READY until the worker ships. **STOP for Mazen**: worker deployment by someone with Google Cloud access, then the end-to-end test and benchmark, then his manual acceptance.
