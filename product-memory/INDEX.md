@@ -76,12 +76,14 @@ Rules:
 | Prefix | Category | Folder | Last issued |
 |---|---|---|---|
 | DIS | Discussions | discussions/ | DIS-0003 |
-| DEC | Decisions | decisions/ | DEC-0006 |
+| DEC | Decisions | decisions/ | DEC-0007 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0014 |
-| REV | Reviews | reviews/ | REV-0022 |
+| REV | Reviews | reviews/ | REV-0023 |
 
 ## Register
+
+2026-10-21: Mazen explicitly approved saving F8-B1's accepted conditional visitor-rendition contract (DEC-0007) and final TESTING acceptance evidence (REV-0023). These document the already accepted scope; no new implementation, deployment or Production authorization.
 
 2026-10-21: At Mazen's request, IDEA-0003 (Discord LFG Bot, saved earlier the same day with his approval) was corrected to pass validation:
 - template sections added, with the content unchanged and moved under subheadings;
@@ -183,3 +185,6 @@ Status stays DISCUSSION; there is no implementation authorization.
 | REV-0016 | Desktop Background panel redesign - final acceptance | COMPLETED | [REV-0016-desktop-background-final-acceptance.md](reviews/REV-0016-desktop-background-final-acceptance.md) |
 | REV-0021 | Public Wall bandwidth baseline before F6–F8 | COMPLETED | [REV-0021-public-wall-bandwidth-baseline.md](reviews/REV-0021-public-wall-bandwidth-baseline.md) |
 | REV-0022 | F1–F8 Final Bandwidth Benchmark | COMPLETED | [REV-0022-f1-f8-final-bandwidth-benchmark.md](reviews/REV-0022-f1-f8-final-bandwidth-benchmark.md) |
+
+| DEC-0007 | F8-B1 conditional internal visitor renditions — quality and storage contract | ACCEPTED | [DEC-0007-f8b1-conditional-visitor-renditions.md](decisions/DEC-0007-f8b1-conditional-visitor-renditions.md) |
+| REV-0023 | F8-B1 conditional video renditions — final TESTING acceptance | COMPLETED | [REV-0023-f8b1-final-testing-acceptance.md](reviews/REV-0023-f8b1-final-testing-acceptance.md) |
