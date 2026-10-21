@@ -58,8 +58,11 @@ for smoke in rendition-smoke f2-smoke; do
   gcloud run jobs execute "$job_name" --project="$project_id" --region="$region" --args="$(cat "$work_dir/args-prefix.txt"),$smoke" --wait --format=json > "$work_dir/$smoke.json"
   execution=$(python3 -c "import json,sys;v=json.load(open(sys.argv[1]));print(v.get('metadata',{}).get('name') or v['name'].split('/')[-1])" "$work_dir/$smoke.json")
   echo "F8B1_${smoke}_EXECUTION=$execution"
-  gcloud logging read "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"$job_name\" AND labels.\"run.googleapis.com/execution_name\"=\"$execution\"" --project="$project_id" --limit=50 --format=json > "$work_dir/$smoke-logs.json"
-  python3 - "$work_dir/$smoke-logs.json" "$smoke" <<'PY'
+  # log ingestion can lag the finished execution: read THIS execution's logs again (never re-run the job), up to 9 times, 10 s apart
+  found=""
+  for read_attempt in $(seq 1 9); do
+    gcloud logging read "resource.type=\"cloud_run_job\" AND resource.labels.job_name=\"$job_name\" AND labels.\"run.googleapis.com/execution_name\"=\"$execution\"" --project="$project_id" --limit=50 --format=json > "$work_dir/$smoke-logs.json"
+    if python3 - "$work_dir/$smoke-logs.json" "$smoke" <<'PY'
 import json,sys
 for row in json.load(open(sys.argv[1])):
   p=row.get('jsonPayload')
@@ -69,8 +72,12 @@ for row in json.load(open(sys.argv[1])):
   if isinstance(p,dict) and 'ok' in p:
     assert p['ok'] is True, 'smoke failed: '+json.dumps(p)
     if sys.argv[2]=='rendition-smoke': assert p.get('vmafAvailable') is True and p.get('audioIdentical') is True
-    print('F8B1_'+sys.argv[2].upper().replace('-','_')+'='+json.dumps(p)); break
-else: raise RuntimeError('Smoke log not visible yet: read this execution logs again, do not rerun the job')
+    print('F8B1_'+sys.argv[2].upper().replace('-','_')+'='+json.dumps(p)); sys.exit(0)
+sys.exit(3)
 PY
+    then found=yes; break; else code=$?; [ "$code" -eq 3 ] || exit "$code"; fi
+    sleep 10
+  done
+  [ -n "$found" ] || { echo "Smoke log for $execution not visible yet: read this execution's logs in the console; do NOT re-run the job"; exit 1; }
 done
 echo "F8B1_TESTING_WORKER_AND_DISPATCHER_DEPLOYED"
