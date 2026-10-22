@@ -701,4 +701,17 @@ export const CORPUS = [
   { name: "fire: an extra key is refused", doc: docWithText({ fire: { style: "organic", intensity: 1, speed: 1, turbulence: 0.9, color: "natural", sparks: false, mode: "full", quality: "1200" } }) },
   { name: "fire: not an object is refused", doc: docWithText({ fire: "organic" }) },
   { name: "fire: together with Neon glow and an outline", doc: docWithText({ text: "LEGEND", glow: { color: "#62e7ff", blur: 22 }, stroke: { color: "#000000", width: 4 }, fire: { style: "organic", intensity: 1, speed: 1, turbulence: 0.9, color: "natural", sparks: false, mode: "full" } }) },  { name: "mixed Wall: text, image, shapes, GamID blocks, embeds, backgrounds and stages together", doc: (() => { const d = withStages([{ id: "s1", elements: [textEl("t", {}, { y: 0 }), imageEl("i", {}, { y: 200 }), rect("r", { y: 400 }), gamidEl("g", { block: "games", initial: 10 }, { y: 600 }), embedEl("e", "youtube", { kind: "video", id: "dQw4w9WgXcQ", presentation: "embed" }, { y: 950 })] }, { id: "s2", elements: [embedEl("f", "steam", { kind: "app", id: "730", presentation: "embed" }, { y: 0 })], background: { kind: "gradient", from: "#000000", to: "#111111", angle: 90 } }]); d.background = { kind: "color", color: "#0d0b14" }; return d; })() },
+  // ---- Wall Stages V2 (DEC-0011, 2026-10-22): My Stage / Friends Stage ----
+  { name: "stages: an explicit My Stage type is valid", doc: withStages([{ id: "s1", type: "my", elements: [rect("r1")] }]) },
+  { name: "stages: a My Stage and an empty Friends Stage are valid", doc: withStages([{ id: "s1", elements: [rect("r1")] }, { id: "s2", type: "friends", elements: [] }]) },
+  { name: "stages: 1 My + 2 Friends is valid", doc: withStages([{ id: "s1", elements: [] }, { id: "s2", type: "friends", elements: [] }, { id: "s3", type: "friends", elements: [] }]) },
+  { name: "stages: an unknown stage type is refused", doc: withStages([{ id: "s1", elements: [] }, { id: "s2", type: "guest", elements: [] }]) },
+  { name: "stages: a non-string stage type is refused", doc: withStages([{ id: "s1", elements: [] }, { id: "s2", type: 2, elements: [] }]) },
+  { name: "stages: an empty-string stage type is refused", doc: withStages([{ id: "s1", type: "", elements: [] }, { id: "s2", elements: [] }]) },
+  { name: "stages: a Friends Stage with an element is refused", doc: withStages([{ id: "s1", elements: [] }, { id: "s2", type: "friends", elements: [rect("r1")] }]) },
+  { name: "stages: a Friends Stage with its own background is refused", doc: withStages([{ id: "s1", elements: [] }, { id: "s2", type: "friends", elements: [], background: { kind: "color", color: "#112233" } }]) },
+  { name: "stages: 0 My / 3 Friends is refused", doc: withStages([{ id: "s1", type: "friends", elements: [] }, { id: "s2", type: "friends", elements: [] }, { id: "s3", type: "friends", elements: [] }]) },
+  { name: "stages: a single Friends Stage is refused", doc: withStages([{ id: "s1", type: "friends", elements: [] }]) },
+  { name: "stages: only an unknown-type stage leaves no My Stage", doc: withStages([{ id: "s1", type: "mine", elements: [] }]) },
+  { name: "stages: a Friends Stage rule and an element error together", doc: withStages([{ id: "s1", elements: [rect("r1", { width: -5 })] }, { id: "s2", type: "friends", elements: [rect("r2")], background: { kind: "color", color: "#112233" } }]) },
 ];

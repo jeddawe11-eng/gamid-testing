@@ -132,6 +132,11 @@ body[data-tool="gamid"] .ed-rail [data-tool="gamid"] i, body[data-tool="layout"]
 .ed-stage-add:hover { box-shadow: 0 0 1rem rgba(160, 77, 255, .45); }
 .ed-stage-act { min-height: 2.3rem; border-color: var(--gold-line); background: linear-gradient(180deg, var(--navy-3), var(--navy-2)); color: var(--ink); font-family: var(--font-ui); font-size: .8rem; letter-spacing: .06em; }
 .ed-stage-act:hover:not(:disabled) { border-color: var(--gold); color: #fff; }
+/* Wall Stages V2 (DEC-0011): the My Stage / Friends Stage switch and the stage count, in the Stages bar's theme */
+.ed-stage-type { border-color: var(--gold-line); background: linear-gradient(180deg, var(--navy-3), var(--navy-2)); }
+.ed-stage-type-btn { font-family: var(--font-ui); letter-spacing: .06em; color: var(--ink-dim); }
+.ed-stage-type-btn[aria-checked="true"] { background: linear-gradient(180deg, #a14dff, #6a2bd6); color: #fff; }
+.ed-stage-count { font-family: var(--font-ui); letter-spacing: .06em; color: var(--ink-dim); }
 .ed-stage-del:not(:disabled) { color: #ffb4c2; }
 .ed-stage-del:hover:not(:disabled) { border-color: #ff7890; }
 @media (prefers-reduced-motion: reduce) { .ed-stage-tab { transition: none; } }

@@ -46,7 +46,7 @@ test("corpus: names are unique and both valid and invalid documents are covered"
 // neither can occur; the forward migration that registers a real provider must teach the database validator both (and add corpus cases).
 const PROVIDER_ONLY = new Set(["PROVIDER", "PROVIDER_DATA_NOT_OBJECT"]);
 const w1Codes = () => {
-  const w1Source = ["dist/wall/validate.js", "dist/wall/elements.js", "dist/wall-kit/text.js", "dist/wall-kit/image.js", "dist/wall-kit/gamid.js", "dist/wall-kit/background.js", "dist/wall-kit/gamid-data.js"].map(read).join("\n");
+  const w1Source = ["dist/wall/validate.js", "dist/wall/elements.js", "dist/wall-kit/text.js", "dist/wall-kit/image.js", "dist/wall-kit/gamid.js", "dist/wall-kit/background.js", "dist/wall-kit/gamid-data.js", "dist/wall/stage-types.js"].map(read).join("\n");   // Wall Stages V2 (2026-10-22): the stage-type rules
   const codes = new Set([...w1Source.matchAll(/["`]([A-Z][A-Z_]{5,})(?::|["`])/g)].map(match => match[1]).filter(code => !PROVIDER_ONLY.has(code)));
   // the embed engine also holds vocabulary that is not a validation code (capability names, detection reasons): only its validator's codes count
   const validator = read("dist/wall-kit/embed/engine.js");
@@ -104,7 +104,7 @@ test("migration: RLS on, no client table grant, RPC-only access for authenticate
   assert.ok(!/\bto\b[^;]*\banon\b[^;]*;/i.test(migrationCode.replace(/revoke[^;]*;/gi, "")), "nothing is granted to anon");
   const allGrants = [...migrationCode.matchAll(/grant execute on function([^;]*?)to ([^;]*);/gi)];
   const grants = allGrants.filter(grant => grant[2].trim() === "authenticated");
-  assert.equal(grants.length, 3, "the owner Wall RPCs, the owner asset RPCs and (video transcoding) the owner's own conversion status");
+  assert.equal(grants.length, 4, "the owner Wall RPCs, the owner asset RPCs, (video transcoding) the owner's own conversion status and (Wall Stages V2, 2026-10-22) the owner's own stage allowance");
   // post-QA (GIF, server-side validation): the ONE other grant is to service_role, for the verifying Edge Function's registration only - never a client role
   // (video transcoding) the second: the queue + worker RPCs, for the Edge Function and the worker only
   const serviceGrants = allGrants.filter(grant => grant[2].trim() !== "authenticated");
@@ -138,9 +138,9 @@ test("migration: ownership comes from auth.uid() through the membership architec
   // (video transcoding: the queue and worker RPCs are service_role-only too - granted only to service_role in the migration)
   const serviceOnly = new Set(["register_verified_wall_asset", "create_wall_video_job", "worker_claim_wall_video_job", "worker_complete_wall_video_job", "worker_fail_wall_video_job", "worker_wall_video_cleanup_candidates", "worker_confirm_wall_video_cleanup"]);
   const clientCallable = signatures.filter(([, name]) => !serviceOnly.has(name));
-  assert.equal(clientCallable.length, 7, "three Wall RPCs + three asset RPCs + the owner's conversion status");
+  assert.equal(clientCallable.length, 8, "three Wall RPCs + three asset RPCs + the owner's conversion status + (Wall Stages V2) the owner's stage allowance");
   for (const [, name, args] of clientCallable) assert.ok(!/entity|owner|user|profile/i.test(args), `${name} takes no owner/identity argument`);
-  assert.equal(signatures.length, 14);
+  assert.equal(signatures.length, 15);
   assert.match(migrationCode, /revoke all on function[^;]*public\.register_verified_wall_asset\(uuid, text, text, integer, integer, integer, integer\)\s*from public, anon, authenticated;/);
   assert.ok(!/\bvisibility\b|is_public|published/.test(migrationCode), "the draft does not depend on publish state");
 });
@@ -223,6 +223,6 @@ test("scope: persistence is not wired into any page, route, worker or public pat
   const source = read("dist/wall/persistence.js");
   // (Public Wall publishing: the module gained the OWNER's publish / unpublish / status calls - still no anonymous or visitor path, no autosave, no network of its own)
   assert.ok(!/anonymous|get_public_wall|autosave|localStorage|fetch\(/i.test(source.replace(/\/\/.*$/gm, "")), "no public/anon/autosave/network code in the persistence module");
-  assert.deepEqual([...source.matchAll(/call\("(\w+)"/g)].map(match => match[1]).sort(), ["ensure_my_wall_draft", "get_my_wall_draft", "get_my_wall_publication", "publish_my_wall", "save_my_wall_draft", "unpublish_my_wall"], "owner RPCs only");
+  assert.deepEqual([...source.matchAll(/call\("(\w+)"/g)].map(match => match[1]).sort(), ["ensure_my_wall_draft", "get_my_wall_draft", "get_my_wall_publication", "get_my_wall_stage_allowance", "publish_my_wall", "save_my_wall_draft", "unpublish_my_wall"], "owner RPCs only (Wall Stages V2 added the owner's stage allowance)");
   assert.ok(!/from "\.\.\/account/.test(source), "wall persistence does not import the account app");
 });

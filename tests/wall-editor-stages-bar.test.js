@@ -36,9 +36,10 @@ test("append-only: adding a stage while Stage 1, 2 or 3 is open always gives 1, 
 
 test("the editor's Add Stage appends and keeps the open stage open; it never passes a position", () => {
   const handler = editor.slice(editor.indexOf('$("stageAdd").addEventListener'), editor.indexOf('$("stageChips").addEventListener'));
-  assert.match(handler, /const result = run\(ops\.addStage\(session\.doc\)\);/);
+  // Wall Stages V2 (2026-10-22): the handler passes the owner's stage allowance - never a position
   assert.doesNotMatch(handler, /afterIndex|setStage/, "no insertion point, and the open stage is not changed");
-  assert.doesNotMatch(editor, /addStage\(session\.doc, \{/, "no other call site inserts");
+  assert.match(handler, /const result = run\(ops\.addStage\(session\.doc, \{ limit: stageLimit \}\)\);/);
+  assert.equal([...editor.matchAll(/addStage\(/g)].length, 1, "no other call site adds or inserts a stage");
   // reordering stays the explicit Move earlier / later buttons
   assert.match(editor, /\$\("stageLeft"\)\.addEventListener\("click", \(\) => run\(ops\.reorderStage\(/);
   assert.match(editor, /\$\("stageRight"\)\.addEventListener\("click", \(\) => run\(ops\.reorderStage\(/);

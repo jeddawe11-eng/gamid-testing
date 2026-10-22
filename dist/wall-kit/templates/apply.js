@@ -2,6 +2,7 @@
 // is handed to the existing editor session, validator, renderer and persistence.
 import { validateDocument } from "../../wall/validate.js";
 import { nextId } from "../ops.js";
+import { isFriendsStage, activeStickerCount } from "../../wall/stage-types.js";
 
 const clone = value => JSON.parse(JSON.stringify(value));
 const fail = (doc, ...errors) => ({ ok: false, doc, errors });
@@ -33,6 +34,10 @@ export function applyTemplate(doc, template, { scope, stageId, sourceStageId = t
   const target = doc.stages.find(stage => stage.id === stageId);
   const source = recipe.stages.find(stage => stage.id === sourceStageId);
   if (scope === "stage" && (!target || !source)) return fail(doc, "TEMPLATE_STAGE_NOT_FOUND");
+  // Wall Stages V2 (DEC-0011): a template never lands on a Friends Stage (it would turn it into a My Stage behind the owner's type choice), and a whole-Wall
+  // replacement never removes a Friends Stage that still has active friends' stickers (none can exist until the Friends Stickers system is built)
+  if (scope === "stage" && isFriendsStage(target)) return fail(doc, `FRIENDS_STAGE_ELEMENTS:${target.id}`);
+  if (scope === "wall" && doc.stages.some(stage => isFriendsStage(stage) && activeStickerCount(stage) > 0)) return fail(doc, "STAGE_HAS_STICKERS");
   if (confirmed !== true) return fail(doc, "TEMPLATE_CONFIRMATION_REQUIRED");
 
   const taken = new Set();

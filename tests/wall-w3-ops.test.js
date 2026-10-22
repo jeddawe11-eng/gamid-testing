@@ -327,10 +327,15 @@ test("group: moving a group moves every member by the same amount", () => {
 });
 
 // ---------- stages ----------
-test("stages: add (after the current one), reorder, select, and there is NO stage maximum", () => {
+test("stages: add (after the current one), reorder, select; the document core has NO stage maximum - only a caller-passed allowance limits it", () => {
   let doc = createDocument();
   for (let i = 0; i < 25; i += 1) doc = okDoc(ops.addStage(doc));
-  assert.equal(doc.stages.length, 26, "no architectural (or hidden editor) stage limit");
+  assert.equal(doc.stages.length, 26, "no architectural stage limit in the document core");
+  // Wall Stages V2 (2026-10-22): the editor passes the owner's allowance (the server's, today 3); the core enforces exactly what it is given
+  const three = createDocument({ stageCount: 3 });
+  assert.deepEqual(ops.addStage(three, { limit: 3 }).errors, ["STAGE_LIMIT"]);
+  assert.equal(ops.addStage(three, { limit: 3 }).doc, three, "a refused add changes nothing");
+  assert.equal(okDoc(ops.addStage(createDocument({ stageCount: 2 }), { limit: 3 })).stages.length, 3);
   const inserted = okDoc(ops.addStage(createDocument({ stageCount: 3 }), { afterIndex: 0 }));
   assert.deepEqual(inserted.stages.map(stage => stage.id), ["stage_1", "stage_4", "stage_2", "stage_3"]);
   const reordered = okDoc(ops.reorderStage(createDocument({ stageCount: 3 }), "stage_1", 2));

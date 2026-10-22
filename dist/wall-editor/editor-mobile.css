@@ -197,6 +197,12 @@ body.is-mw-keyboard .mw-bar, body.is-mw-keyboard .mw-selbar { visibility: hidden
 .mw-stage-row[aria-current="true"] b { color: var(--gold-hi); }
 .mw-stage-tools { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin: .4rem 0; }
 .mw-stage-tools .ed-danger { grid-column: 1 / -1; }
+/* Wall Stages V2 (DEC-0011): on a phone the stage type and the stage count live in the Stages sheet (the Stages bar keeps its tabs and actions) */
+.ed-stage-bar .ed-stage-type, .ed-stage-bar .ed-stage-count { display: none; }
+.mw-stage-count { margin: .3rem 0 .1rem; }
+.mw-stage-type { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin: .5rem 0 .2rem; }
+.mw-stage-type .ed-btn { min-height: 2.75rem; justify-content: center; }
+.mw-stage-type .ed-btn[aria-checked="true"] { background: rgba(139, 93, 255, .28); border-color: var(--violet-hi); color: #fff; }
 
 /* Wall menu */
 .mw-line { display: flex; justify-content: space-between; gap: 1rem; margin: 0 0 .45rem; font-size: .8rem; }

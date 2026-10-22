@@ -12,6 +12,16 @@ const BY_CODE = {
   INVALID_KEEP_INSIDE: "That Keep inside stage setting is not valid, so it was not applied.",
   LAST_STAGE: "A Wall needs at least one stage.",
   STAGE_NOT_EMPTY: "This stage has elements on it.",
+  // Wall Stages V2 (DEC-0011): My Stage / Friends Stage and the stage allowance
+  STAGE_LIMIT: "Your Wall already has the most stages it can have.",
+  WALL_STAGE_LIMIT: "Your Wall has more stages than it can have, so nothing was saved. Delete a stage, then save again.",
+  LAST_MY_STAGE: "Your Wall needs at least one My Stage. Make another stage a My Stage first.",
+  NO_MY_STAGE: "Your Wall needs at least one My Stage.",
+  STAGE_NOT_EMPTY_FOR_FRIENDS: "Only an empty stage can become a Friends Stage. Move its elements to another stage (Move to stage) or delete them, and remove its own background, first.",
+  STAGE_HAS_STICKERS: "This Friends Stage still has friends' stickers. Remove them, or wait until they expire, first.",
+  FRIENDS_STAGE_ELEMENTS: "This is a Friends Stage: it is kept for your friends' stickers, so you can't add your own elements to it. Open a My Stage, or make this one a My Stage.",
+  FRIENDS_STAGE_BACKGROUND: "A Friends Stage only takes a background from the GamID background catalog, so your own background can't be used here.",
+  INVALID_STAGE_TYPE: "A stage is either a My Stage or a Friends Stage.",
   GROUP_NEEDS_TWO: "Select at least two elements to group.",
   NOT_GROUPED: "The selection is not grouped.",
   GROUP_ROTATION_UNSUPPORTED: "Groups can be moved and resized; rotate the elements before grouping them.",
@@ -134,5 +144,14 @@ export function stageDeleteQuestion(info) {
   const stage = `Stage ${info.number}`;
   if (info.elementCount > 0) return `${stage} has ${info.elementCount} element${info.elementCount === 1 ? "" : "s"}${info.hasBackground ? " and its own background" : ""}. Delete it and everything on it? You can undo this.`;
   if (info.hasBackground) return `${stage} has no elements but has its own background. Delete this stage? You can undo this.`;
+  if (info.type === "friends") return `${stage} is a Friends Stage with ${info.stickerCount ?? 0} active sticker${info.stickerCount === 1 ? "" : "s"}. Delete this stage? You can undo this.`;
   return `${stage} is empty. Delete this stage? You can undo this.`;
+}
+
+// Why a stage cannot become a Friends Stage yet (DEC-0011): what is still on it, counted, and how to clear it. Nothing is removed for the owner.
+export function friendsConversionBlocked(info) {
+  const parts = [];
+  if (info.elementCount > 0) parts.push(`${info.elementCount} element${info.elementCount === 1 ? "" : "s"}`);
+  if (info.hasBackground) parts.push("its own background");
+  return `Stage ${info.number} still has ${parts.join(" and ")}. Only an empty stage can become a Friends Stage: move its elements to another stage (Move to stage) or delete them${info.hasBackground ? ", and remove its background (Assets > Background, This stage only)" : ""}, then try again.`;
 }

@@ -179,6 +179,19 @@ begin
   out := pg_temp.wp_run(ua, 'authenticated', 'select public.unpublish_my_wall()::text');
   res := res || jsonb_build_object('step', 'unpublishing an unpublished Wall is a harmless no-op', 'pass', out = 'false', 'got', out);
 
+  -- ===== Wall Stages V2 (DEC-0011, 2026-10-22): the snapshot follows the stage allowance and keeps the stage types =====
+  -- (a draft above the allowance can only come from an allowance lowered later - none exists today - so it is simulated with a backend write)
+  update public.wall_drafts set document = '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"s1","elements":[]},{"id":"s2","elements":[]},{"id":"s3","elements":[]},{"id":"s4","elements":[]}]}'::jsonb where entity_id = ent_a;
+  out := pg_temp.wp_run(ua, 'authenticated', 'select (to_jsonb(d)->>''revision'') from public.get_my_wall_draft() d');
+  rev := out::bigint;
+  out := pg_temp.wp_run(ua, 'authenticated', format('select to_jsonb(p)::text from public.publish_my_wall(%s) p', rev));
+  res := res || jsonb_build_object('step', 'a draft with more stages than the allowance is never published (WALL_STAGE_LIMIT) and publishes nothing', 'pass', out like 'ERR:22023:WALL_STAGE_LIMIT:3' and not exists (select 1 from public.wall_publications where entity_id = ent_a), 'got', out);
+  out := pg_temp.wp_run(ua, 'authenticated', format('select (to_jsonb(d)->>''revision'') from public.save_my_wall_draft(%L::jsonb, %s) d', '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"s1","elements":[]},{"id":"s2","type":"friends","elements":[]},{"id":"s3","type":"friends","elements":[]}]}', rev));
+  rev := out::bigint;
+  out := pg_temp.wp_run(ua, 'authenticated', format('select to_jsonb(p)::text from public.publish_my_wall(%s) p', rev));
+  select (w.document #>> '{stages,1,type}') = 'friends' and (w.document #>> '{stages,2,type}') = 'friends' and not (w.document -> 'stages' -> 0 ? 'type') into flag from public.wall_publications w where w.entity_id = ent_a;
+  res := res || jsonb_build_object('step', '1 My + 2 Friends Stages publish, and the snapshot keeps each stage''s type', 'pass', out not like 'ERR:%' and coalesce(flag, false), 'got', out);
+
   raise exception 'TEST_RESULTS:%', res::text;
 end
 $test$;

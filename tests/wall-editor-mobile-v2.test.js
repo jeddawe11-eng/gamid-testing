@@ -59,7 +59,7 @@ test("stages: the accepted contract holds on the phone - Add appends at the end 
   assert.match(shell, /\$\("mwStageConfirm"\)\.hidden = \$\("stageConfirm"\)\.hidden;/);
   assert.doesNotMatch(code(shell), /rename|stage\.name|\.title =/i, "no stage names are invented (the model has none)");
   // the editor's own Add handler is still the append-only one
-  assert.match(editor, /const result = run\(ops\.addStage\(session\.doc\)\);/);
+  assert.match(editor, /const result = run\(ops\.addStage\(session\.doc, \{ limit: stageLimit \}\)\);/);   // (Wall Stages V2 2026-10-22: the owner's stage allowance; still no position)
 });
 
 test("canvas zoom is view-only and phone-only: it scales the drawing, never the document; desktop pointer handling is unchanged", () => {

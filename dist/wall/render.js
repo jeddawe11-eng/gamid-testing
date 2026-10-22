@@ -51,6 +51,7 @@ export function renderDocument(doc, { viewportWidth } = {}) {
     width: doc.canvas.width * scale,
     height: doc.canvas.height * scale,
     ...(isSet(stage.background) ? { background: renderBackground(stage.background) } : {}),
+    ...(stage.type === "friends" ? { type: "friends" } : {}),   // a Friends Stage (DEC-0011); a My Stage's tree is unchanged
     elements: orderedElements(stage).map(element => renderElement(element, scale)),
   }));
   return { ok: true, scale, ...(isSet(doc.background) ? { background: renderBackground(doc.background) } : {}), stages };

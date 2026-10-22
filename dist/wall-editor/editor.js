@@ -6,7 +6,9 @@ import { createWallPersistence, publicationState } from "../wall/persistence.js"
 import { createEditorSession } from "../wall-kit/session.js";
 import * as ops from "../wall-kit/ops.js";
 import { paintDocument } from "../wall-kit/paint.js";
-import { describeCode, describeErrors, stageDeleteQuestion, selectionSummary, createNotifier } from "../wall-kit/messages.js";
+import { describeCode, describeErrors, stageDeleteQuestion, friendsConversionBlocked, selectionSummary, createNotifier } from "../wall-kit/messages.js";
+import { WALL_STAGE_LIMIT, stageType, isFriendsStage } from "../wall/stage-types.js";
+import { catalogByTier, catalogAvailable } from "../wall-kit/background-catalog.js";
 import { resolveEditorSession, planAuth, gateFor } from "../wall-kit/auth-gate.js";
 import { elementRegistry } from "../wall/elements.js";
 import { GAMID_BLOCK_INFO } from "../wall-kit/gamid.js";
@@ -44,6 +46,7 @@ const persistence = createWallPersistence({
 let multi = false;
 let workspaceVisible = false;
 let pendingStageDelete = null;
+let stageLimit = WALL_STAGE_LIMIT;   // Wall Stages V2: the owner's stage allowance (the server's get_my_wall_stage_allowance once read; the default until then)
 let gamidSnapshot = null;
 let renderQueued = false;
 let publication = { known: false, record: null, busy: false };   // the owner's publish status (see "publishing" below)
@@ -130,7 +133,7 @@ const canvas = createCanvas({
   viewport: $("viewport"),
   session,
   isMulti: () => multi,
-  getPaintContext: () => ({ assets: assetStore, gamid: gamidSnapshot, posters, videos: canvasVideos, artwork: gameArtwork }),
+  getPaintContext: () => ({ assets: assetStore, gamid: gamidSnapshot, posters, videos: canvasVideos, artwork: gameArtwork, audience: "owner" }),   // the signed-in owner's own Wall (the server resolved it): owner wording
   onSelectedTap: () => { if (isPhone()) openTool("props"); },
   onEditText: () => {
     if (isPhone()) openTool("props");
@@ -229,7 +232,7 @@ function updateChrome() {
 let stageStripKey = "";
 function renderStages() {
   const chips = $("stageChips");
-  const key = JSON.stringify([session.doc.stages.map(stage => stage.id), session.state.stageId]);
+  const key = JSON.stringify([session.doc.stages.map(stage => [stage.id, stageType(stage)]), session.state.stageId]);
   if (key !== stageStripKey) {   // rebuilt only when the stages or the current stage change, so the strip keeps its scroll position and keyboard focus
     stageStripKey = key;
     const focused = chips.contains(document.activeElement);
@@ -237,6 +240,7 @@ function renderStages() {
     session.doc.stages.forEach((stage, index) => {
       const current = stage.id === session.state.stageId;
       const chip = make("button", "ed-stage-tab", `Stage ${index + 1}`);
+      if (isFriendsStage(stage)) { chip.append(make("span", "ed-stage-badge", "Friends")); chip.setAttribute("aria-label", `Stage ${index + 1}, Friends Stage`); }
       chip.type = "button";
       chip.setAttribute("role", "tab");
       chip.setAttribute("aria-selected", String(current));
@@ -251,6 +255,16 @@ function renderStages() {
   $("stageLeft").disabled = index <= 0;
   $("stageRight").disabled = index >= session.doc.stages.length - 1;
   $("stageDelete").disabled = session.doc.stages.length <= 1;
+  // Wall Stages V2 (DEC-0011): the stage count against the owner's allowance (Add stage stops there), and the open stage's type
+  const count = session.doc.stages.length, full = count >= stageLimit;
+  $("stageCount").textContent = `${count} / ${stageLimit} stages`;
+  $("stageCount").classList.toggle("is-full", full);
+  $("stageCount").title = full ? `Your Wall has the most stages it can have (${stageLimit}).` : `Your Wall can have up to ${stageLimit} stages.`;
+  $("stageAdd").disabled = full;
+  $("stageAdd").title = full ? `Your Wall has the most stages it can have (${stageLimit}).` : "Add a stage at the end of the Wall";
+  const type = stageType(session.stage);
+  $("stageTypeMy").setAttribute("aria-checked", String(type === "my"));
+  $("stageTypeFriends").setAttribute("aria-checked", String(type === "friends"));
   // the confirmation belongs to the stage it was asked for; switching stages dismisses it
   if (pendingStageDelete !== null && pendingStageDelete.stageId !== session.state.stageId) pendingStageDelete = null;
   $("stageConfirm").hidden = pendingStageDelete === null;
@@ -345,6 +359,7 @@ function renderAll() {
   if (!workspaceVisible) return;
   canvas.render();
   renderStages();
+  renderStageType();
   renderLayers();
   properties.update();
   tools.update();
@@ -361,7 +376,7 @@ $("redoBtn").addEventListener("click", () => { session.redo(); tools.invalidate(
 // Add stage APPENDS: the new stage is always the last one, whichever stage is open, and the open stage stays open (no existing stage moves or changes).
 // Reordering stays an explicit action (Move earlier / later).
 $("stageAdd").addEventListener("click", () => {
-  const result = run(ops.addStage(session.doc));
+  const result = run(ops.addStage(session.doc, { limit: stageLimit }));   // refused at the owner's allowance (the server refuses it too)
   if (result.ok) {
     $("stageStatus").textContent = `Stage ${session.doc.stages.length} added at the end.`;   // announced; the new tab at the end of the strip is the visible feedback
     requestAnimationFrame(() => $("stageChips").lastElementChild?.scrollIntoView?.({ block: "nearest", inline: "nearest" }));
@@ -383,6 +398,8 @@ $("stageRight").addEventListener("click", () => run(ops.reorderStage(session.doc
 $("stageDelete").addEventListener("click", () => {
   const info = ops.stageDeletionInfo(session.doc, session.state.stageId);
   if (!info || info.isLast) { notify(describeErrors(["LAST_STAGE"]).join(" ")); return; }
+  if (info.isLastMy) { notify(describeCode("LAST_MY_STAGE")); return; }   // DEC-0011: the last My Stage stays
+  if (info.stickerCount > 0) { notify(describeCode("STAGE_HAS_STICKERS")); return; }
   pendingStageDelete = info;
   renderStages();
 });
@@ -392,6 +409,53 @@ $("stageConfirmYes").addEventListener("click", () => {
   pendingStageDelete = null;
   removeStage(ops.deleteStage(session.doc, session.state.stageId, { force: true }));
 });
+// Wall Stages V2 (DEC-0011): My Stage / Friends Stage for the open stage. Nothing on a stage is ever removed to change its type: a stage with elements or its own
+// background is refused with what is on it (the owner moves or deletes them first), the last My Stage stays one. Undo reverses a change like any edit.
+function changeStageType(type) {
+  const stage = session.stage;
+  if (!stage || stageType(stage) === type) return;
+  const number = ops.stageIndex(session.doc, stage.id) + 1;
+  const result = ops.setStageType(session.doc, stage.id, type);
+  if (!result.ok && result.errors[0] === "STAGE_NOT_EMPTY_FOR_FRIENDS") { notify(friendsConversionBlocked({ ...result, number })); return; }
+  if (run(result, { clearSelection: true }).ok) {
+    $("stageStatus").textContent = `Stage ${number} is now a ${type === "friends" ? "Friends Stage" : "My Stage"}.`;
+    notify($("stageStatus").textContent);
+  }
+}
+$("stageTypeMy").addEventListener("click", () => changeStageType("my"));
+$("stageTypeFriends").addEventListener("click", () => changeStageType("friends"));
+$("friendsMakeMy").addEventListener("click", () => changeStageType("my"));
+// arrow keys move between the two choices (radio group)
+$("stageType").addEventListener("keydown", event => {
+  if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+  event.preventDefault(); event.stopPropagation();
+  const next = stageType(session.stage) === "my" ? "friends" : "my";
+  changeStageType(next);
+  $(next === "my" ? "stageTypeMy" : "stageTypeFriends").focus();
+});
+// The Friends Stage panel's catalog (wall-kit/background-catalog.js): Free and Premium, each eligible or not. The catalog does not exist yet, so it says so.
+function renderFriendsCatalog() {
+  const box = $("friendsCatalog");
+  if (box.dataset.ready === "1") return;
+  box.dataset.ready = "1";
+  const tiers = catalogByTier();
+  const tier = (title, entries, empty) => {
+    const card = make("div", "ed-friends-tier");
+    card.append(make("h4", "", title));
+    if (!entries.length) card.append(make("p", "", empty));
+    else for (const entry of entries) card.append(make("p", "", `${entry.label}${entry.eligible ? "" : " (not available to you)"}`));
+    return card;
+  };
+  box.replaceChildren(
+    tier("Free", tiers.free, catalogAvailable() ? "No Free backgrounds yet." : "The GamID background catalog is not available yet. Until then a Friends Stage keeps the plain stage colour."),
+    tier("Premium", tiers.premium, "Premium backgrounds will need GamID Premium, which is not available yet."));
+}
+function renderStageType() {
+  const friends = isFriendsStage(session.stage);
+  document.body.dataset.stageType = friends ? "friends" : "my";
+  if (friends) renderFriendsCatalog();
+}
+
 function removeStage(result) {
   const index = ops.stageIndex(session.doc, session.state.stageId);
   const neighbour = session.doc.stages[Math.max(0, index - 1) === index ? 1 : Math.max(0, index - 1)]?.id;
@@ -489,7 +553,7 @@ function renderPreview() {
   const width = previewMode === "mobile" ? Math.min(390, available) : Math.min(900, available);
   // a Wall saved before the player-layering rule existed is shown with that rule applied (nothing drawn over a player); the document itself is not changed
   previewVideos ??= createVideoPool();
-  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players, posters, details: detailsFor(gamidSnapshot), videos: previewVideos, artwork: gameArtwork });
+  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players, posters, details: detailsFor(gamidSnapshot), videos: previewVideos, artwork: gameArtwork, audience: "owner" });
   $("previewColumn").replaceChildren(...(painted.ok ? painted.stages : [make("p", "ed-empty", "This Wall cannot be previewed: " + describeErrors(painted.errors).join(" "))]));
   $("previewMobile").setAttribute("aria-pressed", String(previewMode === "mobile"));
   $("previewDesktop").setAttribute("aria-pressed", String(previewMode === "desktop"));
@@ -568,6 +632,8 @@ async function boot() {
   fontStore.refresh();   // text using a custom font shows its catalog fallback until the font arrives
   refreshGamid().catch(() => { /* blocks show a plain "not available" note */ });
   refreshPublication();
+  // Wall Stages V2: the owner's stage allowance, decided by the server (the default stands if it cannot be read; the server enforces it on save either way)
+  persistence.loadStageAllowance().then(limit => { if (limit) { stageLimit = limit; renderAll(); } }).catch(() => {});
   // the owner's existing Usage cleanup (also run when Usage opens): it releases what is due - including a Wall file left behind by a deletion whose file removal failed
   Promise.resolve(api.reconcileUsageUploads?.()).catch(() => { /* retried on the next visit or when Usage opens */ });
 }

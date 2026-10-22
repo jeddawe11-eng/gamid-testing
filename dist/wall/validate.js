@@ -5,6 +5,7 @@ import { SUPPORTED_SCHEMA_VERSIONS } from "./schema.js";
 import { elementRegistry } from "./elements.js";
 import { isSet, isPlainObject } from "./fields.js";
 import { backgroundRegistry } from "./backgrounds.js";
+import { stageTypeErrors } from "./stage-types.js";
 
 // Never allow arbitrary user-supplied HTML, JavaScript, iframe markup, or executable embed code anywhere in a payload - a Wall-CORE guarantee, applied
 // to every element's payload regardless of type or provider, so no current or future element/provider implementation can accidentally (or maliciously)
@@ -104,5 +105,7 @@ export function validateDocument(doc) {
       }
     }
   }
+  // Wall Stages V2 (DEC-0011): My Stage / Friends Stage rules, after every stage was checked (the database appends them at the same point)
+  errors.push(...stageTypeErrors(doc.stages));
   return { valid: errors.length === 0, errors };
 }

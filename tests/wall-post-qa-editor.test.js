@@ -86,7 +86,7 @@ test("M stage deletion: the question covers a stage with elements, one with only
   doc.stages[1].background = { kind: "color", color: "#202020" };
   assert.equal(validateDocument(doc).valid, true);
   const [full, bgOnly, empty] = doc.stages.map(stage => ops.stageDeletionInfo(doc, stage.id));
-  assert.deepEqual(full, { stageId: doc.stages[0].id, number: 1, elementCount: 2, hasBackground: true, isLast: false });
+  assert.deepEqual(full, { stageId: doc.stages[0].id, number: 1, elementCount: 2, hasBackground: true, isLast: false, type: "my", isLastMy: false, stickerCount: 0 });   // (+ the stage type facts, Wall Stages V2 2026-10-22)
   assert.equal(stageDeleteQuestion(full), "Stage 1 has 2 elements and its own background. Delete it and everything on it? You can undo this.");
   assert.equal(stageDeleteQuestion(bgOnly), "Stage 2 has no elements but has its own background. Delete this stage? You can undo this.");
   assert.equal(stageDeleteQuestion(empty), "Stage 3 is empty. Delete this stage? You can undo this.");

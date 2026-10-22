@@ -45,6 +45,8 @@ declare
   flag boolean;
   item jsonb; got text[]; want text[]; mismatches text := '';
   rows_before integer;
+  over_limit integer := 0;   -- Wall Stages V2: valid corpus documents with more stages than the owner's allowance
+  stages5 jsonb := '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"s1","elements":[]},{"id":"s2","elements":[]},{"id":"s3","elements":[]},{"id":"s4","elements":[]},{"id":"s5","elements":[]}]}';
   corpus jsonb := $w2c$${corpusJson}$w2c$::jsonb;
   default_doc jsonb := $w2d$${defaultDoc}$w2d$::jsonb;
   doc_one jsonb := '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"stage_1","elements":[{"id":"r1","type":"rect","x":10,"y":20,"width":300,"height":200,"z":1,"payload":{"fill":"#aabbcc"}}]}]}';
@@ -502,7 +504,14 @@ begin
     out := pg_temp.w2_run(ua, 'authenticated', 'select (select ((to_jsonb(d)->>''revision''))::text from public.get_my_wall_draft() d)');
     rev := out::bigint;
     out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d', (item->'doc')::text, rev));
-    if jsonb_array_length(item->'expected') = 0 then
+    if jsonb_array_length(item->'expected') = 0 and jsonb_array_length(item->'doc'->'stages') > private.wall_stage_allowance(ent_a) then
+      -- Wall Stages V2 (DEC-0011): a VALID document with more stages than the owner's allowance is refused at save (WALL_STAGE_LIMIT) and changes nothing
+      over_limit := over_limit + 1;
+      out := pg_temp.w2_run(ua, 'authenticated', 'select (select ((to_jsonb(d)->>''revision''))::text from public.get_my_wall_draft() d)');
+      if out2 not like 'ERR:22023:WALL_STAGE_LIMIT%' or out::bigint <> rev then
+        bad := bad + 1; mismatches := mismatches || ' [over the stage allowance accepted: ' || (item->>'name') || ' ' || left(out2, 120) || ']';
+      end if;
+    elsif jsonb_array_length(item->'expected') = 0 then
       if out2 like 'ERR:%' or ((out2::jsonb)->'document') is distinct from (item->'doc') or ((out2::jsonb)->>'revision')::bigint <> rev + 1 then
         bad := bad + 1; mismatches := mismatches || ' [valid rejected/changed: ' || (item->>'name') || ' ' || left(out2, 120) || ']';
       end if;
@@ -513,8 +522,36 @@ begin
       end if;
     end if;
   end loop;
-  res := res || jsonb_build_object('step', 'at the persistence boundary every valid corpus document is stored unchanged and every invalid one is rejected without changing the draft', 'pass', bad = 0, 'mismatches', mismatches);
+  res := res || jsonb_build_object('step', 'at the persistence boundary every valid corpus document within the stage allowance is stored unchanged, every one above it is refused (WALL_STAGE_LIMIT) and every invalid one is rejected - none changing the draft', 'pass', bad = 0 and over_limit >= 1, 'over_limit', over_limit, 'mismatches', mismatches);
 
+  -- ===== Wall Stages V2 (DEC-0011): the stage allowance, enforced by the database =====
+  out := pg_temp.w2_run(ua, 'authenticated', 'select public.get_my_wall_stage_allowance()::text');
+  res := res || jsonb_build_object('step', 'the owner reads their stage allowance: 3 (the same for everyone today)', 'pass', out = '3', 'got', out);
+  out := pg_temp.w2_run(null, 'anon', 'select public.get_my_wall_stage_allowance()::text');
+  res := res || jsonb_build_object('step', 'anon cannot read a stage allowance', 'pass', out like 'ERR:42501:%', 'got', out);
+  res := res || jsonb_build_object('step', 'the allowance and the stage-type rules are not client-executable', 'pass', not (has_function_privilege('authenticated', 'private.wall_stage_allowance(uuid)', 'execute') or has_function_privilege('anon', 'private.wall_stage_allowance(uuid)', 'execute') or has_function_privilege('authenticated', 'private.wall_stage_type_errors(jsonb)', 'execute')));
+  out := pg_temp.w2_run(ua, 'authenticated', 'select (select ((to_jsonb(d)->>''revision''))::text from public.get_my_wall_draft() d)');
+  rev := out::bigint;
+  out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d', '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"s1","elements":[]},{"id":"s2","type":"friends","elements":[]},{"id":"s3","elements":[]}]}', rev));
+  res := res || jsonb_build_object('step', 'three stages (2 My + 1 Friends) save', 'pass', out2 not like 'ERR:%', 'got', left(out2, 160));
+  out := pg_temp.w2_run(ua, 'authenticated', 'select (select ((to_jsonb(d)->>''revision''))::text from public.get_my_wall_draft() d)');
+  rev := out::bigint;
+  out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d', '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"s1","elements":[]},{"id":"s2","type":"friends","elements":[]},{"id":"s3","elements":[]},{"id":"s4","elements":[]}]}', rev));
+  res := res || jsonb_build_object('step', 'a fourth stage is refused by the database (WALL_STAGE_LIMIT, the allowance in the detail), whatever the client does', 'pass', out2 like 'ERR:22023:WALL_STAGE_LIMIT:3', 'got', left(out2, 160));
+  out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d', '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"s1","type":"friends","elements":[]},{"id":"s2","type":"friends","elements":[]},{"id":"s3","type":"friends","elements":[]}]}', rev));
+  res := res || jsonb_build_object('step', '0 My / 3 Friends is refused by the database (NO_MY_STAGE)', 'pass', out2 like 'ERR:22023:INVALID_WALL_DOCUMENT:%NO_MY_STAGE%', 'got', left(out2, 160));
+  out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d', '{"schemaVersion":1,"canvas":{"width":1000,"height":1778},"stages":[{"id":"s1","elements":[]},{"id":"s2","type":"friends","elements":[{"id":"r1","type":"rect","x":1,"y":1,"width":5,"height":5,"z":0,"payload":{"fill":"#000000"}}]}]}', rev));
+  res := res || jsonb_build_object('step', 'an element on a Friends Stage is refused by the database (FRIENDS_STAGE_ELEMENTS)', 'pass', out2 like 'ERR:22023:INVALID_WALL_DOCUMENT:%FRIENDS_STAGE_ELEMENTS%', 'got', left(out2, 160));
+  out := pg_temp.w2_run(ua, 'authenticated', 'select (select ((to_jsonb(d)->>''revision''))::text from public.get_my_wall_draft() d)');
+  res := res || jsonb_build_object('step', 'the refused saves changed nothing', 'pass', out::bigint = rev);
+  -- a Wall already above the allowance (an allowance lowered later; none exists today) keeps its stages: it saves while it does not grow, and never grows
+  update public.wall_drafts set document = stages5 where entity_id = ent_a;
+  out := pg_temp.w2_run(ua, 'authenticated', 'select (select ((to_jsonb(d)->>''revision''))::text from public.get_my_wall_draft() d)');
+  rev := out::bigint;
+  out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d', jsonb_set(stages5, '{stages,1,type}', '"friends"')::text, rev));
+  res := res || jsonb_build_object('step', 'a Wall already above the allowance still saves while it does not grow (nothing is cut)', 'pass', out2 not like 'ERR:%', 'got', left(out2, 160));
+  out2 := pg_temp.w2_run(ua, 'authenticated', format('select to_jsonb(d)::text from public.save_my_wall_draft(%L::jsonb, %s) d', jsonb_set(stages5, '{stages}', (stages5->'stages') || '[{"id":"s6","elements":[]}]'::jsonb)::text, rev + 1));
+  res := res || jsonb_build_object('step', '... but it never grows (WALL_STAGE_LIMIT)', 'pass', out2 like 'ERR:22023:WALL_STAGE_LIMIT%', 'got', left(out2, 160));
   -- the whole transaction rolls back below; these confirm the disposable data existed only inside it
   select count(*) into cnt from public.wall_drafts where entity_id in (ent_a, ent_b);
   res := res || jsonb_build_object('step', 'disposable Walls exist only inside this (rolled back) transaction', 'pass', cnt = 2);

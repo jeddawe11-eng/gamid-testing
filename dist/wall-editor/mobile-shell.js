@@ -222,6 +222,8 @@ export function createMobileShell({ session, canvas, run, openTool, closeTools, 
   proxy("mwStageDelete", "stageDelete");
   proxy("mwStageConfirmYes", "stageConfirmYes");
   proxy("mwStageConfirmNo", "stageConfirmNo");
+  proxy("mwStageTypeMy", "stageTypeMy");   // Wall Stages V2 (DEC-0011): the same My Stage / Friends Stage handler as the Stages bar
+  proxy("mwStageTypeFriends", "stageTypeFriends");
   $("mwStageAdd").addEventListener("click", () => {
     say($("stageStatus").textContent);
     requestAnimationFrame(() => $("mwStageList").lastElementChild?.scrollIntoView?.({ block: "nearest" }));
@@ -231,7 +233,7 @@ export function createMobileShell({ session, canvas, run, openTool, closeTools, 
     const index = ops.stageIndex(session.doc, session.state.stageId), count = session.doc.stages.length;
     $("mwStageText").textContent = `${index + 1}/${count}`;
     $("mwStage").setAttribute("aria-label", `Stage ${index + 1} of ${count}. Open Stages`);
-    const key = JSON.stringify([session.doc.stages.map(stage => [stage.id, stage.elements.length, Boolean(stage.background)]), session.state.stageId]);
+    const key = JSON.stringify([session.doc.stages.map(stage => [stage.id, stage.elements.length, Boolean(stage.background), stage.type === "friends"]), session.state.stageId]);
     if (key !== stageKey) {
       stageKey = key;
       const list = $("mwStageList");
@@ -243,7 +245,8 @@ export function createMobileShell({ session, canvas, run, openTool, closeTools, 
         const current = stage.id === session.state.stageId;
         if (current) button.setAttribute("aria-current", "true");
         const n = stage.elements.length;
-        button.append(make("b", "", `Stage ${at + 1}`), make("small", "", `${n ? `${n} element${n === 1 ? "" : "s"}` : "Empty"}${stage.background ? " · own background" : ""}${current ? " · open" : ""}`));
+        const kind = stage.type === "friends" ? "Friends Stage" : "My Stage";
+        button.append(make("b", "", `Stage ${at + 1}`), make("small", "", `${kind} · ${n ? `${n} element${n === 1 ? "" : "s"}` : "Empty"}${stage.background ? " · own background" : ""}${current ? " · open" : ""}`));
         button.addEventListener("click", () => { if (!current) { $("stageConfirmNo").click(); session.setStage(stage.id); say(`Stage ${at + 1} of ${count} open.`); } });
         item.append(button);
         if (current && focused) requestAnimationFrame(() => button.focus({ preventScroll: true }));
@@ -253,6 +256,9 @@ export function createMobileShell({ session, canvas, run, openTool, closeTools, 
     $("mwStageEarlier").disabled = $("stageLeft").disabled;
     $("mwStageLater").disabled = $("stageRight").disabled;
     $("mwStageDelete").disabled = $("stageDelete").disabled;
+    $("mwStageAdd").disabled = $("stageAdd").disabled;
+    $("mwStageCount").textContent = `${$("stageCount").textContent}${$("stageAdd").disabled ? " - the most your Wall can have." : ""}`;   // "2 / 3 stages"
+    for (const [from, to] of [["mwStageTypeMy", "stageTypeMy"], ["mwStageTypeFriends", "stageTypeFriends"]]) $(from).setAttribute("aria-checked", $(to).getAttribute("aria-checked"));
     $("mwStageConfirm").hidden = $("stageConfirm").hidden;
     $("mwStageConfirmText").textContent = $("stageConfirmText").textContent;
   }

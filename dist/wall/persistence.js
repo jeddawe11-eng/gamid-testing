@@ -25,6 +25,7 @@ export class WallPersistenceError extends Error {
 
 const TYPED_CODES = new Set([
   "AUTH_REQUIRED", "IDENTITY_NOT_FOUND", "WALL_DRAFT_NOT_FOUND", "INVALID_WALL_DOCUMENT", "WALL_REVISION_CONFLICT", "INVALID_WALL_REVISION", "WALL_DOCUMENT_TOO_LARGE", "WALL_ASSET_NOT_FOUND", "WALL_ASSET_IN_USE", "WALL_ASSET_KIND_MISMATCH",
+  "WALL_STAGE_LIMIT",   // Wall Stages V2 (DEC-0011): more stages than the owner's allowance
 ]);
 
 function parseDetail(detail) {
@@ -70,6 +71,9 @@ export function createWallPersistence({ rpc }) {
       if (!local.valid) throw new WallPersistenceError("INVALID_WALL_DOCUMENT", { errors: local.errors });
       return toDraftRecord(await call("save_my_wall_draft", { candidate_document: document, candidate_expected_revision: expectedRevision }));
     },
+    // Wall Stages V2 (DEC-0011): how many stages this owner's Wall may have - decided by the server (private.wall_stage_allowance; today 3 for everyone, later by plan).
+    // -> a positive integer, or null when the server did not give one (the editor then uses its default)
+    loadStageAllowance: async () => { const value = Number(await call("get_my_wall_stage_allowance", {})); return Number.isInteger(value) && value >= 1 ? value : null; },
     // ---- publishing (owner-only) ----
     // Which saved draft revision visitors currently see, or null when the Wall is not published.
     loadPublication: async () => toPublicationRecord(await call("get_my_wall_publication", {})),

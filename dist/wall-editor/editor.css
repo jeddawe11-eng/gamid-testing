@@ -196,6 +196,20 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-stage-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 .ed-stage-confirm { position: absolute; top: calc(100% + .3rem); right: .5rem; z-index: 50; width: min(22rem, calc(100vw - 1rem)); margin: 0; box-shadow: 0 .6rem 1.6rem rgba(0, 0, 0, .6); }
 .ed-stage-confirm[hidden] { display: none; }
+/* Wall Stages V2 (DEC-0011): the open stage's type (My Stage / Friends Stage), the stage count against the allowance, the Friends badge on a tab */
+.ed-stage-count { flex: 0 0 auto; color: var(--muted); font-size: .74rem; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ed-stage-count.is-full { color: var(--warn, #ffc857); }
+.ed-stage-type { display: flex; gap: .15rem; padding: .15rem; border: 1px solid #3a334b; border-radius: .75rem; background: #14111e; }
+.ed-stage-type-btn { min-height: 2.2rem; padding: 0 .65rem; border: 0; border-radius: .55rem; background: none; color: var(--muted); font: inherit; font-size: .76rem; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.ed-stage-type-btn[aria-checked="true"] { background: rgba(139, 93, 255, .32); color: #fff; }
+.ed-stage-type-btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+/* below 1200px the bar also holds the type switch and the count: the open stage's Move earlier / Move later / Delete show their short (icon) labels - their
+   accessible names and tooltips are unchanged - so the stage tabs keep their room */
+@media (max-width: 1199px) {
+  .ed-stage-tools .ed-stage-long { display: none; }
+  .ed-stage-tools .ed-stage-short { display: inline; font-size: 1.05rem; }
+}
+.ed-stage-badge { margin-left: .35rem; padding: .05rem .35rem; border-radius: .4rem; background: rgba(98, 231, 255, .16); color: var(--cyan); font-size: .6rem; letter-spacing: .06em; text-transform: uppercase; }
 @media (max-width: 599px) {
   .ed-stage-bar { gap: .3rem; padding: 0 .35rem; }
   .ed-stage-long { display: none; }
@@ -279,6 +293,14 @@ body[data-tool="gamid"] .ed-rail [data-tool="gamid"], body[data-tool="layout"] .
 [data-tool-panel] { display: none; }
 body[data-tool="add"] [data-tool-panel="add"], body[data-tool="text"] [data-tool-panel="text"], body[data-tool="media"] [data-tool-panel="media"], body[data-tool="shapes"] [data-tool-panel="shapes"], 
 body[data-tool="gamid"] [data-tool-panel="gamid"], body[data-tool="layout"] [data-tool-panel="layout"], body[data-tool="assets"] [data-tool-panel="assets"], body[data-tool="templates"] [data-tool-panel="templates"] { display: block; }
+/* Wall Stages V2 (DEC-0011): while a Friends Stage is open, its own panel takes the place of every tool panel (nothing of the owner's own goes on it) */
+.ed-friends-panel { display: none; }
+body[data-stage-type="friends"] .ed-friends-panel { display: block; }
+body[data-stage-type="friends"] [data-tool-panel] { display: none !important; }
+.ed-friends-catalog { display: grid; gap: .5rem; margin: .3rem 0 .9rem; }
+.ed-friends-tier { padding: .55rem .7rem; border: 1px solid #3a334b; border-radius: .7rem; background: #14111e; }
+.ed-friends-tier h4 { margin: 0 0 .25rem; font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: #c8bafc; }
+.ed-friends-tier p { margin: 0; color: var(--muted); font-size: .76rem; line-height: 1.4; }
 body.is-sheet-open:not([data-tool="props"]) .ed-drawer { transform: none; }
 body.is-sheet-open[data-tool="props"] .ed-right { transform: none; }
 body.is-sheet-open .ed-viewport { padding-bottom: 48dvh; }

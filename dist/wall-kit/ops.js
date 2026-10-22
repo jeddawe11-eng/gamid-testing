@@ -13,6 +13,7 @@
 import { validateDocument, FREE_MARGIN } from "../wall/validate.js";
 import { elementRegistry } from "../wall/elements.js";
 import { createElement, CANONICAL_CANVAS } from "../wall/schema.js";
+import { STAGE_TYPES, stageType, isFriendsStage, myStageCount, activeStickerCount } from "../wall/stage-types.js";
 import { createTextPayload } from "./text.js";
 import { GAMID_BLOCK_INFO } from "./gamid.js";
 import { cropRatio, MIN_SLICE, SPLIT_COUNTS, SLICE_DIRS } from "./image.js";
@@ -262,7 +263,10 @@ function assignZ(stage, orderedElements) {
 const normalizeStageZ = stage => assignZ(stage, ordered(stage));
 
 // ---- stages -----------------------------------------------------------------------------------------------------------------------------------------
-export function addStage(doc, { afterIndex } = {}) {
+// `limit` (Wall Stages V2, DEC-0011): the owner's stage allowance, which the editor always passes (the server's get_my_wall_stage_allowance; today 3 for everyone).
+// The document core itself has no maximum, so a caller that passes none adds freely. A new stage is a My Stage.
+export function addStage(doc, { afterIndex, limit } = {}) {
+  if (Number.isInteger(limit) && doc.stages.length >= limit) return { ...fail(doc, "STAGE_LIMIT"), limit };
   const next = clone(doc);
   const id = nextId(doc, "stage");
   const at = Number.isInteger(afterIndex) ? Math.min(Math.max(afterIndex + 1, 0), next.stages.length) : next.stages.length;
@@ -279,11 +283,14 @@ export function reorderStage(doc, stageId, toIndex) {
   next.stages.splice(to, 0, moved);
   return finish(doc, next);
 }
-// Deleting a stage that holds elements needs `force` (the editor asks the owner to confirm first). The last remaining stage can never be deleted.
+// Deleting a stage that holds elements needs `force` (the editor asks the owner to confirm first). The last remaining stage can never be deleted, nor the last My
+// Stage (DEC-0011), nor a Friends Stage that still has active friends' stickers.
 export function deleteStage(doc, stageId, { force = false } = {}) {
   const stage = findStage(doc, stageId);
   if (!stage) return fail(doc, "STAGE_NOT_FOUND");
   if (doc.stages.length <= 1) return fail(doc, "LAST_STAGE");
+  if (stageType(stage) === "my" && myStageCount(doc) <= 1) return fail(doc, "LAST_MY_STAGE");
+  if (isFriendsStage(stage) && activeStickerCount(stage) > 0) return { ...fail(doc, "STAGE_HAS_STICKERS"), stickerCount: activeStickerCount(stage) };
   if (stage.elements.length > 0 && !force) return { ...fail(doc, "STAGE_NOT_EMPTY"), elementCount: stage.elements.length };
   const next = clone(doc);
   next.stages = next.stages.filter(candidate => candidate.id !== stageId);
@@ -294,10 +301,33 @@ export function stageDeletionInfo(doc, stageId) {
   const index = stageIndex(doc, stageId);
   if (index < 0) return null;
   const stage = doc.stages[index];
-  return { stageId, number: index + 1, elementCount: stage.elements.length, hasBackground: stage.background !== undefined && stage.background !== null, isLast: doc.stages.length <= 1 };
+  return { stageId, number: index + 1, elementCount: stage.elements.length, hasBackground: stage.background !== undefined && stage.background !== null, isLast: doc.stages.length <= 1,
+    type: stageType(stage), isLastMy: stageType(stage) === "my" && myStageCount(doc) <= 1, stickerCount: isFriendsStage(stage) ? activeStickerCount(stage) : 0 };
 }
-// The destinations offered for "Move to stage": every OTHER stage, in Wall order, named by its number (so any stage is one step away - Stage 1 -> Stage 4).
-export const stageMoveOptions = (doc, currentStageId) => doc.stages.map((stage, index) => ({ id: stage.id, label: `Stage ${index + 1}` })).filter(option => option.id !== currentStageId);
+// The destinations offered for "Move to stage": every OTHER My Stage, in Wall order, named by its number (so any stage is one step away - Stage 1 -> Stage 4). A
+// Friends Stage takes no elements of the owner's, so it is never a destination.
+export const stageMoveOptions = (doc, currentStageId) => doc.stages.map((stage, index) => ({ id: stage.id, label: `Stage ${index + 1}`, friends: isFriendsStage(stage) })).filter(option => option.id !== currentStageId && !option.friends).map(({ id, label }) => ({ id, label }));
+
+// Wall Stages V2 (DEC-0011): makes a stage a My Stage ("my") or a Friends Stage ("friends"). Nothing on the stage is ever removed to make the change:
+//   - to Friends: refused for the last My Stage (LAST_MY_STAGE), and refused while the stage still has elements or its own background
+//     (STAGE_NOT_EMPTY_FOR_FRIENDS, with the counts) - the owner moves or deletes them first, explicitly;
+//   - to My: refused while the Friends Stage has active friends' stickers (STAGE_HAS_STICKERS; none can exist until the Friends Stickers system is built).
+// A My Stage is stored without `type` (exactly as every stage before stage types existed).
+export function setStageType(doc, stageId, type) {
+  const stage = findStage(doc, stageId);
+  if (!stage) return fail(doc, "STAGE_NOT_FOUND");
+  if (!STAGE_TYPES.includes(type)) return fail(doc, "INVALID_STAGE_TYPE");
+  if (stageType(stage) === type) return { ok: true, doc };
+  if (type === "friends") {
+    if (myStageCount(doc) <= 1) return fail(doc, "LAST_MY_STAGE");
+    const hasBackground = stage.background !== undefined && stage.background !== null;
+    if (stage.elements.length > 0 || hasBackground) return { ...fail(doc, "STAGE_NOT_EMPTY_FOR_FRIENDS"), elementCount: stage.elements.length, hasBackground };
+  } else if (activeStickerCount(stage) > 0) return { ...fail(doc, "STAGE_HAS_STICKERS"), stickerCount: activeStickerCount(stage) };
+  const next = clone(doc);
+  const target = findStage(next, stageId);
+  if (type === "friends") target.type = "friends"; else delete target.type;
+  return finish(doc, next);
+}
 // Moves whole groups/elements to another stage, on top of it, keeping their relative order. Sizes are kept; positions are clamped inside the stage.
 export function moveElementsToStage(doc, ids, toStageId) {
   const source = commonStage(doc, ids);

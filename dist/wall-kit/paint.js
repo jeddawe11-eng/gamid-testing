@@ -14,6 +14,8 @@ import { markInteractive, markPassThrough } from "./interaction.js";
 import { attachFire } from "./living-fire.js";   // Living Fire text: its renderer is loaded only when such a text is painted
 import { shapePath, shapeFillRule, shapeIsOpen } from "../wall/shapes.js";   // Shapes V2: vector shape geometry (numbers only)
 import { safeMediaUrl, backgroundVideo } from "./video-background.js";
+import { isEmptyFriendsStage } from "../wall/stage-types.js";
+import { paintFriendsEmptyState } from "./friends-stage.js";   // Wall Stages V2: the empty Friends Stage message (display only)
 import "./register.js";   // makes sure every element type, background kind and provider is registered wherever documents are painted
 
 const num = value => (Number.isFinite(value) ? String(Math.round(value * 1000) / 1000) : "0");
@@ -529,10 +531,17 @@ export function paintStage(stageTree, scale, createNode = tag => document.create
   // into another stage. Only the editor passes showOutside, so the owner can see and grab the part that is outside while positioning.
   stage.style.setProperty("overflow", ctx.showOutside === true ? "visible" : "hidden");
   stage.style.setProperty("isolation", "isolate");   // blend modes mix with this stage only
-  // a stage's own background wins; otherwise the Wall-wide one is laid across ALL stages so it can run continuously from one stage into the next
+  // a stage's own background wins; otherwise the Wall-wide one is laid across ALL stages so it can run continuously from one stage into the next. A Friends Stage
+  // (DEC-0011) never shows the owner's own Wall-wide background: its background will come only from the official GamID catalog, so until then it keeps the plain
+  // stage colour
+  if (stageTree.type === "friends") stage.setAttribute("data-stage-type", "friends");
   if (stageTree.background) stage.append(paintBackgroundLayer(stageTree.background, { createNode, ctx, width: stageTree.width, height: stageTree.height, index: 0, count: 1, scale, scope: `stage:${stageTree.id}` }));
-  else if (ctx.wallBackground) stage.append(paintBackgroundLayer(ctx.wallBackground, { createNode, ctx, width: stageTree.width, height: stageTree.height, index: ctx.stageIndex ?? 0, count: ctx.stageCount ?? 1, scale }));
+  else if (ctx.wallBackground && stageTree.type !== "friends") stage.append(paintBackgroundLayer(ctx.wallBackground, { createNode, ctx, width: stageTree.width, height: stageTree.height, index: ctx.stageIndex ?? 0, count: ctx.stageCount ?? 1, scale }));
   stageTree.elements.forEach((item, order) => stage.appendChild(paintElement(item, scale, order, createNode, ctx)));
+  // an empty Friends Stage says so (display only, painted here - never a document element, layer or asset). ctx.stickerCount(stage) is where the future Friends
+  // Stickers system reports a stage's visible approved stickers; the message leaves as soon as there is one. ctx.audience "owner" only from the owner's editor.
+  const stickers = typeof ctx.stickerCount === "function" ? ctx.stickerCount(stageTree) : undefined;
+  if (isEmptyFriendsStage(stageTree, stickers)) stage.append(paintFriendsEmptyState(createNode, ctx.audience === "owner" ? "owner" : "visitor"));
   return stage;
 }
 

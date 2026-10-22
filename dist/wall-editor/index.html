@@ -43,7 +43,13 @@
   <nav id="stageBar" class="ed-stage-bar" aria-label="Stages" hidden>
     <div id="stageChips" class="ed-stage-strip" role="tablist" aria-label="Wall stages"></div>
     <button id="stageAdd" class="ed-stage-add" type="button" aria-label="Add a stage at the end of the Wall"><span class="ed-stage-long">+ Add stage</span><span class="ed-stage-short" aria-hidden="true">+</span></button>
+    <span id="stageCount" class="ed-stage-count"></span>
     <div class="ed-stage-tools" role="group" aria-label="Current stage">
+      <!-- Wall Stages V2 (DEC-0011): the open stage is a My Stage or a Friends Stage -->
+      <div id="stageType" class="ed-stage-type" role="radiogroup" aria-label="Stage type">
+        <button id="stageTypeMy" class="ed-stage-type-btn" type="button" role="radio" aria-checked="true">My Stage</button>
+        <button id="stageTypeFriends" class="ed-stage-type-btn" type="button" role="radio" aria-checked="false">Friends Stage</button>
+      </div>
       <button id="stageLeft" class="ed-stage-act" type="button" aria-label="Move this stage earlier in the Wall" title="Move this stage earlier"><span class="ed-stage-long">&larr; Stage earlier</span><span class="ed-stage-short" aria-hidden="true">&larr;</span></button>
       <button id="stageRight" class="ed-stage-act" type="button" aria-label="Move this stage later in the Wall" title="Move this stage later"><span class="ed-stage-long">Stage later &rarr;</span><span class="ed-stage-short" aria-hidden="true">&rarr;</span></button>
       <button id="stageDelete" class="ed-stage-act ed-stage-del" type="button" aria-label="Delete this stage" title="Delete this stage"><span class="ed-stage-long">Delete stage</span><span class="ed-stage-short" aria-hidden="true">&#10005;</span></button>
@@ -88,6 +94,16 @@
 
     <aside id="drawer" class="ed-panel ed-drawer" aria-label="Tool panel">
       <div class="mw-sheet-head mw-only"><button class="mw-grab" type="button" data-mw-grab aria-label="Make this panel taller or shorter"><span aria-hidden="true"></span></button><h2 id="mwDrawerTitle" class="mw-sheet-title" tabindex="-1">Add</h2><button class="mw-close" type="button" data-mw-close aria-label="Close panel"><i class="mw-i" data-i="close" aria-hidden="true"></i></button></div>
+      <!-- Wall Stages V2 (DEC-0011): while a Friends Stage is open it takes the place of every tool panel (no element or background of the owner's own goes on it) -->
+      <section id="friendsStagePanel" class="ed-section ed-friends-panel" aria-labelledby="friendsStageTitle">
+        <h2 id="friendsStageTitle">Friends Stage</h2>
+        <p class="ed-hint">This stage is kept for your friends' stickers. You approve each sticker before it appears, and you can remove any sticker at any time. Friends' stickers are coming later.</p>
+        <p class="ed-hint">You can't add your own elements or your own background here. To design this stage yourself, make it a My Stage.</p>
+        <h3 class="ed-group-title">Background</h3>
+        <p class="ed-hint">A Friends Stage uses a background from the official GamID catalog (Free and Premium).</p>
+        <div id="friendsCatalog" class="ed-friends-catalog"></div>
+        <button id="friendsMakeMy" class="ed-btn" type="button">Make this a My Stage</button>
+      </section>
       <section class="ed-section" data-tool-panel="add">
         <h2>Add</h2>
         <p class="ed-add-sub">Add elements to your wall</p>
@@ -253,6 +269,11 @@
     <div class="mw-sheet-body">
       <ol id="mwStageList" class="mw-stage-list" aria-label="Wall stages"></ol>
       <button id="mwStageAdd" class="ed-btn ed-primary mw-wide" type="button">+ Add stage at the end</button>
+      <p id="mwStageCount" class="ed-hint mw-stage-count"></p>
+      <div class="mw-stage-type" role="radiogroup" aria-label="Stage type of the open stage">
+        <button id="mwStageTypeMy" class="ed-btn" type="button" role="radio" aria-checked="true">My Stage</button>
+        <button id="mwStageTypeFriends" class="ed-btn" type="button" role="radio" aria-checked="false">Friends Stage</button>
+      </div>
       <div class="mw-stage-tools" role="group" aria-label="Current stage">
         <button id="mwStageEarlier" class="ed-btn" type="button">&larr; Move earlier</button>
         <button id="mwStageLater" class="ed-btn" type="button">Move later &rarr;</button>
@@ -262,7 +283,7 @@
         <p id="mwStageConfirmText"></p>
         <div class="ed-row"><button id="mwStageConfirmYes" class="ed-btn ed-danger" type="button">Delete</button><button id="mwStageConfirmNo" class="ed-btn" type="button">Cancel</button></div>
       </div>
-      <p class="ed-hint">New stages are always added at the end. Stages have no names; they are numbered in Wall order.</p>
+      <p class="ed-hint">New stages are always added at the end. Stages have no names; they are numbered in Wall order. At least one stage is always a My Stage.</p>
     </div>
   </aside>
   <aside id="mwMore" class="mw-sheet mw-only" data-mw-sheet="more" aria-labelledby="mwMoreTitle" hidden>
