@@ -76,12 +76,14 @@ Rules:
 | Prefix | Category | Folder | Last issued |
 |---|---|---|---|
 | DIS | Discussions | discussions/ | DIS-0003 |
-| DEC | Decisions | decisions/ | DEC-0009 |
+| DEC | Decisions | decisions/ | DEC-0010 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0015 |
-| REV | Reviews | reviews/ | REV-0023 |
+| REV | Reviews | reviews/ | REV-0024 |
 
 ## Register
+
+2026-10-22: Mazen accepted Background inside Assets on TESTING after successfully testing the four scenarios requested of him (93a86d9), authorized the final navigation order (Assets directly above Layout; deployed at c832c5b), and approved saving DEC-0010 and REV-0024. GamID Truth wall-assets-background is ACCEPTED.
 
 2026-10-22: With Mazen's explicit authorization, validation-only repairs; no decision, status, approval or acceptance changed:
 - DEC-0008, DEC-0009 and ISS-0015 had a History that began at their final status. Their real earlier steps of 2026-10-21 are now recorded (APPROVED → AUTHORIZED → IMPLEMENTED → ACCEPTED; OPEN → AUTHORIZED → FIXED → VERIFIED), from PROJECT_HANDOFF.md §113–§115.
@@ -198,3 +200,5 @@ Status stays DISCUSSION; there is no implementation authorization.
 | DEC-0008 | Confirm every permanent Wall resource deletion | ACCEPTED | [DEC-0008-universal-permanent-delete-confirmation.md](decisions/DEC-0008-universal-permanent-delete-confirmation.md) |
 | DEC-0009 | Temporary silent GamID interface | ACCEPTED | [DEC-0009-temporary-silent-ui-policy.md](decisions/DEC-0009-temporary-silent-ui-policy.md) |
 | ISS-0015 | Orphan Wall media file continues counting toward storage | VERIFIED | [ISS-0015-orphan-wall-media-storage-accounting.md](issues/ISS-0015-orphan-wall-media-storage-accounting.md) |
+| DEC-0010 | Background inside Assets — one home for uploaded Wall media and the Wall background | ACCEPTED | [DEC-0010-background-inside-assets.md](decisions/DEC-0010-background-inside-assets.md) |
+| REV-0024 | Background inside Assets — final TESTING acceptance | COMPLETED | [REV-0024-background-inside-assets-final-acceptance.md](reviews/REV-0024-background-inside-assets-final-acceptance.md) |

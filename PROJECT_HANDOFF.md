@@ -4742,3 +4742,25 @@ GamID Truth: UPDATED.
 - `wall-editor-mobile-v2`: `wall-mobile-toolbars` and `wall-mobile-sheets` updated, checkpoint `93a86d9`.
 
 Product Memory: SAVED (validation repair only, as authorized); PROPOSED DEC-0010 (Background inside Assets), not saved.
+## 117. Background inside Assets: final navigation order and ACCEPTANCE (2026-10-22)
+
+**Acceptance.** Mazen manually tested the four scenarios requested of him on TESTING `93a86d9`, all successfully, and ACCEPTED Background inside Assets. His message does not list them; no further manual coverage is claimed.
+
+**Final adjustment** (his authorization the same day; product `c832c5b`):
+- Assets moved directly above Layout. Rail: Add, Text, Media & Links, Shapes, My Gamer Data, Assets, Layout, Templates (+ phone Edit).
+- Phone bottom bar: Add, Assets, Layers, Stages, More.
+- Markup order only: no behaviour change, Assets keeps My Assets and Background, no Background tool.
+- The rail-order guards were updated deliberately (`wall-editor-desktop-ui`, `wall-w4-editor`), and an order test was added.
+
+**Validation:**
+- `npm run build`: 2143 tests, 0 failures, 2 pre-existing skips;
+- lab order on screen at five sizes, with Assets / My Assets / Background / Layout / Templates opening: 40/40;
+- Background E2E: 73/73; other panels identical: 36/36; phone workflow: 71/71 (390×844 and 360×640).
+
+**Deployment:** run `39702253574`. TESTING serves `c832c5ba751dcd1e50771d98482c3ff1d5a898ee`; the live rail and bar HTML have the final order.
+
+GamID Truth: UPDATED.
+- `wall-assets-background` is ACCEPTED (checkpoint `c832c5b`); its navigation contract names the final order.
+- In `wall-editor-mobile-v2`, the `wall-mobile-toolbars` bar order is updated (checkpoint `c832c5b`); that capability stays PENDING_ACCEPTANCE.
+
+Product Memory: SAVED (Mazen's approval) DEC-0010 "Background inside Assets" (ACCEPTED) and REV-0024 "final TESTING acceptance" (COMPLETED, PASS); 55 records validate. Not merged; Production untouched.

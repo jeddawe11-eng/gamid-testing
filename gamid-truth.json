@@ -526,7 +526,7 @@
         },
         {
           "id": "wall-mobile-toolbars",
-          "rule": "Phone layout: a compact top toolbar (Back, the current stage as N/total opening the Stages sheet, Undo, Redo, Save whose label is the save status - Save when there are unsaved changes, Saved, Saving..., Retry save, Conflict - Preview using the real Preview, and a Wall menu with draft and visitor status, Publish / Publish changes, View public page, Unpublish and Fit canvas); the accepted global Stages bar (stages-bar-global) below it; the canvas; and a bottom toolbar Add, Layers, Stages, Assets (My Assets and Background, wall-assets-background), More (Text & fonts, Media & Links, Shapes, GamID, Templates, Multi-select). Save and Publish are separate actions: nothing is published or made visible unless Publish is tapped. Unsaved-change warnings on leaving are unchanged."
+          "rule": "Phone layout: a compact top toolbar (Back, the current stage as N/total opening the Stages sheet, Undo, Redo, Save whose label is the save status - Save when there are unsaved changes, Saved, Saving..., Retry save, Conflict - Preview using the real Preview, and a Wall menu with draft and visitor status, Publish / Publish changes, View public page, Unpublish and Fit canvas); the accepted global Stages bar (stages-bar-global) below it; the canvas; and a bottom toolbar Add, Assets (My Assets and Background, wall-assets-background), Layers, Stages, More (Text & fonts, Media & Links, Shapes, GamID, Templates, Multi-select). Save and Publish are separate actions: nothing is published or made visible unless Publish is tapped. Unsaved-change warnings on leaving are unchanged."
         },
         {
           "id": "wall-mobile-canvas",
@@ -545,20 +545,20 @@
           "rule": "While the software keyboard is open, the open sheet sits above it and fills the visible space above it, the focused field is scrolled into view and phone inputs use 16px text so the page is not zoomed; closing the keyboard restores the layout with the draft kept. Phone controls are at least 44px, labelled, keyboard operable, state is never shown by colour alone (Save says its status), changes are announced in a live region, safe-area insets and dynamic viewport height are respected and reduced motion is honoured. Visual identity: deep navy surfaces, purple primary / active, gold highlights, one family of line icons."
         }
       ],
-      "checkpoint": "93a86d99240945d144499e1e66e2b68ad3f9771b",
-      "record": "docs/WALL-EDITOR-MOBILE-V2.md; PROJECT_HANDOFF.md section 101. Implemented under Mazen's task of 2026-10-20 (Mobile Wall Editor V2, TESTING only); product 81c06ba. Browser emulation (Chrome touch) at 320-430px and the Android Emulator (not a physical device); iOS Safari not tested. 2026-10-21/22: Background moved from More into the Assets sheet (wall-assets-background; site 93a86d9, PROJECT_HANDOFF.md section 116). Awaiting Mazen's manual acceptance."
+      "checkpoint": "c832c5ba751dcd1e50771d98482c3ff1d5a898ee",
+      "record": "docs/WALL-EDITOR-MOBILE-V2.md; PROJECT_HANDOFF.md section 101. Implemented under Mazen's task of 2026-10-20 (Mobile Wall Editor V2, TESTING only); product 81c06ba. Browser emulation (Chrome touch) at 320-430px and the Android Emulator (not a physical device); iOS Safari not tested. 2026-10-21/22: Background moved from More into the Assets sheet (wall-assets-background; site 93a86d9, PROJECT_HANDOFF.md section 116); bottom bar reordered to Add, Assets, Layers, Stages, More (site c832c5b, section 117). Awaiting Mazen's manual acceptance."
     },
     {
       "id": "wall-assets-background",
       "name": "Background inside Assets (one home for uploaded Wall media and the Wall background)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/wall-editor/"
       ],
       "contracts": [
         {
           "id": "assets-background-navigation",
-          "rule": "Assets is the one tool for the owner's uploaded Wall media and the Wall background, on desktop, tablet and phone. There is no separate Background tool in the desktop rail or the phone More sheet. Assets has two areas, My Assets (the library) and Background, switched by one pair of buttons; My Assets is shown first and the area last shown is kept for the editor session. Anything that opens the old Background tool opens Assets on its Background area."
+          "rule": "Assets is the one tool for the owner's uploaded Wall media and the Wall background, on desktop, tablet and phone. There is no separate Background tool in the desktop rail or the phone More sheet. Assets has two areas, My Assets (the library) and Background, switched by one pair of buttons; My Assets is shown first and the area last shown is kept for the editor session. Anything that opens the old Background tool opens Assets on its Background area. Assets sits directly above Layout: the desktop / tablet rail reads Add, Text, Media & Links, Shapes, My Gamer Data, Assets, Layout, Templates (+ the phone-only Edit tab), and the phone bottom bar Add, Assets, Layers, Stages, More."
         },
         {
           "id": "assets-background-preserved",
@@ -569,8 +569,8 @@
           "rule": "Both areas use the same uploaded files; nothing is copied or uploaded twice. Each My Assets item has two explicit actions: Add to Canvas creates an independent element, and Set as Background assigns that same file as the background chosen under Background (Whole Wall or the current stage; a picture or video background already there keeps its fit, position and appearance). Background also offers Upload image / Upload image or video through the same asset store, checks, limits and quota (one upload at a time across both areas); the new file appears in My Assets and becomes the background of the scope chosen when it was picked. Permanent deletion from either area is the universal deletion flow (wall-universal-delete)."
         }
       ],
-      "checkpoint": "93a86d99240945d144499e1e66e2b68ad3f9771b",
-      "record": "docs/WALL-BACKGROUND-INSIDE-ASSETS.md; PROJECT_HANDOFF.md section 116. Implemented under Mazen's task \"GAMID — BACKGROUND INSIDE ASSETS\" (2026-10-21, TESTING only) on feature/background-inside-assets (not merged); product a623067, site 93a86d9 (run 39699314811). Lab browser E2E (the real editor with a local fake client, not signed in, not TESTING); no signed-in TESTING run. Awaiting Mazen's manual acceptance."
+      "checkpoint": "c832c5ba751dcd1e50771d98482c3ff1d5a898ee",
+      "record": "docs/WALL-BACKGROUND-INSIDE-ASSETS.md; PROJECT_HANDOFF.md sections 116-117. Implemented under Mazen's task \"GAMID — BACKGROUND INSIDE ASSETS\" (2026-10-21, TESTING only) on feature/background-inside-assets (not merged); product a623067, site 93a86d9 (run 39699314811). Lab browser E2E (the real editor with a local fake client, not signed in, not TESTING). ACCEPTED by Mazen 2026-10-22 after he successfully tested the four scenarios requested of him on TESTING (93a86d9); the final navigation order he then authorized (Assets directly above Layout) is site c832c5b (run 39702253574), verified by Claude Code in the lab and on the live page. Product Memory DEC-0010, REV-0024."
     },
     {
       "id": "custom-wall-fonts",

@@ -4,14 +4,14 @@ Mazen's task: "GAMID — BACKGROUND INSIDE ASSETS, full implementation, desktop 
 
 Branch `feature/background-inside-assets`, from `52da242` (`feature/universal-delete-ux`). Not merged.
 
-**Status: DEPLOYED ON TESTING, PENDING_ACCEPTANCE.** Site `93a86d99240945d144499e1e66e2b68ad3f9771b` (run `39699314811`); product commit `a623067`. No migration and no Edge Function change. GamID Truth: `wall-assets-background`.
+**Status: ACCEPTED by Mazen on TESTING (2026-10-22).** He accepted after successfully testing the four scenarios requested of him on `93a86d9` (run `39699314811`; product `a623067`). The final navigation order he then authorized (§8) is live at `c832c5ba751dcd1e50771d98482c3ff1d5a898ee` (run `39702253574`). No migration and no Edge Function change. GamID Truth: `wall-assets-background` ACCEPTED. Product Memory: DEC-0010, REV-0024.
 
 ## 1. Navigation, before and after
 
 | | Before | After |
 |---|---|---|
-| Desktop and tablet rail | Add, Text, Media & Links, Shapes, **Background**, GamID / My Gamer Data, Layout, Assets, Templates (+ phone Edit) | Add, Text, Media & Links, Shapes, GamID / My Gamer Data, Layout, **Assets**, Templates (+ phone Edit) |
-| Phone bottom bar | Add, Layers, Stages, Assets, More | unchanged |
+| Desktop and tablet rail | Add, Text, Media & Links, Shapes, **Background**, GamID / My Gamer Data, Layout, Assets, Templates (+ phone Edit) | Add, Text, Media & Links, Shapes, GamID / My Gamer Data, **Assets**, Layout, Templates (+ phone Edit) (final order, §8) |
+| Phone bottom bar | Add, Layers, Stages, Assets, More | Add, **Assets**, Layers, Stages, More (final order, §8) |
 | Phone More sheet | Text & fonts, Media & Links, Shapes, GamID, **Background**, Templates, Multi-select | Text & fonts, Media & Links, Shapes, GamID, Templates, Multi-select |
 | Assets panel or sheet | upload + library | **My Assets** \| **Background** switch: My Assets = upload + library; Background = everything the Background tool had |
 
@@ -115,3 +115,19 @@ The scope buttons stay the area's first `.ed-seg`, which keeps their 2-column ru
 6. Delete an unused upload (simple confirmation), and a background upload (detailed confirmation).
 7. Save, reload, Preview and Publish.
 8. Phone: Assets in the bottom bar → My Assets / Background; More has no Background.
+
+## 8. Final navigation order and acceptance (2026-10-22)
+
+**Acceptance.** Mazen manually tested the four scenarios requested of him on TESTING (`93a86d9`), all successfully, and accepted Background inside Assets. His message does not list the four checks individually.
+
+**Final adjustment.** He then authorized one change: **Assets directly above Layout**. It changes markup order only, with no behaviour change, and Assets keeps My Assets and Background.
+- Desktop and tablet rail: Add, Text, Media & Links, Shapes, My Gamer Data, Assets, Layout, Templates (+ phone Edit).
+- Phone bottom bar: Add, Assets, Layers, Stages, More. The More sheet is unchanged: Text & fonts, Media & Links, Shapes, GamID, Templates, Multi-select.
+
+**Verification by Claude Code.** Mazen did not separately test the reorder.
+- `npm run build`: 2143 tests, 0 failures, 2 pre-existing skips.
+- Order on screen at 1440 / 900 / 768 / 390 / 360, and Assets › My Assets / Background, Layout and Templates opening: 40/40.
+- Background, references, deletion, save, Preview and Publish: 73/73.
+- Other panels identical to the baseline: 36/36.
+- Phone workflow: 71/71 at 390×844 and 360×640.
+- TESTING serves `c832c5b`, and the live rail and bar HTML have the final order.

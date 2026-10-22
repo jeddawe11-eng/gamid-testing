@@ -73,7 +73,7 @@ There is no mobile document format: a Wall edited on a phone reopens identically
     - a pinch on the toolbars or sheets never zooms the page (`touch-action: pan-x pan-y` there).
 - **Selection quick actions** (above the bottom toolbar while nothing is open):
   - name, Edit, Duplicate, Bring forward, Send backward, Lock / Unlock (artwork), Delete (undoable, announced), Deselect.
-- **Bottom toolbar:** Add, Layers, Stages, Assets, More. The tool sheets are the editor's own panels as bottom sheets:
+- **Bottom toolbar:** Add, Assets, Layers, Stages, More *(final order since 2026-10-22: Assets directly before Layers; originally Add, Layers, Stages, Assets, More)*. The tool sheets are the editor's own panels as bottom sheets:
   - half height, or full height with the grab handle (tap or drag);
   - Close and Escape close them;
   - a closed sheet is hidden from focus and screen readers.
