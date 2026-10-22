@@ -84,7 +84,11 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `c832c5ba751dcd1e50771d98482c3ff1d5a898ee`** (successful run `39702253574`, from `feature/background-inside-assets`: Background inside Assets, ACCEPTED by Mazen 2026-10-22, with the final navigation order, Assets directly above Layout; `PROJECT_HANDOFF.md` §116–§117; no migration, no Edge Function change). Before it: `93a86d9` (run `39699314811`). It contains everything below.
+- **TESTING serves `b91e4e36db47570416adf37cc4071d3b592f5eb2`** (successful run `39709642185`, from `feature/editor-900-landscape-fixes`, not merged).
+  - What it changes: the Wall editor's canvas bar wraps at 900–1199px, and on landscape phones the keyboard sheet and the selection bar are fixed.
+  - Records: `PROJECT_HANDOFF.md` §118, `docs/WALL-EDITOR-900-LANDSCAPE-FIXES.md`. Status: PENDING Mazen's acceptance.
+  - No migration and no Edge Function change.
+- **Previously served `c832c5ba751dcd1e50771d98482c3ff1d5a898ee`** (successful run `39702253574`, from `feature/background-inside-assets`: Background inside Assets, ACCEPTED by Mazen 2026-10-22, with the final navigation order, Assets directly above Layout; `PROJECT_HANDOFF.md` §116–§117; no migration, no Edge Function change). Before it: `93a86d9` (run `39699314811`). It contains everything below.
 - **Universal Delete UX and silent UI accepted by Mazen on TESTING 2026-10-21 (no new deployment; Product Memory DEC-0008, DEC-0009, ISS-0015). Previously served `da4cc5a2f1ad785260309cb6022cdebbba6a6dd1`** (successful run `39616006123`, from `feature/universal-delete-ux`: Universal Delete UX with every deletion confirmed + silent UI policy, `PROJECT_HANDOFF.md` §115; no migration). Before it: `54e3b43` (run `39595702093`, §114; migrations `20261022100000` and `20261022110000` applied; `usage-upload` v13). It contains everything F8-B1 deployed (worker image from `3bb2871`, `wall-asset-register` v13, `public-media` v3).
 - **Previously served `764e3b8b55eac2ea21a956a38403f0a75f4c043e`** (successful run `39543363692`, from `feature/f8b1-video-renditions`: F8-B1, `PROJECT_HANDOFF.md` §110–§112; migration `20261021120000` applied).
 - **Previously served `5600d0677c5f68a4b9a81c418d644173dfeaf662`** (successful run `39492020998`, F8-A fast-start MP4 uploads, product `51e3972`, `PROJECT_HANDOFF.md` §106).
@@ -149,7 +153,19 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-22, Background inside Assets ACCEPTED):** Mazen accepted Background inside Assets after successfully testing the four scenarios requested of him on `93a86d9`. The final navigation order he then authorized is live at `c832c5b`: the rail reads … My Gamer Data, Assets, Layout, Templates; the phone bar reads Add, Assets, Layers, Stages, More (§117).
+**Latest continuation (2026-10-22, 900px canvas bar + landscape phone fixes, PENDING_ACCEPTANCE):** live on TESTING at `b91e4e3` (run `39709642185`) from `feature/editor-900-landscape-fixes` (not merged; §118, `docs/WALL-EDITOR-900-LANDSCAPE-FIXES.md`).
+- At 900–1199px the canvas bar wraps instead of clipping.
+- On landscape phones the keyboard sheet fills the space above the keyboard and the selection bar sits beside the Fit stage.
+- Three of the four landscape E2E failures were test geometry, now corrected in `wallui/mw-func.mjs`.
+- Truth: no change. Product Memory: one ISS proposal, not saved.
+
+**Next:**
+1. Mazen's acceptance.
+2. His decision on the ISS proposal.
+
+Then the separately planned tasks (Mobile Public Wall Visitor, Shape Image Fill), each on its own authorization.
+
+**Previous continuation (2026-10-22, Background inside Assets ACCEPTED):** Mazen accepted Background inside Assets after successfully testing the four scenarios requested of him on `93a86d9`. The final navigation order he then authorized is live at `c832c5b`: the rail reads … My Gamer Data, Assets, Layout, Templates; the phone bar reads Add, Assets, Layers, Stages, More (§117).
 - Truth: `wall-assets-background` is ACCEPTED.
 - Product Memory: DEC-0010 and REV-0024 are saved with his approval.
 

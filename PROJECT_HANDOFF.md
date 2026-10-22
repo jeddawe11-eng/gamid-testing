@@ -4791,6 +4791,15 @@ Mazen's task "GAMID — 900px CANVAS TOOLBAR + LANDSCAPE MOBILE REGRESSION FIX".
 - Panel pixel non-regression: 36/36. Background E2E: 73/73. Navigation order: 40/40.
 - `npm run build`: 2,148 tests, 0 failures, 2 pre-existing skips. New guards are in `tests/wall-editor-900-landscape.test.js`.
 
+**Deployment.**
+- Product `b91e4e36db47570416adf37cc4071d3b592f5eb2`, run `39709642185`, successful.
+- The stamp reads `b91e4e3`. The served `/wall-editor/` page, `editor-desktop.css`, `editor-mobile.css` and `mobile-shell.js` are identical to the commit.
+- Live smoke, not signed in:
+  - 900px: the canvas bar wraps;
+  - 844×390: the selection bar is a 204px wrapping block, and the keyboard sheet's top is 44px;
+  - no page errors.
+- No migration and no Edge Function change. Not merged; Production untouched.
+
 **Not changed (reported).** In portrait at 360–375px the selection strip scrolls sideways to reach Deselect (identical on the baseline). iOS Safari and a physical device are not tested.
 
 GamID Truth: NO CHANGE REQUIRED. B1 brings the code into line with the existing `wall-mobile-keyboard-a11y` contract; A and B2 are presentation fixes that no contract describes.
