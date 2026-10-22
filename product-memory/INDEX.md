@@ -76,12 +76,15 @@ Rules:
 | Prefix | Category | Folder | Last issued |
 |---|---|---|---|
 | DIS | Discussions | discussions/ | DIS-0003 |
-| DEC | Decisions | decisions/ | DEC-0010 |
+| DEC | Decisions | decisions/ | DEC-0011 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0016 |
 | REV | Reviews | reviews/ | REV-0024 |
 
 ## Register
+
+2026-10-22: Mazen approved the Wall Stages design - My Stage and Friends Stage, at most 3 stages with at least one My Stage, owner-approved friends' stickers, official-catalog backgrounds on Friends Stages, and no deletion / conversion of a Friends Stage while it has active stickers - and approved saving it as DEC-0011 (APPROVED, authorization NONE). Design only: nothing implemented; sticker durations, economics and the full Friends Stickers system remain separate work. GamID Truth unchanged (it records implemented product state).
+- The ISS-0016 checkpoint was written as the full SHA of the same commit (b91e4e36db47570416adf37cc4071d3b592f5eb2), with Mazen's approval, to fix validation; content unchanged.
 
 2026-10-22: Mazen approved saving ISS-0016 as FIXED after Claude's TESTING deployment of the 900px canvas toolbar and landscape phone fixes (b91e4e3). Manual mobile acceptance remains pending; no GamID Truth change required.
 
@@ -205,3 +208,4 @@ Status stays DISCUSSION; there is no implementation authorization.
 | ISS-0016 | Wall editor canvas bar clipped at 900px; landscape phone keyboard sheet and selection bar | FIXED | [ISS-0016-wall-editor-900-landscape.md](issues/ISS-0016-wall-editor-900-landscape.md) |
 | DEC-0010 | Background inside Assets — one home for uploaded Wall media and the Wall background | ACCEPTED | [DEC-0010-background-inside-assets.md](decisions/DEC-0010-background-inside-assets.md) |
 | REV-0024 | Background inside Assets — final TESTING acceptance | COMPLETED | [REV-0024-background-inside-assets-final-acceptance.md](reviews/REV-0024-background-inside-assets-final-acceptance.md) |
+| DEC-0011 | Wall Stages — My Stage and Friends Stage (stage types, sticker moderation, conversion rules) | APPROVED | [DEC-0011-wall-stages-my-stage-friends-stage.md](decisions/DEC-0011-wall-stages-my-stage-friends-stage.md) |
