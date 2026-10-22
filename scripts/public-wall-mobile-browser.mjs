@@ -36,7 +36,7 @@ export async function launch() { browser ??= await chromium.launch({ channel: pr
 export async function close() { await browser?.close(); browser = null; }
 
 // Opens the visitor page for one fixture Wall at one size. -> { context, page, errors, requests } (requests: every mocked read, in order, with its kind)
-export async function open(scenario, { width, height, mobile = width < 1024, reducedMotion = "no-preference", live = false, wall = true, doc: docOverride = null, failMedia = new Set(), drawn = true, intro = false, from = null } = {}) {
+export async function open(scenario, { width, height, mobile = width < 1024, reducedMotion = "no-preference", live = process.env.GAMID_WALL_LIVE === "1", wall = true, doc: docOverride = null, failMedia = new Set(), drawn = true, intro = false, from = null } = {}) {
   await launch();
   const doc = docOverride ?? SCENARIOS[scenario]();
   const published = wall ? [{ document: doc, assets: assetsFor(doc), published_at: "2026-10-22T00:00:00Z" }] : [];

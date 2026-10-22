@@ -4805,3 +4805,49 @@ Mazen's task "GAMID — 900px CANVAS TOOLBAR + LANDSCAPE MOBILE REGRESSION FIX".
 GamID Truth: NO CHANGE REQUIRED. B1 brings the code into line with the existing `wall-mobile-keyboard-a11y` contract; A and B2 are presentation fixes that no contract describes.
 
 Product Memory: PROPOSED (an ISS record; not saved).
+
+## 119. Mobile Public Wall Visitor V2 (2026-10-22, PENDING Mazen's acceptance)
+
+Mazen's task "GAMID — MOBILE PUBLIC WALL VISITOR V2". The branch is `feature/mobile-public-wall-visitor-v2` (from `0e5ec45`); product `f62a1ff2c801b2879dfcb41f4962b51bf3c498be`. Details are in `docs/PUBLIC-WALL-MOBILE-V2.md`.
+
+**Audit (before).**
+- Working: portrait phones, content rendering, media rules and access.
+- Missing: stage navigation.
+- Requiring adaptation:
+  - landscape phones: each stage painted at full width, 844×1501 at 844×390, about four screens per stage;
+  - safe areas.
+- Broken:
+  - rotation lost the visitor's stage (measured: from stage 2 to stage 1);
+  - any resize destroyed open players, including fullscreen ones;
+  - a Wall the page cannot draw left an empty page.
+
+**Changes** (phones only; tablets and desktops have identical geometry to the baseline):
+- one whole stage per screen (stable `svh` height and safe areas): landscape Fit by default, with Wide;
+- a stage navigator (Previous / `N / M` / Next; a bar in portrait, a rail in landscape);
+- rotation and Fit / Wide keep the stage and place, and videos continue;
+- no repaint under a fullscreen player, and an inline player is kept until it is closed;
+- a plain message for a Wall that cannot be drawn.
+
+Same renderer, snapshot, data and media rules; no backend change. A first version used scroll snapping; the E2E caught it fighting the visitor at Replay Intro, and it was removed before delivery.
+
+**Validation:**
+- `scripts/public-wall-mobile-check.mjs` (local fixtures, Chrome emulation): **200 / 200**.
+  - 12 phone sizes;
+  - navigation, rotation, players, states and Intro;
+  - tablet / desktop, with geometry equal to the baseline.
+- `tests/public-wall-mobile-v2.test.js`.
+- `scripts/public-mobile-browser.mjs`: pass.
+- `scripts/public-desktop-browser.mjs` fails identically on the baseline: a pre-existing Classic desktop assertion.
+- `npm run build`: 2,153 tests, 0 failures, 2 pre-existing skips.
+
+**Deployment.**
+- Site `446870a8b7e0cf10704f1727a5fc625ad3088b3c`, run `39769649246`, successful. The stamp reads `446870a`, and the visitor files are byte-identical to the commit.
+- Live smoke (TESTING files, fixture backend): 194 / 194.
+- No real account was opened. GM-TEST-01 has no published Wall.
+- No migration and no Edge Function change. Not merged; Production untouched.
+
+**Product Memory.**
+- ISS-0016 checkpoint written as the full SHA of the same commit, with Mazen's approval (validation fix; it blocked the build).
+- Proposals are pending his approval.
+
+GamID Truth: UPDATED (new `public-wall-mobile-v2`, PENDING_ACCEPTANCE).

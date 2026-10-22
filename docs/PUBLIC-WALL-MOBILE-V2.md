@@ -122,4 +122,13 @@ Everything is in `dist/public/`. Tablets and desktops are unchanged: same column
 
 ## 6. TESTING delivery
 
-See `PROJECT_HANDOFF.md` §119.
+- **Deployment:** site `446870a8b7e0cf10704f1727a5fc625ad3088b3c` (product `f62a1ff`), [run 39769649246](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39769649246), successful.
+- **URL:** <https://gamid-testing-static.gamid.workers.dev/@handle>.
+- **Served files:** the stamp reads `446870a`. `public-wall.js`, `public-wall-nav.js`, `public-wall-mobile.css`, `public.js`, `public.css` and `wall-kit/paint.js` are byte-identical to the commit.
+- **Live smoke:** the same E2E against the files TESTING serves (`GAMID_WALL_LIVE=1`), with the backend still answering from the synthetic fixtures: **194 / 194**.
+  - Covered: all sizes, navigation, rotation, players, states, Intro and tablet / desktop.
+  - Not covered: the media recording and the baseline comparison, which are local-only.
+- **Not done:**
+  - No real account's Wall was opened.
+  - The approved fixture account GM-TEST-01 has no published Wall (its GamID is DRAFT), and publishing one needs a sign-in as that persona, which the agent does not do.
+- See `PROJECT_HANDOFF.md` §119.
