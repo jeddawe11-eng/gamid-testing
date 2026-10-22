@@ -11,7 +11,7 @@ save_approval: Mazen 2026-10-22
 kind: BUG
 authorization: Mazen 2026-10-22 authorized the focused 900px toolbar and landscape regression fix on TESTING
 truth_refs: [wall-editor-mobile-v2, wall-assets-background]
-checkpoints: [b91e4e3]
+checkpoints: [b91e4e36db47570416adf37cc4071d3b592f5eb2]
 sources: [docs/WALL-EDITOR-900-LANDSCAPE-FIXES.md, PROJECT_STATE.md]
 ---
 
@@ -33,4 +33,4 @@ Status **FIXED**, not VERIFIED: Mazen approved saving the repair record but defe
 
 - 2026-10-22 OPEN — Previously reported 900px toolbar overflow and four landscape phone E2E failures were selected for investigation.
 - 2026-10-22 AUTHORIZED — Mazen authorized targeted diagnosis, real defect fixes, test corrections and TESTING deployment.
-- 2026-10-22 FIXED — Claude reported deployed fixes at `b91e4e3` (run `39709642185`), with automated checks passing; manual acceptance pending. Mazen explicitly approved saving this record as FIXED without claiming final verification.
+- 2026-10-22 FIXED — Claude reported deployed fixes at `b91e4e3` (run `39709642185`), with automated checks passing; manual acceptance pending. Mazen explicitly approved saving this record as FIXED without claiming final verification. Same day, the checkpoint was written as the full SHA of the same commit (`b91e4e36db47570416adf37cc4071d3b592f5eb2`, was `b91e4e3`) with Mazen's approval to fix validation; content unchanged.
