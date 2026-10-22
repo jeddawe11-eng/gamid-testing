@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-21",
+  "updated": "2026-10-22",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -1018,6 +1018,38 @@
       ],
       "checkpoint": "ec3fda41f035d519109dd257e157e6b2f6497767",
       "record": "PROJECT_HANDOFF.md §31-§33, §37, §45; Product Memory DEC-0005; Mazen explicitly confirmed full manual testing and final acceptance on TESTING 2026-10-11"
+    },
+    {
+      "id": "public-wall-mobile-v2",
+      "name": "Mobile Public Wall Visitor V2 (the published Wall on a phone)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/@<handle>"
+      ],
+      "contracts": [
+        {
+          "id": "public-wall-mobile-scope",
+          "rule": "Applies only to a visitor's phone showing a published, enabled Wall: viewports below 600px wide, and landscape viewports at most 500px tall and below 1024px wide. Tablets and desktops keep the accepted Wall column (the column's width, 280 to 900px) unchanged. It is a presentation of the same published snapshot through the same renderer, with the same visitor data and media rules (visitor-media-access, wall-video-url-reuse, wall-picture-stage-loading, wall-video-renditions and the viewport-gated Wall videos); no owner control, draft, unpublished stage or private data is shown, and nothing about the owner's saved Wall changes."
+        },
+        {
+          "id": "public-wall-mobile-layout",
+          "rule": "The stages stay one vertical column in the owner's order, each in the Wall's own proportions with every element at its saved coordinates (scaled, never rearranged, stretched or cropped). On a phone each stage is sized so one whole stage fits the screen's stable usable height (without the browser's sliding toolbars and the safe-area insets): in portrait together with the stage bar when the Wall has more than one stage (typical portrait phones keep the full screen width); in landscape the whole stage by default (Fit), or, by the visitor's Wide choice, as wide as the column beside the navigator (at most 900px). The column stays inside the safe area, the page never scrolls sideways, and the page scrolls freely (no scroll snapping)."
+        },
+        {
+          "id": "public-wall-mobile-navigation",
+          "rule": "On a phone, a Wall with more than one stage shows a stage navigator: Previous, the current stage as N / M (the stage under the middle of the screen, following the visitor's own scrolling) and Next, each control at least 44px, Previous / Next disabled at the ends; in portrait a bar under the stage, in landscape a rail beside it that also holds Fit / Wide (a one-stage Wall shows only Fit / Wide, in landscape). Previous / Next move the page to that stage (instantly with reduced motion) and never reorder, hide or repaint anything. The navigator sits above the Wall, below the Intro and the visitor's Back to @previous, is never shown while the Intro plays or replays, and makes no sound."
+        },
+        {
+          "id": "public-wall-mobile-orientation",
+          "rule": "A rotation, another phone size or Fit / Wide repaints the Wall at its new size and brings the visitor back to the same stage and place in it; background and layer videos keep playing the same elements. Nothing is repainted while a player is fullscreen, and an open inline player keeps playing (the painted Wall is only scaled) until it is closed; the repaint follows then."
+        },
+        {
+          "id": "public-wall-unavailable-state",
+          "rule": "At every size, a published Wall the visitor's page cannot draw shows a plain message (\"This Wall can't be shown right now. Please try again later.\") instead of an empty page; no technical detail is shown."
+        }
+      ],
+      "checkpoint": "f62a1ff2c801b2879dfcb41f4962b51bf3c498be",
+      "record": "docs/PUBLIC-WALL-MOBILE-V2.md; PROJECT_HANDOFF.md section 119. Implemented under Mazen's task of 2026-10-22 (Mobile Public Wall Visitor V2, TESTING only). Browser emulation (Chrome) with synthetic fixtures; no physical device, iOS Safari not tested. Awaiting Mazen's manual review and acceptance."
     },
     {
       "id": "public-profile-mobile-v2",
