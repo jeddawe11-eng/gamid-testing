@@ -78,10 +78,12 @@ Rules:
 | DIS | Discussions | discussions/ | DIS-0003 |
 | DEC | Decisions | decisions/ | DEC-0010 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
-| ISS | Issues | issues/ | ISS-0015 |
+| ISS | Issues | issues/ | ISS-0016 |
 | REV | Reviews | reviews/ | REV-0024 |
 
 ## Register
+
+2026-10-22: Mazen approved saving ISS-0016 as FIXED after Claude's TESTING deployment of the 900px canvas toolbar and landscape phone fixes (b91e4e3). Manual mobile acceptance remains pending; no GamID Truth change required.
 
 2026-10-22: Mazen accepted Background inside Assets on TESTING after successfully testing the four scenarios requested of him (93a86d9), authorized the final navigation order (Assets directly above Layout; deployed at c832c5b), and approved saving DEC-0010 and REV-0024. GamID Truth wall-assets-background is ACCEPTED.
 
@@ -200,5 +202,6 @@ Status stays DISCUSSION; there is no implementation authorization.
 | DEC-0008 | Confirm every permanent Wall resource deletion | ACCEPTED | [DEC-0008-universal-permanent-delete-confirmation.md](decisions/DEC-0008-universal-permanent-delete-confirmation.md) |
 | DEC-0009 | Temporary silent GamID interface | ACCEPTED | [DEC-0009-temporary-silent-ui-policy.md](decisions/DEC-0009-temporary-silent-ui-policy.md) |
 | ISS-0015 | Orphan Wall media file continues counting toward storage | VERIFIED | [ISS-0015-orphan-wall-media-storage-accounting.md](issues/ISS-0015-orphan-wall-media-storage-accounting.md) |
+| ISS-0016 | Wall editor canvas bar clipped at 900px; landscape phone keyboard sheet and selection bar | FIXED | [ISS-0016-wall-editor-900-landscape.md](issues/ISS-0016-wall-editor-900-landscape.md) |
 | DEC-0010 | Background inside Assets — one home for uploaded Wall media and the Wall background | ACCEPTED | [DEC-0010-background-inside-assets.md](decisions/DEC-0010-background-inside-assets.md) |
 | REV-0024 | Background inside Assets — final TESTING acceptance | COMPLETED | [REV-0024-background-inside-assets-final-acceptance.md](reviews/REV-0024-background-inside-assets-final-acceptance.md) |
