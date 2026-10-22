@@ -159,6 +159,8 @@ Mazen's task "GAMID — MY WALL DESKTOP BACKGROUND REDESIGN". It covers organisa
 
 Mazen explicitly accepted the desktop Background visual refinement (product `c59a922`, TESTING run `39199875542`), including consistent scope/type buttons, collapsible Images and Videos, aligned asset cards, and Fit & Position / Appearance sections. This is scoped UI acceptance, not acceptance of the entire Wall Editor. Mobile/tablet UI and background behavior are unchanged. Product Memory `REV-0016`; GamID Truth unchanged because no authoritative capability or contract changed.
 
+*Later (2026-10-21/22):* the Background panel now lives inside Assets as its Background area. It keeps the same controls, and the same CSS rules re-scoped from `[data-tool-panel="background"]` to `[data-assets-area="background"]`. There is no separate Background rail tool any more. See `docs/WALL-BACKGROUND-INSIDE-ASSETS.md`; GamID Truth `wall-assets-background` (PENDING_ACCEPTANCE).
+
 ## My Gamer Data panel (2026-10-19)
 
 Mazen's task "GAMID — MY GAMER DATA — PHASE 1 IMPLEMENTATION": desktop only (900px and wider). Phase 1 of `docs/CLASSIC-WALL-IMPORT-AUDIT.md`. Product `e1a43c22d06526e498cdb67326ce90733d83b2db`, TESTING run `39203875352`.

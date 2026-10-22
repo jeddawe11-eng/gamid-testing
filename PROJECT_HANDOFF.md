@@ -4707,3 +4707,38 @@ GamID Truth: UPDATED.
 - New `silent-ui-policy` (PENDING_ACCEPTANCE).
 
 Product Memory: PROPOSED (DEC-0008 revised, DEC-0009 new, ISS-0015), not saved.
+## 116. Background inside Assets + Product Memory validation repair (2026-10-21/22, PENDING Mazen's acceptance)
+
+Mazen's task "GAMID — BACKGROUND INSIDE ASSETS" (TESTING only). Branch `feature/background-inside-assets`, from `52da242`; not merged. Full record: `docs/WALL-BACKGROUND-INSIDE-ASSETS.md`.
+
+**What changed** (product `a623067`):
+- Assets is the one tool for uploaded Wall media and the Wall background, with two areas: My Assets and Background.
+- The standalone Background tool is gone from the desktop / tablet rail and the phone More sheet. Old "background" openers land on Assets › Background.
+- Every Background control, id and behaviour is kept; the accepted desktop styling is the same rules re-scoped to the area.
+- My Assets cards offer explicit **Add to Canvas** and **Set as Background** (the same stored file, the Background scope, no copy).
+- Background offers Upload image / Upload image or video through the same asset store, one upload at a time, assigned to the intended scope.
+- Phone Assets controls are 44 px touch targets.
+
+**Product Memory validation repair** (`93a86d9`, authorized by Mazen 2026-10-22). It unblocked the deploy, which runs the full suite. The failures came from `52da242`:
+- DEC-0008, DEC-0009 and ISS-0015 histories began at their final status; their real 2026-10-21 steps are now recorded.
+- ISS-0015 had a short checkpoint, now the full SHA.
+- The DEC counter counted DEC-0007, which was saved only on `feature/f8b1-video-renditions` (`d41a378`). DEC-0007 and REV-0023 (which it cites) were carried byte-for-byte, except the short checkpoint `764e3b8` expanded to the full SHA. The REV counter is now REV-0023.
+- A blank line inside the Register table was removed.
+
+No decision, status, approval or acceptance changed; no merge. Product Memory now validates: 53 records. The F8-B1 branch itself still carries the short `764e3b8` in those two records, and fails validation there until the same one-line fix is applied.
+
+**Validation:**
+- `npm run build` (lint, both typechecks, 2142 tests, 0 failures, 2 pre-existing skips);
+- lab browser E2E 73/73 (not signed in, not TESTING);
+- other panels pixel-identical to the baseline, 36/36 (timing noise in some runs);
+- phone workflow 71/71 at 390×844 and 360×640.
+
+**Pre-existing and unchanged:** the canvas bar overflows at a 900 px desktop width; 4 landscape gesture / keyboard script failures (identical in the baseline).
+
+**Deployment:** site `93a86d99240945d144499e1e66e2b68ad3f9771b`, run `39699314811`. Stamp verified; the changed modules are identical to the tested code; the live editor has no Background rail / More entry and has the Assets switch. No migration and no Edge Function change.
+
+GamID Truth: UPDATED.
+- New `wall-assets-background` (PENDING_ACCEPTANCE; contracts `assets-background-navigation`, `-preserved`, `shared-library`).
+- `wall-editor-mobile-v2`: `wall-mobile-toolbars` and `wall-mobile-sheets` updated, checkpoint `93a86d9`.
+
+Product Memory: SAVED (validation repair only, as authorized); PROPOSED DEC-0010 (Background inside Assets), not saved.

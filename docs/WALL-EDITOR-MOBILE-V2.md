@@ -86,7 +86,7 @@ There is no mobile document format: a Wall edited on a phone reopens identically
     - thumbnails, Add;
     - IN USE and delete safeguards;
     - the existing size limits text.
-  - **More:** Text & fonts (with font search, My Fonts and upload, and the Text Effects list), Media & Links, Shapes (the full shape library; the Freeform pen stays a desktop tool), GamID, Background, Templates, Multi-select.
+  - **More:** Text & fonts (with font search, My Fonts and upload, and the Text Effects list), Media & Links, Shapes (the full shape library; the Freeform pen stays a desktop tool), GamID, Templates, Multi-select. *(Since 2026-10-21 Background is no longer here: it is the Background area of the Assets sheet, see `docs/WALL-BACKGROUND-INSIDE-ASSETS.md`.)*
 - **Edit (Properties) sheet:** the same controls, common ones first. Collapsible:
   - **Text effects** (Outline, Shadow, Neon glow, **Living Fire** with all its settings, Gradient fill);
   - **Position & size** (X / Y / W / H, rotation, size steps, **Nudge** by 1 or 10 units);

@@ -84,7 +84,8 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **Universal Delete UX and silent UI accepted by Mazen on TESTING 2026-10-21 (no new deployment; Product Memory DEC-0008, DEC-0009, ISS-0015). TESTING serves `da4cc5a2f1ad785260309cb6022cdebbba6a6dd1`** (successful run `39616006123`, from `feature/universal-delete-ux`: Universal Delete UX with every deletion confirmed + silent UI policy, `PROJECT_HANDOFF.md` §115; no migration). Before it: `54e3b43` (run `39595702093`, §114; migrations `20261022100000` and `20261022110000` applied; `usage-upload` v13). It contains everything F8-B1 deployed (worker image from `3bb2871`, `wall-asset-register` v13, `public-media` v3).
+- **TESTING serves `93a86d99240945d144499e1e66e2b68ad3f9771b`** (successful run `39699314811`, from `feature/background-inside-assets`: Background inside Assets, product `a623067`, plus the Product Memory validation repair; `PROJECT_HANDOFF.md` §116; no migration, no Edge Function change). It contains everything below.
+- **Universal Delete UX and silent UI accepted by Mazen on TESTING 2026-10-21 (no new deployment; Product Memory DEC-0008, DEC-0009, ISS-0015). Previously served `da4cc5a2f1ad785260309cb6022cdebbba6a6dd1`** (successful run `39616006123`, from `feature/universal-delete-ux`: Universal Delete UX with every deletion confirmed + silent UI policy, `PROJECT_HANDOFF.md` §115; no migration). Before it: `54e3b43` (run `39595702093`, §114; migrations `20261022100000` and `20261022110000` applied; `usage-upload` v13). It contains everything F8-B1 deployed (worker image from `3bb2871`, `wall-asset-register` v13, `public-media` v3).
 - **Previously served `764e3b8b55eac2ea21a956a38403f0a75f4c043e`** (successful run `39543363692`, from `feature/f8b1-video-renditions`: F8-B1, `PROJECT_HANDOFF.md` §110–§112; migration `20261021120000` applied).
 - **Previously served `5600d0677c5f68a4b9a81c418d644173dfeaf662`** (successful run `39492020998`, F8-A fast-start MP4 uploads, product `51e3972`, `PROJECT_HANDOFF.md` §106).
 - **Previously served `97b3fdc5dc6e4725debf8a21154d82210499851e`** (successful run `39486918858`, F7-A stage-aware Wall pictures + F7-C same-art cover thumbnails, `PROJECT_HANDOFF.md` §105).
@@ -148,7 +149,17 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-21, Universal Delete UX final adjustments deployed, PENDING_ACCEPTANCE):** Mazen's two adjustments are live on TESTING at `da4cc5a` (§115, `docs/UNIVERSAL-DELETE-UX.md` §11):
+**Latest continuation (2026-10-22, Background inside Assets deployed, PENDING_ACCEPTANCE):** Background now lives inside Assets (My Assets + Background) on desktop and phone. It is live on TESTING at `93a86d9` from `feature/background-inside-assets` (not merged; §116, `docs/WALL-BACKGROUND-INSIDE-ASSETS.md`).
+- Truth: new `wall-assets-background` (PENDING_ACCEPTANCE); the `wall-editor-mobile-v2` navigation contracts are updated.
+- Product Memory: a validation-only repair with Mazen's authorization (DEC-0008, DEC-0009 and ISS-0015 histories; DEC-0007 and REV-0023 carried from the F8-B1 branch); 53 records validate.
+
+**Next:**
+1. Mazen's signed-in acceptance pass (doc §7).
+2. His save decision on the proposed DEC-0010.
+
+Then the separately planned tasks: Mobile Public Wall Visitor, Shape Image Fill, the mobile regression task.
+
+**Previous continuation (2026-10-21, Universal Delete UX accepted by Mazen; recorded in 52da242):** Mazen's two adjustments are live on TESTING at `da4cc5a` (§115, `docs/UNIVERSAL-DELETE-UX.md` §11):
 - every permanent deletion is confirmed (simply when unused);
 - the interface is silent: the audit found no UI sound, and a guard test keeps it so; the Intro keeps its audio.
 
