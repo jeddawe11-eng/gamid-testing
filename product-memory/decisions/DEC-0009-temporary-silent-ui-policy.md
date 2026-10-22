@@ -3,7 +3,7 @@ id: DEC-0009
 title: Temporary silent GamID interface
 status: ACCEPTED
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-22
 scope: GamID-wide UI feedback and Intro audio
 summary: GamID-owned interface interactions remain silent, with Intro audio exempt and user/provider media unchanged.
 related: [DEC-0008]
@@ -35,4 +35,7 @@ A silent interface avoids distracting effects. The shipped-code audit found no a
 
 ## History
 
+- 2026-10-21 APPROVED — Mazen approved the temporary silent-UI policy, Intro exempt, in his task "Universal Delete UX Final Adjustments + Silent UI Policy" (PROJECT_HANDOFF.md §115).
+- 2026-10-21 AUTHORIZED — The same task authorized its implementation and TESTING deployment.
+- 2026-10-21 IMPLEMENTED — The shipped-code audit found no application-owned UI sound; the regression guard was deployed with TESTING at da4cc5a2f1ad785260309cb6022cdebbba6a6dd1 (run 39616006123).
 - 2026-10-21 ACCEPTED — TESTING deployed at da4cc5a2f1ad785260309cb6022cdebbba6a6dd1; Mazen confirmed the final pass and approved saving.

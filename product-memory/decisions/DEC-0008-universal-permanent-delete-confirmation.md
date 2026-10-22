@@ -3,7 +3,7 @@ id: DEC-0008
 title: Confirm every permanent Wall resource deletion
 status: ACCEPTED
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-22
 scope: Wall Editor Assets, Background, custom fonts
 summary: Every permanent media or custom font deletion requires confirmation, with a usage-aware warning and irreversible deletion.
 related: [ISS-0015]
@@ -35,4 +35,7 @@ Protect against accidental permanent loss while retaining clear explanations whe
 
 ## History
 
+- 2026-10-21 APPROVED — Mazen approved confirming every permanent deletion in his task "Universal Delete UX Final Adjustments + Silent UI Policy", revising the same day's first universal deletion contract (PROJECT_HANDOFF.md §113, §115).
+- 2026-10-21 AUTHORIZED — The same task authorized its implementation and TESTING deployment.
+- 2026-10-21 IMPLEMENTED — Deployed to TESTING at da4cc5a2f1ad785260309cb6022cdebbba6a6dd1 (run 39616006123; no migration).
 - 2026-10-21 ACCEPTED — Implemented and deployed to TESTING at da4cc5a2f1ad785260309cb6022cdebbba6a6dd1; Mazen manually confirmed the revised behavior and approved this memory save.

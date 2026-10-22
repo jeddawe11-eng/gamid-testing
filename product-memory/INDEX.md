@@ -79,11 +79,19 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0009 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0015 |
-| REV | Reviews | reviews/ | REV-0022 |
+| REV | Reviews | reviews/ | REV-0023 |
 
 ## Register
 
+2026-10-22: With Mazen's explicit authorization, validation-only repairs; no decision, status, approval or acceptance changed:
+- DEC-0008, DEC-0009 and ISS-0015 had a History that began at their final status. Their real earlier steps of 2026-10-21 are now recorded (APPROVED → AUTHORIZED → IMPLEMENTED → ACCEPTED; OPEN → AUTHORIZED → FIXED → VERIFIED), from PROJECT_HANDOFF.md §113–§115.
+- ISS-0015's short checkpoint is now the full SHA.
+- The DEC counter here already counted DEC-0007, which had been saved on the separate F8-B1 branch (feature/f8b1-video-renditions, d41a378) only. DEC-0007 and REV-0023, which it cites, are carried here unchanged except their short checkpoint 764e3b8, now the full SHA (d41a378 itself fails validation on that). The REV counter follows (REV-0023). No branch was merged.
+- A blank line that split the Register table was removed.
+
 2026-10-21: Mazen accepted Universal Delete UX on TESTING and approved saving DEC-0008, DEC-0009 and ISS-0015. The two deletion/silent UI capabilities are ACCEPTED in GamID Truth; the existing custom-fonts capability remains independently pending.
+
+2026-10-21: Mazen explicitly approved saving F8-B1's accepted conditional visitor-rendition contract (DEC-0007) and final TESTING acceptance evidence (REV-0023). These document the already accepted scope; no new implementation, deployment or Production authorization. (Saved on feature/f8b1-video-renditions, d41a378.)
 
 2026-10-21: At Mazen's request, IDEA-0003 (Discord LFG Bot, saved earlier the same day with his approval) was corrected to pass validation:
 - template sections added, with the content unchanged and moved under subheadings;
@@ -185,7 +193,8 @@ Status stays DISCUSSION; there is no implementation authorization.
 | REV-0016 | Desktop Background panel redesign - final acceptance | COMPLETED | [REV-0016-desktop-background-final-acceptance.md](reviews/REV-0016-desktop-background-final-acceptance.md) |
 | REV-0021 | Public Wall bandwidth baseline before F6–F8 | COMPLETED | [REV-0021-public-wall-bandwidth-baseline.md](reviews/REV-0021-public-wall-bandwidth-baseline.md) |
 | REV-0022 | F1–F8 Final Bandwidth Benchmark | COMPLETED | [REV-0022-f1-f8-final-bandwidth-benchmark.md](reviews/REV-0022-f1-f8-final-bandwidth-benchmark.md) |
-
+| DEC-0007 | F8-B1 conditional internal visitor renditions — quality and storage contract | ACCEPTED | [DEC-0007-f8b1-conditional-visitor-renditions.md](decisions/DEC-0007-f8b1-conditional-visitor-renditions.md) |
+| REV-0023 | F8-B1 conditional video renditions — final TESTING acceptance | COMPLETED | [REV-0023-f8b1-final-testing-acceptance.md](reviews/REV-0023-f8b1-final-testing-acceptance.md) |
 | DEC-0008 | Confirm every permanent Wall resource deletion | ACCEPTED | [DEC-0008-universal-permanent-delete-confirmation.md](decisions/DEC-0008-universal-permanent-delete-confirmation.md) |
 | DEC-0009 | Temporary silent GamID interface | ACCEPTED | [DEC-0009-temporary-silent-ui-policy.md](decisions/DEC-0009-temporary-silent-ui-policy.md) |
 | ISS-0015 | Orphan Wall media file continues counting toward storage | VERIFIED | [ISS-0015-orphan-wall-media-storage-accounting.md](issues/ISS-0015-orphan-wall-media-storage-accounting.md) |
