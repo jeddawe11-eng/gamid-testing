@@ -4851,3 +4851,39 @@ Same renderer, snapshot, data and media rules; no backend change. A first versio
 - Proposals are pending his approval.
 
 GamID Truth: UPDATED (new `public-wall-mobile-v2`, PENDING_ACCEPTANCE).
+
+## 120. Wall Stages V2: My Stage / Friends Stage, the stage allowance and the empty Friends Stage (2026-10-22/23, PENDING Mazen's acceptance)
+
+Mazen's tasks "GAMID — WALL STAGES V2" (implementation, the empty Friends Stage UX, release). Product Memory DEC-0011. Details are in `docs/WALL-STAGES-V2.md`.
+
+**What it does:**
+- Every stage is a My Stage (no type, so every existing stage) or a Friends Stage.
+- The maximum is 3 stages in total; 3/0, 2/1 and 1/2 (My/Friends) are valid, and at least one My Stage always remains. A Friends Stage is optional: new stages are My Stages, and only the owner's explicit choice makes one.
+- A Friends Stage holds no owner element or background and never shows the owner's Whole-Wall background.
+- An empty one shows a display-only message: for visitors "Good friends leave their mark! ✨", for the owner (editor and Preview) "Waiting for your squad! 🎮".
+- One server function decides the allowance (3 for everyone; Free 3 / Pro 5 later, Pro not implemented). Save and publish refuse `WALL_STAGE_LIMIT` unless the Wall does not grow; nothing is ever cut.
+- Guards: never the last My Stage; only an empty stage becomes a Friends Stage; active stickers would block conversion and deletion (none can exist yet); no template lands on a Friends Stage.
+
+**Not implemented:** the Friends Stickers system, Premium, Pro and the official background catalog (a Friends Stage keeps the plain stage colour).
+
+**Release (2026-10-23):**
+- Product `4be5bfc5b5ae45d59ca4e3871d0dcaeac7e254d7`, Product Memory `4c97ed9`.
+- Migrations `20261022120000_wall_stage_types` and `20261022120100_wall_public_publishing_stage_limit` applied in one transaction and recorded in the history.
+- Every stored Wall (5 drafts, 2 publications) is byte-identical before and after.
+- Site `4c97ed9c4ba7bc5a4d0481cac6ed58b985f516b9`, run `39821008183`, successful. The stamp reads `4c97ed9`, and the changed files are byte-identical.
+
+**Validation:**
+- Build: 2,174 tests, 0 failures.
+- Database rehearsal and live checks: publishing 44/44; W2 shows only its 5 failures that also occur on the baseline.
+- Lab E2E: stages 42/42, backgrounds 12/12, owner empty state 36/36, Background inside Assets 73/73.
+- Visitor empty state 70/70 (also on the live files); mobile visitor 173/173 on the live files.
+- Live editor and public pages show no errors.
+- No signed-in owner session, physical device or iOS Safari was tested.
+
+GamID Truth: UPDATED.
+- New `wall-stage-types` (PENDING_ACCEPTANCE, limit `wallStagesMax` 3).
+- `wall-editor-stages-bar` / `stages-add-appends` now reads "a My Stage ... when the owner's stage allowance allows".
+
+Product Memory: SAVED, with Mazen's approval: DEC-0011 updated (tier direction, optional Friends Stage, the empty Friends Stage message). It is IMPLEMENTED, not accepted.
+
+Not merged; Production untouched.

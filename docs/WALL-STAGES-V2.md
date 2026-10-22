@@ -2,10 +2,10 @@
 
 Mazen's task "GAMID — WALL STAGES V2" (2026-10-22), TESTING only. The design is Product Memory **DEC-0011**.
 
-**Status (2026-10-22): implemented and validated locally only.**
-- Not committed.
-- The two migrations are **not applied**.
-- Nothing is deployed to TESTING.
+**Status (2026-10-23): deployed to TESTING; PENDING Mazen's acceptance.**
+- Product `4be5bfc5b5ae45d59ca4e3871d0dcaeac7e254d7`; site `4c97ed9c4ba7bc5a4d0481cac6ed58b985f516b9` (run `39821008183`).
+- Both migrations are **applied** to TESTING, and every stored Wall is byte-identical before and after (§6).
+- Truth: `wall-stage-types`, PENDING_ACCEPTANCE.
 - Not accepted.
 
 ## 1. Behaviour
@@ -43,7 +43,7 @@ Mazen's task "GAMID — WALL STAGES V2" (2026-10-22), TESTING only. The design i
 | Stage allowance | `ops.addStage(doc, { limit })`; the editor passes the server's allowance | `save_my_wall_draft_impl` and `publish_my_wall_impl` refuse more stages than the allowance with `WALL_STAGE_LIMIT` (detail = the allowance), unless the Wall does not grow. Nothing is ever cut. |
 | Conversion / deletion | `ops.setStageType`, `ops.deleteStage`, `templates/apply.js` | Covered by the document rules: a Friends Stage can never hold elements or a background, and a Wall never lacks a My Stage |
 
-**Migrations** (not applied):
+**Migrations** (applied to TESTING 2026-10-23, §6):
 - `20261022120000_wall_stage_types.sql`: the type rules, the allowance function, the save limit and the owner's allowance RPC.
 - `20261022120100_wall_public_publishing_stage_limit.sql`: the publish limit.
 
@@ -70,7 +70,7 @@ Below 1200px, Move earlier / Move later / Delete show their short icon labels (a
 - its panel takes the place of every tool panel: the explanation, the catalog (Free / Premium, "not available yet") and Make this a My Stage;
 - the canvas shows a Friends Stage note.
 
-## 3a. The empty Friends Stage message (Mazen's UX addition, 2026-10-23; local only, not deployed)
+## 3a. The empty Friends Stage message (Mazen's UX addition, 2026-10-23; on TESTING, pending acceptance)
 
 **A Friends Stage is optional.**
 - A Wall's 3 stages are any mix with at least one My Stage. New stages are My Stages.
@@ -135,3 +135,39 @@ Below 1200px, Move earlier / Move later / Delete show their short icon labels (a
 | Public visitor with a Friends Stage | 23/23 |
 
 **Panel pixel comparison:** every panel at every size can be captured byte-identical to the baseline. The occasional mismatches are capture noise: a maximum channel difference of 2, also seen between two captures of the same build.
+
+## 6. TESTING delivery (2026-10-23)
+
+**Commits and deployment.**
+- Branch `feature/mobile-public-wall-visitor-v2`, not merged.
+- Product commit `4be5bfc`; Product Memory `4c97ed9`.
+- Site deployed from `4c97ed9c4ba7bc5a4d0481cac6ed58b985f516b9`: [run 39821008183](https://github.com/jeddawe11-eng/gamid-testing/actions/runs/39821008183), successful, at <https://gamid-testing-static.gamid.workers.dev/wall-editor/> and `/@handle`.
+
+**Migrations.**
+- `20261022120000_wall_stage_types` and `20261022120100_wall_public_publishing_stage_limit`, applied together in one transaction, then recorded in the migration history (`migration repair`).
+- Before applying: the three live functions they replace were byte-identical to the definitions they were built from, and the files are pure ASCII.
+
+**Database after the migration.**
+- The allowance is 3. `get_my_wall_stage_allowance` is callable by signed-in owners only, never by anon; the rules are not client-executable.
+- Live probes refuse a Friends Stage element and a Wall with no My Stage.
+- Every stored Wall still validates.
+- **The 5 drafts and 2 publications are byte-identical before and after** (document hashes and revisions).
+
+**Served files.**
+- The stamp reads `4c97ed9`.
+- The changed editor, wall-kit, wall and public files and `/wall-editor/` are byte-identical to the commit.
+
+**Post-deployment checks:**
+
+| Check | Result |
+|---|---|
+| `wall-publishing-db.sql` on the migrated database (rolled back) | 44/44 |
+| `wall-w2-db.sql` | Every stage step and corpus parity pass; the 5 failures that also occur on the baseline are storage counts and custom-font fixtures |
+| Live editor page (not signed in): the gate shows, the new markup and modules are served, no page or file errors | 1440×900 and 390×844 pass |
+| Visitor empty-state E2E on the live TESTING files (fixture backend) | 70/70 |
+| Mobile visitor suite on the live files | 173/173 |
+| Pre-release: build | 2,174 tests, 0 failures |
+| Pre-release: lab stages / backgrounds / owner empty state | 42/42, 12/12, 36/36 |
+| Pre-release: Background inside Assets | 73/73 |
+
+**Not tested:** no signed-in owner session on TESTING (the agent does not sign in as personas), no physical device and no iOS Safari.

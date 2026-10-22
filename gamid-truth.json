@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-22",
+  "updated": "2026-10-23",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -506,11 +506,47 @@
         },
         {
           "id": "stages-add-appends",
-          "rule": "Add stage always appends a new empty stage after the last existing stage, whichever stage is open; no existing stage moves, is renumbered relative to the others or changes, and the open stage stays open. Stage order changes only through Stage earlier / Stage later. Add stage is undoable like every edit."
+          "rule": "Add stage always appends a new empty stage (a My Stage) after the last existing stage, whichever stage is open, when the owner's stage allowance allows (wall-stage-types); no existing stage moves, is renumbered relative to the others or changes, and the open stage stays open. Stage order changes only through Stage earlier / Stage later. Add stage is undoable like every edit."
         }
       ],
       "checkpoint": "60ca21ca127b20b1241895e70ec0c889803bef4d",
       "record": "PROJECT_HANDOFF.md section 99; docs/WALL-EDITOR-DESKTOP-REDESIGN.md (Stages bar). Implemented under Mazen's task of 2026-10-20; product 60ca21c, deployed 2430282 (run 39382427651, which also carries the approved REV-0017 validation fix), served files exact. Awaiting Mazen's manual acceptance."
+    },
+    {
+      "id": "wall-stage-types",
+      "name": "Wall Stages V2 - My Stage / Friends Stage and the stage allowance",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/",
+        "/@<handle>"
+      ],
+      "limits": {
+        "wallStagesMax": 3
+      },
+      "contracts": [
+        {
+          "id": "wall-stage-allowance",
+          "rule": "A personal Wall has at most as many stages as its owner's allowance, decided only by the server (one function; today 3 for everyone). The editor shows N / 3 stages and Add stage stops there; the database refuses to save or publish a Wall with more stages (WALL_STAGE_LIMIT). A Wall that already has more stages (an allowance lowered later) is never cut: it can still be saved and published while it does not grow. No plan, entitlement, subscription or billing exists (approved direction: Free 3 / Pro 5; Pro is not implemented). Crew Walls keep their own allowance."
+        },
+        {
+          "id": "wall-stage-type-rules",
+          "rule": "Every stage is a My Stage (no type - every stage saved before stage types) or a Friends Stage. A Wall always keeps at least one My Stage (3/0, 2/1, 1/2 My/Friends valid; 0/3 refused), in the editor and in the database. A My Stage keeps every existing editing capability unchanged."
+        },
+        {
+          "id": "wall-friends-stage",
+          "rule": "A Friends Stage is reserved for friends' stickers (not built yet): the owner places no element and no background of their own on it, and it never shows the owner's Whole-Wall background; while it is open in the editor its panel replaces every tool panel. Its background will come only from the official GamID catalog (Free / Premium), which does not exist yet, so it keeps the plain stage colour. Visitors see it in its place in the owner's order with nothing personal on it. A Friends Stage is optional: new stages are My Stages and only the owner's explicit choice makes one."
+        },
+        {
+          "id": "wall-friends-stage-empty-message",
+          "rule": "A Friends Stage with no visible approved sticker shows a display-only message inside it - visitors: FRIENDS STAGE / Good friends leave their mark! / “This stage is waiting for a little love from friends like you.” / STICKERS COMING SOON; the owner, in the editor and its Preview only: YOUR FRIENDS STAGE / Waiting for your squad! / “Your friends will leave their mark here. Every sticker will tell a story.” / FRIENDS STICKERS - COMING SOON. Never on a My Stage; never a Wall element, layer, asset or stored data; never interactive; no sticker action is offered."
+        },
+        {
+          "id": "wall-stage-conversion",
+          "rule": "The owner changes a stage's type in the Stages bar (desktop / tablet) or the Stages sheet (phone). Nothing on a stage is ever removed to change its type: a stage with elements or its own background cannot become a Friends Stage until the owner moves or deletes them (the editor says what is there); the last My Stage can be neither converted nor deleted; a Friends Stage with active stickers can be neither deleted nor converted (none can exist yet), and deleting a Friends Stage states its active sticker count first. A template never lands on a Friends Stage."
+        }
+      ],
+      "checkpoint": "4be5bfc5b5ae45d59ca4e3871d0dcaeac7e254d7",
+      "record": "docs/WALL-STAGES-V2.md; PROJECT_HANDOFF.md section 120; Product Memory DEC-0011. Implemented under Mazen's tasks of 2026-10-22/23 (GAMID - WALL STAGES V2, TESTING only); product 4be5bfc, site 4c97ed9 (run 39821008183); migrations 20261022120000_wall_stage_types and 20261022120100_wall_public_publishing_stage_limit APPLIED to TESTING 2026-10-23 (every stored Wall unchanged). The Friends Stickers system, Premium, Pro and the official background catalog are not implemented. Awaiting Mazen's manual review and acceptance."
     },
     {
       "id": "wall-editor-mobile-v2",

@@ -84,7 +84,11 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `446870a8b7e0cf10704f1727a5fc625ad3088b3c`** (successful run `39769649246`, from `feature/mobile-public-wall-visitor-v2`, not merged).
+- **TESTING serves `4c97ed9c4ba7bc5a4d0481cac6ed58b985f516b9`** (successful run `39821008183`, from `feature/mobile-public-wall-visitor-v2`, not merged).
+  - What it changes: Wall Stages V2 (product `4be5bfc`): My Stage / Friends Stage, the stage allowance (3), the empty Friends Stage message.
+  - Records: `PROJECT_HANDOFF.md` §120, `docs/WALL-STAGES-V2.md`. Truth: `wall-stage-types` PENDING_ACCEPTANCE.
+  - Migrations `20261022120000_wall_stage_types` and `20261022120100_wall_public_publishing_stage_limit` APPLIED; every stored Wall unchanged. No Edge Function change.
+- **Previously served `446870a8b7e0cf10704f1727a5fc625ad3088b3c`** (successful run `39769649246`, from `feature/mobile-public-wall-visitor-v2`, not merged).
   - What it changes: Mobile Public Wall Visitor V2 (product `f62a1ff`), the published Wall on a phone. It descends from the 900px / landscape fixes below.
   - Records: `PROJECT_HANDOFF.md` §119, `docs/PUBLIC-WALL-MOBILE-V2.md`. Truth: `public-wall-mobile-v2` PENDING_ACCEPTANCE.
   - No migration and no Edge Function change.
@@ -157,7 +161,20 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-22, Mobile Public Wall Visitor V2, PENDING_ACCEPTANCE):** live on TESTING at `446870a` (run `39769649246`) from `feature/mobile-public-wall-visitor-v2` (not merged; §119, `docs/PUBLIC-WALL-MOBILE-V2.md`).
+**Latest continuation (2026-10-23, Wall Stages V2, PENDING_ACCEPTANCE):** live on TESTING at `4c97ed9` (run `39821008183`) from `feature/mobile-public-wall-visitor-v2` (not merged; §120, `docs/WALL-STAGES-V2.md`).
+- Every stage is a My Stage or a Friends Stage. At most 3 stages in total, at least one My Stage; a Friends Stage is optional.
+- The allowance is decided by the server (3 for everyone; Free 3 / Pro 5 later, Pro not implemented).
+- An empty Friends Stage shows a display-only message (owner and visitor wording).
+- Migrations applied; stored Walls unchanged.
+- Truth: `wall-stage-types` PENDING_ACCEPTANCE. Product Memory: DEC-0011 updated with Mazen's approval (IMPLEMENTED).
+- Not built: the Friends Stickers system, Premium, Pro and the official background catalog.
+
+**Next:**
+1. Mazen's manual acceptance of Wall Stages V2.
+2. His acceptance of Mobile Public Wall Visitor V2 (below), still pending.
+3. His decisions on the pending Product Memory proposals (DEC-0012, ISS-0017).
+
+**Previous continuation (2026-10-22, Mobile Public Wall Visitor V2, PENDING_ACCEPTANCE):** live on TESTING at `446870a` (run `39769649246`) from `feature/mobile-public-wall-visitor-v2` (not merged; §119, `docs/PUBLIC-WALL-MOBILE-V2.md`).
 - On phones, the published Wall shows one whole stage per screen (landscape Fit / Wide) with a stage navigator.
 - Rotation keeps the visitor's stage and place, and never interrupts a player.
 - Tablets and desktops are unchanged.

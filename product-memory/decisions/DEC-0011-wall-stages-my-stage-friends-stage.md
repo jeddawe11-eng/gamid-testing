@@ -1,18 +1,18 @@
 ---
 id: DEC-0011
 title: Wall Stages — My Stage and Friends Stage (stage types, sticker moderation, conversion rules)
-status: AUTHORIZED
+status: IMPLEMENTED
 created: 2026-10-22
 updated: 2026-10-23
 scope: GamID Wall stages (owner editor and the future Friends Stickers system)
-summary: A Wall has at most 3 stages, each either a My Stage (the existing personal editing) or a Friends Stage (friends' stickers, owner-approved and owner-removable, official catalog backgrounds only); at least one My Stage always; a Friends Stage with active stickers cannot be deleted or converted until they are gone. Stage allowance 3 for everyone today (approved direction: Free 3 / Pro 5; Pro not implemented). A Friends Stage is optional (only the owner's explicit choice creates one; new stages are My Stages); an empty Friends Stage stays visible with a display-only message. Implementation authorized 2026-10-22; not yet accepted.
+summary: A Wall has at most 3 stages, each either a My Stage (the existing personal editing) or a Friends Stage (friends' stickers, owner-approved and owner-removable, official catalog backgrounds only); at least one My Stage always; a Friends Stage with active stickers cannot be deleted or converted until they are gone. Stage allowance 3 for everyone today (approved direction: Free 3 / Pro 5; Pro not implemented). A Friends Stage is optional (only the owner's explicit choice creates one; new stages are My Stages); an empty Friends Stage stays visible with a display-only message. Implemented on TESTING 2026-10-23 (4c97ed9); not yet accepted.
 related: [DEC-0010, DEC-0008]
 save_approval: Mazen 2026-10-22
 authorization: Mazen 2026-10-22, task "GAMID - WALL STAGES V2" (implementation, testing and TESTING deployment; the Friends Stickers system, Premium and Pro excluded)
 supersedes: []
-truth_refs: [game-id-wall, wall-editor-stages-bar, wall-assets-background, wall-universal-delete]
-checkpoints: []
-sources: [gamid-truth.json, docs/WALL-EDITOR-DESKTOP-REDESIGN.md, docs/WALL-BACKGROUND-INSIDE-ASSETS.md]
+truth_refs: [wall-stage-types, game-id-wall, wall-editor-stages-bar, wall-assets-background, wall-universal-delete]
+checkpoints: [4be5bfc5b5ae45d59ca4e3871d0dcaeac7e254d7, 4c97ed9c4ba7bc5a4d0481cac6ed58b985f516b9]
+sources: [docs/WALL-STAGES-V2.md, gamid-truth.json, PROJECT_HANDOFF.md, docs/WALL-BACKGROUND-INSIDE-ASSETS.md]
 ---
 
 ## Context
@@ -106,3 +106,4 @@ Mazen defined how Wall stages will be divided between the owner's own content an
 - 2026-10-22 PROPOSED — Stage types (My Stage / Friends Stage), the allocation rules, sticker moderation and conversion / deletion rules defined by Mazen.
 - 2026-10-22 APPROVED — Mazen approved the design and its saving as Product Memory. No implementation authorization (`authorization: NONE`); nothing implemented or accepted.
 - 2026-10-22 AUTHORIZED — Mazen authorized the implementation ("GAMID - WALL STAGES V2", TESTING only) and approved the tier direction (current 3 for everyone; future Free 3 / Pro 5; Pro not implemented). The Friends Stickers system, Premium and Pro stay out of scope. 2026-10-23: with Mazen's explicit approval this record also gained G - the Friends Stage is optional and the empty Friends Stage message (owner / visitor wording); the open visitor question is settled.
+- 2026-10-23 IMPLEMENTED — Deployed to TESTING: product 4be5bfc5b5ae45d59ca4e3871d0dcaeac7e254d7, site 4c97ed9c4ba7bc5a4d0481cac6ed58b985f516b9 (run 39821008183); migrations 20261022120000_wall_stage_types and 20261022120100_wall_public_publishing_stage_limit applied, every stored Wall unchanged (PROJECT_HANDOFF.md section 120). Truth wall-stage-types PENDING_ACCEPTANCE. Awaiting Mazen's manual acceptance.
