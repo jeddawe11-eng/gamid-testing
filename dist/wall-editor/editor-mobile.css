@@ -233,7 +233,11 @@ body.is-mw-keyboard .mw-bar, body.is-mw-keyboard .mw-selbar { visibility: hidden
   body[data-mw-sheet] .ed-panel { transform: translateX(calc(100% + 2rem)) !important; }
   .mw-grab { display: none; }
   .mw-sheet-head { padding-top: .2rem; }
-  body.is-mw-keyboard .ed-panel, body.is-mw-keyboard .mw-sheet { top: calc(var(--mtop) + var(--safe-t) + var(--stages)); bottom: var(--mw-kb); height: auto; }
-  .mw-selbar:not([hidden]) { right: auto; max-width: calc(100vw - 1rem); }
+  /* the keyboard: as in portrait, the sheet also covers the Stages bar, so it fills all the space still visible above the keyboard (2026-10-22 fix) */
+  body.is-mw-keyboard .ed-panel, body.is-mw-keyboard .mw-sheet { top: calc(var(--mtop) + var(--safe-t)); bottom: var(--mw-kb); height: auto; }
+  /* the selection bar is a compact block in the left gutter beside the Fit stage, not a strip across the stage's lower part (2026-10-22 fix):
+     the name on its own line, the actions wrapping under it */
+  .mw-selbar:not([hidden]) { right: auto; width: 12.75rem; max-width: calc(50vw - 1rem); flex-wrap: wrap; overflow-x: visible; }
+  .mw-selbar .mw-sel-name { flex: 1 0 100%; max-width: none; padding: .15rem .35rem 0; }
 }
 @media (prefers-reduced-motion: reduce) { .ed-panel, .mw-sheet { transition: none; } }

@@ -4764,3 +4764,35 @@ GamID Truth: UPDATED.
 - In `wall-editor-mobile-v2`, the `wall-mobile-toolbars` bar order is updated (checkpoint `c832c5b`); that capability stays PENDING_ACCEPTANCE.
 
 Product Memory: SAVED (Mazen's approval) DEC-0010 "Background inside Assets" (ACCEPTED) and REV-0024 "final TESTING acceptance" (COMPLETED, PASS); 55 records validate. Not merged; Production untouched.
+
+## 118. Wall editor: 900px canvas toolbar + landscape phone fixes (2026-10-22, PENDING Mazen's acceptance)
+
+Mazen's task "GAMID — 900px CANVAS TOOLBAR + LANDSCAPE MOBILE REGRESSION FIX". The branch is `feature/editor-900-landscape-fixes` (from `735d3e8`; product baseline `c832c5b`). Details are in `docs/WALL-EDITOR-900-LANDSCAPE-FIXES.md`.
+
+**A. Canvas bar at 900–1199px (product).**
+- **Cause.** The canvas column is about 264px wide at 900px. The single-line bar's items could not shrink, and `.ed-center` clips overflow. Status, View public page, Unpublish and "1 selected" were cut off; Unpublish was unreachable up to 1199px.
+- **Fix.** `editor-desktop.css`: the bar wraps, its items stay whole on one line, and sizes are slightly tighter at ≤1099px.
+- **Result.** 0px overflow, nothing clipped or overlapping, from 768 to 1440px in every state.
+
+**B. Landscape phone (844×390 and similar).**
+
+| Check | Root cause | Fix |
+|---|---|---|
+| Drag (5) | Test | The previously added text stayed selected, and its rotate handle lay over t1 on the small Fit stage. The 30px sideways move also exceeded the stage. The test now deselects first and sizes the move. |
+| Resize (6) | Test | Knock-on of the drag failure. |
+| Zoom (7) | Test | Portrait-sized margins left a 45px band. Candidates are now picked point by point, avoiding the real overlays. |
+| Keyboard (8) | Test and product | Test: a realistic keyboard height. Product (B1): the landscape keyboard sheet started below the Stages bar, contrary to `wall-mobile-keyboard-a11y`. It now runs from the top toolbar to the keyboard. |
+
+- **Also fixed (B2, product).** In landscape the selection bar lay across the lower part of the Fit stage and blocked taps there. It is now a compact block in the left gutter.
+- **Baseline check.** The baseline run with the corrected E2E fails only the product checks.
+
+**Validation (lab: real editor code, fake client, Chrome touch emulation; not a device, not signed in):**
+- Phone E2E: 81/81 at each of 844×390, 812×375, 740×360, 360×640 and 390×844. New checks cover the selection bar, rotation with an unsaved edit, and the keyboard sheet filling the space.
+- Panel pixel non-regression: 36/36. Background E2E: 73/73. Navigation order: 40/40.
+- `npm run build`: 2,148 tests, 0 failures, 2 pre-existing skips. New guards are in `tests/wall-editor-900-landscape.test.js`.
+
+**Not changed (reported).** In portrait at 360–375px the selection strip scrolls sideways to reach Deselect (identical on the baseline). iOS Safari and a physical device are not tested.
+
+GamID Truth: NO CHANGE REQUIRED. B1 brings the code into line with the existing `wall-mobile-keyboard-a11y` contract; A and B2 are presentation fixes that no contract describes.
+
+Product Memory: PROPOSED (an ISS record; not saved).

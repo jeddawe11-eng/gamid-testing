@@ -260,3 +260,11 @@ Mazen's task "GAMID — MY WALL EDITOR — FINAL THEME CONSISTENCY PASS". Deskto
   - Stages 40 / 40; Display Style 24 / 24; Shapes and Icon Group pass; Background passes except the known video-frame noise;
   - phone / tablet pixel-identical (390 / 768 / 899 for Layout, Assets, Templates, Background);
   - in the 59-state grid only Layout / Assets / Templates at 1280–1920 changed.
+
+## Canvas bar at 900–1199px (2026-10-22)
+
+The canvas column is only about 264px wide at 900px. The canvas bar used to clip its right end there: the status, View public page, Unpublish and the selection count. It now wraps onto a second row, with its items kept whole on one line, and uses slightly tighter sizes at ≤1099px.
+- Where everything fits, nothing changes.
+- Panel widths and the tool order are unchanged.
+
+See `docs/WALL-EDITOR-900-LANDSCAPE-FIXES.md`.

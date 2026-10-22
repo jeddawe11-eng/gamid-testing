@@ -109,11 +109,19 @@ body[data-tool="gamid"] .ed-rail [data-tool="gamid"] i, body[data-tool="layout"]
 
 /* canvas bar: the existing stage label, Multi-select and status, restyled as the tab strip above the workspace */
 .ed-canvas-bar { gap: .5rem; padding: .4rem .6rem; border-bottom: 1px solid var(--gold-line); background: linear-gradient(180deg, #131838, #0b0f24); }
+/* 900-1100px (2026-10-22 fix): the canvas column can be narrower than the bar's items. They keep their size and one line each, and the bar continues on a
+   second row instead of the column clipping its right end (the status, View public page, Unpublish). Where everything fits, nothing changes. */
+.ed-canvas-bar { flex-wrap: wrap; row-gap: .4rem; }
+.ed-canvas-bar > * { flex: none; white-space: nowrap; }
 .ed-stage-label { padding: .42rem 1rem; border: 1px solid var(--gold); border-radius: .55rem; background: linear-gradient(180deg, rgba(169, 77, 255, .5), rgba(92, 40, 190, .4)); box-shadow: 0 0 .9rem rgba(160, 77, 255, .35); font-family: var(--font-ui); font-size: .92rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #fff; }
 .ed-canvas-bar .ed-btn { min-height: 2.4rem; padding: .3rem .9rem; border: 1px solid var(--gold-line); border-radius: .55rem; background: linear-gradient(180deg, var(--navy-3), var(--navy-2)); font-family: var(--font-ui); font-size: .88rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-dim); }
 .ed-canvas-bar .ed-btn:hover:not(:disabled) { border-color: var(--gold); color: #fff; }
 .ed-canvas-bar .ed-btn[aria-pressed="true"] { border-color: var(--gold); color: #fff; background: linear-gradient(180deg, rgba(169, 77, 255, .5), rgba(92, 40, 190, .4)); box-shadow: 0 0 .9rem rgba(160, 77, 255, .35); }
 .ed-canvas-bar .ed-mini-text { min-height: 2rem; padding: .2rem .7rem; font-size: .76rem; }
+@media (max-width: 1099px) {   /* the same items, a little tighter, so the stage label and Multi-select share the first row */
+  .ed-stage-label { padding: .36rem .6rem; font-size: .8rem; letter-spacing: .06em; }
+  .ed-canvas-bar .ed-btn { padding: .3rem .6rem; font-size: .8rem; letter-spacing: .06em; }
+}
 /* Stages bar (2026-10-20): the same navy / gold / purple language as the canvas bar; one row under the header */
 :root { --stages: 3.3rem; }
 .ed-stage-bar { gap: .55rem; padding: 0 .9rem; border-bottom: 1px solid var(--gold-line); background: linear-gradient(180deg, #10132a, #0a0d20); }

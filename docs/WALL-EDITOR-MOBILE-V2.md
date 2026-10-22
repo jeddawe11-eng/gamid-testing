@@ -163,3 +163,14 @@ There is no mobile document format: a Wall edited on a phone reopens identically
   - `npm test`: 2055 tests, 2054 pass, 0 fail, 1 skipped (pre-existing);
   - `npm run typecheck`, `npm run lint` and `npm run build`: pass.
 - **Screenshots:** `scratchpad mw-review2/` (21 states at 320, 375, 390 and 430, plus landscape and the emulator), via `wallui/mw-shots.mjs`.
+
+## Landscape fixes (2026-10-22)
+
+See `docs/WALL-EDITOR-900-LANDSCAPE-FIXES.md`.
+- In landscape the keyboard sheet now runs from the top toolbar to the keyboard, as in portrait and as `wall-mobile-keyboard-a11y` requires. Before, it started below the Stages bar.
+- The selection quick actions are a compact block in the left gutter beside the Fit stage, not a strip across the stage's lower part.
+- The phone E2E (`wallui/mw-func.mjs`) had portrait-sized geometry assumptions; they were corrected without weakening its assertions. It gained:
+  - selection-bar checks;
+  - a portrait ↔ landscape rotation check with an unsaved edit;
+  - a check that the keyboard sheet fills the space.
+- Result: 81/81 at 844×390, 812×375, 740×360, 360×640 and 390×844.
