@@ -20,6 +20,7 @@ import { loadPublicView, providerLabel, PUBLIC_SOURCE_LABELS, usesGamerSections,
 import { createArtworkStore } from "../wall-kit/gamid-artwork.js";
 import { fetchGameArtwork } from "./game-artwork.js";
 import { gamidHref, crewWallHref } from "./identity-link.js";
+import { createWallStageNav } from "./public-wall-nav.js";
 
 const publishedVideoUrls = createPublishedVideoUrlCache({ baseUrl: defaultApi.SUPABASE_URL });
 export const WALL_MAX_WIDTH = 900;
@@ -145,31 +146,74 @@ const ensureStyles = (doc, hrefs) => {
   }
 };
 
+// Mobile Public Wall Visitor V2 (2026-10-22): the screens that get the phone presentation - portrait phones and landscape phones (at most 500px tall). Tablets and
+// desktops keep the accepted column exactly as before.
+export const WALL_PHONE_QUERY = "(max-width: 599px), (orientation: landscape) and (max-height: 500px) and (max-width: 1023px)";
+// the room the portrait stage bar takes under the stage (public-wall-mobile.css .wall-stage-nav: a 44px button row in a 52px pill, .5rem above the screen's edge):
+// a phone stage is sized so the whole stage AND the bar fit on the screen together
+export const WALL_PHONE_BAR_PX = 64;
+export const WALL_PHONE_MIN_WIDTH = 120;
+
+// The width a stage is painted at. Tablets / desktops: the column's width (280..900px), as before. Phones: no wider than the column, and no taller than the screen
+// (its stable height, so a browser toolbar sliding in or out never repaints the Wall) - the visitor sees one whole stage at a time, in the owner's proportions.
+// Landscape "Wide" fills the column's width instead (the stage is then taller than the screen and scrolls).
+export function stageWidthFor({ column, viewportHeight, canvas, phone, landscape = false, wide = false, multi = false }) {
+  const columnWidth = Math.floor(column || WALL_MAX_WIDTH);
+  if (!phone) return Math.max(WALL_MIN_WIDTH, Math.min(WALL_MAX_WIDTH, columnWidth));
+  const fitsColumn = Math.max(WALL_PHONE_MIN_WIDTH, Math.min(WALL_MAX_WIDTH, columnWidth));
+  if (landscape && wide) return fitsColumn;
+  const ratio = canvas?.width > 0 && canvas?.height > 0 ? canvas.width / canvas.height : 1000 / 1778;
+  const height = Math.max(0, viewportHeight - (!landscape && multi ? WALL_PHONE_BAR_PX : 0));
+  return Math.max(WALL_PHONE_MIN_WIDTH, Math.min(fitsColumn, Math.floor(height * ratio)));
+}
+
 // The Wall's place on the page and its lifecycle: show() paints it (once it is prepared) at the column's width, hide() stops any playing player. Re-paints when the
 // column's width changes (the Wall scales with the page, like Preview's mobile / desktop sizes).
 export function createPublicWallView({ host, prepared, handle, api = defaultApi, doc = document, win = window }) {
-  let players = null, videos = null, details = null, posters = null, paintedWidth = 0, showing = false, resizeTimer = 0;
-  ensureStyles(doc, ["../wall-kit/wall-kit.css", "../wall-kit/game-details.css"]);
-  const width = () => Math.max(WALL_MIN_WIDTH, Math.min(WALL_MAX_WIDTH, Math.floor(host.clientWidth || win.innerWidth || WALL_MAX_WIDTH)));
+  let players = null, videos = null, details = null, posters = null, paintedWidth = 0, showing = false, resizeTimer = 0, column = null, waiting = false, lastReady = null;
+  ensureStyles(doc, ["../wall-kit/wall-kit.css", "../wall-kit/game-details.css", "public-wall-mobile.css"]);
   const make = (tag, className, text) => { const node = doc.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
+  const phoneQuery = typeof win.matchMedia === "function" ? win.matchMedia(WALL_PHONE_QUERY) : null;
+  const phone = () => Boolean(phoneQuery?.matches);
+  const landscape = () => win.innerWidth > win.innerHeight;
+  // the screen's height without the browser's sliding toolbars (100svh); innerHeight where svh is unknown
+  const probe = make("div", "public-wall-vh");
+  probe.setAttribute("aria-hidden", "true");
+  const viewportHeight = () => { if (!probe.isConnected) doc.body.append(probe); return probe.offsetHeight || win.innerHeight || 0; };
+  const nav = createWallStageNav({ doc, win, onWide: () => paint(), topInset: () => (phone() ? parseFloat(win.getComputedStyle?.(host).paddingTop) || 0 : 0) });
+  host.after(nav.element);
+  const columnWidth = () => { const style = win.getComputedStyle?.(host); const pad = style ? (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0) : 0; return (host.clientWidth || win.innerWidth || WALL_MAX_WIDTH) - pad; };
+  const width = ready => stageWidthFor({ column: columnWidth(), viewportHeight: viewportHeight(), canvas: ready?.doc?.canvas, phone: phone(), landscape: landscape(), wide: nav.wide, multi: (ready?.doc?.stages?.length ?? 0) > 1 });
+  const fullscreen = () => Boolean(doc.fullscreenElement || doc.webkitFullscreenElement);
+  const layoutClasses = () => { const root = doc.documentElement; root.classList.toggle("is-wall-phone", phone()); root.classList.toggle("is-wall-phone-wide", phone() && landscape() && nav.wide); };
 
   async function paint() {
     const ready = await prepared;
-    if (!showing || !ready) return;
-    const target = width();
+    if (!showing) return;
+    lastReady = ready;
+    const wasPhone = doc.documentElement.classList.contains("is-wall-phone");
+    layoutClasses();
+    // a Wall that cannot be drawn (it failed validation here, or could not be prepared) says so instead of leaving an empty page
+    if (!ready) { host.replaceChildren(make("p", "public-wall-state", "This Wall can't be shown right now. Please try again later.")); nav.hide(); return; }
+    const target = width(ready);
+    // on a phone a repaint (rotation, Fit / Wide) brings the visitor back to the same stage and place (tablets / desktops: as before)
+    const anchor = column && (wasPhone || phone()) ? nav.anchor() : null;
     players?.destroyAll();
     players = createPlayerManager();
     videos ??= createVideoPool({ viewport: { win, doc } });
     posters ??= createPosterLoader({ endpoint: api.MEDIA_POSTER_URL });
     details ??= createWallDetails({ element: make, handle, api, mount: node => doc.body.append(node), sourceLabels: PUBLIC_SOURCE_LABELS, posters });
     const painted = paintDocument(ready.doc, target, undefined, { mode: "view", assets: ready.assets, gamid: ready.gamid, players, posters, details, videos, artwork: ready.artwork ?? null });
-    if (!painted.ok) return;
-    const column = make("div", "public-wall-column");
+    if (!painted.ok) { host.replaceChildren(make("p", "public-wall-state", "This Wall can't be shown right now. Please try again later.")); nav.hide(); return; }
+    column = make("div", "public-wall-column");
     column.style.setProperty("width", `${target}px`);
     column.append(...painted.stages);
     host.replaceChildren(column);
     videos.resume();
     paintedWidth = target;
+    waiting = false;
+    nav.attach(painted.stages, phone(), landscape());
+    if (anchor) nav.restore(anchor);
     watchStages(ready.pictureLoader, painted.stages);
   }
   // F7-A: a stage's later pictures are fetched once the stage is within one viewport height of the screen (above or below); without IntersectionObserver
@@ -186,14 +230,30 @@ export function createPublicWallView({ host, prepared, handle, api = defaultApi,
     }, { rootMargin: "100% 0px", threshold: 0 });
     for (const stage of stages) stageObserver.observe(stage);
   }
-  const onResize = () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (showing && Math.abs(width() - paintedWidth) > 1) paint(); }, 150); };
+  // A new size (rotation, the column's width, Fit / Wide) repaints the Wall at its new width - except under a player: while a player is fullscreen nothing is
+  // repainted (it would end the fullscreen), and while an inline player is open the painted Wall is only scaled (the player keeps playing). Either way the real
+  // repaint follows as soon as the player is closed or leaves fullscreen.
+  const relayout = () => {
+    if (!showing || !lastReady) return;
+    if (fullscreen()) { waiting = true; return; }
+    layoutClasses();
+    const target = width(lastReady);
+    if (Math.abs(target - paintedWidth) <= 1) { column?.style.removeProperty("zoom"); if (!waiting) return; }
+    if (column && players?.activeProviders?.().length) { column.style.setProperty("zoom", String(target / paintedWidth)); waiting = true; return; }
+    paint();
+  };
+  const onResize = () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(relayout, 150); };
   // the column follows its container's real width (which changes when the page's own scrollbar appears, not only when the window is resized)
   if (typeof win.ResizeObserver === "function") new win.ResizeObserver(onResize).observe(host);
-  else win.addEventListener("resize", onResize);
+  win.addEventListener("resize", onResize);   // a phone's height alone decides its stage size
+  phoneQuery?.addEventListener?.("change", onResize);
+  for (const name of ["fullscreenchange", "webkitfullscreenchange"]) doc.addEventListener(name, () => { if (waiting && !fullscreen()) onResize(); });
+  // a player closed: a repaint that waited for it happens now
+  host.addEventListener("click", () => setTimeout(() => { if (waiting && !players?.activeProviders?.().length && !fullscreen()) relayout(); }, 0), true);
 
   return {
     show() { if (showing) return; showing = true; host.hidden = false; paint(); },
-    hide() { if (!showing) return; showing = false; host.hidden = true; videos?.suspend(); players?.destroyAll(); details?.closeAll?.(); },
+    hide() { if (!showing) return; showing = false; host.hidden = true; videos?.suspend(); players?.destroyAll(); details?.closeAll?.(); nav.hide(); doc.documentElement.classList.remove("is-wall-phone", "is-wall-phone-wide"); },
     get showing() { return showing; },
   };
 }

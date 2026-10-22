@@ -1,0 +1,39 @@
+/* MOBILE PUBLIC WALL VISITOR V2 (2026-10-22) - the published Wall on a phone (public-wall.js WALL_PHONE_QUERY: html.is-wall-phone). Loaded with the Wall
+   (public-wall.js ensureStyles), never by a GamID without a published Wall. Tablets and desktops keep the accepted column: every layout rule below is scoped to
+   html.is-public-wall.is-wall-phone. The stages stay one vertical column in the owner's order and proportions; each is sized by public-wall.js so one whole stage
+   fits the screen (landscape "Wide": as wide as the screen). */
+
+/* the screen's stable usable height (without the browser's sliding toolbars and the safe-area insets), measured by public-wall.js */
+.public-wall-vh{position:fixed;top:0;left:0;width:0;height:calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));height:calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom));visibility:hidden;pointer-events:none}
+.wall-stage-nav[hidden],.wall-stage-nav [hidden]{display:none!important}
+/* a Wall that cannot be drawn (every size) */
+.public-wall-state{max-width:22rem;margin:4rem auto;padding:1rem 1.2rem;border:1px solid rgba(255,255,255,.18);border-radius:1rem;background:rgba(10,8,16,.72);color:#e9e6f2;font-size:.95rem;line-height:1.45;text-align:center}
+
+/* the column: inside the safe area (notches). The page scrolls freely - no scroll snapping, which pulled the page back from Replay Intro at the end of a landscape Wall;
+   the navigator moves stage by stage */
+html.is-public-wall.is-wall-phone .public-wall{box-sizing:border-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+
+/* the stage navigator: Previous / "2 / 3" / Next (and, in landscape, Fit / Wide) - above the Wall, below the Intro (z 20) and the visitor's Back (z 30) */
+html.is-public-wall.is-wall-phone .wall-stage-nav{position:fixed;z-index:15;display:flex;align-items:center;gap:.25rem;padding:.25rem;border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(9,8,17,.84);box-shadow:0 .5rem 1.4rem rgba(0,0,0,.45);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#f4f1fb}
+html.is-public-wall.is-wall-phone .wall-stage-nav-steps{display:flex;align-items:center;gap:.15rem}
+html.is-public-wall.is-wall-phone .wall-stage-nav-btn,html.is-public-wall.is-wall-phone .wall-stage-nav-fit{display:inline-grid;place-items:center;min-width:2.75rem;min-height:2.75rem;padding:0 .55rem;border:0;border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:.8rem;font-weight:800;letter-spacing:.04em;cursor:pointer;touch-action:manipulation}
+html.is-public-wall.is-wall-phone .wall-stage-nav-btn svg{width:1.35rem;height:1.35rem}
+html.is-public-wall.is-wall-phone .wall-stage-nav-btn:disabled{opacity:.32;cursor:default}
+html.is-public-wall.is-wall-phone .wall-stage-nav-btn:not(:disabled):active,html.is-public-wall.is-wall-phone .wall-stage-nav-fit:active{background:rgba(139,93,255,.3)}
+html.is-public-wall.is-wall-phone .wall-stage-nav :focus-visible{outline:2px solid #62e7ff;outline-offset:1px}
+html.is-public-wall.is-wall-phone .wall-stage-nav-label{min-width:3.4rem;text-align:center;font-size:.82rem;font-weight:800;letter-spacing:.06em;font-variant-numeric:tabular-nums}
+html.is-public-wall.is-wall-phone .wall-stage-nav-fit{border:1px solid rgba(255,255,255,.22);color:#ffd36b}
+html.is-public-wall.is-wall-phone .wall-stage-nav-fit[aria-pressed="true"]{border-color:#8b5dff;background:rgba(139,93,255,.25)}
+
+/* portrait: a bar centred under the stage (public-wall.js keeps the whole stage above it); the page can scroll the last stage and Replay Intro clear of it */
+@media (orientation:portrait){
+  html.is-public-wall.is-wall-phone .wall-stage-nav{left:50%;bottom:max(.5rem,env(safe-area-inset-bottom));transform:translateX(-50%)}
+  html.is-public-wall.is-wall-phone .wall-stage-nav-fit{display:none}
+  html.is-public-wall.is-wall-phone.has-wall-stage-nav .public-shell{padding-bottom:calc(4rem + env(safe-area-inset-bottom))}
+}
+/* landscape: a rail at the right edge, in the space beside the stage; the column keeps clear of it on both sides, so the stage stays centred */
+@media (orientation:landscape){
+  html.is-public-wall.is-wall-phone .wall-stage-nav{right:max(.5rem,env(safe-area-inset-right));bottom:max(.5rem,env(safe-area-inset-bottom));flex-direction:column;border-radius:1.4rem}
+  html.is-public-wall.is-wall-phone .wall-stage-nav-steps{flex-direction:column}
+  html.is-public-wall.is-wall-phone .public-wall{padding-left:calc(4.25rem + env(safe-area-inset-left));padding-right:calc(4.25rem + env(safe-area-inset-right))}
+}
