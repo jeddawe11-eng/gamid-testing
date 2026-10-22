@@ -11,7 +11,7 @@ const base = read("dist/wall-editor/editor.css");
 const stripComments = text => text.replace(/\/\*[\s\S]*?\*\//g, "");
 const rules = stripComments(css);
 const ADD_ACTIONS = ["text", "shape", "image", "embed", "gamid", "gamidData"];
-const TOOLS = ["add", "text", "media", "shapes", "gamid", "layout", "assets", "templates"];   // Background lives inside Assets since 2026-10-21 (Mazen's approved organization)
+const TOOLS = ["add", "text", "media", "shapes", "gamid", "assets", "layout", "templates"];   // Mazen's final order (2026-10-22): My Gamer Data, Assets, Layout, Templates   // Background lives inside Assets since 2026-10-21 (Mazen's approved organization)
 
 test("the redesign stylesheet is linked for the desktop layout only (>= 900px, the editor's own desktop breakpoint), after the existing editor styles", () => {
   const links = [...html.matchAll(/<link rel="stylesheet" href="([^"]+)"([^>]*)\/>/g)].map(match => [match[1], match[2].trim()]);

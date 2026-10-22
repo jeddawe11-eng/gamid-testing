@@ -5,7 +5,7 @@
 //
 //   top toolbar:    Back, stage (opens Stages), Undo, Redo, Save (its label is the save status), Preview, Wall menu (publishing, fit)
 //   canvas:         view-only zoom / pan / fit (canvas.js `view`), the selection's quick actions above the bottom toolbar
-//   bottom toolbar: Add, Layers, Stages, Assets (My Assets + Background), More (Text, Media & Links, Shapes, GamID, Templates, Multi-select)
+//   bottom toolbar: Add, Assets (My Assets + Background), Layers, Stages, More (Text, Media & Links, Shapes, GamID, Templates, Multi-select)
 //   sheets:         the editor's own tool panels and Properties as bottom sheets (half / full height; a side sheet in landscape) + Stages, More, Wall
 import * as ops from "../wall-kit/ops.js";
 import { stageDeleteQuestion } from "../wall-kit/messages.js";

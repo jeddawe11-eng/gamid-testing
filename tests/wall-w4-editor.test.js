@@ -12,7 +12,7 @@ const read = path => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 const html = read("dist/wall-editor/index.html");
 const walk = (dir, out = []) => { for (const name of readdirSync(dir)) { const full = join(dir, name); if (statSync(full).isDirectory()) walk(full, out); else out.push(full); } return out; };
 const uiFiles = walk("dist/wall-editor").filter(file => /\.(js|html)$/.test(file));
-const TOOLS = ["add", "text", "media", "shapes", "gamid", "layout", "assets", "templates"];   // Background is an area of Assets since 2026-10-21
+const TOOLS = ["add", "text", "media", "shapes", "gamid", "assets", "layout", "templates"];   // Mazen's final order (2026-10-22): My Gamer Data, Assets, Layout, Templates   // Background is an area of Assets since 2026-10-21
 
 test("information architecture: the tool rail has exactly the eight product sections (+ the phone-only Edit tab), each with its own panel; Background is inside Assets", () => {
   const rail = [...html.matchAll(/<button type="button" data-tool="([a-z]+)"/g)].map(match => match[1]);

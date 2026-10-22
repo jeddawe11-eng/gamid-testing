@@ -20,6 +20,11 @@ test("navigation: no standalone Background tool on desktop (rail) or phone (More
   assert.doesNotMatch(baseCss + desktopCss, /data-tool="background"|data-tool-panel="background"/, "no leftover rules for the removed tool");
 });
 
+test("final order (Mazen, 2026-10-22): Assets directly above Layout - rail ... My Gamer Data, Assets, Layout, Templates; phone bar Add, Assets, Layers, Stages, More", () => {
+  assert.deepEqual([...html.matchAll(/<button type="button" data-tool="([a-z]+)"/g)].map(m => m[1]), ["add", "text", "media", "shapes", "gamid", "assets", "layout", "templates", "props"]);
+  assert.deepEqual([...html.matchAll(/<button type="button" data-mw="([a-z]+)"/g)].map(m => m[1]), ["add", "assets", "layout", "stages", "more"]);
+});
+
 test("Assets has two areas: My Assets (the library) and Background, switched by one pair of buttons; My Assets first", () => {
   assert.match(assetsPanel, /<div class="ed-seg ed-assets-switch" role="group" aria-label="Assets area">\s*<button type="button" data-assets-show="library" aria-pressed="true" aria-controls="assetsLibrary">My Assets<\/button>\s*<button type="button" data-assets-show="background" aria-pressed="false" aria-controls="assetsBackground">Background<\/button>/);
   assert.match(assetsPanel, /<div id="assetsLibrary" data-assets-area="library" role="region" aria-label="My Assets">/);
