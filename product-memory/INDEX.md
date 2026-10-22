@@ -83,6 +83,10 @@ Rules:
 
 ## Register
 
+2026-10-23: With Mazen's explicit approval, DEC-0011 records that a Friends Stage is optional (3 stages in total: 3/0, 2/1 or 1/2 My/Friends, at least one My Stage; new stages are My Stages; only the owner's explicit action creates a Friends Stage) and that an empty Friends Stage stays visible with a display-only message (visitors: "Good friends leave their mark! ✨"; owner: "Waiting for your squad! 🎮"), gone once approved stickers are visible. No sticker system, Premium or official background catalog is implemented; the future direction stays Free 3 / Pro 5 without Pro. DEC-0011 stays AUTHORIZED until its TESTING deployment is verified.
+
+2026-10-22: Mazen authorized implementing DEC-0011 ("GAMID - WALL STAGES V2", TESTING only) and approved its tier direction: 3 stages for everyone today; future Free 3 / Pro 5; Pro not implemented. DEC-0011 is AUTHORIZED (not IMPLEMENTED or ACCEPTED: the work is not yet committed or deployed). The Friends Stickers system, Premium and Pro stay out of scope.
+
 2026-10-22: Mazen approved the Wall Stages design - My Stage and Friends Stage, at most 3 stages with at least one My Stage, owner-approved friends' stickers, official-catalog backgrounds on Friends Stages, and no deletion / conversion of a Friends Stage while it has active stickers - and approved saving it as DEC-0011 (APPROVED, authorization NONE). Design only: nothing implemented; sticker durations, economics and the full Friends Stickers system remain separate work. GamID Truth unchanged (it records implemented product state).
 - The ISS-0016 checkpoint was written as the full SHA of the same commit (b91e4e36db47570416adf37cc4071d3b592f5eb2), with Mazen's approval, to fix validation; content unchanged.
 
@@ -208,4 +212,4 @@ Status stays DISCUSSION; there is no implementation authorization.
 | ISS-0016 | Wall editor canvas bar clipped at 900px; landscape phone keyboard sheet and selection bar | FIXED | [ISS-0016-wall-editor-900-landscape.md](issues/ISS-0016-wall-editor-900-landscape.md) |
 | DEC-0010 | Background inside Assets — one home for uploaded Wall media and the Wall background | ACCEPTED | [DEC-0010-background-inside-assets.md](decisions/DEC-0010-background-inside-assets.md) |
 | REV-0024 | Background inside Assets — final TESTING acceptance | COMPLETED | [REV-0024-background-inside-assets-final-acceptance.md](reviews/REV-0024-background-inside-assets-final-acceptance.md) |
-| DEC-0011 | Wall Stages — My Stage and Friends Stage (stage types, sticker moderation, conversion rules) | APPROVED | [DEC-0011-wall-stages-my-stage-friends-stage.md](decisions/DEC-0011-wall-stages-my-stage-friends-stage.md) |
+| DEC-0011 | Wall Stages — My Stage and Friends Stage (stage types, sticker moderation, conversion rules) | AUTHORIZED | [DEC-0011-wall-stages-my-stage-friends-stage.md](decisions/DEC-0011-wall-stages-my-stage-friends-stage.md) |

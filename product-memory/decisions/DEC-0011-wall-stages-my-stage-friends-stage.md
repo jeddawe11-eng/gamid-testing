@@ -1,14 +1,14 @@
 ---
 id: DEC-0011
 title: Wall Stages — My Stage and Friends Stage (stage types, sticker moderation, conversion rules)
-status: APPROVED
+status: AUTHORIZED
 created: 2026-10-22
-updated: 2026-10-22
+updated: 2026-10-23
 scope: GamID Wall stages (owner editor and the future Friends Stickers system)
-summary: A Wall has at most 3 stages, each either a My Stage (the existing personal editing) or a Friends Stage (friends' stickers, owner-approved and owner-removable, official catalog backgrounds only); at least one My Stage always; a Friends Stage with active stickers cannot be deleted or converted until they are gone. Approved design only - not implemented.
+summary: A Wall has at most 3 stages, each either a My Stage (the existing personal editing) or a Friends Stage (friends' stickers, owner-approved and owner-removable, official catalog backgrounds only); at least one My Stage always; a Friends Stage with active stickers cannot be deleted or converted until they are gone. Stage allowance 3 for everyone today (approved direction: Free 3 / Pro 5; Pro not implemented). A Friends Stage is optional (only the owner's explicit choice creates one; new stages are My Stages); an empty Friends Stage stays visible with a display-only message. Implementation authorized 2026-10-22; not yet accepted.
 related: [DEC-0010, DEC-0008]
 save_approval: Mazen 2026-10-22
-authorization: NONE
+authorization: Mazen 2026-10-22, task "GAMID - WALL STAGES V2" (implementation, testing and TESTING deployment; the Friends Stickers system, Premium and Pro excluded)
 supersedes: []
 truth_refs: [game-id-wall, wall-editor-stages-bar, wall-assets-background, wall-universal-delete]
 checkpoints: []
@@ -59,7 +59,23 @@ Mazen defined how Wall stages will be divided between the owner's own content an
 - With no active stickers left, the stage may be deleted or converted, provided the Wall still keeps at least one My Stage.
 - Before any destructive action, the interface states how many active stickers the stage has.
 
-**F. Sequencing**
+**F. Stage allowance and tiers (Mazen, 2026-10-22, with the implementation authorization)**
+- **Current limit: 3 stages for everyone.**
+- **Approved future direction:** Free 3 stages, Pro 5 stages.
+- **Pro is not implemented** and no subscription, billing, upgrade or Pro entitlement is to be built or simulated.
+- The allowance is decided in one server-side place, independent of any future subscription provider, so it can later be resolved by entitlement without rebuilding the Stages system.
+- Legacy stages without a type are My Stages; no stored Wall is cut, truncated or rewritten to introduce the limit or the types.
+
+**G. A Friends Stage is optional; the empty Friends Stage (Mazen, 2026-10-23)**
+- A Friends Stage is **entirely optional**. The maximum is **3 stages in total** (not 3 My Stages plus Friends Stages): 3 My / 0 Friends, 2 My / 1 Friends and 1 My / 2 Friends are all valid, and at least one My Stage always remains.
+- **New stages are My Stages.** Only an explicit owner action makes a stage a Friends Stage; nothing creates, reserves or converts one automatically.
+- An empty Friends Stage **stays visible to visitors**, with a display-only message inside it:
+  - visitors: "FRIENDS STAGE" / "Good friends leave their mark! ✨" / "This stage is waiting for a little love from friends like you." / "STICKERS COMING SOON";
+  - the owner (editor and its Preview): "YOUR FRIENDS STAGE" / "Waiting for your squad! 🎮" / "Your friends will leave their mark here. Every sticker will tell a story." / "FRIENDS STICKERS · COMING SOON".
+- The message is UI only: never a Wall element, layer, asset or stored data, never interactive, and it disappears once approved stickers are visible.
+- Still not implemented: the Friends Stickers system, Premium subscription and the official background catalog. The future direction stays Free 3 / Pro 5, without implementing Pro.
+
+**H. Sequencing**
 - The core Wall work is finished first, and the full Friends Stickers system is built afterwards.
 - Sticker pricing, exact durations, purchase models and the full Friends Wall implementation are separate work.
 
@@ -75,9 +91,9 @@ Mazen defined how Wall stages will be divided between the owner's own content an
 - **Stickers:** expiration periods, economics, pricing and purchase models (Free / Premium, how stickers are obtained).
 - **Premium backgrounds:** what entitles an owner to them.
 - **"Friend":** who counts as one (existing relationships such as My Duo or Crews, or a new one), and how a friend sends a sticker and the owner is told about it.
-- **Existing Walls with more than 3 stages** when the maximum is introduced, and how Add stage behaves at the maximum. This changes the current Truth contract `stages-add-appends` once implemented.
-- **Existing stages:** whether they become My Stages by default when stage types are introduced.
-- **Visitors:** how a Friends Stage appears on the public Wall (including Mobile Public Wall Visitor V2).
+- ~~Existing Walls with more than 3 stages; existing stages' type~~ - settled by the 2026-10-22 implementation task (F): legacy stages are My Stages, nothing is cut, and Add stage stops at the allowance (the TESTING audit found no Wall above 3 stages). Truth's `stages-add-appends` changes once the implementation is deployed.
+- ~~Visitors: how an empty Friends Stage appears~~ - settled by Mazen on 2026-10-23 (G): it stays visible with the visitor message.
+- **Official background catalog:** the Free / Premium GamID catalog and its files do not exist yet; until they do, a Friends Stage keeps the plain stage colour.
 
 ## Alternatives considered
 
@@ -89,3 +105,4 @@ Mazen defined how Wall stages will be divided between the owner's own content an
 
 - 2026-10-22 PROPOSED — Stage types (My Stage / Friends Stage), the allocation rules, sticker moderation and conversion / deletion rules defined by Mazen.
 - 2026-10-22 APPROVED — Mazen approved the design and its saving as Product Memory. No implementation authorization (`authorization: NONE`); nothing implemented or accepted.
+- 2026-10-22 AUTHORIZED — Mazen authorized the implementation ("GAMID - WALL STAGES V2", TESTING only) and approved the tier direction (current 3 for everyone; future Free 3 / Pro 5; Pro not implemented). The Friends Stickers system, Premium and Pro stay out of scope. 2026-10-23: with Mazen's explicit approval this record also gained G - the Friends Stage is optional and the empty Friends Stage message (owner / visitor wording); the open visitor question is settled.
