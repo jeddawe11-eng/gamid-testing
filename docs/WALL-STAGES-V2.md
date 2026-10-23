@@ -2,11 +2,12 @@
 
 Mazen's task "GAMID — WALL STAGES V2" (2026-10-22), TESTING only. The design is Product Memory **DEC-0011**.
 
-**Status (2026-10-23): deployed to TESTING; PENDING Mazen's acceptance.**
+**Status (2026-10-23): ACCEPTED by Mazen on TESTING `a084cb1` (§7).**
 - Product `4be5bfc5b5ae45d59ca4e3871d0dcaeac7e254d7`; site `4c97ed9c4ba7bc5a4d0481cac6ed58b985f516b9` (run `39821008183`).
 - Both migrations are **applied** to TESTING, and every stored Wall is byte-identical before and after (§6).
-- Truth: `wall-stage-types`, PENDING_ACCEPTANCE.
-- Not accepted.
+- The Add stage at-allowance fix `a084cb17c7c43aa0a84f1099a3f567d297dc98c7` (run `39963845626`) is part of the accepted state.
+- Truth: `wall-stage-types`, ACCEPTED (checkpoint `a084cb1`).
+- Not implemented and not accepted: the Friends Stickers system, Premium, Pro and the official background catalog.
 
 ## 1. Behaviour
 
@@ -70,7 +71,7 @@ Below 1200px, Move earlier / Move later / Delete show their short icon labels (a
 - its panel takes the place of every tool panel: the explanation, the catalog (Free / Premium, "not available yet") and Make this a My Stage;
 - the canvas shows a Friends Stage note.
 
-## 3a. The empty Friends Stage message (Mazen's UX addition, 2026-10-23; on TESTING, pending acceptance)
+## 3a. The empty Friends Stage message (Mazen's UX addition, 2026-10-23; accepted 2026-10-23)
 
 **A Friends Stage is optional.**
 - A Wall's 3 stages are any mix with at least one My Stage. New stages are My Stages.
@@ -171,3 +172,15 @@ Below 1200px, Move earlier / Move later / Delete show their short icon labels (a
 | Pre-release: Background inside Assets | 73/73 |
 
 **Not tested:** no signed-in owner session on TESTING (the agent does not sign in as personas), no physical device and no iOS Safari.
+
+## 7. Acceptance (2026-10-23)
+
+Mazen accepted Wall Stages V2 on TESTING `a084cb1` (run `39963845626`) after testing it manually on desktop and Android. He checked:
+- the stage limit, including Add stage showing MAX 3 STAGES at the limit;
+- My Stage / Friends Stage conversion;
+- persistence (save and reload);
+- the owner and visitor empty Friends Stage messages.
+
+Truth `wall-stage-types` and Product Memory DEC-0011 (its implemented scope) are ACCEPTED.
+
+The Friends Stickers system, sticker moderation, the official background catalog, Premium, Pro and the Free 3 / Pro 5 tiers stay unimplemented and unaccepted. Mobile Public Wall Visitor V2 is a separate capability and is not part of this acceptance.

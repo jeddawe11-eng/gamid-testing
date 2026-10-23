@@ -4917,3 +4917,26 @@ GamID Truth: NO CHANGE REQUIRED. `stages-add-appends` ("when the owner's stage a
 Product Memory: NO CANDIDATES.
 
 Not merged; Production untouched.
+
+## 122. Wall Stages V2 ACCEPTED (2026-10-23)
+
+Mazen explicitly accepted Wall Stages V2 on TESTING after his manual tests on desktop and Android. He checked:
+- the stage limit;
+- My Stage / Friends Stage conversion;
+- persistence;
+- the owner and visitor empty Friends Stage messages.
+
+**Accepted checkpoint:** TESTING serves `a084cb17c7c43aa0a84f1099a3f567d297dc98c7` (run `39963845626`, §121): Wall Stages V2 (§120, product `4be5bfc`) plus the Add stage at-allowance fix. Verified by Claude Code before recording: the public stamp reads `a084cb1`, and the served editor, stage-type, Friends Stage and public Wall files are byte-identical to the commit. No `dist/` change since `a084cb1`.
+
+**Recorded (documentation only; no code, schema or deployment change):**
+- GamID Truth `wall-stage-types`: ACCEPTED, checkpoint `a084cb1`. Contracts and limits are unchanged.
+- Product Memory DEC-0011: ACCEPTED for its implemented scope, with an "Acceptance (2026-10-23)" section listing what is accepted and what is not. INDEX Register updated.
+- `docs/WALL-STAGES-V2.md` §7, `PROJECT_STATE.md`.
+
+**Not accepted, not implemented:** the Friends Stickers system and sticker moderation, the official background catalog, Premium, Pro and the Free 3 / Pro 5 tiers. Mobile Public Wall Visitor V2 (`public-wall-mobile-v2`) stays PENDING_ACCEPTANCE.
+
+GamID Truth: UPDATED (`wall-stage-types` PENDING_ACCEPTANCE → ACCEPTED; checkpoint `4be5bfc` → `a084cb1`; record text).
+
+Product Memory: SAVED (DEC-0011 → ACCEPTED, as Mazen explicitly asked in his acceptance task).
+
+Not merged; Production untouched.

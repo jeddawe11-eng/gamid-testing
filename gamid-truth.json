@@ -515,7 +515,7 @@
     {
       "id": "wall-stage-types",
       "name": "Wall Stages V2 - My Stage / Friends Stage and the stage allowance",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/wall-editor/",
         "/@<handle>"
@@ -545,8 +545,8 @@
           "rule": "The owner changes a stage's type in the Stages bar (desktop / tablet) or the Stages sheet (phone). Nothing on a stage is ever removed to change its type: a stage with elements or its own background cannot become a Friends Stage until the owner moves or deletes them (the editor says what is there); the last My Stage can be neither converted nor deleted; a Friends Stage with active stickers can be neither deleted nor converted (none can exist yet), and deleting a Friends Stage states its active sticker count first. A template never lands on a Friends Stage."
         }
       ],
-      "checkpoint": "4be5bfc5b5ae45d59ca4e3871d0dcaeac7e254d7",
-      "record": "docs/WALL-STAGES-V2.md; PROJECT_HANDOFF.md section 120; Product Memory DEC-0011. Implemented under Mazen's tasks of 2026-10-22/23 (GAMID - WALL STAGES V2, TESTING only); product 4be5bfc, site 4c97ed9 (run 39821008183); migrations 20261022120000_wall_stage_types and 20261022120100_wall_public_publishing_stage_limit APPLIED to TESTING 2026-10-23 (every stored Wall unchanged). The Friends Stickers system, Premium, Pro and the official background catalog are not implemented. Awaiting Mazen's manual review and acceptance."
+      "checkpoint": "a084cb17c7c43aa0a84f1099a3f567d297dc98c7",
+      "record": "docs/WALL-STAGES-V2.md; PROJECT_HANDOFF.md sections 120-122; Product Memory DEC-0011. Implemented under Mazen's tasks of 2026-10-22/23 (GAMID - WALL STAGES V2, TESTING only); product 4be5bfc, site 4c97ed9 (run 39821008183); migrations 20261022120000_wall_stage_types and 20261022120100_wall_public_publishing_stage_limit APPLIED to TESTING 2026-10-23 (every stored Wall unchanged); the Add stage at-allowance fix a084cb1 (run 39963845626). ACCEPTED by Mazen 2026-10-23 on TESTING a084cb1 after his manual tests on desktop and Android: the stage limit, My / Friends Stage conversion, persistence, and the owner and visitor empty Friends Stage messages. The Friends Stickers system, Premium, Pro and the official background catalog are not implemented and not accepted."
     },
     {
       "id": "wall-editor-mobile-v2",
