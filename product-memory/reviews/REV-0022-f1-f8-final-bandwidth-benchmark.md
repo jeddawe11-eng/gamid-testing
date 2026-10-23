@@ -3,10 +3,10 @@ id: REV-0022
 title: F1–F8 Final Bandwidth Benchmark
 status: COMPLETED
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-23
 scope: TESTING Public Wall Visitor (@black, anonymous); F6-A, F7-A, F7-C, F8-A against the REV-0021 baseline; Mazen's scoped acceptance decisions
-summary: Claude Code re-ran the baseline protocol on TESTING 5600d06 and measured large comparable savings on new-tab visits, covers and pre-interaction pictures; Mazen accepted F6-A, F7-A and F7-C and functionally accepted F8-A, while F8-A performance claims stay unaccepted and F1–F8 stays incomplete.
-related: [REV-0021]
+summary: Claude Code re-ran the baseline protocol on TESTING 5600d06 and measured large comparable savings on new-tab visits, covers and pre-interaction pictures; Mazen accepted F6-A, F7-A and F7-C and functionally accepted F8-A, while F8-A performance claims stay unaccepted and F1–F8 stays incomplete. Reconciled 2026-10-23 - F8-B1 was accepted later the same day (REV-0023); the authorized scope is complete, with F6-B, F7-B, the existing-MP4 migration and further F8-B options deferred and not authorized.
+related: [REV-0021, REV-0023, DEC-0007]
 save_approval: Mazen 2026-10-21
 review_type: AUDIT
 outcome: PARTIAL
@@ -81,6 +81,21 @@ Comparable figures (excl. the new MP4 and the Intro; repeats within 0.5 MB):
 - **Still open:** F6-B (Intro reuse; 6.97 MB per load now), F7-B (picture display copies), F8-B (video renditions; feasibility study only) and the existing-MP4 fast-start migration. Each needs Mazen's separate authorization.
 - **Future benchmarks** must keep separating the new 4K MP4 and the replaced Intro, or re-baseline.
 - **Billed egress:** read the Usage page before and after a run.
+
+**Reconciliation (2026-10-23, Mazen's documentation reconciliation task).** The findings and decisions above are unchanged and describe 2026-10-21. This review predates F8-B1: later that day F8-B1 (conditional 1080p renditions of new oversized MP4s) was implemented, deployed and fully ACCEPTED (REV-0023, DEC-0007). F8-B is therefore no longer "feasibility study only".
+
+Current status:
+- **The authorized F1–F8 scope is complete:**
+  - F2, F3, F4 (mechanism superseded by F6-A), F5, F6-A, F7-A and F7-C are accepted;
+  - F8-A is functionally accepted, for new uploads only;
+  - F8-B1 is accepted.
+- **F1** (Monitor media-light scans) is implemented and verified; formal acceptance evidence was not found.
+- **Deferred and not authorized** (not completed, rejected or cancelled):
+  - F6-B;
+  - F7-B;
+  - the existing-MP4 migration;
+  - further F8-B options beyond F8-B1.
+- **Details:** `docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md` §8.
 
 ## History
 

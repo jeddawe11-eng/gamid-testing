@@ -83,6 +83,8 @@ Rules:
 
 ## Register
 
+2026-10-23: F1–F8 documentation reconciliation (Mazen's task; documentation only). REV-0022 keeps its 2026-10-21 findings and decisions. Its summary, `related` and a dated Reconciliation note now record four things: F8-B1 was accepted after it (REV-0023, DEC-0007); the authorized F1–F8 scope is complete; F1's formal acceptance evidence was not found; F6-B, F7-B, the existing-MP4 migration and further F8-B options are deferred and not authorized. No status changed and no new record was created. REV-0023 and DEC-0007 are unchanged.
+
 2026-10-23: Mazen accepted Wall Stages V2 on TESTING a084cb1 (run 39963845626; Wall Stages V2 from 4c97ed9 plus the Add stage at-allowance fix) after manual testing on desktop and Android: stage limit, My / Friends Stage conversion, persistence, and the owner and visitor empty Friends Stage messages. DEC-0011 is ACCEPTED for its implemented scope, and GamID Truth wall-stage-types is ACCEPTED. Friends Stickers, sticker moderation, the official background catalog, Premium and Pro (the Free 3 / Pro 5 direction) stay unimplemented and unaccepted. Mobile Public Wall Visitor V2 is not part of this acceptance.
 
 2026-10-23: DEC-0011 is IMPLEMENTED (not accepted): Wall Stages V2 is on TESTING at 4c97ed9 (product 4be5bfc, run 39821008183) with its two migrations applied and every stored Wall unchanged; GamID Truth wall-stage-types is PENDING_ACCEPTANCE.

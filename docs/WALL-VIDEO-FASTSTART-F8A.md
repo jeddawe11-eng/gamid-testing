@@ -6,6 +6,8 @@
 > - a repeat-visit bandwidth reduction: NOT PROVEN (the final benchmark saw a throttled refetch of a fast-start 4K file);
 > - the existing-files migration below: NOT APPROVED.
 >
+> **2026-10-23 reconciliation:** the existing-files migration remains deferred and not authorized, and no migration code exists. In a read-only check, none of the 5 MP4s stored before F8-A had been rewritten. See `docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md` §8.
+>
 > See Truth `wall-video-faststart`, Product Memory REV-0022 and `docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md`. The text below is the delivery record.
 
 Mazen's task "GAMID — SAFE WALL + INTRO BANDWIDTH OPTIMIZATION" (2026-10-21) authorizes the single-copy lossless faststart direction (research `docs/WALL-BANDWIDTH-PHASE2-RESEARCH.md` §2, option A), within these limits:

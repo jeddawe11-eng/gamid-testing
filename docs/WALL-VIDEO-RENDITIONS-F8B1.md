@@ -4,6 +4,10 @@
 > - **Live:** the migration `20261021120000`, `wall-asset-register` v13, `public-media` v3, the site (run `39543363692`, stamp `764e3b8`), and the worker Job + dispatcher image built from `3bb2871` (deployed by Mazen in Cloud Shell, §10).
 > - **Validated:** end to end on GM-TEST-01 with synthetic media (§10–§11) and with Mazen's own 4K upload (§12).
 > - **Later work:** any further improvement is a separate future task.
+> - **2026-10-23 reconciliation:**
+>   - F8-B1 has stayed live in every later TESTING checkpoint (now `a084cb1`), and Product Memory DEC-0007 and REV-0023 are saved.
+>   - The further F8-B options (AV1, re-encoding every video, existing videos, HDR / alpha / 10-bit) are deferred and not authorized.
+>   - See `docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md` §8.
 >
 > §1–§9 are the implementation and deployment record in the order it happened. The earlier partial-deployment state (database, Edge Functions and site live, worker pending) lasted until §10.
 

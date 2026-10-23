@@ -1,5 +1,7 @@
 # F1–F8 final bandwidth and performance benchmark (TESTING, 2026-10-21; measurement only, PENDING Mazen's review)
 
+> **Reconciled 2026-10-23 (§8).** §1–§7 are the original benchmark of 2026-10-21, kept as measured. The title's "PENDING" and the §6 status matrix describe that day, before Mazen's acceptance decisions (REV-0022) and before F8-B1 was implemented and accepted (REV-0023). For the current status, read §8.
+
 Mazen's task "GAMID — F1–F8 FINAL BANDWIDTH & PERFORMANCE BENCHMARK".
 - **Scope:** measurement, verification and reporting only. No deployment, migration, product change, Truth change or Product Memory write.
 - **Baseline:** `docs/WALL-BANDWIDTH-BASELINE.md` (TESTING `22cbc85`, 2026-10-20). It is preserved unchanged.
@@ -156,3 +158,70 @@ Every comparable figure repeated within 0.5 MB across the 5 runs.
 Baseline, same columns: 76.04 / 19.06 / 41.46 / 2.28 / 32.30 (desktop-r1); mobile-t1 76.06 / 13.26 / 41.47 / 2.28 / 32.30.
 
 **GamID Truth: NO CHANGE REQUIRED** (measurement only).
+
+## 8. Final reconciliation (2026-10-23; documentation only)
+
+Mazen's task "GAMID — F1–F8 DOCUMENTATION RECONCILIATION & CLOSURE". It approves documentation reconciliation, not implementation. The basis is the read-only F1–F8 audit of 2026-10-23 on `feature/mobile-public-wall-visitor-v2` at `7cd3b25`, with TESTING serving `a084cb1`. Nothing was measured again: the figures in §1–§7 remain those of 2026-10-21.
+
+### 8.1 Historical findings (this record, 2026-10-21)
+
+§1–§7 were measured on TESTING `5600d06`, before any acceptance decision and before F8-B1 existed. Their numbers and observations stand as recorded. So does the §6 statement "F1–F8 is therefore not complete", which was correct on that day.
+
+### 8.2 Acceptance decisions taken after this benchmark
+
+- **2026-10-21, REV-0022** (on this benchmark's evidence):
+  - F6-A ACCEPTED, with the large-file cache limitation;
+  - F7-A and F7-C ACCEPTED;
+  - F8-A FUNCTIONALLY ACCEPTED, for new MP4 uploads only;
+  - the existing-MP4 migration NOT APPROVED.
+- **2026-10-21, later, REV-0023 and DEC-0007:** F8-B1 (conditional, quality-gated 1080p renditions of new oversized MP4s) was implemented, deployed and fully ACCEPTED on TESTING.
+  - **REV-0022 predates this.** Its "F8-B: feasibility study only" was accurate when written. F8-B1 is now accepted; only the further F8-B options remain open.
+
+### 8.3 Current verified status (2026-10-23)
+
+| Item | Status | Evidence |
+|---|---|---|
+| F1 Monitor media-light scans | **IMPLEMENTED and VERIFIED. Formal acceptance evidence not found.** | `gamid-monitor` `9fe1950` (branch `feature/v3-observer-gemini`, not on Monitor `main`). `acceptance/v2/FREEZE.md` records the change as approved by Mazen (2026-10-06). Tests 7 (suite 215/215); one TESTING run with 0 Supabase video bytes. Not GamID product state, so not in Truth. |
+| F2 bounded Intro derivatives | ACCEPTED (2026-10-07) | Truth `intro-derivative-f2`: product tip `04877c2`, encoding introduced at `04a67c2`. |
+| F3 viewport-gated Wall videos | ACCEPTED (2026-10-06) | `3b9d8b1`; recorded in Truth `public-wall-publishing` notes; served `video-viewport.js` matches the commit except one trailing newline. |
+| F4 per-tab video URL reuse | ACCEPTED as the implementation baseline (2026-10-06); mechanism **superseded by F6-A** | `2ccb0f8`; Truth `wall-video-url-reuse` notes. |
+| F5 native Intro delivery | ACCEPTED (2026-10-07) | Truth `intro-streaming-f5`; served `intro-source.js` identical. |
+| F6-A cross-tab video URL reuse | ACCEPTED (2026-10-21), with the documented limitation | Truth `wall-video-url-reuse`; served file identical. |
+| F7-A stage-aware pictures | ACCEPTED (2026-10-21) | Truth `wall-picture-stage-loading`. |
+| F7-C same-art cover thumbnails | ACCEPTED (2026-10-21) | Truth `game-cover-thumbnails`. |
+| F8-A fast start, new MP4 uploads | FUNCTIONALLY ACCEPTED (2026-10-21), new uploads only | Truth `wall-video-faststart`; served `mp4-faststart.js` identical. |
+| F8-B1 conditional renditions | ACCEPTED (2026-10-21) | Truth `wall-video-renditions`; REV-0023, DEC-0007. Live now: migration `20261021120000`, `wall-asset-register` v13, `public-media` v3. TESTING database: 1 READY rendition, 1 rendition object. |
+
+**Read-only checks on 2026-10-23:**
+- **Served files:** byte-identical to `a084cb1`, except `video-viewport.js` (one extra trailing newline).
+- **Database:** counts only.
+- **Edge Function and migration lists:** read.
+- **Not verified:**
+  - **The deployed worker image** (no Google Cloud access here). Its effect is visible only through the READY rendition.
+  - **Physical devices, Safari and Firefox**, as before.
+
+### 8.4 Deferred, not authorized
+
+None of these is completed, rejected, cancelled or approved for implementation. Each would need Mazen's separate authorization.
+
+1. **F6-B, Intro reuse.**
+   - The visitor's Intro still comes from a fresh `public-media` lease (at most 120 s) on every load, so the browser cannot reuse it.
+   - The worker-proxy plan was not recommended under Cloudflare's CDN terms. Its terms-clean alternative, an R2-hosted Intro, is a separate infrastructure decision. No R2 binding exists.
+2. **F7-B, Wall picture display derivatives.** No picture-derivative bucket or code exists under any name; visitors load the original pictures. F7-A changes only when later pictures load, and F7-C uses the provider's own cover thumbnails.
+3. **F8-A, migration of existing stored MP4s.**
+   - Only new uploads are converted. There is no migration code.
+   - The TESTING database holds 5 MP4s that predate F8-A (25.04 MB, 3 of them in published Walls). None of these files has changed since 2026-10-07.
+   - The proposed plan stays in `docs/WALL-VIDEO-FASTSTART-F8A.md`.
+4. **Further F8-B options beyond F8-B1:** an AV1 rendition, re-encoding every video (WebM / alpha included), renditions for existing videos, and HDR / alpha / 10-bit sources (`docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md`). None of the 5 existing MP4s exceeds 1080p.
+
+**Review item (not an implementation):** the public crawler route `/@<handle>/intro.webm` (accepted with `public-handle-url`) is live and streams the Intro through the Worker with `Cache-Control: public, max-age=60`. A review against Cloudflare's CDN terms, asked for in `PROJECT_HANDOFF.md` §105, has not been recorded. No change to the route is approved.
+
+### 8.5 Conclusion
+
+**The authorized F1–F8 implementation scope is complete:**
+- F2, F3, F4 (superseded by F6-A), F5, F6-A, F7-A, F7-C, F8-A (new uploads, functional) and F8-B1 are accepted.
+- F1 is implemented and verified, but its formal acceptance is unverified.
+
+**The broader original F1–F8 proposal is not 100% implemented:** the four scopes in §8.4 are deferred and not authorized.
+
+No performance implementation is currently requested. Nothing here implies Production acceptance.

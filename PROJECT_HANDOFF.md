@@ -4940,3 +4940,42 @@ GamID Truth: UPDATED (`wall-stage-types` PENDING_ACCEPTANCE → ACCEPTED; checkp
 Product Memory: SAVED (DEC-0011 → ACCEPTED, as Mazen explicitly asked in his acceptance task).
 
 Not merged; Production untouched.
+
+## 123. F1–F8 documentation reconciliation and closure (2026-10-23, documentation only)
+
+Mazen's task "GAMID — F1–F8 DOCUMENTATION RECONCILIATION & CLOSURE" approves documentation reconciliation, not implementation. The basis is the read-only F1–F8 audit of 2026-10-23: branch `feature/mobile-public-wall-visitor-v2` at `7cd3b25`, with TESTING serving `a084cb1`. Details: `docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md` §8. No measurement was repeated, and no code, migration, worker, infrastructure or deployment changed.
+
+**Final status:**
+- **Delivered and accepted** (the authorized scope is complete):
+  - F2, F3, F4 (accepted as the implementation baseline, its mechanism superseded by F6-A), F5, F6-A (with its large-file cache limitation), F7-A, F7-C;
+  - F8-A, functionally and for new MP4 uploads only;
+  - F8-B1 (REV-0023, DEC-0007).
+- **F1:** Monitor media-light scans, `gamid-monitor` `9fe1950` on `feature/v3-observer-gemini`. It is implemented and verified, and the change was approved by Mazen (`acceptance/v2/FREEZE.md`). **Formal acceptance evidence was not found;** F1 is not marked accepted.
+- **Deferred, not authorized** (not completed, rejected, cancelled or approved for implementation):
+  - F6-B, Intro reuse;
+  - F7-B, Wall picture display derivatives;
+  - migration of existing stored MP4s (F8-A; 5 such files on TESTING, none rewritten);
+  - further F8-B options beyond F8-B1 (AV1, re-encoding every video, existing videos, HDR / alpha / 10-bit).
+- **Review item, not an approved implementation:** the public crawler route `/@<handle>/intro.webm` streams the Intro through the Worker with `Cache-Control: public, max-age=60`. The Cloudflare CDN terms review that §105 asked for is still outstanding.
+- **No performance implementation is currently requested.** Any future work needs Mazen's separate authorization. Nothing implies Production acceptance.
+
+**Changed (documentation only):**
+- `docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md`: a dated banner and §8 (historical findings, later acceptance decisions, current verified status, deferred work). §1–§7 are unchanged.
+- `docs/WALL-VIDEO-FASTSTART-F8A.md` and `docs/WALL-VIDEO-RENDITIONS-F8B1.md`: dated reconciliation notes in their status banners.
+- `PROJECT_STATE.md`: the continuation point.
+
+GamID Truth: UPDATED (record and notes text only; no capability, status, checkpoint, limit or contract changed):
+- `wall-video-renditions`:
+  - REV-0023 is now cited as COMPLETED, PASS (it had read "proposed"), and DEC-0007 as ACCEPTED;
+  - handoff §109–112, doc §8–12;
+  - site `764e3b8` described as the first serving checkpoint, carried by every later one;
+  - the further F8-B options recorded as deferred.
+- `intro-derivative-f2`: the checkpoint `04877c2` is verified as the deployed, accepted product tip, and the record now names `04a67c2` as the commit that introduced the encoding. The checkpoint itself is unchanged.
+- `wall-video-url-reuse`: notes that it supersedes F4's per-tab reuse.
+- `public-wall-publishing`: notes now record F3's viewport gating. The stale "wall-visibility-toggle (pending acceptance)" is corrected to ACCEPTED, as Truth records it.
+- `wall-video-faststart`: the existing-MP4 migration is "deferred and not authorized".
+- F1 is Monitor tooling, not GamID product state, so it stays out of Truth.
+
+Product Memory: SAVED (an existing record only, in this authorized task). REV-0022's summary, `related` (REV-0023, DEC-0007) and a dated Reconciliation note record the later F8-B1 acceptance and the closure status. Its findings, decisions and History are unchanged, and the INDEX Register log is updated. No new record: a closure review would duplicate REV-0022 / REV-0023.
+
+Not merged; Production untouched.

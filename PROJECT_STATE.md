@@ -163,7 +163,22 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-23, Wall Stages V2 ACCEPTED):** Mazen accepted Wall Stages V2 on TESTING `a084cb1` (run `39963845626`; Wall Stages V2 from `4c97ed9`, plus the Add stage at-limit fix, §121) after manual testing on desktop and Android: stage limit, My / Friends Stage conversion, persistence, owner and visitor messages (§122). From `feature/mobile-public-wall-visitor-v2`, not merged (§120, `docs/WALL-STAGES-V2.md`).
+**Latest continuation (2026-10-23, F1–F8 documentation closure; documentation only):** `PROJECT_HANDOFF.md` §123, `docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md` §8.
+- **Every authorized F1–F8 optimization has been delivered:**
+  - accepted: F2, F3, F4 (mechanism superseded by F6-A), F5, F6-A, F7-A, F7-C and F8-B1;
+  - functionally accepted for new MP4 uploads only: F8-A.
+- **F1** (Monitor media-light scans, `gamid-monitor` `9fe1950`) is implemented and verified, but its formal acceptance is **unverified**: no acceptance record was found.
+- **Deferred and not implementation-authorized:**
+  - F6-B (Intro reuse);
+  - F7-B (Wall picture display derivatives);
+  - migration of existing stored MP4s (F8-A);
+  - further F8-B options beyond F8-B1.
+- **Review item, not an approved implementation:** a Cloudflare CDN terms review of the public `/@<handle>/intro.webm` crawler route.
+- **No performance implementation is currently requested.** Any future work needs Mazen's separate authorization. Nothing implies Production acceptance.
+- **Truth:** records and notes clarified only, with no status, checkpoint, limit or contract change. **Product Memory:** REV-0022 reconciled.
+- **Next:** the list under the Wall Stages entry below still applies. If Mazen wants F1's acceptance recorded, his explicit confirmation is needed.
+
+**Previous continuation (2026-10-23, Wall Stages V2 ACCEPTED):** Mazen accepted Wall Stages V2 on TESTING `a084cb1` (run `39963845626`; Wall Stages V2 from `4c97ed9`, plus the Add stage at-limit fix, §121) after manual testing on desktop and Android: stage limit, My / Friends Stage conversion, persistence, owner and visitor messages (§122). From `feature/mobile-public-wall-visitor-v2`, not merged (§120, `docs/WALL-STAGES-V2.md`).
 - Every stage is a My Stage or a Friends Stage. At most 3 stages in total, at least one My Stage; a Friends Stage is optional.
 - The allowance is decided by the server (3 for everyone; Free 3 / Pro 5 later, Pro not implemented).
 - An empty Friends Stage shows a display-only message (owner and visitor wording).

@@ -275,7 +275,7 @@
       "name": "F2 bounded Intro playback derivative optimization",
       "status": "ACCEPTED",
       "checkpoint": "04877c20d213f0105fbdc2871146248194eaf773",
-      "record": "PROJECT_HANDOFF.md §10–11; docs/INTRO-DERIVATIVE-F2.md (manual acceptance by Mazen, 2026-10-07)",
+      "record": "PROJECT_HANDOFF.md §10–11; docs/INTRO-DERIVATIVE-F2.md (manual acceptance by Mazen, 2026-10-07). The checkpoint is the deployed, accepted product tip (Cloudflare run 37479877416); the bounded encoding itself was introduced at 04a67c223e04301fea670f63e40d2e4dce7140d5, and the commits up to 04877c2 add the rollout verification and test-guard exceptions.",
       "notes": "Accepted bounded D3 derivative policy recorded under intro-identity. This acceptance does not change the separately deferred broader Intro identity acceptance."
     },
     {
@@ -693,7 +693,7 @@
       ],
       "checkpoint": "f609e76a0d6aa91be8d83271d23f876f4254a4d0",
       "record": "accepted and landed on main (f609e76)",
-      "notes": "Visitors see the published Wall only while its owner keeps it enabled - see wall-visibility-toggle (pending acceptance)."
+      "notes": "Visitors see the published Wall only while its owner keeps it enabled - see wall-visibility-toggle (ACCEPTED). On the visitor page a published Wall video gets its source and plays only when it comes near the viewport (F3 viewport gating, product 3b9d8b1c27fb0c9b3fa6fd0c2ee682dab7618906, manually ACCEPTED by Mazen 2026-10-06; docs/WALL-VIDEO-VIEWPORT-F3.md)."
     },
     {
       "id": "wall-visibility-toggle",
@@ -795,7 +795,7 @@
       ],
       "checkpoint": "5d599b490f629ebe20875dd0fe9b21854b778536",
       "record": "docs/WALL-VIDEO-URL-REUSE-F6A.md; PROJECT_HANDOFF.md sections 104, 107, 108; benchmark docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md; Product Memory REV-0022. Product ca2d6f1 + forgetting fix a788607 + 5d599b4. ACCEPTED by Mazen 2026-10-21, scoped as below.",
-      "notes": "Accepted scope: cross-tab and restart reuse of published-Wall video URLs, as the two contracts state. Reuse only lets the browser use its own cache; it does not guarantee zero re-download. The browser may still fetch a large video again, notably one cached in several ranges (accepted, documented limitation)."
+      "notes": "Accepted scope: cross-tab and restart reuse of published-Wall video URLs, as the two contracts state. Reuse only lets the browser use its own cache; it does not guarantee zero re-download. The browser may still fetch a large video again, notably one cached in several ranges (accepted, documented limitation). This capability supersedes F4's per-tab (sessionStorage) URL reuse (2ccb0f8aeec701bd4c0e6006c36d4c628a9ec091, accepted by Mazen as the implementation baseline 2026-10-06; docs/WALL-VIDEO-URL-REUSE-F4.md): F4's old per-tab entries are removed when seen."
     },
     {
       "id": "wall-video-faststart",
@@ -816,7 +816,7 @@
       ],
       "checkpoint": "51e397259ec6487c4fe5cb63597e40d8399cedf8",
       "record": "docs/WALL-VIDEO-FASTSTART-F8A.md; PROJECT_HANDOFF.md sections 106-108; benchmark docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md; Product Memory REV-0022. Mazen's manual smoke test (new MP4 uploaded, published, played on the visitor Wall) and FUNCTIONAL acceptance 2026-10-21.",
-      "notes": "Functionally accepted only. The two contracts above (lossless, verified-or-unchanged) and normal upload, publication and playback are accepted for NEW uploads. Not accepted as product guarantees: the earlier first frame (measured in a local lab only) and any repeat-visit bandwidth reduction (not proven). Migrating existing stored MP4s is NOT approved."
+      "notes": "Functionally accepted only. The two contracts above (lossless, verified-or-unchanged) and normal upload, publication and playback are accepted for NEW uploads. Not accepted as product guarantees: the earlier first frame (measured in a local lab only) and any repeat-visit bandwidth reduction (not proven). Migrating existing stored MP4s is NOT approved: it is deferred and not authorized (reconciled 2026-10-23; docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md section 8)."
     },
     {
       "id": "wall-video-renditions",
@@ -850,7 +850,7 @@
         }
       ],
       "checkpoint": "3bb2871dc4eafa0bca67ba039e7d02aad87c9729",
-      "record": "docs/WALL-VIDEO-RENDITIONS-F8B1.md sections 8-11; PROJECT_HANDOFF.md sections 109-111; study docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md. Branch feature/f8b1-video-renditions; migration 20261021120000 applied on TESTING 2026-10-21; wall-asset-register v13, public-media v3, site 764e3b8; worker Job + dispatcher image deployed by Mazen from 3bb2871 (Cloud Build, smokes ok). Validated end to end on TESTING with GM-TEST-01 synthetic media and with Mazen's own 4K upload (READY, visitors served the 1080p rendition). ACCEPTED by Mazen 2026-10-21 (final acceptance of the implemented scope); Product Memory review proposed as REV-0023.",
+      "record": "docs/WALL-VIDEO-RENDITIONS-F8B1.md sections 8-12; PROJECT_HANDOFF.md sections 109-112; study docs/WALL-VIDEO-RENDITIONS-F8B-STUDY.md. Branch feature/f8b1-video-renditions; migration 20261021120000 applied on TESTING 2026-10-21; wall-asset-register v13, public-media v3; first served by the site at 764e3b8 (run 39543363692) and carried by every later TESTING checkpoint since; worker Job + dispatcher image deployed by Mazen from 3bb2871 (Cloud Build, smokes ok). Validated end to end on TESTING with GM-TEST-01 synthetic media and with Mazen's own 4K upload (READY, visitors served the 1080p rendition). ACCEPTED by Mazen 2026-10-21 (final acceptance of the implemented scope); Product Memory DEC-0007 (ACCEPTED) and REV-0023 (COMPLETED, PASS). Further F8-B options (an AV1 rendition, re-encoding every video, existing-video renditions, HDR / alpha / 10-bit sources) are deferred and not authorized.",
       "notes": "Accepted scope: the three contracts above, fully deployed on TESTING. The worker measures VMAF with a separate pinned static FFmpeg (libvmaf); every encode keeps the image's Debian FFmpeg. Not part of the accepted scope: existing videos (not migrated); HDR, alpha and 10-bit sources (never re-encoded); a faster first frame (not a guarantee - the accepted gain is smaller transfers and smoother playback on slower links). Further improvements are separate future tasks."
     },
     {
