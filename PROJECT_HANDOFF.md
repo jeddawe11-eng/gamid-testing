@@ -4887,3 +4887,33 @@ GamID Truth: UPDATED.
 Product Memory: SAVED, with Mazen's approval: DEC-0011 updated (tier direction, optional Friends Stage, the empty Friends Stage message). It is IMPLEMENTED, not accepted.
 
 Not merged; Production untouched.
+
+## 121. Wall Stages V2: Add stage at the stage allowance (2026-10-23, PENDING Mazen's acceptance)
+
+Mazen's retest: at 3 / 3 the Add stage button still looked available and did nothing. Cause: it was a `disabled` button, and the desktop purple gradient had no disabled style.
+
+**Fix (`a084cb1`, frontend only):**
+- At the allowance the Stages bar's Add stage is muted grey and reads `MAX N STAGES`, with N from `get_my_wall_stage_allowance` (never a fixed 3).
+- It stays focusable and clickable (`aria-disabled`, not `disabled`). A click, Enter or Space shows "You've reached your N-stage limit." in the banner and the stage live region, then returns. No stage is added, the Wall is not changed or marked unsaved, and nothing goes on Undo.
+- The phone Stages sheet's Add mirrors it through the same handler.
+- Below the allowance it is the purple `+ Add stage` again, for example after deleting a stage.
+- The limit, the database rules and save / publish are unchanged.
+- The W3/W4 "no stage maximum" source guard now forbids a fixed maximum and requires the message to be built from the allowance.
+
+**Delivery:** site `a084cb17c7c43aa0a84f1099a3f567d297dc98c7`, run `39963845626`, successful. The stamp reads `a084cb1`, and the five changed files are byte-identical to the commit. No migration, no Edge Function change.
+
+**Validation:**
+- `npm test`: 2,172 tests, 0 failures.
+- Lab E2E stages 60/60, covering:
+  - desktop 1440: below the limit; at the limit; repeated clicks; Enter / Space; no unsaved change; save and reload; delete re-enables Add; the label follows a hypothetical allowance of 5;
+  - tablet 768 / 1024 / 900: the at-limit label fits inside the bar;
+  - phone 390×844 and 844×390: the sheet mirrors it, and a tap explains the limit.
+- Backgrounds 12/12, owner empty state 36/36, mobile editor functions all pass, visitor empty state 70/70.
+- Live anonymous smoke passes.
+- No signed-in owner session, physical device or iOS Safari was tested.
+
+GamID Truth: NO CHANGE REQUIRED. `stages-add-appends` ("when the owner's stage allowance allows") and `wall-stage-allowance` ("Add stage stops there") still hold.
+
+Product Memory: NO CANDIDATES.
+
+Not merged; Production untouched.

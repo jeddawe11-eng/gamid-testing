@@ -58,7 +58,7 @@ Every changed function is the live TESTING definition plus the new lines only. T
 ## 3. Editor
 
 **Desktop and tablet (Stages bar):**
-- "N / 3 stages", with Add stage disabled at the allowance and the reason shown;
+- "N / 3 stages". At the allowance Add stage turns muted grey and reads "MAX N STAGES" (N from the allowance). It stays focusable and clickable (`aria-disabled`, not `disabled`). A click, Enter or Space only shows "You've reached your N-stage limit.": no stage is added, the Wall is not changed or marked unsaved. Below the allowance it is the purple "+ Add stage" again. The phone Stages sheet's Add mirrors it. (Fix `a084cb1`, 2026-10-23: a disabled button looked available on desktop yet did nothing.);
 - a My Stage / Friends Stage switch for the open stage;
 - a Friends badge on the stage's tab.
 
