@@ -260,8 +260,14 @@ function renderStages() {
   $("stageCount").textContent = `${count} / ${stageLimit} stages`;
   $("stageCount").classList.toggle("is-full", full);
   $("stageCount").title = full ? `Your Wall has the most stages it can have (${stageLimit}).` : `Your Wall can have up to ${stageLimit} stages.`;
-  $("stageAdd").disabled = full;
-  $("stageAdd").title = full ? `Your Wall has the most stages it can have (${stageLimit}).` : "Add a stage at the end of the Wall";
+  // at the allowance Add stage looks inactive (muted, "MAX N STAGES") but stays focusable and clickable - only to explain the limit; below it, the purple "+ Add stage"
+  const add = $("stageAdd");
+  add.classList.toggle("is-max", full);
+  add.setAttribute("aria-disabled", String(full));
+  add.setAttribute("aria-label", full ? `Maximum of ${stageLimit} stages reached` : "Add a stage at the end of the Wall");
+  add.querySelector(".ed-stage-long").textContent = full ? `MAX ${stageLimit} STAGES` : "+ Add stage";
+  add.querySelector(".ed-stage-short").textContent = full ? "Max" : "+";
+  add.title = full ? `You've reached your ${stageLimit}-stage limit.` : "Add a stage at the end of the Wall";
   const type = stageType(session.stage);
   $("stageTypeMy").setAttribute("aria-checked", String(type === "my"));
   $("stageTypeFriends").setAttribute("aria-checked", String(type === "friends"));
@@ -376,6 +382,13 @@ $("redoBtn").addEventListener("click", () => { session.redo(); tools.invalidate(
 // Add stage APPENDS: the new stage is always the last one, whichever stage is open, and the open stage stays open (no existing stage moves or changes).
 // Reordering stays an explicit action (Move earlier / later).
 $("stageAdd").addEventListener("click", () => {
+  // at the owner's allowance the button only explains the limit: nothing is added, the Wall is not changed (no unsaved edit)
+  if (session.doc.stages.length >= stageLimit) {
+    const message = `You've reached your ${stageLimit}-stage limit.`;
+    $("stageStatus").textContent = message;
+    notify(message);
+    return;
+  }
   const result = run(ops.addStage(session.doc, { limit: stageLimit }));   // refused at the owner's allowance (the server refuses it too)
   if (result.ok) {
     $("stageStatus").textContent = `Stage ${session.doc.stages.length} added at the end.`;   // announced; the new tab at the end of the strip is the visible feedback

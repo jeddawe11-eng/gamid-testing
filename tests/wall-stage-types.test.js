@@ -167,7 +167,13 @@ test("editor: Add stage passes the owner's allowance; the type switch, the count
   const editor = read("dist/wall-editor/editor.js"), html = read("dist/wall-editor/index.html"), shell = read("dist/wall-editor/mobile-shell.js"), css = read("dist/wall-editor/editor.css");
   assert.match(editor, /run\(ops\.addStage\(session\.doc, \{ limit: stageLimit \}\)\)/);
   assert.match(editor, /persistence\.loadStageAllowance\(\)\.then\(limit => \{ if \(limit\) \{ stageLimit = limit; renderAll\(\); \} \}\)/);
-  assert.match(editor, /\$\("stageAdd"\)\.disabled = full;/);
+  // at the allowance Add stage stays clickable to explain the limit (2026-10-23 acceptance fix): muted, "MAX N STAGES" from the allowance, a click only says so
+  assert.doesNotMatch(editor, /\$\("stageAdd"\)\.disabled = /, "never disabled: a disabled button gave no feedback");
+  assert.match(editor, /add\.classList\.toggle\("is-max", full\);\n  add\.setAttribute\("aria-disabled", String\(full\)\);/);
+  assert.match(editor, /add\.querySelector\("\.ed-stage-long"\)\.textContent = full \? `MAX \$\{stageLimit\} STAGES` : "\+ Add stage";/, "the label comes from the allowance, never a fixed 3");
+  assert.match(editor, /if \(session\.doc\.stages\.length >= stageLimit\) \{\n    const message = `You've reached your \$\{stageLimit\}-stage limit\.`;\n    \$\("stageStatus"\)\.textContent = message;\n    notify\(message\);\n    return;\n  \}/, "at the limit nothing is added and the Wall is not changed");
+  assert.match(shell, /\$\("mwStageAdd"\)\.classList\.toggle\("is-max", atMax\);/);
+  for (const sheet of [read("dist/wall-editor/editor.css"), read("dist/wall-editor/editor-desktop.css"), read("dist/wall-editor/editor-mobile.css")]) assert.match(sheet, /\.ed-stage-add\.is-max/);
   for (const id of ["stageTypeMy", "stageTypeFriends", "stageCount", "friendsStagePanel", "friendsCatalog", "friendsMakeMy", "mwStageTypeMy", "mwStageTypeFriends", "mwStageCount"]) assert.match(html, new RegExp(`id="${id}"`), id);
   assert.match(shell, /proxy\("mwStageTypeMy", "stageTypeMy"\);/);
   assert.match(shell, /proxy\("mwStageTypeFriends", "stageTypeFriends"\);/);

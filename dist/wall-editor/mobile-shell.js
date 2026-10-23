@@ -256,8 +256,12 @@ export function createMobileShell({ session, canvas, run, openTool, closeTools, 
     $("mwStageEarlier").disabled = $("stageLeft").disabled;
     $("mwStageLater").disabled = $("stageRight").disabled;
     $("mwStageDelete").disabled = $("stageDelete").disabled;
-    $("mwStageAdd").disabled = $("stageAdd").disabled;
-    $("mwStageCount").textContent = `${$("stageCount").textContent}${$("stageAdd").disabled ? " - the most your Wall can have." : ""}`;   // "2 / 3 stages"
+    // at the allowance the sheet's Add mirrors the Stages bar: muted, "MAX N STAGES", still tappable to explain the limit (the same handler, through the proxy)
+    const atMax = $("stageAdd").getAttribute("aria-disabled") === "true";
+    $("mwStageAdd").classList.toggle("is-max", atMax);
+    $("mwStageAdd").setAttribute("aria-disabled", String(atMax));
+    $("mwStageAdd").textContent = atMax ? $("stageAdd").querySelector(".ed-stage-long").textContent : "+ Add stage at the end";
+    $("mwStageCount").textContent = `${$("stageCount").textContent}${atMax ? " - the most your Wall can have." : ""}`;   // "2 / 3 stages"
     for (const [from, to] of [["mwStageTypeMy", "stageTypeMy"], ["mwStageTypeFriends", "stageTypeFriends"]]) $(from).setAttribute("aria-checked", $(to).getAttribute("aria-checked"));
     $("mwStageConfirm").hidden = $("stageConfirm").hidden;
     $("mwStageConfirmText").textContent = $("stageConfirmText").textContent;

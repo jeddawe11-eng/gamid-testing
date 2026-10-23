@@ -130,6 +130,8 @@ body[data-tool="gamid"] .ed-rail [data-tool="gamid"] i, body[data-tool="layout"]
 .ed-stage-tab[aria-selected="true"] { border-color: var(--gold); color: #fff; background: linear-gradient(180deg, rgba(169, 77, 255, .55), rgba(92, 40, 190, .45)); box-shadow: 0 0 .9rem rgba(160, 77, 255, .35); }
 .ed-stage-add { min-height: 2.3rem; padding: 0 1rem; border-color: transparent; background: linear-gradient(180deg, #a14dff, #6a2bd6 55%, #4f1db3) padding-box, linear-gradient(180deg, var(--gold-hi), var(--gold-lo)) border-box; font-family: var(--font-ui); font-size: .82rem; letter-spacing: .1em; text-transform: uppercase; }
 .ed-stage-add:hover { box-shadow: 0 0 1rem rgba(160, 77, 255, .45); }
+/* Wall Stages V2: at the allowance, muted grey instead of the purple gradient (still focusable; a click only explains the limit) */
+.ed-stage-add.is-max, .ed-stage-add.is-max:hover { border-color: transparent; background: linear-gradient(180deg, #2a2838, #1c1a28) padding-box, linear-gradient(180deg, #4a4658, #2e2b3a) border-box; color: #9a95ad; box-shadow: none; cursor: default; }
 .ed-stage-act { min-height: 2.3rem; border-color: var(--gold-line); background: linear-gradient(180deg, var(--navy-3), var(--navy-2)); color: var(--ink); font-family: var(--font-ui); font-size: .8rem; letter-spacing: .06em; }
 .ed-stage-act:hover:not(:disabled) { border-color: var(--gold); color: #fff; }
 /* Wall Stages V2 (DEC-0011): the My Stage / Friends Stage switch and the stage count, in the Stages bar's theme */

@@ -49,6 +49,7 @@ body.is-mw-editing .ed-top, .ed-rail, .ed-canvas-bar, #propsTitle, .ed-drawer [d
 .ed-stage-tab { font: 700 .9rem/1 var(--font-ui); letter-spacing: .05em; }
 .ed-stage-tab[aria-selected="true"] { border-color: var(--gold); color: var(--gold-hi); background: rgba(214, 178, 94, .14); }
 .ed-stage-add { border-color: var(--violet-hi); background: rgba(139, 93, 255, .25); }
+.ed-stage-add.is-max, #mwStageAdd.is-max { border-color: var(--mw-line); background: var(--navy-3); color: var(--muted); box-shadow: none; }   /* at the allowance: muted, still tappable to explain the limit */
 .ed-stage-confirm { z-index: 72; }
 
 /* ---- top toolbar ---- */

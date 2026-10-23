@@ -199,6 +199,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* Wall Stages V2 (DEC-0011): the open stage's type (My Stage / Friends Stage), the stage count against the allowance, the Friends badge on a tab */
 .ed-stage-count { flex: 0 0 auto; color: var(--muted); font-size: .74rem; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .ed-stage-count.is-full { color: var(--warn, #ffc857); }
+/* Add stage at the owner's allowance: inactive-looking (muted grey) but still focusable and clickable, only to explain the limit */
+.ed-stage-add.is-max, .ed-stage-add.is-max:hover { border-color: #3a334b; background: #1c1828; color: var(--muted); box-shadow: none; cursor: default; }
 .ed-stage-type { display: flex; gap: .15rem; padding: .15rem; border: 1px solid #3a334b; border-radius: .75rem; background: #14111e; }
 .ed-stage-type-btn { min-height: 2.2rem; padding: 0 .65rem; border: 0; border-radius: .55rem; background: none; color: var(--muted); font: inherit; font-size: .76rem; font-weight: 800; white-space: nowrap; cursor: pointer; }
 .ed-stage-type-btn[aria-checked="true"] { background: rgba(139, 93, 255, .32); color: #fff; }

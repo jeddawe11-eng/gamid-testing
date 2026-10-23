@@ -77,7 +77,9 @@ test("GamID: real blocks only, with the privacy promise stated in the panel", ()
 });
 test("Layout keeps the accepted W3 stage and layer tools (no stage maximum anywhere)", () => {
   for (const id of ["stageChips", "stageAdd", "stageLeft", "stageRight", "stageDelete", "stageConfirm", "layerList", "multiBtn"]) assert.match(html, new RegExp(`id="${id}"`));
-  for (const file of uiFiles.concat(walk("dist/wall-kit").filter(f => f.endsWith(".js")), walk("dist/wall").filter(f => f.endsWith(".js")))) assert.doesNotMatch(read(file), /MAX_STAGES|maxStages|stage limit|at most 3 stages/i, file);
+  for (const file of uiFiles.concat(walk("dist/wall-kit").filter(f => f.endsWith(".js")), walk("dist/wall").filter(f => f.endsWith(".js")))) assert.doesNotMatch(read(file), /MAX_STAGES|maxStages|\b3[- ]stage limit|MAX 3 STAGES|at most 3 stages/i, file);
+  // Wall Stages V2 added the owner's allowance (get_my_wall_stage_allowance): the editor may name a limit, but only from that allowance, never a fixed number
+  assert.match(read("dist/wall-editor/editor.js"), /`You've reached your \$\{stageLimit\}-stage limit\.`/);
 });
 test("the inspector has type-specific controls for every element type", () => {
   const controls = read("dist/wall-editor/controls.js");
