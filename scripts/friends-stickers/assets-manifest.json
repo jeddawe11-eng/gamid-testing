@@ -1,0 +1,385 @@
+{
+  "built": "2026-10-24",
+  "maxEdge": 384,
+  "quality": 80,
+  "stickers": [
+    {
+      "key": "carried-me",
+      "source": "P01_CARRIED_ME",
+      "animatedSource": {
+        "sha256": "18904bffaaaf9c206c2955786d51cfff0726c68970458d1c3f9e840e648b6471",
+        "bytes": 10757052,
+        "width": 832,
+        "height": 576,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "f7ccd2caf4a44b25dd2200477ff3569f6adb66d9053359bfb6b5d8a874fd58a7",
+        "bytes": 2168798
+      },
+      "animated": {
+        "file": "carried-me.webp",
+        "bytes": 2367318,
+        "width": 384,
+        "height": 266
+      },
+      "still": {
+        "file": "carried-me-still.webp",
+        "bytes": 46408
+      }
+    },
+    {
+      "key": "legend",
+      "source": "P02_LEGEND",
+      "animatedSource": {
+        "sha256": "d04996a3ee21e47d037b2dfa0d7f8fdae8e5b287ff356227a2cefa29fa454c21",
+        "bytes": 13315486,
+        "width": 768,
+        "height": 768,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "2bc8adc3e8ac75c8620071e5344560079931941d177d30090dc51c5fc5a02458",
+        "bytes": 1941091
+      },
+      "animated": {
+        "file": "legend.webp",
+        "bytes": 3075902,
+        "width": 384,
+        "height": 384
+      },
+      "still": {
+        "file": "legend-still.webp",
+        "bytes": 60476
+      }
+    },
+    {
+      "key": "clutch-king",
+      "source": "P03_CLUTCH_KING",
+      "animatedSource": {
+        "sha256": "91a18548e2d8d57a8d8a01de01130c7b9b95b398321643e75163ea2cf4b1c71c",
+        "bytes": 12119454,
+        "width": 768,
+        "height": 768,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "53b7352340b0df1cd762d38b3d5450f1f33fa0cbb08ab4c56d904bc61e1a70b2",
+        "bytes": 2153404
+      },
+      "animated": {
+        "file": "clutch-king.webp",
+        "bytes": 2905710,
+        "width": 384,
+        "height": 384
+      },
+      "still": {
+        "file": "clutch-king-still.webp",
+        "bytes": 63672
+      }
+    },
+    {
+      "key": "my-duo-4ever",
+      "source": "P04_MY_DUO_4EVER",
+      "animatedSource": {
+        "sha256": "e01b31610fa231225a209dd30b59a3f9b4dfcdcc91db6d0dff26d512298cae92",
+        "bytes": 8196118,
+        "width": 768,
+        "height": 768,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "c31cde3cbac2b0511666444c4a4d27fbf939794d8f3bd45d0f589f655a1a71f2",
+        "bytes": 1616557
+      },
+      "animated": {
+        "file": "my-duo-4ever.webp",
+        "bytes": 2166050,
+        "width": 384,
+        "height": 384
+      },
+      "still": {
+        "file": "my-duo-4ever-still.webp",
+        "bytes": 47714
+      }
+    },
+    {
+      "key": "rage-buddy",
+      "source": "P05_RAGE_BUDDY",
+      "animatedSource": {
+        "sha256": "88c04989a36491aec0527b34e5f3cb046e1ebaefa0cb24307292ca7733db70fa",
+        "bytes": 4324930,
+        "width": 768,
+        "height": 768,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "0122126486e5acfdc4d81657e6256940e4d7d963fefe939ee3ecef6357fc86ff",
+        "bytes": 1407210
+      },
+      "animated": {
+        "file": "rage-buddy.webp",
+        "bytes": 1178198,
+        "width": 384,
+        "height": 384
+      },
+      "still": {
+        "file": "rage-buddy-still.webp",
+        "bytes": 46170
+      }
+    },
+    {
+      "key": "mvp",
+      "source": "P06_MVP",
+      "animatedSource": {
+        "sha256": "ded141868c6c938b6997ffff04bb54b1dab9c05c15d3d85ca793b15a195a2062",
+        "bytes": 11557244,
+        "width": 768,
+        "height": 768,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "0ff41c5ae7e13c6468a3630f7a959fec2290028b21317e000860354ea0d40665",
+        "bytes": 2025602
+      },
+      "animated": {
+        "file": "mvp.webp",
+        "bytes": 2850618,
+        "width": 384,
+        "height": 384
+      },
+      "still": {
+        "file": "mvp-still.webp",
+        "bytes": 58940
+      }
+    },
+    {
+      "key": "gg-bro",
+      "source": "P07_GG_BRO",
+      "animatedSource": {
+        "sha256": "baacbb2a9f182921902bb61dc1d9c777bff9d53fc10f08ec81ae032c00689c6c",
+        "bytes": 4670984,
+        "width": 768,
+        "height": 768,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "99e65cb2866df01c2a343d40f942bacae698e9c47cdbc152d902c0674b78f7d7",
+        "bytes": 1476584
+      },
+      "animated": {
+        "file": "gg-bro.webp",
+        "bytes": 1236448,
+        "width": 384,
+        "height": 384
+      },
+      "still": {
+        "file": "gg-bro-still.webp",
+        "bytes": 45794
+      }
+    },
+    {
+      "key": "space-crew",
+      "source": "P08_SPACE_CREW",
+      "animatedSource": {
+        "sha256": "ed4f0a4e9f283a6b5c6dc0feddea72239ffb153c03828576903f1e399525ca81",
+        "bytes": 10454804,
+        "width": 768,
+        "height": 768,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "4cdc22d5b5f8b5f79d7222723a7c03067a15fb6f51c27041d54ea6ad1f11994e",
+        "bytes": 1822636
+      },
+      "animated": {
+        "file": "space-crew.webp",
+        "bytes": 2730424,
+        "width": 384,
+        "height": 384
+      },
+      "still": {
+        "file": "space-crew-still.webp",
+        "bytes": 56702
+      }
+    },
+    {
+      "key": "save-me",
+      "source": "P09_SAVE_ME",
+      "animatedSource": {
+        "sha256": "f02a1fcff459b1988566ce6143ef10e395a70bd4eb420b5f4958acd4c4b2ec15",
+        "bytes": 9607334,
+        "width": 768,
+        "height": 768,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "3d12397037760db231220ff7158eccf0e27852c89656c2d2f4a02799c507a1f6",
+        "bytes": 1621325
+      },
+      "animated": {
+        "file": "save-me.webp",
+        "bytes": 2605988,
+        "width": 384,
+        "height": 384
+      },
+      "still": {
+        "file": "save-me-still.webp",
+        "bytes": 56506
+      }
+    },
+    {
+      "key": "headshot",
+      "source": "P10_HEADSHOT",
+      "animatedSource": {
+        "sha256": "0ddc51105a6f20bb2ced10acb9c8236e1a6383d41e1efc7dc8b67622fa989b34",
+        "bytes": 10719774,
+        "width": 768,
+        "height": 768,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "df394f3cf0d00578a08f7adce5c34d1e026e71de94e742105fcfce91e2df0bc2",
+        "bytes": 1877572
+      },
+      "animated": {
+        "file": "headshot.webp",
+        "bytes": 2730404,
+        "width": 384,
+        "height": 384
+      },
+      "still": {
+        "file": "headshot-still.webp",
+        "bytes": 56362
+      }
+    },
+    {
+      "key": "diamond-squad",
+      "source": "P11_DIAMOND_SQUAD",
+      "animatedSource": {
+        "sha256": "e0a0aae063e78feda6d8d0dc8a0e7721b7e9dd097ea87d76ae6c9246779cd055",
+        "bytes": 8659998,
+        "width": 768,
+        "height": 768,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "3596f82b30f89a563b778d180ed8856f3cb8ae19b408f7431603e156b0726dd2",
+        "bytes": 1781558
+      },
+      "animated": {
+        "file": "diamond-squad.webp",
+        "bytes": 2193972,
+        "width": 384,
+        "height": 384
+      },
+      "still": {
+        "file": "diamond-squad-still.webp",
+        "bytes": 52070
+      }
+    },
+    {
+      "key": "final-boss",
+      "source": "P12_FINAL_BOSS",
+      "animatedSource": {
+        "sha256": "4dee0555984d905a9f5c523bcde515bed5a3e1859b2e4612daf12e745d215b0b",
+        "bytes": 7592512,
+        "width": 832,
+        "height": 576,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "5683404e40f69ae6659793046b3112c24c8cb742e023515142cca71a42588eb2",
+        "bytes": 2663875
+      },
+      "animated": {
+        "file": "final-boss.webp",
+        "bytes": 1511360,
+        "width": 384,
+        "height": 266
+      },
+      "still": {
+        "file": "final-boss-still.webp",
+        "bytes": 44738
+      }
+    },
+    {
+      "key": "chill-squad",
+      "source": "P13_CHILL_SQUAD",
+      "animatedSource": {
+        "sha256": "4566523842f9c997a4b9f1801606fa9f38a065f7f5bc8bbfca7784afc36f4adb",
+        "bytes": 5315692,
+        "width": 768,
+        "height": 768,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "95392140e02d65c4bda4cab77de4bf6b1f864a87e10ffa96c0167da283495552",
+        "bytes": 1654826
+      },
+      "animated": {
+        "file": "chill-squad.webp",
+        "bytes": 1456552,
+        "width": 384,
+        "height": 384
+      },
+      "still": {
+        "file": "chill-squad-still.webp",
+        "bytes": 50968
+      }
+    },
+    {
+      "key": "ghost-mode",
+      "source": "P14_GHOST_MODE",
+      "animatedSource": {
+        "sha256": "609120f6a067cffbd45cca7e981fdb5be86f3af0a10bd984ebf69312cc782c78",
+        "bytes": 12684930,
+        "width": 768,
+        "height": 768,
+        "frames": 72,
+        "fps": 24,
+        "loop": null
+      },
+      "stillSource": {
+        "sha256": "577f975bc33857af00c822b55ba654ef295cec5b04cf845ee17ab872c7c33cda",
+        "bytes": 2047969
+      },
+      "animated": {
+        "file": "ghost-mode.webp",
+        "bytes": 3258032,
+        "width": 384,
+        "height": 384
+      },
+      "still": {
+        "file": "ghost-mode-still.webp",
+        "bytes": 61648
+      }
+    }
+  ]
+}

@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="../wall-kit/game-details.css" />
   <link rel="stylesheet" href="editor.css" />
   <link rel="stylesheet" href="templates.css" />
+  <link rel="stylesheet" href="../wall-kit/stickers.css" />
   <link rel="stylesheet" href="editor-desktop.css" media="(min-width: 900px)" />
   <link rel="stylesheet" href="editor-mobile.css" media="(max-width: 599px), (max-width: 899px) and (max-height: 500px)" />
 </head>
@@ -88,7 +89,7 @@
       <button type="button" data-tool="gamid"><i aria-hidden="true">G</i><span>GamID</span></button>
       <button type="button" data-tool="assets"><i aria-hidden="true">&#9635;</i><span>Assets</span></button>
       <button type="button" data-tool="layout"><i aria-hidden="true">&#9776;</i><span>Layout</span></button>
-      <button type="button" data-tool="templates"><i aria-hidden="true">&#10022;</i><span>Templates</span></button>
+      <button type="button" data-tool="templates"><i aria-hidden="true">&#10022;</i><span>Templates &amp; Stickers</span><b id="railStickerBadge" class="sticker-count-badge ed-rail-badge" hidden></b></button>
       <button type="button" data-tool="props" class="ed-rail-edit"><i aria-hidden="true">&#9998;</i><span>Edit</span></button>
     </nav>
 
@@ -97,12 +98,16 @@
       <!-- Wall Stages V2 (DEC-0011): while a Friends Stage is open it takes the place of every tool panel (no element or background of the owner's own goes on it) -->
       <section id="friendsStagePanel" class="ed-section ed-friends-panel" aria-labelledby="friendsStageTitle">
         <h2 id="friendsStageTitle">Friends Stage</h2>
-        <p class="ed-hint">This stage is kept for your friends' stickers. You approve each sticker before it appears, and you can remove any sticker at any time. Friends' stickers are coming later.</p>
+        <p class="ed-hint">Your friends send stickers to this stage. You approve each one before anyone sees it, and you can move or remove any sticker at any time.</p>
         <p class="ed-hint">You can't add your own elements or your own background here. To design this stage yourself, make it a My Stage.</p>
+        <h3 class="ed-group-title">Sticker requests <b id="friendsRequestBadge" class="sticker-count-badge" hidden></b></h3>
+        <div id="friendsRequests" class="sticker-requests"></div>
+        <h3 class="ed-group-title">Stickers on this stage</h3>
+        <p class="ed-hint">Drag a sticker on the stage to move it. The newest sticker is the largest; each newer one makes the older ones a little smaller.</p>
+        <div id="friendsApproved" class="sticker-requests"></div>
         <h3 class="ed-group-title">Background</h3>
-        <p class="ed-hint">A Friends Stage uses a background from the official GamID catalog (Free and Premium).</p>
-        <div id="friendsCatalog" class="ed-friends-catalog"></div>
-        <button id="friendsMakeMy" class="ed-btn" type="button">Make this a My Stage</button>
+        <p class="ed-hint">Every Friends Stage uses the official GamID Friends Stage background.</p>
+        <div class="ed-row"><button id="friendsSend" class="ed-btn" type="button">Send a sticker to a friend</button><button id="friendsMakeMy" class="ed-btn" type="button">Make this a My Stage</button></div>
       </section>
       <section class="ed-section" data-tool-panel="add">
         <h2>Add</h2>
@@ -225,8 +230,30 @@
       </section>
 
       <section class="ed-section" data-tool-panel="templates">
-        <h2>Templates</h2>
-        <div id="templatesBody"></div>
+        <h2>Templates &amp; Stickers</h2>
+        <div class="ed-seg ed-ts-tabs" role="tablist" aria-label="Templates and Stickers">
+          <button id="tsTabTemplates" type="button" role="tab" aria-selected="true" aria-controls="tsTemplates">Templates</button>
+          <button id="tsTabStickers" type="button" role="tab" aria-selected="false" aria-controls="tsStickers" tabindex="-1">Stickers <b id="tsRequestBadge" class="sticker-count-badge" hidden></b></button>
+        </div>
+        <div id="tsTemplates" role="tabpanel" aria-labelledby="tsTabTemplates">
+          <div id="templatesBody"></div>
+        </div>
+        <div id="tsStickers" role="tabpanel" aria-labelledby="tsTabStickers" hidden>
+          <section class="ed-ts-block" aria-labelledby="stickerSendTitle">
+            <h3 id="stickerSendTitle" class="ed-group-title">Send a sticker</h3>
+            <p class="ed-hint">14 free animated stickers. Choose one, then send it to a friend's Friends Stage. They approve it before anyone sees it.</p>
+            <div id="stickerCatalog"></div>
+            <button id="stickerSend" class="ed-btn ed-primary" type="button" disabled>Send sticker</button>
+          </section>
+          <section id="stickerRequests" class="ed-ts-block" aria-labelledby="stickerRequestsTitle" tabindex="-1">
+            <h3 id="stickerRequestsTitle" class="ed-group-title">Requests on your Wall <b id="stickerRequestCount" class="sticker-count-badge" hidden></b></h3>
+            <div id="stickerRequestList" class="sticker-requests"></div>
+          </section>
+          <section id="stickersSent" class="ed-ts-block" aria-labelledby="stickersSentTitle" tabindex="-1">
+            <h3 id="stickersSentTitle" class="ed-group-title">Stickers you sent</h3>
+            <div id="stickerSentList" class="sticker-requests"></div>
+          </section>
+        </div>
       </section>
     </aside>
 
@@ -294,7 +321,7 @@
         <button class="mw-tool" type="button" data-mw-tool="media"><b aria-hidden="true">&#9654;</b><span>Media &amp; Links</span></button>
         <button class="mw-tool" type="button" data-mw-tool="shapes"><b aria-hidden="true">&#9632;</b><span>Shapes</span></button>
         <button class="mw-tool" type="button" data-mw-tool="gamid"><b aria-hidden="true">G</b><span>GamID</span></button>
-        <button class="mw-tool" type="button" data-mw-tool="templates"><b aria-hidden="true">&#10022;</b><span>Templates</span></button>
+        <button class="mw-tool" type="button" data-mw-tool="templates"><b aria-hidden="true">&#10022;</b><span>Templates &amp; Stickers</span></button>
       </div>
       <button id="mwMulti" class="ed-btn mw-wide" type="button" aria-pressed="false">Multi-select: off</button>
       <p class="ed-hint">Multi-select: each tap adds or removes an element, so several can be moved, grouped or aligned together.</p>

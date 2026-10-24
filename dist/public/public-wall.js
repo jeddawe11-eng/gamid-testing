@@ -21,6 +21,8 @@ import { createArtworkStore } from "../wall-kit/gamid-artwork.js";
 import { fetchGameArtwork } from "./game-artwork.js";
 import { gamidHref, crewWallHref } from "./identity-link.js";
 import { createWallStageNav } from "./public-wall-nav.js";
+import { isFriendsStage } from "../wall/stage-types.js";
+import { stickerView } from "../wall-kit/sticker-paint.js";
 
 const publishedVideoUrls = createPublishedVideoUrlCache({ baseUrl: defaultApi.SUPABASE_URL });
 export const WALL_MAX_WIDTH = 900;
@@ -84,6 +86,7 @@ export async function preparePublicWall(published, handle, api = defaultApi, vid
     } catch { /* this one asset shows its placeholder */ }
   }));
   await fontsReady;
+  const stickers = await prepareWallStickers(doc, handle, api);
   // My Duo opens the Duo's GamID and My Crew opens the Crew Wall - both in place (same tab), both carrying `from` so the destination offers "Back to @<this handle>"
   const pathname = globalThis.location?.pathname ?? "/";
   const view = await loadPublicView(api, handle, { duoLink: { newTab: false, href: duo => gamidHref(duo, { from: handle, pathname }) }, crewLink: { newTab: false, href: crewId => crewWallHref(crewId, { pathname, from: handle }) }, sections: usesGamerSections(doc) }).catch(() => null);
@@ -94,7 +97,39 @@ export async function preparePublicWall(published, handle, api = defaultApi, vid
     gamid: visitorSnapshot(view),
     // Game Covers: Classic's visitor artwork read for this PUBLIC GamID (game-artwork, the route Classic uses), only when the Wall shows covers
     artwork: usesGamerCovers(doc) ? createArtworkStore(() => fetchGameArtwork(api.SUPABASE_URL ?? defaultApi.SUPABASE_URL, handle)) : null,
+    stickers,
   };
+}
+
+// Friends Stickers V1: the approved stickers of this Wall's published Friends Stages (get_public_wall_stickers - never a waiting or rejected one), each with its
+// sender's current public avatar (the same anonymous avatar read as the public profile; one read per sender). -> Map(stage id -> sticker views)
+export async function prepareWallStickers(doc, handle, api = defaultApi) {
+  const byStage = new Map();
+  if (!doc?.stages?.some(isFriendsStage) || typeof api.getPublicWallStickers !== "function") return byStage;
+  let rows = [];
+  try { rows = await api.getPublicWallStickers(handle); } catch { return byStage; }
+  const avatars = new Map();
+  await Promise.all([...new Set(rows.map(row => row?.sender_avatar_media_reference).filter(Boolean))].map(async path => {
+    try { avatars.set(path, await api.loadPublicAvatar(path)); } catch { /* the sender's initial shows instead */ }
+  }));
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const view = stickerView(row, avatars.get(row?.sender_avatar_media_reference) ?? null);
+    if (!view) continue;
+    if (!byStage.has(row.stage_id)) byStage.set(row.stage_id, []);
+    byStage.get(row.stage_id).push(view);
+  }
+  return byStage;
+}
+
+// Who may add a sticker here: a signed-in visitor whose own GamID is public (visitors see who sent each sticker), never the Wall's owner. The server decides again
+// when the sticker is sent. -> true / false (false for every anonymous visitor, without any extra request).
+export async function canAddSticker(handle, api = defaultApi) {
+  try {
+    const session = await api.restoreSession?.();
+    if (!session || typeof api.getMyStickerSender !== "function") return false;
+    const me = await api.getMyStickerSender();
+    return Boolean(me?.can_send && me.gamid_handle && me.gamid_handle !== String(handle).toLowerCase());
+  } catch { return false; }
 }
 
 // F7-A: assetId -> the stage indexes that show it as a picture (an artwork element or a stage background). The whole-Wall background shows on every stage, so it
@@ -203,7 +238,7 @@ export function createPublicWallView({ host, prepared, handle, api = defaultApi,
     videos ??= createVideoPool({ viewport: { win, doc } });
     posters ??= createPosterLoader({ endpoint: api.MEDIA_POSTER_URL });
     details ??= createWallDetails({ element: make, handle, api, mount: node => doc.body.append(node), sourceLabels: PUBLIC_SOURCE_LABELS, posters });
-    const painted = paintDocument(ready.doc, target, undefined, { mode: "view", assets: ready.assets, gamid: ready.gamid, players, posters, details, videos, artwork: ready.artwork ?? null });
+    const painted = paintDocument(ready.doc, target, undefined, { mode: "view", assets: ready.assets, gamid: ready.gamid, players, posters, details, videos, artwork: ready.artwork ?? null, stickersFor: stage => ready.stickers?.get(stage.id) ?? [] });
     if (!painted.ok) { host.replaceChildren(make("p", "public-wall-state", "This Wall can't be shown right now. Please try again later.")); nav.hide(); return; }
     column = make("div", "public-wall-column");
     column.style.setProperty("width", `${target}px`);
@@ -215,6 +250,34 @@ export function createPublicWallView({ host, prepared, handle, api = defaultApi,
     nav.attach(painted.stages, phone(), landscape());
     if (anchor) nav.restore(anchor);
     watchStages(ready.pictureLoader, painted.stages);
+    addStickerButtons(ready, painted.stages);
+  }
+  // Friends Stickers V1: "Add sticker" on each Friends Stage, only for a visitor who may send one (signed in, public GamID, not the owner). The send flow is loaded
+  // only when it is opened; sending changes nothing on this page (the sticker waits for the owner's approval).
+  let mayAdd = null;
+  async function addStickerButtons(ready, stages) {
+    if (!ready.doc.stages.some(isFriendsStage)) return;
+    mayAdd ??= canAddSticker(handle, api);
+    if (!(await mayAdd) || !showing) return;
+    ensureStyles(doc, ["../wall-kit/stickers.css"]);
+    ready.doc.stages.forEach((stage, index) => {
+      const node = stages[index];
+      if (!isFriendsStage(stage) || !node?.isConnected || node.querySelector(".wall-add-sticker")) return;
+      const add = make("button", "wall-add-sticker");
+      add.type = "button";
+      const plus = make("span", "", "+");
+      plus.setAttribute("aria-hidden", "true");
+      add.append(plus, " Add sticker");
+      add.setAttribute("aria-label", `Add a sticker to @${handle}'s Friends Stage`);
+      add.addEventListener("click", async () => {
+        add.disabled = true;
+        try {
+          const { openStickerComposer } = await import("../wall-kit/sticker-composer.js");
+          openStickerComposer({ api, doc, win, handle, stageId: stage.id, onClose: () => { add.disabled = false; } });
+        } catch { add.disabled = false; }
+      });
+      node.append(add);
+    });
   }
   // F7-A: a stage's later pictures are fetched once the stage is within one viewport height of the screen (above or below); without IntersectionObserver
   // every later picture is fetched at once (the previous behaviour)

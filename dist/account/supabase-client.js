@@ -908,6 +908,25 @@ export function userIdFromToken() {
   } catch { return null; }
 }
 
+// ---- Friends Stickers V1 (supabase/migrations/20261024100000_friends_stickers_v1.sql) -----------------------------------------------------------------
+// Every call resolves the caller's own GamID on the server; a refused call throws with the server's code as its message (STICKER_*, STAGE_HAS_STICKERS).
+// Me as a sender: { gamid_handle, display_name, avatar_media_reference, can_send } (can_send: my GamID is public).
+export async function getMyStickerSender() { return (await rpc("get_my_sticker_sender"))?.[0] ?? null; }
+// Players who can receive a sticker: public, with an enabled published Wall that has a Friends Stage (never me). At least 2 characters.
+export async function searchStickerRecipients(query) { return (await rpc("search_sticker_recipients", { candidate_query: query })) || []; }
+// -> the new request's id. It waits for the owner's approval; nothing shows until then.
+export async function sendWallSticker({ handle, stageId, stickerKey, x, y, clipUrl = null }) {
+  return rpc("send_wall_sticker", { candidate_handle: handle, candidate_stage_id: stageId, candidate_sticker_key: stickerKey, candidate_x: x, candidate_y: y, candidate_clip_url: clipUrl || null });
+}
+export async function getMySentStickers() { return (await rpc("get_my_sent_stickers")) || []; }
+// The owner's side: the waiting requests and the stickers on my Wall (with each sender's current identity), the decisions, removal and moves.
+export async function getMyWallStickers() { return (await rpc("get_my_wall_stickers")) || []; }
+export async function reviewWallSticker(placementId, approve) { return rpc("review_wall_sticker", { candidate_placement_id: placementId, candidate_approve: Boolean(approve) }); }
+export async function removeWallSticker(placementId) { return rpc("remove_wall_sticker", { candidate_placement_id: placementId }); }
+export async function moveWallSticker(placementId, x, y) { return rpc("move_wall_sticker", { candidate_placement_id: placementId, candidate_x: x, candidate_y: y }); }
+// Visitors: the approved stickers of a public Wall's published Friends Stages (anonymous, like get_public_wall).
+export async function getPublicWallStickers(handle) { return (await rpc("get_public_wall_stickers", { candidate_handle: handle }, { anonymous: true })) || []; }
+
 // Every top-level surface using the authenticated client inherits the global shell.
 // Public visitor pages explicitly opt out; embedded renderers never mount owner controls.
 if (typeof document !== "undefined" && typeof window !== "undefined" && window.parent === window && document.documentElement?.dataset?.gamidSurface !== "public") {

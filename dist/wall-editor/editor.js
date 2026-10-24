@@ -8,7 +8,7 @@ import * as ops from "../wall-kit/ops.js";
 import { paintDocument } from "../wall-kit/paint.js";
 import { describeCode, describeErrors, stageDeleteQuestion, friendsConversionBlocked, selectionSummary, createNotifier } from "../wall-kit/messages.js";
 import { WALL_STAGE_LIMIT, stageType, isFriendsStage } from "../wall/stage-types.js";
-import { catalogByTier, catalogAvailable } from "../wall-kit/background-catalog.js";
+import { createOwnerStickers } from "./stickers-owner.js";
 import { resolveEditorSession, planAuth, gateFor } from "../wall-kit/auth-gate.js";
 import { elementRegistry } from "../wall/elements.js";
 import { GAMID_BLOCK_INFO } from "../wall-kit/gamid.js";
@@ -51,6 +51,7 @@ let gamidSnapshot = null;
 let renderQueued = false;
 let publication = { known: false, record: null, busy: false };   // the owner's publish status (see "publishing" below)
 let mobile = null;   // Mobile Wall Editor V2: the phone shell (mobile-shell.js), created once the canvas and tools exist
+let ownerStickers = null;   // Friends Stickers V1 (stickers-owner.js), created once the canvas exists
 const session = createEditorSession({ persistence, onChange: () => renderAll() });
 
 // Applies an operation result to the session. A failed operation changes nothing and tells the owner why.
@@ -133,7 +134,8 @@ const canvas = createCanvas({
   viewport: $("viewport"),
   session,
   isMulti: () => multi,
-  getPaintContext: () => ({ assets: assetStore, gamid: gamidSnapshot, posters, videos: canvasVideos, artwork: gameArtwork, audience: "owner" }),   // the signed-in owner's own Wall (the server resolved it): owner wording
+  // the signed-in owner's own Wall (the server resolved it): owner wording; Friends Stickers V1: its approved stickers, movable by the owner
+  getPaintContext: () => ({ assets: assetStore, gamid: gamidSnapshot, posters, videos: canvasVideos, artwork: gameArtwork, audience: "owner", stickersFor: stage => ownerStickers?.viewsFor(stage.id) ?? [], stickersMovable: true }),
   onSelectedTap: () => { if (isPhone()) openTool("props"); },
   onEditText: () => {
     if (isPhone()) openTool("props");
@@ -195,6 +197,13 @@ const tools = createTools({
   onResourceDeleted: () => refreshPublication(),   // a confirmed deletion may have updated the published Wall (and kept it up to date)
 });
 pathEditor = createPathEditor({ host: $("stageHost"), bar: $("pathBar"), getScale: () => canvas.scale, session, run, notify, onFinish: () => openTool("props") });
+// Friends Stickers V1: requests and stickers on my Wall, the Stickers section and the send flow. A new request shows at once: the shared notification centre
+// (the global shell's, woken by the existing private signal) tells the page which notification types just arrived.
+ownerStickers = createOwnerStickers({
+  api, session, notify, host: $("stageHost"), getScale: () => canvas.scale,
+  requestRender: () => { if (workspaceVisible) { canvas.render(); ownerStickers?.render(); } },
+});
+document.addEventListener("gamid:notifications-received", event => { if (workspaceVisible && event.detail?.types?.some(type => String(type).startsWith("sticker."))) ownerStickers.load(); });
 mobile = createMobileShell({ session, canvas, run, openTool, closeTools, toggleTool, layerName: element => layerName(element), isWorkspaceVisible: () => workspaceVisible });
 $("assetUpload").addEventListener("click", () => { placeNextUpload = false; assetFile.click(); });
 assetFile.addEventListener("change", async () => {
@@ -446,27 +455,11 @@ $("stageType").addEventListener("keydown", event => {
   changeStageType(next);
   $(next === "my" ? "stageTypeMy" : "stageTypeFriends").focus();
 });
-// The Friends Stage panel's catalog (wall-kit/background-catalog.js): Free and Premium, each eligible or not. The catalog does not exist yet, so it says so.
-function renderFriendsCatalog() {
-  const box = $("friendsCatalog");
-  if (box.dataset.ready === "1") return;
-  box.dataset.ready = "1";
-  const tiers = catalogByTier();
-  const tier = (title, entries, empty) => {
-    const card = make("div", "ed-friends-tier");
-    card.append(make("h4", "", title));
-    if (!entries.length) card.append(make("p", "", empty));
-    else for (const entry of entries) card.append(make("p", "", `${entry.label}${entry.eligible ? "" : " (not available to you)"}`));
-    return card;
-  };
-  box.replaceChildren(
-    tier("Free", tiers.free, catalogAvailable() ? "No Free backgrounds yet." : "The GamID background catalog is not available yet. Until then a Friends Stage keeps the plain stage colour."),
-    tier("Premium", tiers.premium, "Premium backgrounds will need GamID Premium, which is not available yet."));
-}
+// A Friends Stage's panel (Friends Stickers V1): its sticker requests and stickers (stickers-owner.js); its background is the official one (no catalog in V1)
 function renderStageType() {
   const friends = isFriendsStage(session.stage);
   document.body.dataset.stageType = friends ? "friends" : "my";
-  if (friends) renderFriendsCatalog();
+  if (friends) ownerStickers?.render();
 }
 
 function removeStage(result) {
@@ -566,7 +559,7 @@ function renderPreview() {
   const width = previewMode === "mobile" ? Math.min(390, available) : Math.min(900, available);
   // a Wall saved before the player-layering rule existed is shown with that rule applied (nothing drawn over a player); the document itself is not changed
   previewVideos ??= createVideoPool();
-  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players, posters, details: detailsFor(gamidSnapshot), videos: previewVideos, artwork: gameArtwork, audience: "owner" });
+  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players, posters, details: detailsFor(gamidSnapshot), videos: previewVideos, artwork: gameArtwork, audience: "owner", stickersFor: stage => ownerStickers?.viewsFor(stage.id) ?? [] });
   $("previewColumn").replaceChildren(...(painted.ok ? painted.stages : [make("p", "ed-empty", "This Wall cannot be previewed: " + describeErrors(painted.errors).join(" "))]));
   $("previewMobile").setAttribute("aria-pressed", String(previewMode === "mobile"));
   $("previewDesktop").setAttribute("aria-pressed", String(previewMode === "desktop"));
@@ -647,6 +640,9 @@ async function boot() {
   refreshPublication();
   // Wall Stages V2: the owner's stage allowance, decided by the server (the default stands if it cannot be read; the server enforces it on save either way)
   persistence.loadStageAllowance().then(limit => { if (limit) { stageLimit = limit; renderAll(); } }).catch(() => {});
+  // Friends Stickers V1: the requests and stickers on my Wall (the canvas shows them as soon as they arrive); a notification link opens its section
+  ownerStickers.load();
+  openStickerSection(location.hash);
   // the owner's existing Usage cleanup (also run when Usage opens): it releases what is due - including a Wall file left behind by a deletion whose file removal failed
   Promise.resolve(api.reconcileUsageUploads?.()).catch(() => { /* retried on the next visit or when Usage opens */ });
 }
@@ -658,4 +654,20 @@ $("gateLink").addEventListener("click", event => {
   location.assign(target);
 });
 $("gateRetry").addEventListener("click", boot);
+// a sticker notification opens Templates & Stickers on its section: #stickerRequests (a request on my Wall) or #stickersSent (what happened to mine)
+function openStickerSection(hash) {
+  const target = { "#stickerRequests": "stickerRequests", "#stickersSent": "stickersSent" }[hash];
+  if (!target || !workspaceVisible) return;
+  openTool("templates");
+  ownerStickers.showSection("stickers");
+  requestAnimationFrame(() => { $(target).scrollIntoView({ block: "start" }); $(target).focus({ preventScroll: true }); });
+}
+window.addEventListener("hashchange", () => openStickerSection(location.hash));
+// a notification opened while the editor is the page: handled here, in place (authenticated-shell.js lets the page take it)
+window.addEventListener("gamid:notification-navigate", event => {
+  const anchor = { "wall.sticker_requests": "#stickerRequests", "wall.stickers_sent": "#stickersSent" }[event.detail?.destination];
+  if (!anchor || !workspaceVisible) return;
+  event.preventDefault();
+  openStickerSection(anchor);
+});
 boot();

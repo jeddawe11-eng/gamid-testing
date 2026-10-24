@@ -145,6 +145,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-seg { display: flex; gap: .3rem; margin-bottom: .7rem; flex-wrap: wrap; }
 .ed-seg button { flex: 1 1 auto; min-height: 2.6rem; padding: .3rem .6rem; border: 1px solid #3a334b; border-radius: .6rem; background: #1c1828; cursor: pointer; font-weight: 700; font-size: .74rem; }
 .ed-seg button[aria-pressed="true"] { background: #2a1f4a; border-color: var(--violet); }
+.ed-seg button[aria-selected="true"] { background: #2a1f4a; border-color: var(--violet); }   /* Templates & Stickers tabs (Friends Stickers V1) */
+.ed-ts-block { display: grid; gap: .6rem; margin-top: 1rem; }
+.ed-ts-block:focus { outline: none; }
+.ed-rail-badge { position: absolute; top: .25rem; right: .25rem; font-size: .62rem; }
+#rail [data-tool="templates"] { position: relative; }
 .ed-stack { display: grid; gap: .35rem; font-size: .74rem; color: var(--muted); font-weight: 700; margin: .2rem 0 .7rem; }
 .ed-text-line { width: 100%; min-height: 2.75rem; padding: .4rem .6rem; border: 1px solid var(--line); border-radius: .6rem; background: var(--panel2); font-weight: 500; }
 .ed-media-result { display: grid; gap: .6rem; }

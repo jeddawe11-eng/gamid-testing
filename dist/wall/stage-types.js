@@ -1,8 +1,8 @@
 // Wall Stages V2 (DEC-0011, Mazen's task 2026-10-22): every stage is a MY STAGE or a FRIENDS STAGE.
 //   - My Stage: the owner's own stage - every existing editing capability. A stage without `type` IS a My Stage, so every Wall saved before stage types existed is
 //     unchanged and valid (no migration rewrites it).
-//   - Friends Stage (`type: "friends"`): reserved for friends' stickers (a later system). The owner places no ordinary elements on it and gives it no background
-//     of their own; its background will come only from the official GamID background catalog (wall-kit/background-catalog.js), which does not exist yet.
+//   - Friends Stage (`type: "friends"`): reserved for friends' stickers (Friends Stickers V1, dist/wall/stickers.js). The owner places no ordinary elements on it
+//     and gives it no background of their own; it shows the official GamID Friends Stage background (painted, never stored in the document).
 //   - A Wall always keeps at least one My Stage.
 // The database (private.wall_stage_type_errors) mirrors stageTypeErrors exactly. How MANY stages a Wall may have is not a document rule: the server decides it per
 // owner (private.wall_stage_allowance) - see WALL_STAGE_LIMIT.
@@ -18,11 +18,14 @@ export const myStageCount = doc => (Array.isArray(doc?.stages) ? doc.stages.filt
 // it, or when it cannot. No plan, entitlement or subscription is decided in the browser.
 export const WALL_STAGE_LIMIT = 3;
 
-// Active friends' stickers on a stage. The Friends Stickers system is not built, so a Wall document holds no stickers and this is always 0 - the single place the
-// future system will report them. While it is above 0 a Friends Stage can be neither deleted nor turned into a My Stage (DEC-0011 E).
-export const activeStickerCount = () => 0;
+// Active (approved) friends' stickers on a stage. Stickers are not part of the Wall Document (Friends Stickers V1 keeps them in their own table), so the owner's
+// editor reports them here once it has read them (setActiveStickerCounts: stage id -> count); 0 everywhere else. While it is above 0 a Friends Stage can be
+// neither deleted nor turned into a My Stage (DEC-0011 E) - and the server refuses such a save too (STAGE_HAS_STICKERS).
+let activeCounts = new Map();
+export const setActiveStickerCounts = counts => { activeCounts = counts instanceof Map ? new Map(counts) : new Map(); };
+export const activeStickerCount = stage => activeCounts.get(stage?.id) ?? 0;
 // A Friends Stage the owner created that shows no approved sticker: it gets the empty-state message (wall-kit/friends-stage.js). `stickers` is the number of visible
-// approved stickers the future system reports for it (activeStickerCount until then, so always 0 today). A My Stage never qualifies, empty or not.
+// approved stickers on it (activeStickerCount by default). A My Stage never qualifies, empty or not.
 export const isEmptyFriendsStage = (stage, stickers = activeStickerCount(stage)) => isFriendsStage(stage) && stickers === 0;
 
 // The stage-type rules, in stage order, then the Wall-level one. Appended at the END of validateDocument's errors (the SQL port appends them at the same point).

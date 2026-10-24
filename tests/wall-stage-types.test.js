@@ -108,7 +108,7 @@ test("deletion: never the last stage or the last My Stage; a Friends Stage is de
   assert.equal(ops.deleteStage(withTypes("my", "my"), "stage_1").ok, true, "another My Stage remains");
 });
 
-test("rendering: a Friends Stage never shows the owner's Whole-Wall background (it keeps the plain stage colour); My Stages are unchanged", () => {
+test("rendering: a Friends Stage never shows the owner's Whole-Wall background (it shows the official Friends Stage background - Friends Stickers V1); My Stages are unchanged", () => {
   const doc = withTypes("my", "friends", "my");
   doc.background = { kind: "color", color: "#ff0000" };
   const tree = renderDocument(doc, { viewportWidth: 300 });
@@ -116,8 +116,8 @@ test("rendering: a Friends Stage never shows the owner's Whole-Wall background (
   const node = tag => { const attrs = new Map(), children = []; return { tag, attrs, children, style: { setProperty() {} }, setAttribute(name, value) { attrs.set(name, String(value)); }, append(...items) { children.push(...items); }, appendChild(item) { children.push(item); return item; }, set className(value) { attrs.set("class", value); }, set textContent(value) { this.text = value; } }; };
   const painted = paintDocument(doc, 300, node, {});
   assert.equal(painted.ok, true);
-  assert.deepEqual(painted.stages.map(stage => stage.children.length), [1, 1, 1], "the Whole-Wall background layer on the two My Stages only; the Friends Stage holds only its empty-state message (2026-10-23)");
-  assert.equal(painted.stages[1].children[0].attrs.get("class") ?? painted.stages[1].children[0].className, "wall-friends-empty", "... which is the message, not a background");
+  assert.deepEqual(painted.stages.map(stage => stage.children.length), [1, 2, 1], "the Whole-Wall background layer on the two My Stages only; the Friends Stage holds the official background and its empty-state message");
+  assert.deepEqual(painted.stages[1].children.map(child => child.attrs.get("class")), ["wall-friends-bg", "wall-friends-empty"], "the official Friends Stage background, never the owner's Whole-Wall one");
   assert.equal(painted.stages[1].attrs.get("data-stage-type"), "friends");
   assert.equal(painted.stages[0].attrs.has("data-stage-type"), false);
 });
@@ -174,7 +174,8 @@ test("editor: Add stage passes the owner's allowance; the type switch, the count
   assert.match(editor, /if \(session\.doc\.stages\.length >= stageLimit\) \{\n    const message = `You've reached your \$\{stageLimit\}-stage limit\.`;\n    \$\("stageStatus"\)\.textContent = message;\n    notify\(message\);\n    return;\n  \}/, "at the limit nothing is added and the Wall is not changed");
   assert.match(shell, /\$\("mwStageAdd"\)\.classList\.toggle\("is-max", atMax\);/);
   for (const sheet of [read("dist/wall-editor/editor.css"), read("dist/wall-editor/editor-desktop.css"), read("dist/wall-editor/editor-mobile.css")]) assert.match(sheet, /\.ed-stage-add\.is-max/);
-  for (const id of ["stageTypeMy", "stageTypeFriends", "stageCount", "friendsStagePanel", "friendsCatalog", "friendsMakeMy", "mwStageTypeMy", "mwStageTypeFriends", "mwStageCount"]) assert.match(html, new RegExp(`id="${id}"`), id);
+  // (Friends Stickers V1: the panel's background catalog note became the stage's sticker requests and stickers)
+  for (const id of ["stageTypeMy", "stageTypeFriends", "stageCount", "friendsStagePanel", "friendsRequests", "friendsApproved", "friendsSend", "friendsMakeMy", "mwStageTypeMy", "mwStageTypeFriends", "mwStageCount"]) assert.match(html, new RegExp(`id="${id}"`), id);
   assert.match(shell, /proxy\("mwStageTypeMy", "stageTypeMy"\);/);
   assert.match(shell, /proxy\("mwStageTypeFriends", "stageTypeFriends"\);/);
   assert.match(css, /body\[data-stage-type="friends"\] \[data-tool-panel\] \{ display: none !important; \}/, "a Friends Stage replaces every tool panel");

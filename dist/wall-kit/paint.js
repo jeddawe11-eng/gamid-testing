@@ -16,6 +16,7 @@ import { shapePath, shapeFillRule, shapeIsOpen } from "../wall/shapes.js";   // 
 import { safeMediaUrl, backgroundVideo } from "./video-background.js";
 import { isEmptyFriendsStage } from "../wall/stage-types.js";
 import { paintFriendsEmptyState } from "./friends-stage.js";   // Wall Stages V2: the empty Friends Stage message (display only)
+import { paintFriendsBackground, paintStickerLayer } from "./sticker-paint.js";   // Friends Stickers V1: the official background and the approved stickers
 import "./register.js";   // makes sure every element type, background kind and provider is registered wherever documents are painted
 
 const num = value => (Number.isFinite(value) ? String(Math.round(value * 1000) / 1000) : "0");
@@ -532,16 +533,20 @@ export function paintStage(stageTree, scale, createNode = tag => document.create
   stage.style.setProperty("overflow", ctx.showOutside === true ? "visible" : "hidden");
   stage.style.setProperty("isolation", "isolate");   // blend modes mix with this stage only
   // a stage's own background wins; otherwise the Wall-wide one is laid across ALL stages so it can run continuously from one stage into the next. A Friends Stage
-  // (DEC-0011) never shows the owner's own Wall-wide background: its background will come only from the official GamID catalog, so until then it keeps the plain
-  // stage colour
+  // (DEC-0011) never shows the owner's own Wall-wide background: it shows the official GamID Friends Stage background instead (Friends Stickers V1)
   if (stageTree.type === "friends") stage.setAttribute("data-stage-type", "friends");
+  // Friends Stickers V1: every Friends Stage shows the official GamID Friends Stage background (never the owner's; it cannot be changed)
+  if (stageTree.type === "friends") stage.append(paintFriendsBackground(createNode));
   if (stageTree.background) stage.append(paintBackgroundLayer(stageTree.background, { createNode, ctx, width: stageTree.width, height: stageTree.height, index: 0, count: 1, scale, scope: `stage:${stageTree.id}` }));
   else if (ctx.wallBackground && stageTree.type !== "friends") stage.append(paintBackgroundLayer(ctx.wallBackground, { createNode, ctx, width: stageTree.width, height: stageTree.height, index: ctx.stageIndex ?? 0, count: ctx.stageCount ?? 1, scale }));
   stageTree.elements.forEach((item, order) => stage.appendChild(paintElement(item, scale, order, createNode, ctx)));
-  // an empty Friends Stage says so (display only, painted here - never a document element, layer or asset). ctx.stickerCount(stage) is where the future Friends
-  // Stickers system reports a stage's visible approved stickers; the message leaves as soon as there is one. ctx.audience "owner" only from the owner's editor.
-  const stickers = typeof ctx.stickerCount === "function" ? ctx.stickerCount(stageTree) : undefined;
-  if (isEmptyFriendsStage(stageTree, stickers)) stage.append(paintFriendsEmptyState(createNode, ctx.audience === "owner" ? "owner" : "visitor"));
+  // Friends Stickers V1: the approved stickers of this Friends Stage (ctx.stickersFor(stage) -> sticker views, wall-kit/sticker-paint.js), over everything else
+  const stickers = stageTree.type === "friends" && typeof ctx.stickersFor === "function" ? ctx.stickersFor(stageTree) ?? [] : [];
+  if (stickers.length) stage.append(paintStickerLayer(stickers, scale, createNode, { interactive: ctx.mode === "view", draggable: ctx.stickersMovable === true }));
+  // an empty Friends Stage says so (display only, painted here - never a document element, layer or asset); the message leaves as soon as one approved sticker
+  // shows. ctx.audience "owner" only from the owner's editor.
+  const count = typeof ctx.stickersFor === "function" ? stickers.length : typeof ctx.stickerCount === "function" ? ctx.stickerCount(stageTree) : undefined;
+  if (isEmptyFriendsStage(stageTree, count)) stage.append(paintFriendsEmptyState(createNode, ctx.audience === "owner" ? "owner" : "visitor"));
   return stage;
 }
 

@@ -147,6 +147,8 @@ export function createNotificationCenter({ api, doc = globalThis.document, timer
       baseline = Math.max(baseline, highest(rows));
       await count();
       render();
+      // the page that owns a notification's subject may refresh itself (the Wall editor re-reads its sticker requests): the new rows' TYPE keys only, nothing else
+      if (fresh.length) try { doc?.dispatchEvent?.(new globalThis.CustomEvent("gamid:notifications-received", { detail: { types: fresh.map(item => item.type_key) } })); } catch { /* no event support */ }
       if (isVisible()) for (const item of fresh.sort((a, b) => Number(a.notification_id) - Number(b.notification_id))) if (!item.read_at) toastQueue.push(item);
       pumpToast();
     });

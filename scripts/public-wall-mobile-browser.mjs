@@ -36,7 +36,9 @@ export async function launch() { browser ??= await chromium.launch({ channel: pr
 export async function close() { await browser?.close(); browser = null; }
 
 // Opens the visitor page for one fixture Wall at one size. -> { context, page, errors, requests } (requests: every mocked read, in order, with its kind)
-export async function open(scenario, { width, height, mobile = width < 1024, reducedMotion = "no-preference", live = process.env.GAMID_WALL_LIVE === "1", wall = true, doc: docOverride = null, failMedia = new Set(), drawn = true, intro = false, from = null } = {}) {
+// Friends Stickers V1 (2026-10-24): rpc = extra mocked RPC answers (e.g. get_public_wall_stickers, get_my_sticker_sender); avatars = { path: image bytes } for the
+// anonymous avatar read; signedIn = a synthetic user id - a stored session for that user is placed before the page loads (no real account, no network).
+export async function open(scenario, { rpc = {}, avatars = {}, signedIn = null, width, height, mobile = width < 1024, reducedMotion = "no-preference", live = process.env.GAMID_WALL_LIVE === "1", wall = true, doc: docOverride = null, failMedia = new Set(), drawn = true, intro = false, from = null } = {}) {
   await launch();
   const doc = docOverride ?? SCENARIOS[scenario]();
   const published = wall ? [{ document: doc, assets: assetsFor(doc), published_at: "2026-10-22T00:00:00Z" }] : [];
@@ -53,6 +55,11 @@ export async function open(scenario, { width, height, mobile = width < 1024, red
         if (!assetId || failMedia.has(assetId) || !MEDIA[assetId]) return route.fulfill({ status: 400, body: "" });
         return route.fulfill({ status: 200, contentType: assetId === ASSETS.gif.asset_id ? "image/gif" : "image/jpeg", body: MEDIA[assetId] });
       }
+      if (p.startsWith("/storage/v1/object/authenticated/avatars/")) {
+        const key = decodeURIComponent(p.slice("/storage/v1/object/authenticated/avatars/".length));
+        requests.push({ kind: "avatar", asset: key });
+        return avatars[key] ? route.fulfill({ status: 200, contentType: "image/jpeg", body: avatars[key] }) : route.fulfill({ status: 400, body: "" });
+      }
       if (p.startsWith("/storage/v1/object/authenticated/wall-fonts/")) { requests.push({ kind: "font" }); return route.fulfill({ status: 200, contentType: "font/woff2", body: FONT }); }
       if (p === "/functions/v1/public-media") {
         const { bucket, path: objectPath } = JSON.parse(req.postData() || "{}");
@@ -65,8 +72,9 @@ export async function open(scenario, { width, height, mobile = width < 1024, red
       if (p.startsWith("/storage/v1/object/sign/")) { requests.push({ kind: "video-bytes", asset: Object.values(ASSETS).find(a => p.includes(a.asset_id))?.key ?? p, range: req.headers().range ?? null }); return serveRange(route, VIDEO, "video/mp4"); }
       if (p.startsWith("/functions/v1/media-poster")) { requests.push({ kind: "poster" }); return route.fulfill({ status: 200, contentType: "image/jpeg", body: POSTER, headers: { "Access-Control-Allow-Origin": CF } }); }
       if (p.startsWith("/functions/v1/game-artwork/")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ enabled: false }) });
-      const bodies = { get_public_identity: [identityFor({ intro })], get_public_wall: published, get_public_wall_fonts: [{ font_id: FONT_ID, storage_path: `${OWNER}/${FONT_ID}.woff2` }], get_public_profile_extras: [{ has_banner: false, member_since_year: 2026 }] };
-      requests.push({ kind: "rpc", action });
+      const bodies = { get_public_identity: [identityFor({ intro })], get_public_wall: published, get_public_wall_fonts: [{ font_id: FONT_ID, storage_path: `${OWNER}/${FONT_ID}.woff2` }], get_public_profile_extras: [{ has_banner: false, member_since_year: 2026 }], ...rpc };
+      requests.push({ kind: "rpc", action, body: req.postData() ? JSON.parse(req.postData()) : null, auth: Boolean(req.headers().authorization) });
+      if (typeof bodies[action] === "function") { const answer = bodies[action](req.postData() ? JSON.parse(req.postData()) : {}); return route.fulfill({ status: answer?.status ?? 200, contentType: "application/json", body: JSON.stringify(answer?.body ?? answer) }); }
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(bodies[action] ?? []) });
     }
     if (url.origin === CF) {
@@ -82,6 +90,11 @@ export async function open(scenario, { width, height, mobile = width < 1024, red
   });
   const page = await context.newPage();
   page.on("pageerror", e => errors.push(e.message));
+  if (signedIn) await page.addInitScript(sub => {
+    const part = value => btoa(JSON.stringify(value)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    localStorage.setItem("gamid.testing.auth.session.v1", JSON.stringify({ access_token: `${part({ alg: "none" })}.${part({ sub, exp })}.fixture`, refresh_token: "fixture", expires_at: exp, user: { id: sub } }));
+  }, signedIn);
   await page.goto(`${CF}/public/?handle=fixture_wall${from ? `&from=${from}` : ""}`);
   // with an Intro the caller drives it (Skip / the end); the Intro frame shows first
   if (intro) { await page.waitForFunction(() => !document.getElementById("experienceWrap").hidden, null, { timeout: 20000 }).catch(() => {}); return { context, page, errors, requests, doc }; }

@@ -242,7 +242,14 @@ test("route: nothing else links to or serves the editor - it is not wired into A
     if (file === "dist/public/public-wall.js") {
       assert.deepEqual([...text.matchAll(/from "\.\.\/wall-editor\/([^"]+)"/g)].map(match => match[1]), ["gamid-data.js"]);
       assert.doesNotMatch(text, /wall-editor\/(?!gamid-data\.js")|wall_drafts|get_my_wall|save_my_wall|publish_my_wall/);
-      assert.deepEqual([...text.matchAll(/"(\.\.\/[^"]+\.css)"/g)].map(match => match[1]), ["../wall-kit/wall-kit.css", "../wall-kit/game-details.css"], "the only pages it links are the kit's own stylesheets");
+      // (Friends Stickers V1: + the kit's sticker stylesheet, linked only for a visitor who may add a sticker)
+      assert.deepEqual([...text.matchAll(/"(\.\.\/[^"]+\.css)"/g)].map(match => match[1]), ["../wall-kit/wall-kit.css", "../wall-kit/game-details.css", "../wall-kit/stickers.css"], "the only pages it links are the kit's own stylesheets");
+      continue;
+    }
+    // (Friends Stickers V1) a sticker notification's typed destination opens the owner's own editor on its Stickers section - two keys, nothing else
+    if (file === "dist/notifications/notification-types.js") {
+      assert.deepEqual([...text.matchAll(/page: "wall-editor", anchor: "(\w+)"/g)].map(match => match[1]), ["stickerRequests", "stickersSent"]);
+      assert.equal((text.match(/wall-editor|wall-kit/g) ?? []).length, 2);
       continue;
     }
     // (My Crew Slice 2) the Crew Mini Wall paints its typed model with the SHARED Wall kit (paint + interaction) and the kit's stylesheet - never the editor, a draft or
@@ -273,8 +280,17 @@ test("route: nothing else links to or serves the editor - it is not wired into A
 test("the only public Wall route is the PUBLISHED snapshot: one visitor RPC in one migration, read only through public-wall.js", () => {
   const names = readdirSync("supabase/migrations");
   const defining = names.filter(name => /function public\.\w*public_wall/i.test(read(`supabase/migrations/${name}`)));
-  // Custom Wall fonts (Mazen's approval 2026-10-18) add ONE more visitor read, of the same published snapshot: the fonts it references - never the draft
-  assert.deepEqual(defining, ["20261002120000_wall_public_publishing.sql", "20261018120000_wall_custom_fonts.sql"]);
+  // Custom Wall fonts (Mazen's approval 2026-10-18) add ONE more visitor read, of the same published snapshot: the fonts it references - never the draft.
+  // Friends Stickers V1 (Mazen's task 2026-10-24) adds the third: the APPROVED stickers on the snapshot's Friends Stages - never a waiting one, never the draft.
+  assert.deepEqual(defining, ["20261002120000_wall_public_publishing.sql", "20261018120000_wall_custom_fonts.sql", "20261024100000_friends_stickers_v1.sql"]);
+  const stickers = read("supabase/migrations/20261024100000_friends_stickers_v1.sql").replace(/--.*$/gm, "");
+  assert.deepEqual([...stickers.matchAll(/function public\.(\w*public_wall\w*)/gi)].map(match => match[1]), ["get_public_wall_stickers"]);
+  const stickerRead = stickers.slice(stickers.indexOf("create function private.get_public_wall_stickers_impl"), stickers.indexOf("create function public.get_public_wall_stickers"));
+  assert.match(stickerRead, /e\.visibility = 'PUBLIC' and w\.is_enabled/);
+  assert.match(stickerRead, /p\.status = 'approved'/, "only approved stickers");
+  assert.match(stickerRead, /any \(private\.wall_friends_stage_ids\(w\.document\)\)/, "only on Friends Stages of the published snapshot");
+  assert.match(stickerRead, /s\.visibility = 'PUBLIC'/, "only senders whose GamID is public");
+  assert.doesNotMatch(stickerRead, /wall_drafts|clip_url is null|pending/, "the draft and waiting requests never reach visitors");
   const fonts = read("supabase/migrations/20261018120000_wall_custom_fonts.sql").replace(/--.*$/gm, "");
   assert.deepEqual([...fonts.matchAll(/function public\.(\w*public_wall\w*)/gi)].map(match => match[1]), ["get_public_wall_fonts"]);
   const visitorRead = fonts.slice(fonts.indexOf("create function private.get_public_wall_fonts_impl"), fonts.indexOf("create function public.get_public_wall_fonts"));

@@ -538,6 +538,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261021120000_video_renditions_f8b1.sql",   // F8-B1 internal Wall video renditions (own bucket / table; usage, manifest and lease functions gain one rendition clause each)   // Favorite Games Display Style: catalog wall_artwork + the projection lists it; public identity / My Games untouched
       "20261022100000_universal_delete_resolve.sql",   // Universal deletion: new owner RPCs that delete a Wall asset / font and resolve its references (no existing function changes)
       "20261022110000_usage_media_orphans.sql",   // Universal deletion: the owner's Usage cleanup removes left-behind Wall media files; authorize_usage_delete refuses registered Wall files
+      "20261024100000_friends_stickers_v1.sql",   // Friends Stickers V1: own table + sticker RPCs, four notification types, the draft save's STAGE_HAS_STICKERS check; public identity / My Games untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

@@ -96,6 +96,7 @@ body { background: radial-gradient(120% 90% at 50% -10%, #1a1440 0, transparent 
 .ed-rail button[data-tool="shapes"] { --ic: var(--i-shapes); }
 .ed-rail button[data-tool="gamid"] { --ic: var(--i-gamid); }
 .ed-rail button[data-tool="gamid"] span { white-space: normal; line-height: 1.05; text-align: center; }   /* "My Gamer Data" (2026-10-19) takes two lines */
+.ed-rail button[data-tool="templates"] span { white-space: normal; line-height: 1.05; text-align: center; }   /* "Templates & Stickers" (Friends Stickers V1, 2026-10-24) takes two lines */
 .ed-rail button[data-tool="layout"] { --ic: var(--i-layout); }
 .ed-rail button[data-tool="assets"] { --ic: var(--i-assets); }
 .ed-rail button[data-tool="templates"] { --ic: var(--i-templates); }

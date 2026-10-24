@@ -16,7 +16,8 @@ const TOOLS = ["add", "text", "media", "shapes", "gamid", "assets", "layout", "t
 test("the redesign stylesheet is linked for the desktop layout only (>= 900px, the editor's own desktop breakpoint), after the existing editor styles", () => {
   const links = [...html.matchAll(/<link rel="stylesheet" href="([^"]+)"([^>]*)\/>/g)].map(match => [match[1], match[2].trim()]);
   // (Mobile Wall Editor V2, 2026-10-20: the phone stylesheet follows, for phones only - it never applies at 900px and wider; see wall-editor-mobile-v2.test.js)
-  assert.deepEqual(links.map(link => link[0]), ["../wall-kit/wall-kit.css", "../wall-kit/game-details.css", "editor.css", "templates.css", "editor-desktop.css", "editor-mobile.css"]);
+  // (Friends Stickers V1, 2026-10-24: the shared sticker stylesheet - send flow, catalog, request cards - follows the templates' one, for every layout)
+  assert.deepEqual(links.map(link => link[0]), ["../wall-kit/wall-kit.css", "../wall-kit/game-details.css", "editor.css", "templates.css", "../wall-kit/stickers.css", "editor-desktop.css", "editor-mobile.css"]);
   assert.equal(links.find(link => link[0] === "editor-desktop.css")[1], 'media="(min-width: 900px)"');
   assert.match(base, /@media \(min-width: 900px\)/, "900px is the editor's desktop breakpoint");
 });

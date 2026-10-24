@@ -18,7 +18,7 @@ const BY_CODE = {
   LAST_MY_STAGE: "Your Wall needs at least one My Stage. Make another stage a My Stage first.",
   NO_MY_STAGE: "Your Wall needs at least one My Stage.",
   STAGE_NOT_EMPTY_FOR_FRIENDS: "Only an empty stage can become a Friends Stage. Move its elements to another stage (Move to stage) or delete them, and remove its own background, first.",
-  STAGE_HAS_STICKERS: "This Friends Stage still has friends' stickers. Remove them, or wait until they expire, first.",
+  STAGE_HAS_STICKERS: "This Friends Stage still has friends' stickers. Remove them first (Friends Stage panel), then try again.",
   FRIENDS_STAGE_ELEMENTS: "This is a Friends Stage: it is kept for your friends' stickers, so you can't add your own elements to it. Open a My Stage, or make this one a My Stage.",
   FRIENDS_STAGE_BACKGROUND: "A Friends Stage only takes a background from the GamID background catalog, so your own background can't be used here.",
   INVALID_STAGE_TYPE: "A stage is either a My Stage or a Friends Stage.",

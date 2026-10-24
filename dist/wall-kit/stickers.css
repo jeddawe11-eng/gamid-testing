@@ -1,0 +1,69 @@
+/* Friends Stickers V1 (2026-10-24): the send flow (wall-kit/sticker-composer.js), the sticker catalog grid and the owner's request cards - shared by the Wall editor and
+   the public Wall. Navy surfaces, purple primary, gold highlights, as the rest of GamID. A centred dialog on wide screens; a full-screen sheet on phones. */
+html.has-sticker-composer { overflow: hidden; }
+.sticker-composer-backdrop { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-items: center; padding: 16px; background: rgba(4, 3, 10, .72); backdrop-filter: blur(3px); }
+.sticker-composer { box-sizing: border-box; display: flex; flex-direction: column; width: min(560px, 100%); max-height: calc(100dvh - 32px); overflow: hidden; border: 1px solid rgba(139, 93, 255, .45);
+  border-radius: 18px; background: linear-gradient(180deg, #17122a, #0e0b1c); color: #ece8ff; box-shadow: 0 24px 80px rgba(0, 0, 0, .6); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.sticker-composer-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid rgba(139, 93, 255, .25); }
+.sticker-composer-title { flex: 1; margin: 0; font-size: 1.1rem; font-weight: 800; letter-spacing: .02em; outline: none; }
+.sticker-composer-close { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid rgba(255, 255, 255, .15); border-radius: 12px; background: rgba(255, 255, 255, .04); color: #fff; font-size: 1.5rem; cursor: pointer; }
+.sticker-composer-body { flex: 1; min-height: 0; overflow: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.sticker-composer-status { min-height: 1.4em; margin: 0; padding: 0 16px 12px; color: #f3d68a; font-size: .9rem; }
+.sticker-composer-status:empty { padding-bottom: 0; min-height: 0; }
+.sticker-hint { margin: 0; color: #b9b2d6; font-size: .9rem; }
+.sticker-sent { margin: 0; font-size: 1rem; }
+.sticker-btn { min-height: 44px; padding: 0 16px; border: 1px solid rgba(139, 93, 255, .55); border-radius: 12px; background: rgba(139, 93, 255, .12); color: #fff; font: inherit; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-grid; place-items: center; }
+.sticker-btn:disabled { opacity: .45; cursor: default; }
+.sticker-primary { border-color: transparent; background: linear-gradient(180deg, #a14dff, #6a2bd6 55%, #4f1db3); }
+.sticker-btn:focus-visible, .sticker-cell:focus-visible, .sticker-player:focus-visible, .sticker-chip:focus-visible, .sticker-input:focus-visible, .sticker-composer-close:focus-visible, .wall-sticker.is-ghost:focus-visible { outline: 3px solid #62e7ff; outline-offset: 2px; }
+.sticker-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.sticker-label { display: grid; gap: 6px; font-weight: 700; font-size: .92rem; }
+.sticker-input { box-sizing: border-box; width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid rgba(255, 255, 255, .18); border-radius: 12px; background: #0b0816; color: #fff; font: inherit; }
+.sticker-input[aria-invalid="true"] { border-color: #ff6b81; }
+.sticker-preview { display: grid; place-items: center; height: 168px; }
+.sticker-preview img { max-width: 168px; max-height: 168px; object-fit: contain; }
+.sticker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.sticker-cell { display: grid; justify-items: center; gap: 4px; min-height: 44px; padding: 8px 4px; border: 1px solid rgba(255, 255, 255, .1); border-radius: 12px; background: rgba(255, 255, 255, .03); color: #ddd6f5; font: inherit; font-size: .75rem; cursor: pointer; }
+.sticker-cell img { width: 64px; height: 64px; object-fit: contain; }
+.sticker-cell[aria-checked="true"] { border-color: #d6b25e; background: rgba(214, 178, 94, .12); box-shadow: 0 0 0 1px #d6b25e inset; }
+.sticker-cell-name { text-align: center; line-height: 1.2; }
+.sticker-results { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sticker-player { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 6px 10px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 12px; background: rgba(255, 255, 255, .03); color: #fff; font: inherit; text-align: left; cursor: pointer; }
+.sticker-player-avatar { flex: 0 0 auto; display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, #8b5dff, #d6b25e); font-weight: 800; }
+.sticker-player-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.sticker-player-text { display: grid; min-width: 0; }
+.sticker-player-text span { color: #b9b2d6; font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sticker-recipient { margin: 0; }
+.sticker-stage-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.sticker-stage-chips:empty { display: none; }
+.sticker-chip { min-height: 40px; padding: 0 14px; border: 1px solid rgba(255, 255, 255, .15); border-radius: 999px; background: rgba(255, 255, 255, .04); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.sticker-chip[aria-checked="true"] { border-color: #62e7ff; background: rgba(98, 231, 255, .14); }
+.sticker-stage-frame { align-self: center; max-width: 100%; border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 1px rgba(139, 93, 255, .4); }
+.sticker-stage-preview { margin: 0 auto; }
+.wall-sticker.is-ghost { outline: 2px dashed rgba(98, 231, 255, .9); outline-offset: 2px; border-radius: 8px; }
+@media (max-width: 599px), (max-height: 500px) {
+  .sticker-composer-backdrop { padding: 0; place-items: stretch; }
+  .sticker-composer { width: 100%; max-height: none; height: 100dvh; border-radius: 0; border: 0; }
+  .sticker-composer-body { padding: 12px; }
+}
+
+/* the visitor's "Add sticker" on a Friends Stage of someone else's Wall (shown only to a visitor who may send) */
+.wall-add-sticker { position: absolute; left: 50%; bottom: 3%; z-index: 20; transform: translateX(-50%); display: inline-flex; align-items: center; gap: .4em; min-height: 44px; padding: 0 18px;
+  border: 1px solid rgba(214, 178, 94, .8); border-radius: 999px; background: linear-gradient(180deg, #a14dff, #6a2bd6 55%, #4f1db3); color: #fff;
+  font: 700 15px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; box-shadow: 0 6px 24px rgba(0, 0, 0, .5); cursor: pointer; white-space: nowrap; }
+.wall-add-sticker span { font-size: 1.3em; line-height: 1; }
+.wall-add-sticker:focus-visible { outline: 3px solid #62e7ff; outline-offset: 2px; }
+.wall-add-sticker:disabled { opacity: .6; cursor: progress; }
+
+/* the owner's sticker requests and stickers (Wall editor) */
+.sticker-requests { display: grid; gap: 10px; }
+.sticker-request { display: grid; grid-template-columns: 72px 1fr; gap: 10px; align-items: start; padding: 10px; border: 1px solid rgba(255, 255, 255, .12); border-radius: 12px; background: rgba(255, 255, 255, .03); }
+.sticker-request img.sticker-request-art { width: 72px; height: 72px; object-fit: contain; }
+.sticker-request-text { display: grid; gap: 4px; min-width: 0; }
+.sticker-request-from { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sticker-request-from .sticker-player-avatar { width: 28px; height: 28px; font-size: .8rem; }
+.sticker-request-meta { color: #b9b2d6; font-size: .82rem; overflow-wrap: anywhere; }
+.sticker-request-clip { color: #62e7ff; font-size: .82rem; overflow-wrap: anywhere; }
+.sticker-request-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.sticker-count-badge { display: inline-grid; place-items: center; min-width: 1.5em; height: 1.5em; padding: 0 .35em; border-radius: 999px; background: #ff2d55; color: #fff; font-size: .75em; font-weight: 800; line-height: 1; }
+@media (forced-colors: active) { .sticker-cell[aria-checked="true"], .sticker-chip[aria-checked="true"] { outline: 2px solid Highlight; } }

@@ -20,7 +20,7 @@ test("information architecture: the tool rail has exactly the eight product sect
   for (const tool of TOOLS) assert.equal((html.match(new RegExp(`data-tool-panel="${tool}"`, "g")) ?? []).length, 1, `${tool} has exactly one panel`);
   assert.match(html, /<span>Media &amp; Links<\/span>/);
   assert.match(html, /<span>GamID<\/span>/);
-  assert.match(html, /<span>Templates<\/span>/);
+  assert.match(html, /<span>Templates &amp; Stickers<\/span>/, "Friends Stickers V1 (2026-10-24): Templates became Templates & Stickers (two sections)");
   assert.match(html, /id="props"[^>]*aria-label="Properties"/, "the contextual inspector remains");
   assert.match(html, /id="previewBtn"/);
   assert.match(html, /id="saveBtn"/);

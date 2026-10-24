@@ -56,9 +56,10 @@ test("5. visitor wording: the default everywhere (the public Wall paints without
   const [overlay] = overlaysIn(paint(withTypes("my", "friends"))[1]);
   assert.equal(overlay.attrs.get("data-audience"), "visitor");
   const text = textOf(overlay);
-  for (const part of ["Friends Stage", "Good friends leave their mark! ✨", "“This stage is waiting for a little love from friends like you.”", "Stickers coming soon"]) assert.ok(text.includes(part), part);
+  for (const part of ["Friends Stage", "Good friends leave their mark! ✨", "“This stage is waiting for a little love from friends like you.”"]) assert.ok(text.includes(part), part);
+  assert.doesNotMatch(text, /coming soon/i, "Friends Stickers V1 (2026-10-24): stickers exist, so the approved copy's \"coming soon\" badge is no longer painted");
   assert.doesNotMatch(text, /your squad|Your Friends Stage/i, "no owner wording for visitors");
-  assert.deepEqual(FRIENDS_EMPTY_COPY.visitor, { eyebrow: "Friends Stage", title: "Good friends leave their mark! ✨", line: "“This stage is waiting for a little love from friends like you.”", badge: "Stickers coming soon" });
+  assert.deepEqual(FRIENDS_EMPTY_COPY.visitor, { eyebrow: "Friends Stage", title: "Good friends leave their mark! ✨", line: "“This stage is waiting for a little love from friends like you.”" });
   // anything that is not exactly "owner" gets the visitor wording
   for (const audience of [undefined, "visitor", "OWNER", "admin", true]) assert.equal(paintFriendsEmptyState(node, audience).attrs.get("data-audience"), "visitor", String(audience));
 });
@@ -67,21 +68,25 @@ test("6. owner wording: only where the owner's editor paints (audience owner)", 
   const [overlay] = overlaysIn(paint(withTypes("my", "friends"), { audience: "owner" })[1]);
   assert.equal(overlay.attrs.get("data-audience"), "owner");
   const text = textOf(overlay);
-  for (const part of ["Your Friends Stage", "Waiting for your squad! 🎮", "“Your friends will leave their mark here. Every sticker will tell a story.”", "Friends stickers · Coming soon"]) assert.ok(text.includes(part), part);
+  for (const part of ["Your Friends Stage", "Waiting for your squad! 🎮", "“Your friends will leave their mark here. Every sticker will tell a story.”"]) assert.ok(text.includes(part), part);
+  assert.doesNotMatch(text, /coming soon/i);
   assert.match(overlay.attrs.get("aria-label"), /^Your Friends Stage\. Waiting for your squad! 🎮/);
   // the editor (canvas + Preview) is the only painter that passes it; the public Wall never does
   const editor = read("dist/wall-editor/editor.js");
-  assert.match(editor, /getPaintContext: \(\) => \(\{ assets: assetStore, gamid: gamidSnapshot, posters, videos: canvasVideos, artwork: gameArtwork, audience: "owner" \}\)/);
-  assert.match(editor, /videos: previewVideos, artwork: gameArtwork, audience: "owner" \}\);/);
+  assert.match(editor, /getPaintContext: \(\) => \(\{ assets: assetStore, gamid: gamidSnapshot, posters, videos: canvasVideos, artwork: gameArtwork, audience: "owner", stickersFor:/);
+  assert.match(editor, /videos: previewVideos, artwork: gameArtwork, audience: "owner", stickersFor:/);
   assert.doesNotMatch(read("dist/public/public-wall.js") + read("dist/crew/crew-wall.js"), /audience/, "visitor pages never claim the owner audience");
 });
 
-test("9. a Friends Stage with visible approved stickers (the future system's count) shows no message", () => {
+test("9. a Friends Stage with visible approved stickers shows no message (Friends Stickers V1: ctx.stickersFor; the older ctx.stickerCount still works)", () => {
   const doc = withTypes("my", "friends");
   assert.equal(overlaysIn(paint(doc, { stickerCount: () => 2 })[1]).length, 0);
   assert.equal(overlaysIn(paint(doc, { stickerCount: () => 0 })[1]).length, 1);
   assert.equal(isEmptyFriendsStage(doc.stages[1], 3), false);
-  assert.equal(isEmptyFriendsStage(doc.stages[1]), true, "with no sticker system, a Friends Stage has none");
+  assert.equal(isEmptyFriendsStage(doc.stages[1]), true, "nothing reported: a Friends Stage has none");
+  const view = { id: "p1", key: "legend", name: "Legend", x: 500, y: 700, size: 100, seq: 1, sender: { handle: "alice", name: "Alice", avatarUrl: null }, clip: null };
+  assert.equal(overlaysIn(paint(doc, { stickersFor: stage => (stage.id === "stage_2" ? [view] : []) })[1]).length, 0, "one approved sticker: the message leaves");
+  assert.equal(overlaysIn(paint(doc, { stickersFor: () => [] })[1]).length, 1);
 });
 
 test("10. display only: the document, its layers, assets, validity, templates and backgrounds are untouched; nothing in it is interactive", () => {
@@ -97,7 +102,8 @@ test("10. display only: the document, its layers, assets, validity, templates an
   const overlay = overlaysIn(stages[1])[0];
   assert.ok(!all(overlay).some(n => /wall-el/.test(n.className)), "never a Wall element node");
   assert.ok(!all(overlay).some(n => ["button", "a", "input", "form"].includes(n.tag) || n.attrs.has("data-wall-interactive")), "nothing to click, no sticker submission");
-  assert.equal(stages[1].children.length, 1, "no background layer, only the message");
+  // Friends Stickers V1: the official Friends Stage background (never the owner's Wall background), then the message
+  assert.deepEqual(stages[1].children.map(child => child.className), ["wall-friends-bg", "wall-friends-empty"]);
   // templates still never land on a Friends Stage; a whole-Wall template yields My Stages only (no message)
   assert.equal(applyTemplate(doc, TEMPLATES[0], { scope: "stage", stageId: "stage_2", confirmed: true }).ok, false);
   const replaced = applyTemplate(doc, TEMPLATES[0], { scope: "wall", confirmed: true }).doc;
@@ -105,7 +111,7 @@ test("10. display only: the document, its layers, assets, validity, templates an
   // the message is CSS-only: no network, no image, no asset file
   const module = read("dist/wall-kit/friends-stage.js"), css = read("dist/wall-kit/wall-kit.css");
   assert.doesNotMatch(module.replace(/\/\/.*$/gm, ""), /fetch\(|url\(|src|createElementNS|innerHTML|sticker(s)?\.(add|submit|send)/i);
-  const block = css.slice(css.indexOf("/* Wall Stages V2 (DEC-0011, 2026-10-23)"));
+  const block = css.slice(css.indexOf("/* Wall Stages V2 (DEC-0011, 2026-10-23)"), css.indexOf("/* Friends Stickers V1 (2026-10-24)"));
   assert.match(block, /\.wall-friends-empty \{ position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; padding: 7cqw; pointer-events: none; \}/);
   assert.doesNotMatch(block, /url\(/, "no external asset");
   assert.match(block, /@media \(prefers-reduced-motion: reduce\) \{ \.wall-friends-empty-icon \{ animation: none; \} \}/);

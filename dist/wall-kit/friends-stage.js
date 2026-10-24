@@ -3,9 +3,11 @@
 // it is clickable and nothing pretends stickers already exist.
 //   audience "owner"   - the owner's own editor canvas and Preview (they open only for the signed-in owner, whose Wall the server resolved);
 //   audience "visitor" - everywhere else, the public Wall included (the default: owner wording never shows without that trusted context).
+// Friends Stickers V1 (2026-10-24): stickers exist now, so the "coming soon" badge of the approved copy is no longer painted (it would be untrue); the eyebrow,
+// title and line are unchanged.
 export const FRIENDS_EMPTY_COPY = Object.freeze({
-  visitor: Object.freeze({ eyebrow: "Friends Stage", title: "Good friends leave their mark! ✨", line: "“This stage is waiting for a little love from friends like you.”", badge: "Stickers coming soon" }),
-  owner: Object.freeze({ eyebrow: "Your Friends Stage", title: "Waiting for your squad! 🎮", line: "“Your friends will leave their mark here. Every sticker will tell a story.”", badge: "Friends stickers · Coming soon" }),
+  visitor: Object.freeze({ eyebrow: "Friends Stage", title: "Good friends leave their mark! ✨", line: "“This stage is waiting for a little love from friends like you.”" }),
+  owner: Object.freeze({ eyebrow: "Your Friends Stage", title: "Waiting for your squad! 🎮", line: "“Your friends will leave their mark here. Every sticker will tell a story.”" }),
 });
 
 export function paintFriendsEmptyState(createNode, audience = "visitor") {
@@ -14,12 +16,12 @@ export function paintFriendsEmptyState(createNode, audience = "visitor") {
   const overlay = part("div", "wall-friends-empty");
   overlay.setAttribute("data-audience", audience === "owner" ? "owner" : "visitor");
   overlay.setAttribute("role", "note");
-  overlay.setAttribute("aria-label", `${copy.eyebrow}. ${copy.title} ${copy.line} ${copy.badge}.`);
+  overlay.setAttribute("aria-label", `${copy.eyebrow}. ${copy.title} ${copy.line}`);
   const card = part("div", "wall-friends-empty-card");
   card.setAttribute("aria-hidden", "true");   // read once, through the note's label
   const icon = part("span", "wall-friends-empty-icon");
   icon.append(part("span", "wall-friends-empty-star"));
-  card.append(icon, part("p", "wall-friends-empty-eyebrow", copy.eyebrow), part("p", "wall-friends-empty-title", copy.title), part("p", "wall-friends-empty-line", copy.line), part("span", "wall-friends-empty-badge", copy.badge));
+  card.append(icon, part("p", "wall-friends-empty-eyebrow", copy.eyebrow), part("p", "wall-friends-empty-title", copy.title), part("p", "wall-friends-empty-line", copy.line));
   overlay.append(card);
   return overlay;
 }

@@ -15,7 +15,7 @@ const $ = id => document.getElementById(id);
 const make = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; };
 const icon = name => { const node = make("i", "mw-i"); node.dataset.i = name; node.setAttribute("aria-hidden", "true"); return node; };
 const OWN_SHEETS = { stages: "mwStages", more: "mwMore", wall: "mwWall" };
-const TOOL_TITLES = { add: "Add", text: "Text & fonts", media: "Media & Links", shapes: "Shapes", gamid: "GamID", layout: "Layers", assets: "Assets", templates: "Templates" };   // Background is inside Assets (2026-10-21)
+const TOOL_TITLES = { add: "Add", text: "Text & fonts", media: "Media & Links", shapes: "Shapes", gamid: "GamID", layout: "Layers", assets: "Assets", templates: "Templates & Stickers" };   // Background is inside Assets (2026-10-21)
 const MORE_TOOLS = new Set(["text", "media", "shapes", "gamid", "templates"]);
 const SAVE_LABEL = { loading: "Loading…", saved: "Saved", unsaved: "Save", saving: "Saving…", error: "Retry save", conflict: "Conflict", blocked: "Blocked" };
 const SAVE_ANNOUNCE = { saved: "All changes saved.", unsaved: "Unsaved changes.", saving: "Saving…", error: "Save failed. Tap Retry save.", conflict: "A newer saved version exists.", blocked: "Editing is blocked." };
