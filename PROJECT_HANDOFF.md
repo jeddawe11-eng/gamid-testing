@@ -4979,3 +4979,59 @@ GamID Truth: UPDATED (record and notes text only; no capability, status, checkpo
 Product Memory: SAVED (an existing record only, in this authorized task). REV-0022's summary, `related` (REV-0023, DEC-0007) and a dated Reconciliation note record the later F8-B1 acceptance and the closure status. Its findings, decisions and History are unchanged, and the INDEX Register log is updated. No new record: a closure review would duplicate REV-0022 / REV-0023.
 
 Not merged; Production untouched.
+
+## 124. Friends Stickers V1 (2026-10-24, PENDING Mazen's acceptance)
+
+Mazen's task "GAMID — FRIENDS STICKERS V1" and its addendum (sender avatar + optional gaming clip link), TESTING only. Full record: `docs/FRIENDS-STICKERS-V1.md`. Wall Stages V2 (accepted) is preserved.
+
+**What was built:**
+- **Sending.** A signed-in player with a public GamID sends one of 14 free animated stickers to a Friends Stage of another player's published Wall, with a position and optionally one YouTube / Twitch / Medal.tv clip link.
+  - Entry points: the editor's Templates & Stickers → Stickers (player search), and Add sticker on that Wall (eligible visitors only).
+- **Owner.** Every sticker waits for the owner's approval; the owner sees the sender, the stage and the link first.
+  - The owner approves or rejects, removes (asked once), and drags (desktop and touch; one notice to the sender per saved move).
+  - The pending count shows on the Templates & Stickers tool and in the Friends Stage panel, live.
+- **Display.** Approved stickers only, each always with the sender's current avatar and @username beside it, plus a new-tab clip button only when a link exists.
+  - Size = max(50, 100 − 5 × newer active stickers on the Wall).
+- **Background.** Every Friends Stage shows the supplied 9:16 official background.
+
+**Checkpoint A** (before implementing):
+- Every Wall stage is a 9:16 portrait canvas on every device, so the first, landscape background could not fill a Friends Stage. Mazen then supplied the portrait background.
+- His other choices were left to the recommended defaults (he asked to continue):
+  - senders: any signed-in player with a public GamID;
+  - stickers: 384 px files built from the originals (130 MB → 31.5 MB, all 72 frames, loop, alpha);
+  - clips: YouTube / Twitch / Medal.tv (Discord media links expire).
+
+**Delivery:**
+- Product `524939cfda495abb3f90534b53914ffc634038b2`.
+- Migration `20261024100000_friends_stickers_v1`: rehearsed in a rolled-back transaction, then applied and recorded in the history. It is additive; every stored Wall is unchanged.
+- Site run `40079878018`: stamp `524939c`, 25/25 checked files byte-identical.
+- Live smoke 9/9 (anonymous, read-only).
+
+**Validation:**
+- `npm test`: 2,192 tests, 0 failures (20 new).
+- Browser: editor 54/54 (desktop, tablet, phone touch) and visitor 34/34.
+- Non-regression: Wall Stages 60/60, backgrounds 12/12, owner empty state 36/36, visitor empty state 70/70, the mobile editor functions, Mobile Public Wall Visitor V2 196/196.
+- No real signed-in account, physical device, Safari or Firefox was tested.
+
+**Manual acceptance checklist (Mazen):**
+- **Setup.** The Wall owner (account A) has a Friends Stage on a published, enabled Wall. A second account (B) has a public GamID.
+1. **Official background:** the Friends Stage shows it in the editor, Preview, the public Wall (desktop) and on Android, and it cannot be changed.
+2. **Android, from the Wall:** B opens A's `/@handle` → Friends Stage → Add sticker → chooses a sticker → drags it into place → pastes a YouTube, Twitch or Medal.tv clip link → Send. An unsupported link is refused before sending.
+3. **Desktop, from the editor:** B uses Wall editor → Templates & Stickers → Stickers → chooses a sticker → Send sticker → searches A → picks the right player and Friends Stage → positions it → Send.
+4. **Request:** A gets a notification and the pending badge. Templates & Stickers → Stickers (or the Friends Stage panel) shows each request with B's avatar, @username, the stage and the link.
+5. **Privacy:** before A decides, signed out on `/@A` nothing of the requests is visible.
+6. **Approve and reject:** A approves one and rejects another. B is notified both times; only the approved one appears publicly.
+7. **Public display:** signed out, the approved sticker shows with B's avatar and @username always visible. The clip button appears only on the one with a link and opens the clip in a new tab.
+8. **Move:** A drags the approved sticker (desktop, then Android touch). B is notified once per move, and the sticker is in the same place on phone and desktop.
+9. **Sizes:** with several approved stickers, the newest is largest and each older one 5 points smaller (minimum 50%). Removing one (asked first) restores the others' sizes.
+10. **Stage rules:** with stickers on it, the Friends Stage can be neither deleted nor turned into a My Stage (the editor says why). After removing them, it can.
+11. **Current avatar:** B changes their avatar, and A's Wall shows the new one beside B's sticker.
+12. *(Optional)* With reduced motion on, the stickers show as still images.
+
+GamID Truth: UPDATED.
+- New `friends-stickers` (PENDING_ACCEPTANCE, checkpoint `524939c`, six contracts, limits).
+- `wall-stage-types` (still ACCEPTED): its `wall-friends-stage`, `wall-friends-stage-empty-message` and `wall-stage-conversion` contracts amended (the official background and stickers, no "coming soon" badge, real sticker counts), with a note.
+
+Product Memory: PROPOSED (not saved; awaiting Mazen's approval). See the completion report.
+
+Not merged; Production untouched.

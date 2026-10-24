@@ -534,19 +534,67 @@
         },
         {
           "id": "wall-friends-stage",
-          "rule": "A Friends Stage is reserved for friends' stickers (not built yet): the owner places no element and no background of their own on it, and it never shows the owner's Whole-Wall background; while it is open in the editor its panel replaces every tool panel. Its background will come only from the official GamID catalog (Free / Premium), which does not exist yet, so it keeps the plain stage colour. Visitors see it in its place in the owner's order with nothing personal on it. A Friends Stage is optional: new stages are My Stages and only the owner's explicit choice makes one."
+          "rule": "A Friends Stage is reserved for friends' stickers (friends-stickers): the owner places no element and no background of their own on it, and it never shows the owner's Whole-Wall background; while it is open in the editor its panel (the stage's sticker requests and stickers, Send a sticker, Make this a My Stage) replaces every tool panel. It shows the official GamID Friends Stage background - the same on every Friends Stage and every device - which the owner cannot change (no background catalog, tier or purchase exists). Visitors see it in its place in the owner's order with its approved stickers and nothing else personal of the owner's. A Friends Stage is optional: new stages are My Stages and only the owner's explicit choice makes one."
         },
         {
           "id": "wall-friends-stage-empty-message",
-          "rule": "A Friends Stage with no visible approved sticker shows a display-only message inside it - visitors: FRIENDS STAGE / Good friends leave their mark! / “This stage is waiting for a little love from friends like you.” / STICKERS COMING SOON; the owner, in the editor and its Preview only: YOUR FRIENDS STAGE / Waiting for your squad! / “Your friends will leave their mark here. Every sticker will tell a story.” / FRIENDS STICKERS - COMING SOON. Never on a My Stage; never a Wall element, layer, asset or stored data; never interactive; no sticker action is offered."
+          "rule": "A Friends Stage with no visible approved sticker shows a display-only message inside it - visitors: FRIENDS STAGE / Good friends leave their mark! / “This stage is waiting for a little love from friends like you.”; the owner, in the editor and its Preview only: YOUR FRIENDS STAGE / Waiting for your squad! / “Your friends will leave their mark here. Every sticker will tell a story.” (Since Friends Stickers V1 the approved copy's \"coming soon\" badges are no longer shown.) It leaves as soon as one approved sticker shows. Never on a My Stage; never a Wall element, layer, asset or stored data; never interactive (a visitor's Add sticker is a separate button - friends-stickers)."
         },
         {
           "id": "wall-stage-conversion",
-          "rule": "The owner changes a stage's type in the Stages bar (desktop / tablet) or the Stages sheet (phone). Nothing on a stage is ever removed to change its type: a stage with elements or its own background cannot become a Friends Stage until the owner moves or deletes them (the editor says what is there); the last My Stage can be neither converted nor deleted; a Friends Stage with active stickers can be neither deleted nor converted (none can exist yet), and deleting a Friends Stage states its active sticker count first. A template never lands on a Friends Stage."
+          "rule": "The owner changes a stage's type in the Stages bar (desktop / tablet) or the Stages sheet (phone). Nothing on a stage is ever removed to change its type: a stage with elements or its own background cannot become a Friends Stage until the owner moves or deletes them (the editor says what is there); the last My Stage can be neither converted nor deleted; a Friends Stage with active (approved) stickers can be neither deleted nor converted - the editor and the server's draft save (STAGE_HAS_STICKERS) both refuse it - and deleting a Friends Stage states its active sticker count first. A template never lands on a Friends Stage, and a whole-Wall template is refused while a Friends Stage holds active stickers."
         }
       ],
       "checkpoint": "a084cb17c7c43aa0a84f1099a3f567d297dc98c7",
-      "record": "docs/WALL-STAGES-V2.md; PROJECT_HANDOFF.md sections 120-122; Product Memory DEC-0011. Implemented under Mazen's tasks of 2026-10-22/23 (GAMID - WALL STAGES V2, TESTING only); product 4be5bfc, site 4c97ed9 (run 39821008183); migrations 20261022120000_wall_stage_types and 20261022120100_wall_public_publishing_stage_limit APPLIED to TESTING 2026-10-23 (every stored Wall unchanged); the Add stage at-allowance fix a084cb1 (run 39963845626). ACCEPTED by Mazen 2026-10-23 on TESTING a084cb1 after his manual tests on desktop and Android: the stage limit, My / Friends Stage conversion, persistence, and the owner and visitor empty Friends Stage messages. The Friends Stickers system, Premium, Pro and the official background catalog are not implemented and not accepted."
+      "record": "docs/WALL-STAGES-V2.md; PROJECT_HANDOFF.md sections 120-122; Product Memory DEC-0011. Implemented under Mazen's tasks of 2026-10-22/23 (GAMID - WALL STAGES V2, TESTING only); product 4be5bfc, site 4c97ed9 (run 39821008183); migrations 20261022120000_wall_stage_types and 20261022120100_wall_public_publishing_stage_limit APPLIED to TESTING 2026-10-23 (every stored Wall unchanged); the Add stage at-allowance fix a084cb1 (run 39963845626). ACCEPTED by Mazen 2026-10-23 on TESTING a084cb1 after his manual tests on desktop and Android: the stage limit, My / Friends Stage conversion, persistence, and the owner and visitor empty Friends Stage messages. The Friends Stickers system, Premium, Pro and the official background catalog are not implemented and not accepted.",
+      "notes": "Amended 2026-10-24 by Friends Stickers V1 (friends-stickers, PENDING_ACCEPTANCE): wall-friends-stage now shows the official Friends Stage background and its approved stickers; wall-friends-stage-empty-message no longer paints the \"coming soon\" badges; wall-stage-conversion is enforced with real sticker counts (and the server's STAGE_HAS_STICKERS). The accepted My / Friends Stage rules, the allowance and conversion rules are otherwise unchanged."
+    },
+    {
+      "id": "friends-stickers",
+      "name": "Friends Stickers V1 (stickers on Friends Stages: send, owner approval, dynamic size, sender attribution, optional clip link)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/",
+        "/@<handle>"
+      ],
+      "limits": {
+        "stickerCatalogSize": 14,
+        "stickerBaseUnits": 300,
+        "stickerSizeStepPercent": 5,
+        "stickerSizeMinPercent": 50,
+        "stickerPendingPerSenderPerWall": 5,
+        "stickerSendsPerSenderPerHour": 20,
+        "stickerClipMaxChars": 300
+      },
+      "contracts": [
+        {
+          "id": "sticker-catalog",
+          "rule": "Fourteen animated stickers, all free (no Premium, Pro, Boost, price or purchase): Carried Me, Legend, Clutch King, My Duo 4Ever, Rage Buddy, MVP, GG Bro, Space Crew, Save Me, Headshot, Diamond Squad, Final Boss, Chill Squad, Ghost Mode - the supplied animations (every frame, 24 fps, endless loop, transparency) served at up to 384 px, with each sticker's still for previews and for visitors who prefer reduced motion. Every sticker shows in the same square box, so all share one base size."
+        },
+        {
+          "id": "sticker-send",
+          "rule": "A signed-in player whose own GamID is public sends a sticker to one Friends Stage of another player's published, enabled Wall of a public GamID (never their own), at a position on that stage, optionally with one gaming clip link. Two entry points with one flow and one server rule: the editor's Templates & Stickers -> Stickers (find a GamID player by username or name, shown with name, @username and Friends Stage count) and Add sticker on a Friends Stage of another player's Wall (shown only to a visitor who may send). The server decides again: sender, recipient, stage, sticker, position and link. Technical anti-spam: at most 5 waiting requests from one sender to one Wall and 20 sends per sender per hour."
+        },
+        {
+          "id": "sticker-approval",
+          "rule": "Every sticker waits for the Wall owner's approval; pending and rejected stickers (and their links) are never shown to anyone else. The owner sees the sticker, the sender's avatar and @username, the stage and the clip link before deciding, and approves or rejects the whole submission. A request whose Friends Stage is no longer on the owner's Wall can only be rejected. The owner can remove an approved sticker (asked once, permanent) and drag it on its Friends Stage (desktop and touch); a saved move notifies the sender once. The owner sees the waiting count on Templates & Stickers and in the Friends Stage panel, live. Only the owner decides, removes or moves; the sender never edits anything on the recipient's Wall."
+        },
+        {
+          "id": "sticker-display",
+          "rule": "Visitors see only approved stickers on the published Wall's Friends Stages, from senders whose GamID is public. Every sticker always shows its sender's CURRENT GamID avatar (or initial) and @username beside it - no hover, tap or popup - as one group that moves and scales with the sticker and stays readable; when a link was attached, a small clip button opens it in a new tab (never embedded or played) and no button shows without one. A placement is stored in stage units (its centre within the area x 150-850, y 150-1580 of the 1000 x 1778 stage), so it shows in the same place on every screen, in the editor, its Preview and the visitor page."
+        },
+        {
+          "id": "sticker-dynamic-size",
+          "rule": "Each newly approved sticker starts at 100%; every newer active approved sticker on the same Wall takes 5 percentage points off an older one, never below 50% (size = max(50, 100 - 5 x newer)). Linear, never compounded and never stored: removing a sticker gives the older ones their size back. Approvals on one Wall are numbered in a stable order, also under concurrent approvals; pending, rejected and removed stickers never count."
+        },
+        {
+          "id": "sticker-clip-link",
+          "rule": "The optional clip link is one YouTube, Twitch or Medal.tv clip / video link, checked by the server; it is stored rebuilt from its accepted parts (https only, the provider's own host, no query, fragment, credentials or port). Discord media links are not accepted (they expire). Nothing is downloaded, hosted, embedded or played."
+        }
+      ],
+      "checkpoint": "524939cfda495abb3f90534b53914ffc634038b2",
+      "record": "docs/FRIENDS-STICKERS-V1.md; PROJECT_HANDOFF.md section 124; Product Memory DEC-0011. Implemented under Mazen's task \"GAMID - FRIENDS STICKERS V1\" and its addendum (2026-10-24, TESTING only); product 524939c, site run 40079878018; migration 20261024100000_friends_stickers_v1 APPLIED to TESTING 2026-10-24 (additive; every stored Wall unchanged). Not built: Premium, Pro, Boost, paid stickers or backgrounds, Writing Stickers, a background catalog, clip embedding, sticker expiry, per-friend allowances.",
+      "notes": "Awaiting Mazen's manual acceptance (desktop and Android). Decisions taken with Mazen's go-ahead to continue, for his review: who may send (any signed-in player with a public GamID), the 384 px sticker files, the three clip providers, the anti-spam numbers, and hiding a sticker publicly while its sender's GamID is not public."
     },
     {
       "id": "wall-editor-mobile-v2",

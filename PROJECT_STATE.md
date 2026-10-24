@@ -84,7 +84,9 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `a084cb17c7c43aa0a84f1099a3f567d297dc98c7`** (successful run `39963845626`, from `feature/mobile-public-wall-visitor-v2`, not merged).
+- **TESTING serves `524939cfda495abb3f90534b53914ffc634038b2`** (successful run `40079878018`, from `feature/mobile-public-wall-visitor-v2`, not merged).
+  - What it changes: Friends Stickers V1 (§124, `docs/FRIENDS-STICKERS-V1.md`). Migration `20261024100000_friends_stickers_v1` APPLIED; Truth `friends-stickers` PENDING_ACCEPTANCE.
+- **Previously served `a084cb17c7c43aa0a84f1099a3f567d297dc98c7`** (successful run `39963845626`, from `feature/mobile-public-wall-visitor-v2`, not merged).
   - What it changes: frontend only. At the stage allowance Add stage is muted "MAX 3 STAGES", still clickable, and only explains the limit (§121). Wall Stages V2 ACCEPTED by Mazen on this checkpoint (2026-10-23, §122); Truth `wall-stage-types` ACCEPTED.
 - **Previously served `4c97ed9c4ba7bc5a4d0481cac6ed58b985f516b9`** (successful run `39821008183`, from `feature/mobile-public-wall-visitor-v2`, not merged).
   - What it changes: Wall Stages V2 (product `4be5bfc`): My Stage / Friends Stage, the stage allowance (3), the empty Friends Stage message.
@@ -163,7 +165,22 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-23, F1–F8 documentation closure; documentation only):** `PROJECT_HANDOFF.md` §123, `docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md` §8.
+**Latest continuation (2026-10-24, Friends Stickers V1 on TESTING, PENDING_ACCEPTANCE):** live at `524939c` (run `40079878018`) from `feature/mobile-public-wall-visitor-v2` (not merged; §124, `docs/FRIENDS-STICKERS-V1.md`).
+- **What it does:**
+  - Players with a public GamID send one of the 14 free animated stickers to another player's Friends Stage: from the editor's Templates & Stickers, or with Add sticker on their Wall.
+  - The owner approves or rejects each one, and can move or remove approved stickers.
+  - An approved sticker shows its sender's current avatar and @username, plus a clip button when a YouTube / Twitch / Medal.tv link is attached.
+  - Size = max(50, 100 − 5 × newer stickers).
+  - Every Friends Stage shows the official portrait background.
+- **Changes:** migration `20261024100000_friends_stickers_v1` applied. Truth: new `friends-stickers` (PENDING_ACCEPTANCE); the `wall-stage-types` contracts amended (official background, no "coming soon" badge, real sticker counts).
+- **Decisions for Mazen's review:** who may send (any signed-in player with a public GamID), 384 px sticker files, no Discord links (they expire), anti-spam 5 waiting per Wall / 20 per hour, and hiding a sticker while its sender is not public.
+- **Not built:** Premium / Pro / Boost, paid stickers or backgrounds, Writing Stickers, a catalog, clip embedding, expiry.
+- **Next:**
+  1. Mazen's manual acceptance of Friends Stickers V1 (checklist in §124).
+  2. His decision on the Product Memory proposal.
+  3. Mobile Public Wall Visitor V2 acceptance and the pending DEC-0012 / ISS-0017 decisions, as before.
+
+**Previous continuation (2026-10-23, F1–F8 documentation closure; documentation only):** `PROJECT_HANDOFF.md` §123, `docs/WALL-BANDWIDTH-FINAL-BENCHMARK.md` §8.
 - **Every authorized F1–F8 optimization has been delivered:**
   - accepted: F2, F3, F4 (mechanism superseded by F6-A), F5, F6-A, F7-A, F7-C and F8-B1;
   - functionally accepted for new MP4 uploads only: F8-A.
