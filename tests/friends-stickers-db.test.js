@@ -8,14 +8,14 @@ import { stickerSizePercent } from "../dist/wall/stickers.js";
 import { parseStickerClip } from "../dist/wall-kit/embed/providers/clip-links.js";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
-const migration = read("supabase/migrations/20261024100000_friends_stickers_v1.sql");
+const migration = read("supabase/migrations/20261024100000_friends_stickers_v1.sql") + "\n" + read("supabase/migrations/20261025100000_friends_stickers_corrections.sql");
 const U = { owner: "11111111-1111-4111-8111-111111111111", alice: "22222222-2222-4222-8222-222222222222", bob: "33333333-3333-4333-8333-333333333333", ghost: "44444444-4444-4444-8444-444444444444", priv: "55555555-5555-4555-8555-555555555555" };
 const E = { owner: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", alice: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", bob: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", priv: "dddddddd-dddd-4ddd-8ddd-dddddddddddd" };
 const wall = (...types) => ({ schemaVersion: 1, canvas: { width: 1000, height: 1778 }, stages: types.map((type, i) => ({ id: `stage_${i + 1}`, ...(type === "friends" ? { type } : {}), elements: [] })) });
 
 async function fixture() {
   const db = new PGlite();
-  await db.exec(`create role anon; create role authenticated; create role service_role; create schema private; create schema auth;
+  await db.exec(`create role anon; create role authenticated; create role service_role; create schema private; create schema auth; create schema storage; create table storage.objects (bucket_id text, name text); alter table storage.objects enable row level security; grant usage on schema storage to anon, authenticated; grant select on storage.objects to anon, authenticated;
     grant usage on schema public, private, auth to anon, authenticated, service_role;
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
     grant execute on function auth.uid() to anon, authenticated;
@@ -87,6 +87,13 @@ const CLIP_CORPUS = [
   " https://youtu.be/dQw4w9WgXcQ\t", "https://youtu.be/dQw4w9WgXcQ ", "https://www.youtube.com/", "https://www.twitch.tv/somebody", "https://medal.tv/",
   `https://www.youtube.com/watch?v=dQw4w9WgXcQ&x=${"a".repeat(300)}`, "https://youtu.be/dQw4w9WgXcQ/", "https://www.youtube.com/watch?vv=dQw4w9WgXcQ",
   "https://www.youtube.com/watch?xv=dQw4w9WgXcQ", "https://clips.twitch.tv/ab", "https://medal.tv/clips/abc", "https://medal.tv/clips/abc1/sl%20ug",
+  // Discord (follow-up 2026-10-25): server message permalinks yes; DMs, short ids, other paths, file links no
+  "https://discord.com/channels/123456789012345678/223456789012345678/323456789012345678", "https://www.discord.com/channels/123456789012345678/223456789012345678/323456789012345678/",
+  "https://ptb.discord.com/channels/123456789012345678/223456789012345678/323456789012345678?a=1", "https://canary.discord.com/channels/123456789012345678/223456789012345678/323456789012345678#x",
+  "https://discordapp.com/channels/123456789012345678/223456789012345678/323456789012345678", "https://discord.com/channels/@me/223456789012345678/323456789012345678",
+  "https://discord.com/channels/123/456/789", "https://discord.com/channels/123456789012345678/223456789012345678", "https://discord.com/invite/abcdef", "https://discord.gg/abcdef",
+  "https://media.discordapp.net/attachments/1/2/c.mp4", "https://evil.discord.com/channels/123456789012345678/223456789012345678/323456789012345678",
+  "https://discord.com.evil.example/channels/123456789012345678/223456789012345678/323456789012345678",
 ];
 
 test("the SQL clip rule gives exactly the browser's answer for every corpus link (the same codes, providers and rebuilt links)", async () => {
@@ -98,7 +105,9 @@ test("the SQL clip rule gives exactly the browser's answer for every corpus link
     assert.deepEqual({ ...sql }, expected, JSON.stringify(input));
   }
   assert.equal(parseStickerClip("https://www.youtube.com/watch?v=dQw4w9WgXcQ&v=AAAAAAAAAAA").clip.url, "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "the first v= names the video");
-  assert.equal(parseStickerClip("https://cdn.discordapp.com/attachments/1/2/clip.mp4?ex=abc").code, "STICKER_CLIP_UNSUPPORTED", "Discord media links expire: not accepted in V1");
+  assert.equal(parseStickerClip("https://cdn.discordapp.com/attachments/1/2/clip.mp4?ex=abc").code, "STICKER_CLIP_DISCORD_FILE", "Discord file links expire: refused with their own code");
+  assert.deepEqual(parseStickerClip("https://canary.discord.com/channels/123456789012345678/223456789012345678/323456789012345678?x=1").clip, { provider: "discord", url: "https://discord.com/channels/123456789012345678/223456789012345678/323456789012345678" }, "a message permalink, rebuilt to discord.com");
+  assert.equal(parseStickerClip("https://discord.com/channels/@me/223456789012345678/323456789012345678").ok, false, "direct-message links are not accepted");
 });
 
 test("sending: only a signed-in PUBLIC GamID, only to a Friends Stage of another public, enabled published Wall, a catalog sticker inside the stage area", async () => {
@@ -127,18 +136,71 @@ test("sending: only a signed-in PUBLIC GamID, only to a Friends Stage of another
   assert.equal(await failure(send(db, U.bob)), "STICKER_RECIPIENT_NOT_FOUND");
 });
 
-test("anti-spam: at most 5 waiting requests from one sender to one Wall, at most 20 sends per sender per hour (technical limits)", async () => {
+// four more public Walls with a Friends Stage (recipients r1..r4, each its own owner)
+async function addRecipients(db) {
+  const owners = [];
+  for (let i = 1; i <= 4; i++) {
+    const user = `0000000${i}-0000-4000-8000-00000000000${i}`, entity = `e000000${i}-0000-4000-8000-00000000000${i}`;
+    await db.query("insert into public.entities values ($1, 'SOLO', $2, $3, null, 'PUBLIC')", [entity, `r${i}owner`, `R${i}`]);
+    await db.query("insert into public.entity_memberships values ($1, $2, 'OWNER')", [entity, user]);
+    await db.query("insert into public.wall_drafts (entity_id, document) values ($1, $2)", [entity, wall("my", "friends")]);
+    await db.query("insert into public.wall_publications (entity_id, document) values ($1, $2)", [entity, wall("my", "friends")]);
+    owners.push({ user, entity, handle: `r${i}owner` });
+  }
+  return owners;
+}
+const quota = (db, user) => as(db, user, "select * from public.get_my_sticker_quota()").then(rows => rows[0]);
+
+test("quota: 5 counted submissions per sender in any rolling 24 hours, across ALL recipients; a rejection gives its slot back at once, an approval (even removed or deleted later) does not", async () => {
   const db = await fixture();
-  for (let i = 0; i < 5; i++) await send(db, U.alice);
-  assert.equal(await failure(send(db, U.alice)), "STICKER_PENDING_LIMIT");
-  assert.ok(await send(db, U.bob), "another sender is not affected");
-  // decided requests free the waiting slots; the hourly cap still counts them
-  for (const { placement_id } of await mine(db)) await review(db, placement_id, false);
-  await db.query(`insert into public.wall_sticker_placements (recipient_entity_id, sender_entity_id, stage_id, sticker_key, pos_x, pos_y, status, created_at)
-    select $1, $2, 'stage_2', 'mvp', 500, 500, 'rejected', now() - interval '10 minutes' from generate_series(1, 15)`, [E.owner, E.alice]);   // 5 + 15 = 20 this hour
-  assert.equal(await failure(send(db, U.alice)), "STICKER_RATE_LIMIT");
-  await db.query("update public.wall_sticker_placements set created_at = now() - interval '2 hours' where sender_entity_id = $1", [E.alice]);
-  assert.ok(await send(db, U.alice), "an hour later sending works again");
+  const others = await addRecipients(db);
+  const recipients = [{ user: U.owner, handle: "wallowner" }, ...others];
+  const ids = [];
+  for (const r of recipients) ids.push(await send(db, U.alice, { handle: r.handle }));
+  assert.deepEqual({ ...(await quota(db, U.alice)), next_available_at: undefined }, { quota_limit: 5, used: 5, next_available_at: undefined }, "five sends to five different Walls use the whole quota");
+  assert.equal(await failure(send(db, U.alice, { handle: "r1owner" })), "STICKER_DAILY_LIMIT", "a sixth is refused, whatever the recipient");
+  assert.ok(await send(db, U.bob), "another sender has their own quota");
+  // rejected: the slot comes back immediately
+  await review(db, ids[1], false, others[0].user);
+  assert.equal((await quota(db, U.alice)).used, 4);
+  const sixth = await send(db, U.alice, { handle: "r1owner" });
+  assert.equal(await failure(send(db, U.alice, { handle: "r2owner" })), "STICKER_DAILY_LIMIT");
+  // approved and later removed: still counted
+  await review(db, ids[0], true);
+  await as(db, U.owner, "select public.remove_wall_sticker($1)", [ids[0]]);
+  assert.equal((await quota(db, U.alice)).used, 5, "an approved-then-removed sticker keeps its slot");
+  // approved and later deleted with its Wall's owner (the placement row is gone): still counted
+  await review(db, ids[2], true, others[1].user);
+  await db.query("delete from public.entities where entity_id = $1", [others[1].entity]);
+  assert.equal((await db.query("select count(*)::int n from public.wall_sticker_placements where placement_id = $1", [ids[2]])).rows[0].n, 0);
+  assert.equal((await quota(db, U.alice)).used, 5, "a deleted sticker keeps its slot until its 24 hours are over");
+  assert.equal(await failure(send(db, U.alice, { handle: "r3owner" })), "STICKER_DAILY_LIMIT");
+  // rolling window: each slot frees exactly 24 hours after its own send; next_available_at is the oldest counted send + 24 h
+  await db.query("update public.wall_sticker_quota set created_at = now() - interval '23 hours' where placement_id = $1", [ids[0]]);
+  const state = await quota(db, U.alice);
+  assert.ok(Math.abs(new Date(state.next_available_at) - (Date.now() + 3600e3)) < 60e3, "the next slot frees when the oldest counted send turns 24 hours old");
+  await db.query("update public.wall_sticker_quota set created_at = now() - interval '24 hours 1 minute' where placement_id = $1", [ids[0]]);
+  assert.equal((await quota(db, U.alice)).used, 4);
+  assert.ok(await send(db, U.alice, { handle: "r3owner" }), "after 24 hours the slot is free again");
+  assert.ok(sixth);
+  // the ledger is server-only
+  assert.match(await failure(as(db, U.alice, "select * from public.wall_sticker_quota")), /permission denied/);
+  assert.match(await failure(as(db, null, "select * from public.get_my_sticker_quota()")), /permission denied/);
+});
+
+test("quota: concurrent sends are serialized per sender - the quota is read and taken under the same transaction lock, so it can never be exceeded", async () => {
+  const code = migration.slice(migration.lastIndexOf("create or replace function private.send_wall_sticker_impl"));
+  const lock = code.indexOf("pg_advisory_xact_lock(hashtextextended('wall-sticker-sender:'"), read = code.indexOf("private.wall_sticker_quota_state(sender)"), insert = code.indexOf("insert into public.wall_sticker_quota");
+  assert.ok(lock > 0 && lock < read && read < insert, "lock, then count, then take the slot - in one transaction");
+  assert.doesNotMatch(code.slice(0, code.indexOf("$$;")), /STICKER_PENDING_LIMIT|STICKER_RATE_LIMIT/, "the V1 per-Wall and hourly limits are gone (the approved quota replaces them)");
+  // sequential stand-in for a burst: ten back-to-back sends, exactly five succeed
+  const db = await fixture();
+  const others = await addRecipients(db);
+  const handles = ["wallowner", ...others.map(o => o.handle)];
+  const results = [];
+  for (let i = 0; i < 10; i++) results.push(await failure(send(db, U.bob, { handle: handles[i % handles.length] })));
+  assert.equal(results.filter(r => r === null).length, 5);
+  assert.equal(results.filter(r => r === "STICKER_DAILY_LIMIT").length, 5);
 });
 
 test("owner review: only the Wall's owner decides; pending stickers (and their links) never reach visitors; approval needs the Friends Stage on the draft", async () => {
@@ -176,7 +238,8 @@ test("owner review: only the Wall's owner decides; pending stickers (and their l
 test("dynamic size: 100% for the newest, 5 points less per newer active sticker, never under 50%; removals give the size back (oldest, middle, newest)", async () => {
   const db = await fixture();
   const ids = [];
-  for (let i = 0; i < 5; i++) { const id = await send(db, i % 2 ? U.bob : U.alice); await review(db, id, true); ids.push(id); }
+  const fresh = () => db.query("update public.wall_sticker_quota set created_at = now() - interval '25 hours'");   // the quota is tested on its own
+  for (let i = 0; i < 5; i++) { await fresh(); const id = await send(db, i % 2 ? U.bob : U.alice); await review(db, id, true); ids.push(id); }
   const sizes = async () => Object.fromEntries((await visible(db)).map(row => [row.placement_id, row.size_percent]));
   assert.deepEqual(Object.values(await sizes()), [80, 85, 90, 95, 100], "five approvals: 80 / 85 / 90 / 95 / 100 (oldest first)");
   const remove = id => as(db, U.owner, "select public.remove_wall_sticker($1)", [id]);
@@ -188,10 +251,10 @@ test("dynamic size: 100% for the newest, 5 points less per newer active sticker,
   assert.deepEqual(Object.values(await sizes()), [95, 100]);
   assert.equal(await failure(remove(ids[4])), "STICKER_NOT_FOUND", "a removed sticker cannot be removed twice");
   // a pending or rejected sticker never takes size from the others
-  await send(db, U.alice);
+  await fresh(); await send(db, U.alice);
   assert.deepEqual(Object.values(await sizes()), [95, 100]);
   // the 50% floor
-  for (let i = 0; i < 12; i++) { const id = await send(db, i % 2 ? U.bob : U.alice); await review(db, id, true); }
+  for (let i = 0; i < 12; i++) { await fresh(); const id = await send(db, i % 2 ? U.bob : U.alice); await review(db, id, true); }
   const all = Object.values(await sizes());
   assert.equal(all.length, 14);
   assert.equal(Math.min(...all), 50);
@@ -219,14 +282,15 @@ test("moving: only the owner, only approved stickers, only inside the stage area
   assert.deepEqual([row.pos_x, row.pos_y, row.size_percent], [300, 320, 100], "the position changes; the size does not");
 });
 
-test("visitors: only approved stickers on PUBLISHED Friends Stages of a public, enabled Wall, from senders whose GamID is public now", async () => {
+test("visitors: only approved stickers on PUBLISHED Friends Stages of a public, enabled Wall; a sender who later goes PRIVATE keeps their sticker, avatar and name (Mazen 2026-10-25)", async () => {
   const db = await fixture();
   const a = await send(db, U.alice), b = await send(db, U.bob, { stage: "stage_3" });
   await review(db, a, true); await review(db, b, true);
   assert.equal((await visible(db)).length, 2);
   await db.query("update public.entities set visibility = 'PRIVATE' where entity_id = $1", [E.bob]);
-  assert.deepEqual((await visible(db)).map(row => row.sender_handle), ["alice"], "a sender who went private is never named publicly");
-  assert.deepEqual((await visible(db)).map(row => row.size_percent), [95], "the hidden sticker still counts in the Wall's order");
+  const after = await visible(db);
+  assert.deepEqual(after.map(row => [row.sender_handle, row.sender_avatar_media_reference]), [["alice", `${U.alice}/avatar-1.jpg`], ["bob", null]], "a sender who went private keeps their approved sticker, avatar and name");
+  assert.deepEqual(after.map(row => row.size_percent), [95, 100]);
   await db.query("update public.wall_publications set document = $1 where entity_id = $2", [wall("my", "friends"), E.owner]);
   await db.query("update public.entities set visibility = 'PUBLIC' where entity_id = $1", [E.bob]);
   assert.deepEqual((await visible(db)).map(row => row.stage_id), ["stage_2"], "a stage that is not in the published Wall shows nothing");
@@ -239,6 +303,25 @@ test("visitors: only approved stickers on PUBLISHED Friends Stages of a public, 
   assert.match(await failure(as(db, U.alice, "select * from public.wall_sticker_placements")), /permission denied/);
   assert.match(await failure(as(db, null, "select * from public.wall_sticker_placements")), /permission denied/);
   assert.match(await failure(as(db, null, "select * from public.get_my_wall_stickers()")), /permission denied/);
+});
+
+test("private GamIDs: their notice tells only who it is (handle, name, avatar) and only for PRIVATE; their current avatar becomes readable, DRAFT avatars do not", async () => {
+  const db = await fixture();
+  const notice = handle => as(db, null, "select * from public.get_private_identity_notice($1)", [handle]);
+  assert.deepEqual((await notice("quiet")).map(r => ({ ...r })), [{ gamid_handle: "quiet", display_name: "Quiet", avatar_media_reference: null }]);
+  assert.deepEqual(await notice("alice"), [], "a PUBLIC GamID has its normal profile, no notice");
+  assert.deepEqual(await notice("nobody"), [], "unknown: the same nothing as before");
+  await db.query("update public.entities set visibility = 'DRAFT' where entity_id = $1", [E.priv]);
+  assert.deepEqual(await notice("quiet"), [], "an unpublished (DRAFT) GamID stays indistinguishable from an unknown one");
+  // the avatar rule: PRIVATE yes, DRAFT / PUBLIC-replaced no
+  await db.query("update public.entities set visibility = 'PRIVATE', avatar_media_reference = $2 where entity_id = $1", [E.priv, `${U.priv}/avatar.jpg`]);
+  const readable = path => db.query("select private.avatar_is_private_identity($1) as ok", [path]).then(r => r.rows[0].ok);
+  assert.equal(await readable(`${U.priv}/avatar.jpg`), true);
+  assert.equal(await readable(`${U.priv}/old-avatar.jpg`), false, "only the CURRENT avatar");
+  await db.query("update public.entities set visibility = 'DRAFT' where entity_id = $1", [E.priv]);
+  assert.equal(await readable(`${U.priv}/avatar.jpg`), false, "DRAFT avatars stay owner-only");
+  assert.match(migration, /create policy "private identity avatars are readable"\non storage\.objects for select to anon, authenticated\nusing \(bucket_id = 'avatars' and private\.avatar_is_private_identity\(name\)\);/);
+  assert.doesNotMatch(migration, /drop policy "public identity avatars are readable"|function private\.avatar_is_public/, "the accepted public-avatar rule is untouched");
 });
 
 test("search: public GamIDs with an enabled Wall that has a Friends Stage, never me; sent list shows my requests' outcome", async () => {

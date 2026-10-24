@@ -3,9 +3,9 @@
 //   Visitor: a Friends Stage's "Add sticker" on another player's Wall -> pick a sticker -> (that stage) -> position -> (optional clip) -> Send
 // The recipient's Wall shown here is their PUBLISHED Wall (the same anonymous read visitors get) with its approved stickers; the sender can only place their own new
 // sticker on it - nothing of the recipient's is editable. Everything is decided again on the server (send_wall_sticker): who may send, where, which sticker, the
-// position, the clip link and the anti-spam limits. The request then waits for the Wall owner's approval; nothing shows publicly until then.
+// position, the clip link and the sending quota (5 counted submissions per rolling 24 hours). The request then waits for the Wall owner's approval; nothing shows publicly until then.
 import { STICKER_CATALOG, STICKER_START, STICKER_AREA, clampToStickerArea, stickerByKey } from "../wall/stickers.js";
-import { parseStickerClip, STICKER_CLIP_LABELS, stickerClipProvidersText } from "./embed/providers/clip-links.js";
+import { parseStickerClip, STICKER_CLIP_LABELS, STICKER_CLIP_MESSAGES, STICKER_CLIP_NOTES, stickerClipProvidersText } from "./embed/providers/clip-links.js";
 import { isFriendsStage } from "../wall/stage-types.js";
 import { renderDocument } from "../wall/render.js";
 import { validateDocument } from "../wall/validate.js";
@@ -23,13 +23,24 @@ export const STICKER_MESSAGES = Object.freeze({
   STICKER_POSITION_INVALID: "Place the sticker inside the stage.",
   STICKER_CLIP_INVALID: `That clip link doesn't look right. Paste a ${stickerClipProvidersText()} clip link.`,
   STICKER_CLIP_UNSUPPORTED: `Only ${stickerClipProvidersText()} clip links can be attached.`,
-  STICKER_PENDING_LIMIT: "You already have 5 stickers waiting on this Wall. Wait until the owner reviews them.",
-  STICKER_RATE_LIMIT: "You've sent a lot of stickers in the last hour. Please try again later.",
+  ...STICKER_CLIP_MESSAGES,
+  STICKER_DAILY_LIMIT: "You've used all your free stickers for the last 24 hours. Please try again later.",
   STICKER_NOT_FOUND: "That sticker isn't there any more.",
   STICKER_NOT_PENDING: "That request was already reviewed.",
   STICKER_STAGE_GONE: "That Friends Stage is no longer on your Wall, so this sticker can't be approved. You can reject it.",
   STAGE_HAS_STICKERS: "This Friends Stage still has stickers on it. Remove them first.",
 });
+// the quota in words: what is left, or when the next sticker can be sent (the time in the visitor's own clock)
+export function stickerQuotaText(quota, now = new Date()) {
+  const limit = Number(quota?.quota_limit) || 0, used = Number(quota?.used) || 0;
+  if (!limit) return "";
+  if (used < limit) return `You can send ${limit - used} more of your ${limit} free stickers in the next 24 hours.`;
+  const next = quota?.next_available_at ? new Date(quota.next_available_at) : null;
+  if (!next || Number.isNaN(next.getTime())) return STICKER_MESSAGES.STICKER_DAILY_LIMIT;
+  const sameDay = next.toDateString() === now.toDateString();
+  const time = next.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return `You've used all ${limit} of your free stickers for now. You can send another ${sameDay ? `today at ${time}` : `${next.toLocaleDateString([], { weekday: "long" })} at ${time}`}.`;
+}
 export const stickerMessage = error => STICKER_MESSAGES[error?.message] ?? (error?.status === 0 ? "GamID couldn't be reached. Check your connection and try again." : "Something went wrong. Please try again.");
 
 const PREVIEW_MAX_WIDTH = 360;
@@ -114,6 +125,9 @@ export function openStickerComposer({ api, doc = document, win = window, handle 
     }
     state.me.avatarUrl = await avatarFor(state.me.avatar_media_reference);
     if (state.recipient && state.recipient.gamid_handle === state.me.gamid_handle) { show("Send a sticker", make("p", "sticker-hint", STICKER_MESSAGES.STICKER_SELF)); return; }
+    // the quota (a rejected sticker gives its slot back; an approved or removed one counts for 24 hours from when it was sent)
+    state.quota = await api.getMyStickerQuota?.().catch(() => null) ?? null;
+    if (state.quota && Number(state.quota.used) >= Number(state.quota.quota_limit)) { show("Send a sticker", make("p", "sticker-hint", stickerQuotaText(state.quota))); return; }
     if (!state.sticker) pick(); else if (!state.recipient) findPlayer(); else place();
   }
 
@@ -232,7 +246,7 @@ export function openStickerComposer({ api, doc = document, win = window, handle 
       const parsed = parseStickerClip(clip.value);
       state.clip = clip.value;
       clip.setAttribute("aria-invalid", String(!parsed.ok));
-      clipHint.textContent = parsed.ok ? (parsed.clip ? `${STICKER_CLIP_LABELS[parsed.clip.provider]} clip link.` : `${stickerClipProvidersText()}. Only a link: visitors open it on that site.`) : STICKER_MESSAGES[parsed.code];
+      clipHint.textContent = parsed.ok ? (parsed.clip ? `${STICKER_CLIP_LABELS[parsed.clip.provider]} link.${STICKER_CLIP_NOTES[parsed.clip.provider] ? ` ${STICKER_CLIP_NOTES[parsed.clip.provider]}` : ""}` : `${stickerClipProvidersText()}. Only a link: visitors open it on that site.`) : STICKER_MESSAGES[parsed.code];
       send.disabled = !parsed.ok;
       return parsed;
     };
@@ -245,12 +259,18 @@ export function openStickerComposer({ api, doc = document, win = window, handle 
       say("Sending…");
       try {
         await api.sendWallSticker({ handle: recipientHandle, stageId: state.stageId, stickerKey: state.sticker, x: state.x, y: state.y, clipUrl: parsed.clip?.url ?? null });
-      } catch (error) { send.disabled = back.disabled = false; say(stickerMessage(error)); return; }
+      } catch (error) {
+        send.disabled = back.disabled = false;
+        if (error?.message === "STICKER_DAILY_LIMIT") { state.quota = await api.getMyStickerQuota?.().catch(() => null) ?? null; say(stickerQuotaText(state.quota) || stickerMessage(error)); send.disabled = true; return; }
+        say(stickerMessage(error));
+        return;
+      }
       sent(recipientHandle);
     });
     const actions = make("div", "sticker-actions");
     actions.append(back, send);
-    show("Place your sticker", who, chips, frame, help, clipLabel, clipHint, actions);
+    const quota = make("p", "sticker-hint sticker-quota", stickerQuotaText(state.quota));
+    show("Place your sticker", who, chips, frame, help, clipLabel, clipHint, quota, actions);
 
     const share = (value, min, max) => Math.round((value - min) / (max - min) * 100);
     const positionLabel = () => `Your ${stickerByKey(state.sticker).name} sticker, ${share(state.x, STICKER_AREA.minX, STICKER_AREA.maxX)}% across and ${share(state.y, STICKER_AREA.minY, STICKER_AREA.maxY)}% down. Drag it, or use the arrow keys to move it.`;

@@ -1,4 +1,4 @@
-import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl, getPublicCrews, getPublicFavoriteGames, getMyGameArtwork } from "../account/supabase-client.js";
+import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl, getPublicCrews, getPublicFavoriteGames, getMyGameArtwork, getPrivateIdentityNotice } from "../account/supabase-client.js";
 import { createDesktopProfile, crewsEntry, connectedGamesSection, connectedGameItem, favoriteGamesSection, DESKTOP_QUERY } from "./public-desktop.js";
 import { createProfilePanel } from "./profile-panel.js";
 import { createCrewsDirectory } from "./crews-directory.js";
@@ -49,6 +49,22 @@ function leagueRankLine(league) {
   const division = !LEAGUE_APEX_TIERS.has(league.tier) && league.division ? ` ${league.division}` : "";
   const record = Number.isInteger(league.wins) && Number.isInteger(league.losses) ? ` · ${league.wins}W ${league.losses}L` : "";
   return `${titleCase(league.tier)}${division} · ${league.lp} LP${record}`;
+}
+
+// A PRIVATE GamID's /@handle (Mazen's decision 2026-10-25): its avatar, display name and @username, and "This account is private." - read through
+// get_private_identity_notice, which answers only for PRIVATE GamIDs (never their bio, Wall, games or sections). -> true when the notice is shown.
+async function showPrivateNotice(handle) {
+  let notice = null;
+  try { notice = await getPrivateIdentityNotice(handle); } catch { return false; }
+  if (!notice?.gamid_handle) return false;
+  const name = notice.display_name || `@${notice.gamid_handle}`;
+  document.getElementById("privateStateName").textContent = name;
+  document.getElementById("privateStateHandle").textContent = `@${notice.gamid_handle}`;
+  const avatar = document.getElementById("privateStateAvatar");
+  avatar.textContent = name.replace(/^@/, "").charAt(0).toUpperCase();
+  document.getElementById("privateState").hidden = false;
+  if (notice.avatar_media_reference) loadPublicAvatar(notice.avatar_media_reference).then(url => { if (!url) return; const img = document.createElement("img"); img.src = url; img.alt = ""; avatar.replaceChildren(img); }).catch(() => {});
+  return true;
 }
 
 export function renderPublicSections(panel, sections, duoOptions = null) {
@@ -359,6 +375,9 @@ async function render() {
   if (visitorNav && fromCrew) getPublicCrewWall(fromCrew).then(view => visitorNav.setBackName(view?.crew_name), () => {});
 
   if (!identity && !identityLookupFailed && !ownerPreview && handle) forgetPublishedWallVideos(handle);   // F6-A: not public (any more): no cached Wall video URL is kept for it
+  // a GamID its owner made PRIVATE (Friends Stickers follow-up, Mazen 2026-10-25): the private notice - who it is and that it is private, nothing else.
+  // Unknown and unpublished handles keep the identical not-found state.
+  if (!identity && handle && !identityLookupFailed && !ownerPreview && await showPrivateNotice(handle)) { loading.hidden = true; return; }
   if (!identity) { loading.hidden = true; notFound.hidden = false; return; }
   introSource = createIntroSourceResolver({
     baseUrl: SUPABASE_URL,

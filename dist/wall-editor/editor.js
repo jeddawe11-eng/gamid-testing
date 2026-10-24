@@ -559,7 +559,7 @@ function renderPreview() {
   const width = previewMode === "mobile" ? Math.min(390, available) : Math.min(900, available);
   // a Wall saved before the player-layering rule existed is shown with that rule applied (nothing drawn over a player); the document itself is not changed
   previewVideos ??= createVideoPool();
-  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players, posters, details: detailsFor(gamidSnapshot), videos: previewVideos, artwork: gameArtwork, audience: "owner", stickersFor: stage => ownerStickers?.viewsFor(stage.id) ?? [] });
+  const painted = paintDocument(ops.normalizeEmbedLayering(session.doc).doc, width, undefined, { mode: "view", assets: assetStore, gamid: gamidSnapshot, players, posters, details: detailsFor(gamidSnapshot), videos: previewVideos, artwork: gameArtwork, audience: "owner", stickersFor: stage => ownerStickers?.viewsFor(stage.id) ?? [], stickerProfileHref: sender => new URL(`../@${sender}`, location.href).pathname, stickerProfileTarget: "_blank" });
   $("previewColumn").replaceChildren(...(painted.ok ? painted.stages : [make("p", "ed-empty", "This Wall cannot be previewed: " + describeErrors(painted.errors).join(" "))]));
   $("previewMobile").setAttribute("aria-pressed", String(previewMode === "mobile"));
   $("previewDesktop").setAttribute("aria-pressed", String(previewMode === "desktop"));

@@ -542,7 +542,7 @@ export function paintStage(stageTree, scale, createNode = tag => document.create
   stageTree.elements.forEach((item, order) => stage.appendChild(paintElement(item, scale, order, createNode, ctx)));
   // Friends Stickers V1: the approved stickers of this Friends Stage (ctx.stickersFor(stage) -> sticker views, wall-kit/sticker-paint.js), over everything else
   const stickers = stageTree.type === "friends" && typeof ctx.stickersFor === "function" ? ctx.stickersFor(stageTree) ?? [] : [];
-  if (stickers.length) stage.append(paintStickerLayer(stickers, scale, createNode, { interactive: ctx.mode === "view", draggable: ctx.stickersMovable === true }));
+  if (stickers.length) stage.append(paintStickerLayer(stickers, scale, createNode, { interactive: ctx.mode === "view", draggable: ctx.stickersMovable === true, profileHref: ctx.stickerProfileHref ?? null, profileTarget: ctx.stickerProfileTarget ?? null }));
   // an empty Friends Stage says so (display only, painted here - never a document element, layer or asset); the message leaves as soon as one approved sticker
   // shows. ctx.audience "owner" only from the owner's editor.
   const count = typeof ctx.stickersFor === "function" ? stickers.length : typeof ctx.stickerCount === "function" ? ctx.stickerCount(stageTree) : undefined;

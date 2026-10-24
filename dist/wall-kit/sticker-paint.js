@@ -38,7 +38,8 @@ export function stickerView(row, avatarUrl = null) {
 const initialOf = sender => (sender.name || sender.handle || "G").trim().charAt(0).toUpperCase() || "G";
 
 // One sticker group at `scale` (stage px per stage unit). `interactive`: the clip button is a real link (visitor page, Preview); in the editor it only shows.
-export function paintSticker(view, scale, createNode, { interactive = true, draggable = false } = {}) {
+// `profileHref(handle)` (view mode only): the sender's avatar and @username open their GamID - public, or the private notice when they made it private.
+export function paintSticker(view, scale, createNode, { interactive = true, draggable = false, profileHref = null, profileTarget = null } = {}) {
   const box = STICKER_BASE * (view.size / 100) * scale;
   const group = createNode("figure");
   group.className = `wall-sticker${draggable ? " is-movable" : ""}`;
@@ -80,7 +81,17 @@ export function paintSticker(view, scale, createNode, { interactive = true, drag
   const name = createNode("span");
   name.className = "wall-sticker-name";
   name.textContent = by;
-  caption.append(avatar, name);
+  const href = interactive && view.sender.handle && typeof profileHref === "function" ? profileHref(view.sender.handle) : null;
+  if (href) {
+    const link = createNode("a");
+    link.className = "wall-sticker-profile";
+    link.setAttribute("href", href);
+    link.setAttribute("data-interactive", "");
+    if (profileTarget) { link.setAttribute("target", profileTarget); link.setAttribute("rel", "noopener"); }
+    link.setAttribute("aria-label", `Open ${by}'s GamID`);
+    link.append(avatar, name);
+    caption.append(link);
+  } else caption.append(avatar, name);
   group.append(art, caption);
 
   if (view.clip) {

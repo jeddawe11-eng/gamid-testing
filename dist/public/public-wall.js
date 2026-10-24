@@ -238,7 +238,7 @@ export function createPublicWallView({ host, prepared, handle, api = defaultApi,
     videos ??= createVideoPool({ viewport: { win, doc } });
     posters ??= createPosterLoader({ endpoint: api.MEDIA_POSTER_URL });
     details ??= createWallDetails({ element: make, handle, api, mount: node => doc.body.append(node), sourceLabels: PUBLIC_SOURCE_LABELS, posters });
-    const painted = paintDocument(ready.doc, target, undefined, { mode: "view", assets: ready.assets, gamid: ready.gamid, players, posters, details, videos, artwork: ready.artwork ?? null, stickersFor: stage => ready.stickers?.get(stage.id) ?? [] });
+    const painted = paintDocument(ready.doc, target, undefined, { mode: "view", assets: ready.assets, gamid: ready.gamid, players, posters, details, videos, artwork: ready.artwork ?? null, stickersFor: stage => ready.stickers?.get(stage.id) ?? [], stickerProfileHref: sender => gamidHref(sender, { from: handle, pathname: win.location?.pathname ?? "/" }) });
     if (!painted.ok) { host.replaceChildren(make("p", "public-wall-state", "This Wall can't be shown right now. Please try again later.")); nav.hide(); return; }
     column = make("div", "public-wall-column");
     column.style.setProperty("width", `${target}px`);

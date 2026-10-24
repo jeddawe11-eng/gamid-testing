@@ -919,6 +919,10 @@ export async function sendWallSticker({ handle, stageId, stickerKey, x, y, clipU
   return rpc("send_wall_sticker", { candidate_handle: handle, candidate_stage_id: stageId, candidate_sticker_key: stickerKey, candidate_x: x, candidate_y: y, candidate_clip_url: clipUrl || null });
 }
 export async function getMySentStickers() { return (await rpc("get_my_sent_stickers")) || []; }
+// My sending quota (follow-up correction 2026-10-25): { quota_limit, used, next_available_at } - counted submissions in the last 24 hours, across all recipients.
+export async function getMyStickerQuota() { return (await rpc("get_my_sticker_quota"))?.[0] ?? null; }
+// A PRIVATE GamID's notice for its /@handle page: { gamid_handle, display_name, avatar_media_reference } or null (unknown / unpublished / public handles).
+export async function getPrivateIdentityNotice(handle) { return (await rpc("get_private_identity_notice", { candidate_handle: handle }, { anonymous: true }))?.[0] ?? null; }
 // The owner's side: the waiting requests and the stickers on my Wall (with each sender's current identity), the decisions, removal and moves.
 export async function getMyWallStickers() { return (await rpc("get_my_wall_stickers")) || []; }
 export async function reviewWallSticker(placementId, approve) { return rpc("review_wall_sticker", { candidate_placement_id: placementId, candidate_approve: Boolean(approve) }); }

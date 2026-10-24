@@ -8,6 +8,8 @@ body{margin:0;min-width:320px;min-height:100svh;background:radial-gradient(circl
 .public-shell{min-height:calc(100svh - 4rem);display:grid;place-items:center;padding:2rem 1.1rem}
 .state{text-align:center;color:var(--muted);max-width:26rem}
 .state h1{color:#fff;font-size:1.5rem;letter-spacing:-.03em;margin:0 0 .6rem}
+/* a PRIVATE GamID's notice (Friends Stickers follow-up 2026-10-25): avatar, name, @username, the private message - nothing else */
+.private-state{display:grid;justify-items:center;gap:.35rem}.private-state[hidden]{display:none}.private-state-avatar{display:grid;place-items:center;width:96px;aspect-ratio:1;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#8b5dff,#d6b25e);color:#fff;font-size:2.2rem;font-weight:800}.private-state-avatar img{display:block;width:100%;aspect-ratio:1;object-fit:cover}.private-state h1{margin:.4rem 0 0}.private-state-handle{margin:0;color:var(--muted)}.private-state-note{margin:.6rem 0 0;padding:.5rem 1rem;border:1px solid rgba(214,178,94,.5);border-radius:999px;color:#f3d68a;font-weight:700}
 .loader{width:2.3rem;height:2.3rem;border:3px solid #292438;border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1.2rem}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* LAYOUT MODES (data-mode on .public-shell, set by public.js):

@@ -171,7 +171,7 @@ test("V2b no flash: with a published Wall the Intro frame is asked for hostRevea
 test("V3 one renderer: the visitor Wall is painted by the same Preview pipeline (paintDocument in VIEW mode, players, posters, details, video pool)", () => {
   const module = read("dist/public/public-wall.js");
   // + Game Covers artwork (Favorite Games Display Style); + the approved Friends Stickers of each Friends Stage (Friends Stickers V1)
-  assert.match(module, /paintDocument\(ready\.doc, target, undefined, \{ mode: "view", assets: ready\.assets, gamid: ready\.gamid, players, posters, details, videos, artwork: ready\.artwork \?\? null, stickersFor: stage => ready\.stickers\?\.get\(stage\.id\) \?\? \[\] \}\)/);
+  assert.match(module, /paintDocument\(ready\.doc, target, undefined, \{ mode: "view", assets: ready\.assets, gamid: ready\.gamid, players, posters, details, videos, artwork: ready\.artwork \?\? null, stickersFor: stage => ready\.stickers\?\.get\(stage\.id\) \?\? \[\], stickerProfileHref: sender => gamidHref\(sender, \{ from: handle, pathname: win\.location\?\.pathname \?\? "\/" \}\) \}\)/);
   assert.match(module, /doc: normalizeEmbedLayering\(doc\)\.doc/, "the same layering rule Preview applies");
   assert.doesNotMatch(module, /function paint(Stage|Element|Image|Text)\b|createElement\("(img|video)"\)/, "no second renderer");
   const editor = read("dist/wall-editor/editor.js");

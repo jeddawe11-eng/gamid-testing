@@ -136,8 +136,8 @@ test("painting: a clip link shows only when attached, opens in a new tab without
   for (const bad of [{ clip_url: "javascript:alert(1)", clip_provider: "youtube" }, { clip_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", clip_provider: "twitch" }, { clip_url: "https://youtu.be/dQw4w9WgXcQ", clip_provider: "youtube" }])
     assert.equal(find(paintSticker(stickerView(row(bad)), 1, node), "wall-sticker-clip"), undefined, JSON.stringify(bad));
   assert.equal(safeStickerClip("https://medal.tv/clips/abc123XYZ", "medal").url, "https://medal.tv/clips/abc123XYZ");
-  assert.equal(stickerClipProvidersText(), "YouTube, Twitch or Medal.tv");
-  assert.equal(parseStickerClip("https://cdn.discordapp.com/attachments/1/2/c.mp4").code, "STICKER_CLIP_UNSUPPORTED");
+  assert.equal(stickerClipProvidersText(), "YouTube, Twitch, Medal.tv or Discord");
+  assert.equal(parseStickerClip("https://cdn.discordapp.com/attachments/1/2/c.mp4").code, "STICKER_CLIP_DISCORD_FILE", "a Discord FILE link expires: refused with its own explanation");
   // what cannot be drawn safely is not drawn
   assert.equal(stickerView(row({ sticker_key: "premium-dragon" })), null);
   assert.equal(stickerView(row({ size_percent: 40 })), null);
@@ -225,4 +225,53 @@ test("security: the sticker modules never turn text into markup, never fetch on 
   const composer = read("dist/wall-kit/sticker-composer.js");
   for (const call of composer.matchAll(/api\.(\w+)\(/g)) assert.ok(["restoreSession", "getMyStickerSender", "loadPublicAvatar", "searchStickerRecipients", "getPublicWall", "getPublicWallStickers", "sendWallSticker"].includes(call[1]), call[1]);
   assert.match(composer, /api\.sendWallSticker\(\{ handle: recipientHandle, stageId: state\.stageId, stickerKey: state\.sticker, x: state\.x, y: state\.y, clipUrl: parsed\.clip\?\.url \?\? null \}\)/, "the client never sends an avatar or a name: the server uses the signed-in account");
+});
+
+test("follow-up 2026-10-25: the sender's avatar and @username open their GamID (view mode only); never on the owner's drag canvas", () => {
+  const view = stickerView(row(), "blob:avatar");
+  const group = paintSticker(view, 0.5, node, { interactive: true, profileHref: handle => `/@${handle}?from=wallowner` });
+  const link = find(group, "wall-sticker-profile");
+  assert.equal(link.tag, "a");
+  assert.equal(link.attrs.get("href"), "/@alice?from=wallowner");
+  assert.equal(link.attrs.get("aria-label"), "Open @alice's GamID");
+  assert.ok(find(link, "wall-sticker-avatar") && find(link, "wall-sticker-name"), "the avatar and the name are the link");
+  assert.equal(find(paintSticker(view, 0.5, node, { interactive: false, draggable: true, profileHref: h => `/@${h}` }), "wall-sticker-profile"), undefined, "the owner's canvas: drag, no link");
+  const preview = find(paintSticker(view, 0.5, node, { interactive: true, profileHref: h => `/@${h}`, profileTarget: "_blank" }), "wall-sticker-profile");
+  assert.deepEqual([preview.attrs.get("target"), preview.attrs.get("rel")], ["_blank", "noopener"], "the editor's Preview opens it in a new tab");
+  assert.match(read("dist/wall-kit/wall-kit.css"), /\.wall-sticker-profile \{[^}]*pointer-events: auto;/);
+  assert.match(read("dist/public/public-wall.js"), /stickerProfileHref: sender => gamidHref\(sender, \{ from: handle, pathname: win\.location\?\.pathname \?\? "\/" \}\)/, "the visitor goes to the sender's GamID with Back to this Wall");
+});
+
+test("follow-up 2026-10-25: Discord message links - the clip button names Discord; the send flow explains file links and channel access", async () => {
+  const url = "https://discord.com/channels/123456789012345678/223456789012345678/323456789012345678";
+  const link = find(paintSticker(stickerView(row({ clip_url: url, clip_provider: "discord" })), 1, node), "wall-sticker-clip");
+  assert.equal(link.attrs.get("href"), url);
+  assert.equal(link.attrs.get("target"), "_blank");
+  assert.match(link.attrs.get("aria-label"), /on Discord$/);
+  const { STICKER_CLIP_MESSAGES, STICKER_CLIP_NOTES } = await import("../dist/wall-kit/embed/providers/clip-links.js");
+  assert.match(STICKER_CLIP_MESSAGES.STICKER_CLIP_DISCORD_FILE, /expire/);
+  assert.match(STICKER_CLIP_NOTES.discord, /only for people who can see/);
+  assert.match(migration + read("supabase/migrations/20261025100000_friends_stickers_corrections.sql"), /clip_provider in \('youtube', 'twitch', 'medal', 'discord'\)/);
+});
+
+test("follow-up 2026-10-25: the quota in the send flow - what is left, or when the next sticker can be sent", async () => {
+  const { stickerQuotaText, STICKER_MESSAGES } = await import("../dist/wall-kit/sticker-composer.js");
+  assert.equal(stickerQuotaText({ quota_limit: 5, used: 2 }), "You can send 3 more of your 5 free stickers in the next 24 hours.");
+  const now = new Date("2026-10-25T10:00:00");
+  assert.match(stickerQuotaText({ quota_limit: 5, used: 5, next_available_at: new Date("2026-10-25T18:30:00").toISOString() }, now), /^You've used all 5 of your free stickers for now\. You can send another today at /);
+  assert.match(stickerQuotaText({ quota_limit: 5, used: 5, next_available_at: new Date("2026-10-26T09:00:00").toISOString() }, now), /You can send another Monday at /);
+  assert.ok(STICKER_MESSAGES.STICKER_DAILY_LIMIT && !STICKER_MESSAGES.STICKER_PENDING_LIMIT && !STICKER_MESSAGES.STICKER_RATE_LIMIT, "the V1 limits are gone");
+  const composer = read("dist/wall-kit/sticker-composer.js");
+  assert.match(composer, /state\.quota = await api\.getMyStickerQuota\?\.\(\)/, "read before choosing (a full quota says so at once)");
+  assert.match(composer, /if \(error\?\.message === "STICKER_DAILY_LIMIT"\)/, "the server's refusal shows the same words");
+});
+
+test("follow-up 2026-10-25: a PRIVATE GamID's /@handle shows the private notice (avatar, name, @username, the message) - only when the server says it is private", () => {
+  const html = read("dist/public/index.html"), page = read("dist/public/public.js");
+  assert.match(html, /<section id="privateState" class="state private-state" aria-labelledby="privateStateName" hidden>.*<p class="private-state-note">This account is private\.<\/p><\/section>/);
+  assert.match(page, /if \(!identity && handle && !identityLookupFailed && !ownerPreview && await showPrivateNotice\(handle\)\) \{ loading\.hidden = true; return; \}\n  if \(!identity\) \{ loading\.hidden = true; notFound\.hidden = false; return; \}/, "otherwise the unchanged not-found state");
+  const fn = page.slice(page.indexOf("async function showPrivateNotice"), page.indexOf("export function renderPublicSections"));
+  assert.match(fn, /getPrivateIdentityNotice\(handle\)/);
+  assert.doesNotMatch(fn, /bio|getPublicWall|games|sections/i, "nothing but who it is");
+  assert.match(read("dist/public/public.css"), /\.private-state\[hidden\]\{display:none\}/, "hidden means hidden (the grid display would otherwise show it on every not-found page)");
 });
