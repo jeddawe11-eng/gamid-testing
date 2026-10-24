@@ -84,7 +84,9 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `524939cfda495abb3f90534b53914ffc634038b2`** (successful run `40079878018`, from `feature/mobile-public-wall-visitor-v2`, not merged).
+- **TESTING serves `6a7b89a9a62a23948f6c121ca11734fb36fe1796`** (successful run `40098732831`, from `feature/mobile-public-wall-visitor-v2`, not merged).
+  - What it changes: the Friends Stickers V1 follow-up corrections (§125, `docs/FRIENDS-STICKERS-V1.md` §10): private senders' stickers stay, the private notice, 5 sends per rolling 24 h, Discord message links. Migration `20261025100000_friends_stickers_corrections` APPLIED; Truth `friends-stickers` still PENDING_ACCEPTANCE.
+- **Previously served `524939cfda495abb3f90534b53914ffc634038b2`** (successful run `40079878018`, from `feature/mobile-public-wall-visitor-v2`, not merged).
   - What it changes: Friends Stickers V1 (§124, `docs/FRIENDS-STICKERS-V1.md`). Migration `20261024100000_friends_stickers_v1` APPLIED; Truth `friends-stickers` PENDING_ACCEPTANCE.
 - **Previously served `a084cb17c7c43aa0a84f1099a3f567d297dc98c7`** (successful run `39963845626`, from `feature/mobile-public-wall-visitor-v2`, not merged).
   - What it changes: frontend only. At the stage allowance Add stage is muted "MAX 3 STAGES", still clickable, and only explains the limit (§121). Wall Stages V2 ACCEPTED by Mazen on this checkpoint (2026-10-23, §122); Truth `wall-stage-types` ACCEPTED.
@@ -165,7 +167,15 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-24, Friends Stickers V1 on TESTING, PENDING_ACCEPTANCE):** live at `524939c` (run `40079878018`) from `feature/mobile-public-wall-visitor-v2` (not merged; §124, `docs/FRIENDS-STICKERS-V1.md`).
+**Latest continuation (2026-10-24, Friends Stickers V1 follow-up corrections on TESTING, PENDING_ACCEPTANCE):** live at `6a7b89a` (run `40098732831`), not merged (§125, `docs/FRIENDS-STICKERS-V1.md` §10).
+- **Mazen's decisions:** a private sender's approved sticker keeps their avatar and @username (`visitor-media-access` amended for a PRIVATE GamID's current avatar); a PRIVATE GamID's `/@handle` shows a private notice only.
+- **Changes:** the avatar + @username open the sender's GamID; 5 counted sends per sender in any rolling 24 hours across all recipients (a rejection releases; removed and deleted still count; Pro not approved); Discord message permalinks accepted, Discord file links refused. Migration `20261025100000` applied.
+- **Next:**
+  1. Mazen's manual acceptance of Friends Stickers V1 with the follow-up (checklists in §124 and §125).
+  2. His decision on the Product Memory proposal.
+  3. Mobile Public Wall Visitor V2 acceptance and the pending DEC-0012 / ISS-0017 decisions, as before.
+
+**Previous continuation (2026-10-24, Friends Stickers V1 on TESTING, PENDING_ACCEPTANCE):** live at `524939c` (run `40079878018`) from `feature/mobile-public-wall-visitor-v2` (not merged; §124, `docs/FRIENDS-STICKERS-V1.md`).
 - **What it does:**
   - Players with a public GamID send one of the 14 free animated stickers to another player's Friends Stage: from the editor's Templates & Stickers, or with Add sticker on their Wall.
   - The owner approves or rejects each one, and can move or remove approved stickers.

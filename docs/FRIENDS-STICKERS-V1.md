@@ -139,7 +139,7 @@ Migration `supabase/migrations/20261024100000_friends_stickers_v1.sql`. It is ad
 
 - Premium, Pro or Boost; paid stickers or backgrounds; any purchase or subscription.
 - Writing Stickers (sticky note, graffiti note); a background catalog.
-- Embedding or playing clips; Discord clip links.
+- Embedding or playing clips; Discord clip links (Discord message links were added by the follow-up, §10).
 - Sticker expiry; per-friend allowances.
 
 ## 9. TESTING delivery (2026-10-24)
@@ -157,3 +157,61 @@ Migration `supabase/migrations/20261024100000_friends_stickers_v1.sql`. It is ad
 - **Rollback:** redeploy `93f24ad` (the previous site).
   - The migration is additive: the table can stay empty.
   - To fully undo it, drop the sticker functions, revert `save_my_wall_draft_impl` to its 20261022120000 definition, delete the four notification types and drop the table.
+
+## 10. Follow-up corrections (2026-10-24, PENDING Mazen's acceptance)
+
+Mazen's task "GAMID — FRIENDS STICKERS V1 / Follow-up Corrections" (TESTING only). He chose both recommended options for the two privacy conflicts reported before any protection changed:
+- **Show avatar + name.** A private sender's approved sticker keeps their avatar and @username. The accepted `visitor-media-access` rule ("reads end when a GamID goes PRIVATE") is narrowed for the avatar only; Truth carries the amendment.
+- **Private notice page.** A PRIVATE GamID's `/@handle` shows who it is and that it is private, nothing else.
+
+The code comments and the migration version say 2026-10-25; the work and the decisions are from 2026-10-24.
+
+### 10.1 Private senders
+- `get_public_wall_stickers` no longer drops stickers whose sender is not PUBLIC. It still needs the sender's SOLO entity and handle; a deleted account's placements are removed with it (cascade).
+- Storage: a second policy, `private identity avatars are readable` (`private.avatar_is_private_identity`), lets anyone read the **current** avatar of a SOLO **PRIVATE** GamID. The accepted public-avatar policy is unchanged. DRAFT (unpublished) avatars and every other object (Wall pictures, Intro, earlier avatars) stay as before.
+- The avatar and @username beside a sticker are one link to the sender's GamID:
+  - on the public Wall, the same tab, with `?from=<wall owner>` so Back returns to the Wall;
+  - in the editor's Preview, a new tab;
+  - never on the owner's drag canvas (dragging is unchanged).
+- **Private notice:** `public.get_private_identity_notice(handle)` (anonymous) returns handle, display name and avatar reference for a SOLO PRIVATE GamID only. `/@handle` then shows the avatar, display name, @username and "This account is private." No bio, Wall, games, sections, Intro or stats; none of those reads is made.
+  - Unknown and unpublished handles keep the identical not-found page.
+  - The Worker's crawler preview is unchanged.
+- GamID has no suspension or blocking concept yet; deletion and the owner's moderation (approve, reject, remove) are unchanged.
+
+### 10.2 Quota (replaces 5 waiting per Wall and 20 per hour)
+- **5 counted submissions per sender in any rolling 24 hours, across all recipients.** One server function decides the number (`private.wall_sticker_quota_limit`); the future Pro limit (10) is not approved or built.
+- **Ledger** `public.wall_sticker_quota`: one row per send (RLS on, no client access). It has no foreign key to the placement, so a sticker the owner removes or that is deleted still counts until 24 hours after it was sent. An owner's rejection sets `released_at`, freeing the slot at once.
+- **Counted:** pending, approved, approved-then-removed, approved-then-deleted. **Not counted:** rejected.
+- **Concurrency:** `send_wall_sticker` takes the per-sender transaction lock (`pg_advisory_xact_lock('wall-sticker-sender:'…)`) before it reads the count and inserts the placement and its ledger row, so parallel sends are serialized and can never pass 5.
+- At the limit the send fails with `STICKER_DAILY_LIMIT` (detail: when the oldest counted send turns 24 hours old). `get_my_sticker_quota()` returns `(quota_limit, used, next_available_at)`.
+- **Send flow:** it reads the quota on opening; the place step shows "You can send N more of your 5 free stickers in the next 24 hours."; when none are left, "You've used all 5 of your free stickers for now. You can send another today at HH:MM" (or "<Weekday> at HH:MM"), in local time. A refused send re-reads the quota.
+- The existing TESTING placement was backfilled into the ledger.
+
+### 10.3 Discord message links
+- **Accepted:** server message permalinks `https://discord.com/channels/<guild>/<channel>/<message>` (17–20-digit ids, optional trailing slash). The hosts `www.`, `ptb.` and `canary.discord.com` and `(www.)discordapp.com` are accepted and rebuilt to `https://discord.com/channels/G/C/M`; query and fragment are dropped.
+- **Refused:** direct-message links (`/channels/@me/…`), other Discord paths, and Discord file links (`cdn.discordapp.com`, `media.discordapp.net`). File links are signed and expire, so they get their own message: "Discord file links expire. Paste the message link instead (on the message: Copy Message Link)."
+- It is only a link, opened in a new tab: no Discord API, no download, no embed or autoplay. It opens only for people who can see the channel, and the send flow says so.
+- The browser rule (`clip-links.js`) and the server rule (`private.wall_sticker_clip`) are kept identical by the shared corpus test. The `clip_provider` check now allows `discord`. YouTube, Twitch and Medal.tv are unchanged.
+
+### 10.4 Also fixed
+- On short landscape phones (844×390) the send flow's stage preview could shrink to 0 px after the quota line was added. The body's children no longer shrink; the body scrolls.
+
+### 10.5 Files
+- Migration `supabase/migrations/20261025100000_friends_stickers_corrections.sql`.
+- `dist/wall-kit/embed/providers/clip-links.js`, `sticker-composer.js`, `sticker-paint.js`, `paint.js`, `wall-kit.css`, `stickers.css`.
+- `dist/public/public.js`, `index.html`, `public.css`, `public-wall.js`; `dist/wall-editor/editor.js`; `dist/account/supabase-client.js`.
+- Tests: `tests/friends-stickers-db.test.js`, `tests/friends-stickers.test.js`, `tests/public-my-games.test.js`, `tests/wall-public-publishing.test.js`.
+
+### 10.6 Validation
+- `npm test`: 2,198 tests, 0 failures.
+- Database (PGlite, both migrations): the five-recipients case with the sixth refused; a rejection releases the slot; approved, removed and deleted still count; the rolling expiry; the lock comes before the count; ten sends in a row give exactly five; private notice and avatar rules; Discord in the shared corpus.
+- Browser (lab and fixture harness): editor 59/59 (desktop, tablet, phone touch, landscape), visitor 46/46 (private sender kept, profile link with `from=`, Discord clip, the private notice at 1440 and 390 px with no Wall, games or sections reads, unknown handle → not-found).
+- Non-regression: Wall Stages 60, backgrounds 12, owner empty state 36, visitor empty state 70, the mobile editor functions, Mobile Public Wall Visitor V2 196/196.
+- True parallel sessions cannot run in PGlite; concurrency is covered by the lock order. No real signed-in account, physical device, Safari or Firefox was tested.
+
+### 10.7 TESTING delivery
+- **Product:** `6a7b89a9a62a23948f6c121ca11734fb36fe1796` (not merged).
+- **Database:** `20261025100000_friends_stickers_corrections` rehearsed in a rolled-back transaction (ledger backfill 1 row, policies, grants, the Discord rule), then applied and recorded in the history (`migration repair --status applied`).
+- **Site:** run `40098732831`, successful; stamp `6a7b89a`; the changed files are byte-identical to the commit (`public/index.html` differs only by the version stamps).
+- **Live smoke** (anonymous, read-only): stickers 9/9, Wall Stages smoke passes.
+- **Rollback:** redeploy `524939c` (run `40079878018`). The migration is additive; to fully undo it, restore the three replaced functions and the clip rule from `20261024100000`, drop the notice function, the private-avatar policy and the ledger.

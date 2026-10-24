@@ -5035,3 +5035,50 @@ GamID Truth: UPDATED.
 Product Memory: PROPOSED (not saved; awaiting Mazen's approval). See the completion report.
 
 Not merged; Production untouched.
+
+## 125. Friends Stickers V1 follow-up corrections (2026-10-24, PENDING Mazen's acceptance)
+
+Mazen's task "GAMID — FRIENDS STICKERS V1 / Follow-up Corrections", TESTING only. Full record: `docs/FRIENDS-STICKERS-V1.md` §10. Friends Stickers V1 stays PENDING_ACCEPTANCE.
+
+**Privacy conflicts, reported first and decided by Mazen** (both recommended options):
+- A private sender's approved sticker keeps showing their avatar and @username. This narrows the accepted `visitor-media-access` rule for the current avatar of a PRIVATE GamID only (a second storage policy; DRAFT avatars stay owner-only).
+- A PRIVATE GamID's `/@handle` shows a private notice: avatar, display name, @username and "This account is private." Nothing else is read or shown. Unknown and unpublished handles keep the identical not-found page.
+
+**What changed:**
+- **Private senders:** their approved stickers stay. The avatar + @username open the sender's GamID (public Wall: same tab with Back to the Wall; editor Preview: new tab; never on the drag canvas).
+- **Quota:** 5 counted submissions per sender in any rolling 24 hours, across all recipients (replaces 5 waiting per Wall / 20 per hour). A ledger row per send counts while pending or approved, also after removal or deletion, until 24 h after the send; a rejection releases it at once. The count and the insert happen under the sender's transaction lock. The send flow shows what is left, or when the next slot frees. Pro (10) is not approved or built.
+- **Discord:** message permalinks `discord.com/channels/<guild>/<channel>/<message>` (www / ptb / canary and discordapp.com rebuilt to discord.com). DM links and file links (cdn.discordapp.com, media.discordapp.net) are refused. Only a link: no API, download or embed; channel permissions apply.
+- **Fixed:** on short landscape phones the send flow's stage preview could collapse to 0 px.
+
+**Delivery:**
+- Product `6a7b89a9a62a23948f6c121ca11734fb36fe1796`.
+- Migration `20261025100000_friends_stickers_corrections`: rehearsed (rolled back), applied and recorded in the history. It is additive; the one existing placement got its ledger row.
+- Site run `40098732831`: stamp `6a7b89a`; the changed files are byte-identical to the commit.
+- Live smoke (anonymous, read-only): stickers 9/9, Wall Stages smoke passes.
+- Rollback: redeploy `524939c` (run `40079878018`); undo steps in the doc.
+
+**Validation:**
+- `npm test`: 2,198 tests, 0 failures.
+- Browser: editor 59/59, visitor 46/46.
+- Non-regression: Wall Stages 60, backgrounds 12, owner empty state 36, visitor empty state 70, the mobile editor functions, Mobile Public Wall Visitor V2 196/196.
+- No real signed-in account, physical device, Safari or Firefox was tested; true parallel sends are covered by the lock order, not a live race.
+
+**Manual acceptance checklist (Mazen):**
+- **Setup.** Accounts A and C each have a Friends Stage on a published, enabled Wall; account B has a public GamID.
+1. **Quota across recipients:** B sends 5 stickers spread over A's and C's Walls. The send flow counts down ("You can send N more…"). The sixth is refused with the time the next one frees.
+2. **Rejection releases:** A rejects one of B's pending stickers. B can send one more at once.
+3. **Approved, removed and deleted still count:** A approves one and then removes it. B's count does not go down.
+4. **Private sender:** A approves a sticker from B; B then makes their GamID private. Signed out, A's Wall still shows the sticker with B's avatar and @username.
+5. **Profile link:** clicking B's avatar or @username on A's Wall opens B's GamID in the same tab; Back returns to A's Wall. In the editor's Preview it opens in a new tab.
+6. **Private notice:** signed out, B's `/@handle` (while private) shows only the avatar, name, @username and "This account is private." An unknown handle shows the normal not-found page.
+7. **Discord:** a Discord message link (Copy Message Link) is accepted and its clip button opens Discord in a new tab. A `cdn.discordapp.com` file link is refused with the "Paste the message link instead" message. YouTube, Twitch and Medal.tv links still work.
+8. **Phone landscape:** on Android in landscape, the send flow's stage preview is visible and the sticker can be dragged into place.
+
+GamID Truth: UPDATED.
+- `friends-stickers` (still PENDING_ACCEPTANCE): checkpoint `6a7b89a`; limit `stickerQuotaPer24Hours: 5` replaces the two anti-spam limits; `sticker-send`, `sticker-display` and `sticker-clip-link` amended; new `sticker-quota` and `private-identity-notice` contracts; record and notes.
+- `visitor-media-access` (ACCEPTED): its `visitor-no-signing` rule amended for a PRIVATE GamID's current avatar (Mazen's decision).
+- `public-gamid-profile` and `public-handle-url` (ACCEPTED): notes on the private notice.
+
+Product Memory: PROPOSED (not saved; awaiting Mazen's approval). See the completion report.
+
+Not merged; Production untouched.

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-23",
+  "updated": "2026-10-24",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -306,7 +306,8 @@
         "/@<handle>",
         "/public/"
       ],
-      "record": "PROJECT_HANDOFF.md §7b, §7d, §7f and §63; Product Memory REV-0001 item 4. Mazen explicitly confirmed the Public GamID Profile on TESTING PASS and ACCEPTED on 2026-10-15, with no further manual testing required for this acceptance. Earlier pending acceptance statements are superseded. Existing implementation references retained: Slice 1 697b6e3773233d4b403becb63a6857893dbe0ea2, Slice 2 ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7, sharing b1caefacf4652e090d134e9e50851572e9a088eb; accepted responsive height §7v and Opera Intro reliability 706fc58e. Acceptance recording changes no implementation checkpoint."
+      "record": "PROJECT_HANDOFF.md §7b, §7d, §7f and §63; Product Memory REV-0001 item 4. Mazen explicitly confirmed the Public GamID Profile on TESTING PASS and ACCEPTED on 2026-10-15, with no further manual testing required for this acceptance. Earlier pending acceptance statements are superseded. Existing implementation references retained: Slice 1 697b6e3773233d4b403becb63a6857893dbe0ea2, Slice 2 ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7, sharing b1caefacf4652e090d134e9e50851572e9a088eb; accepted responsive height §7v and Opera Intro reliability 706fc58e. Acceptance recording changes no implementation checkpoint.",
+      "notes": "Since 2026-10-24 (Mazen's decision, friends-stickers follow-up 6a7b89a, PENDING_ACCEPTANCE with that capability): a PRIVATE GamID's /@handle shows the private notice (friends-stickers contract private-identity-notice) instead of not-found; PUBLIC profiles, unknown and unpublished handles are unchanged."
     },
     {
       "id": "public-handle-url",
@@ -316,7 +317,8 @@
         "https://gamid-testing-static.gamid.workers.dev/@<handle>"
       ],
       "checkpoint": "8047bc22ef8ddc3bad70e208ae96462e4e8cb990",
-      "record": "main commit 8047bc2 (Phase 1 accepted on Discord and WhatsApp)"
+      "record": "main commit 8047bc2 (Phase 1 accepted on Discord and WhatsApp)",
+      "notes": "The 2026-10-24 private notice for PRIVATE GamIDs (public-gamid-profile) is page-side only; the Worker's social identity preview for crawlers is unchanged."
     },
     {
       "id": "public-section-visibility",
@@ -562,8 +564,7 @@
         "stickerBaseUnits": 300,
         "stickerSizeStepPercent": 5,
         "stickerSizeMinPercent": 50,
-        "stickerPendingPerSenderPerWall": 5,
-        "stickerSendsPerSenderPerHour": 20,
+        "stickerQuotaPer24Hours": 5,
         "stickerClipMaxChars": 300
       },
       "contracts": [
@@ -573,7 +574,7 @@
         },
         {
           "id": "sticker-send",
-          "rule": "A signed-in player whose own GamID is public sends a sticker to one Friends Stage of another player's published, enabled Wall of a public GamID (never their own), at a position on that stage, optionally with one gaming clip link. Two entry points with one flow and one server rule: the editor's Templates & Stickers -> Stickers (find a GamID player by username or name, shown with name, @username and Friends Stage count) and Add sticker on a Friends Stage of another player's Wall (shown only to a visitor who may send). The server decides again: sender, recipient, stage, sticker, position and link. Technical anti-spam: at most 5 waiting requests from one sender to one Wall and 20 sends per sender per hour."
+          "rule": "A signed-in player whose own GamID is public sends a sticker to one Friends Stage of another player's published, enabled Wall of a public GamID (never their own), at a position on that stage, optionally with one gaming clip link. Two entry points with one flow and one server rule: the editor's Templates & Stickers -> Stickers (find a GamID player by username or name, shown with name, @username and Friends Stage count) and Add sticker on a Friends Stage of another player's Wall (shown only to a visitor who may send). The server decides again: sender, recipient, stage, sticker, position and link. The sending quota (sticker-quota) applies."
         },
         {
           "id": "sticker-approval",
@@ -581,7 +582,7 @@
         },
         {
           "id": "sticker-display",
-          "rule": "Visitors see only approved stickers on the published Wall's Friends Stages, from senders whose GamID is public. Every sticker always shows its sender's CURRENT GamID avatar (or initial) and @username beside it - no hover, tap or popup - as one group that moves and scales with the sticker and stays readable; when a link was attached, a small clip button opens it in a new tab (never embedded or played) and no button shows without one. A placement is stored in stage units (its centre within the area x 150-850, y 150-1580 of the 1000 x 1778 stage), so it shows in the same place on every screen, in the editor, its Preview and the visitor page."
+          "rule": "Visitors see only approved stickers on the published Wall's Friends Stages; an approved sticker stays when its sender later makes their GamID private (Mazen 2026-10-24). Every sticker always shows its sender's CURRENT GamID avatar (or initial) and @username beside it - no hover, tap or popup - as one group that moves and scales with the sticker and stays readable; the avatar and @username open the sender's GamID (public profile, or the private notice) - on the visitor page in the same tab with Back to this Wall, in the editor's Preview in a new tab, never on the owner's drag canvas; when a link was attached, a small clip button opens it in a new tab (never embedded or played) and no button shows without one. A placement is stored in stage units (its centre within the area x 150-850, y 150-1580 of the 1000 x 1778 stage), so it shows in the same place on every screen, in the editor, its Preview and the visitor page."
         },
         {
           "id": "sticker-dynamic-size",
@@ -589,12 +590,20 @@
         },
         {
           "id": "sticker-clip-link",
-          "rule": "The optional clip link is one YouTube, Twitch or Medal.tv clip / video link, checked by the server; it is stored rebuilt from its accepted parts (https only, the provider's own host, no query, fragment, credentials or port). Discord media links are not accepted (they expire). Nothing is downloaded, hosted, embedded or played."
+          "rule": "The optional clip link is one YouTube, Twitch or Medal.tv clip / video link, or a Discord server message permalink (discord.com/channels/<guild>/<channel>/<message>; www. / ptb. / canary.discord.com and discordapp.com accepted and rebuilt to discord.com), checked by the server; it is stored rebuilt from its accepted parts (https only, the provider's own host, no query, fragment, credentials or port). A Discord message opens only for people who can see its channel - nothing bypasses Discord's permissions; Discord direct-message links and Discord file links (cdn.discordapp.com, media.discordapp.net - signed, they expire) are refused, the latter with their own explanation. Nothing is downloaded, hosted, embedded or played."
+        },
+        {
+          "id": "sticker-quota",
+          "rule": "Each player may have at most 5 counted sticker submissions in any rolling 24 hours, across all recipients (not per Wall or stage); one place on the server decides the number (a future Pro limit is not approved or built). A submission counts from its send while it is pending or approved - also after the owner removes it or it is deleted - until 24 hours after it was sent; an owner's rejection releases it at once. The count and the new submission are taken under one per-sender lock, so concurrent sends cannot exceed it. The send flow shows how many are left and, when none are, when the next one frees."
+        },
+        {
+          "id": "private-identity-notice",
+          "rule": "A PRIVATE GamID's /@handle page (Mazen 2026-10-24) shows its avatar, display name, @username and \"This account is private.\" - nothing else (no bio, Wall, games, sections or Intro). Unknown and unpublished (DRAFT) handles keep the identical not-found page; a PUBLIC GamID keeps its normal profile."
         }
       ],
-      "checkpoint": "524939cfda495abb3f90534b53914ffc634038b2",
-      "record": "docs/FRIENDS-STICKERS-V1.md; PROJECT_HANDOFF.md section 124; Product Memory DEC-0011. Implemented under Mazen's task \"GAMID - FRIENDS STICKERS V1\" and its addendum (2026-10-24, TESTING only); product 524939c, site run 40079878018; migration 20261024100000_friends_stickers_v1 APPLIED to TESTING 2026-10-24 (additive; every stored Wall unchanged). Not built: Premium, Pro, Boost, paid stickers or backgrounds, Writing Stickers, a background catalog, clip embedding, sticker expiry, per-friend allowances.",
-      "notes": "Awaiting Mazen's manual acceptance (desktop and Android). Decisions taken with Mazen's go-ahead to continue, for his review: who may send (any signed-in player with a public GamID), the 384 px sticker files, the three clip providers, the anti-spam numbers, and hiding a sticker publicly while its sender's GamID is not public."
+      "checkpoint": "6a7b89a9a62a23948f6c121ca11734fb36fe1796",
+      "record": "docs/FRIENDS-STICKERS-V1.md; PROJECT_HANDOFF.md section 124; Product Memory DEC-0011. Implemented under Mazen's task \"GAMID - FRIENDS STICKERS V1\" and its addendum (2026-10-24, TESTING only); product 524939c, site run 40079878018; migration 20261024100000_friends_stickers_v1 APPLIED to TESTING 2026-10-24 (additive; every stored Wall unchanged). Follow-up corrections (2026-10-24: private senders, the 24-hour quota, Discord message links, profile links, the private notice): product 6a7b89a, site run 40098732831; migration 20261025100000_friends_stickers_corrections APPLIED (additive). Not built: Premium, Pro, Boost, paid stickers or backgrounds, Writing Stickers, a background catalog, clip embedding, sticker expiry, per-friend allowances.",
+      "notes": "Awaiting Mazen's manual acceptance (desktop and Android). Still for his review from V1: who may send (any signed-in player with a public GamID) and the 384 px sticker files. The follow-up replaced the V1 anti-spam numbers with the approved quota, added Discord message links and keeps private senders' stickers (amending visitor-media-access)."
     },
     {
       "id": "wall-editor-mobile-v2",
@@ -810,7 +819,7 @@
       "contracts": [
         {
           "id": "visitor-no-signing",
-          "rule": "Only the owner of a stored object (its <uid>/ folder) can create a signed Storage URL for it. Visitors - anonymous or other signed-in users - cannot sign any object, whatever its visibility. Visitors read public Avatars and Wall pictures directly, and every such read re-checks the current visibility, so it ends as soon as a GamID goes PRIVATE, an Avatar is replaced or a Wall is disabled / unpublished."
+          "rule": "Only the owner of a stored object (its <uid>/ folder) can create a signed Storage URL for it. Visitors - anonymous or other signed-in users - cannot sign any object, whatever its visibility. Visitors read public Avatars and Wall pictures directly, and every such read re-checks the current visibility, so it ends as soon as a GamID goes PRIVATE (its Wall pictures) or unpublished (DRAFT), an Avatar is replaced or a Wall is disabled / unpublished. Since 2026-10-24 (Mazen's decision, friends-stickers) the CURRENT Avatar of a PRIVATE GamID also stays readable - a private sender's sticker attribution and the private notice show it; DRAFT Avatars stay owner-only."
         },
         {
           "id": "visitor-media-leases",
