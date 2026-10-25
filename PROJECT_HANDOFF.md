@@ -5255,3 +5255,16 @@ Mazen authorised deployment to TESTING only, for his own test of Living Ice and 
 8. *(Optional)* With reduced motion on, still frames show.
 
 Not merged; Production untouched.
+
+## 131. Pro Effects ACCEPTED (2026-10-25, documentation only)
+
+Mazen reviewed the new Pro Effects on TESTING (site `fb8708e`, run `40191766463`; product `dcd5236`) and gave his **FINAL ACCEPTANCE of the current implementation**.
+
+- **GamID Truth: UPDATED.**
+  - `pro-effects`, `living-ice-text` and `living-radiation-text` move from PENDING_ACCEPTANCE to ACCEPTED, with their records and notes.
+  - `living-fire-text` stays ACCEPTED: its amended `living-fire-editor` / `living-fire-rendering` contracts are kept, and its note now records their acceptance.
+  - Limits, other contracts and checkpoints are unchanged.
+- **Product Memory: SAVED,** with Mazen's authorization: REV-0027 (PASS). REV-0012 and REV-0013 are unchanged.
+- **Evidence:** Claude Code's tests and TESTING verification are in §129–§130. Mazen's acceptance names no devices, browsers or scenarios.
+
+No product change, deployment, merge or Production access.

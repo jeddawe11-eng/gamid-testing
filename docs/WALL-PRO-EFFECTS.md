@@ -1,9 +1,9 @@
-# Pro Effects: Neon, Living Fire, Living Ice and Living Radiation (on TESTING 2026-10-25; PENDING Mazen's acceptance)
+# Pro Effects: Neon, Living Fire, Living Ice and Living Radiation (on TESTING 2026-10-25; ACCEPTED by Mazen)
 
 Mazen's task "GamID Pro Effects Integration" (2026-10-25). It authorises implementation on `feature/mobile-public-wall-visitor-v2` only: no deployment, merge or Production.
 
 - **Product:** `dcd5236055141dd3c9b2ba45b4de1ee0bf32b3c6`.
-- **Status:** on TESTING since 2026-10-25 (site `fb8708e`, run `40191766463`; migration applied); see §8. Mazen's manual acceptance is pending.
+- **Status:** on TESTING since 2026-10-25 (site `fb8708e`, run `40191766463`; migration applied), see §8. **FINAL ACCEPTANCE by Mazen on 2026-10-25**, see §9.
 
 ## 1. What changed for the owner
 
@@ -253,3 +253,12 @@ Mazen authorised deployment to TESTING only, for his own test.
 - **Not tested by Claude Code:** the signed-in editor on TESTING (the agent does not sign in as personas). That is Mazen's test.
 - **GamID Truth:** `pro-effects`, `living-ice-text` and `living-radiation-text` are PENDING_ACCEPTANCE; `living-fire-text` stays ACCEPTED, with its editor and rendering contracts amended (noted).
 - **Rollback:** redeploy `1aba378` (run `40182003937`), then the database steps of §3. Rolling back the database restores `20261019100000`'s validator, which also drops the old experiment's Radiation line.
+
+## 9. Final acceptance (2026-10-25)
+
+Mazen reviewed the new Pro Effects on TESTING (site `fb8708e`) and gave his **FINAL ACCEPTANCE of the current implementation**.
+
+- **GamID Truth:** `pro-effects`, `living-ice-text` and `living-radiation-text` are ACCEPTED. `living-fire-text` stays ACCEPTED, and its amended editor and live-budget contracts are accepted with Pro Effects.
+- **Product Memory:** REV-0027.
+- **What the acceptance covers:** Claude Code's automated tests and TESTING verification (§5, §8) are recorded separately from Mazen's acceptance. His acceptance names no devices, browsers or scenarios.
+- **Unchanged and outside it:** the limitations in §6.

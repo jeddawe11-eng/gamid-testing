@@ -79,9 +79,15 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0011 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0017 |
-| REV | Reviews | reviews/ | REV-0026 |
+| REV | Reviews | reviews/ | REV-0027 |
 
 ## Register
+
+2026-10-25: Mazen gave his FINAL ACCEPTANCE of the current Pro Effects implementation on TESTING (site fb8708e, run 40191766463) and authorized saving it.
+- Pro Effects covers Neon, Living Fire, Living Ice V5 and Living Radiation V1.
+- New REV-0027 (PASS).
+- GamID Truth pro-effects, living-ice-text and living-radiation-text are ACCEPTED; living-fire-text stays ACCEPTED, with its amended editor and live-budget contracts accepted alongside.
+- REV-0012 and REV-0013 (Living Fire) are unchanged.
 
 2026-10-25: Mazen gave his FINAL ACCEPTANCE of the entire Friends Stickers V1 system on TESTING (site 1aba378, run 40182003937), with no remaining feedback, and authorized saving it.
 - New REV-0026 (PASS) keeps Claude Code's automated tests and deployment verification apart from his acceptance.
@@ -233,3 +239,4 @@ Status stays DISCUSSION; there is no implementation authorization.
 | ISS-0017 | Notifications "Mark all as read" covered by the Wall editor's stage bar | VERIFIED | [ISS-0017-notifications-mark-all-covered-in-wall-editor.md](issues/ISS-0017-notifications-mark-all-covered-in-wall-editor.md) |
 | REV-0025 | Notifications "Mark all as read" fix and Friends Stickers clip icon position — Mazen acceptance | COMPLETED | [REV-0025-notifications-mark-all-and-sticker-clip-icon-acceptance.md](reviews/REV-0025-notifications-mark-all-and-sticker-clip-icon-acceptance.md) |
 | REV-0026 | Friends Stickers V1 — Mazen final TESTING acceptance | COMPLETED | [REV-0026-friends-stickers-v1-final-acceptance.md](reviews/REV-0026-friends-stickers-v1-final-acceptance.md) |
+| REV-0027 | Pro Effects (Neon, Living Fire, Living Ice V5, Living Radiation V1) — Mazen final TESTING acceptance | COMPLETED | [REV-0027-pro-effects-final-acceptance.md](reviews/REV-0027-pro-effects-final-acceptance.md) |

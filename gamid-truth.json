@@ -740,12 +740,12 @@
       ],
       "checkpoint": "5c0371f3b47b256918aa6cb3c0768c679d584f1f",
       "record": "docs/WALL-EDITOR-TEXT-EFFECTS.md (Phase C); PROJECT_HANDOFF.md section 86. Implemented under Mazen's Phase C task (2026-10-18/19, variants Organic default, Cinematic, Mythic): additive migration 20261019100000_wall_text_living_fire applied on TESTING after a rolled-back rehearsal; static deployment 5c0371f (run 39147118537). Final capability acceptance explicitly granted by Mazen on 2026-10-19, including Organic, Cinematic, Mythic and the separately accepted bounding-box fix (REV-0012); documented in REV-0013.",
-      "notes": "Amended 2026-10-25 by Pro Effects (pro-effects, PENDING_ACCEPTANCE; site fb8708e): living-fire-editor (the card applies instead of toggling; controls in their own LIVING FIRE EFFECTS section, also on phones) and living-fire-rendering (the live limit of 4 is shared with the other animated effects; a Fire-only Wall still animates 4). These amendments await Mazen's acceptance; the accepted V3 visuals, setting, limits and fallbacks are unchanged."
+      "notes": "Amended 2026-10-25 by Pro Effects (pro-effects): living-fire-editor (the card applies instead of toggling; controls in their own LIVING FIRE EFFECTS section, also on phones) and living-fire-rendering (the live limit of 4 is shared with the other animated effects; a Fire-only Wall still animates 4). Mazen accepted these amendments with Pro Effects on 2026-10-25 (REV-0027); the accepted V3 visuals, setting, limits and fallbacks are unchanged."
     },
     {
       "id": "pro-effects",
       "name": "Pro Effects (Wall text effects category: Neon, Living Fire, Living Ice, Living Radiation)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/wall-editor/",
         "/@handle"
@@ -773,13 +773,13 @@
         }
       ],
       "checkpoint": "dcd5236055141dd3c9b2ba45b4de1ee0bf32b3c6",
-      "record": "docs/WALL-PRO-EFFECTS.md; PROJECT_HANDOFF.md sections 129-130. Implemented under Mazen's task \"GamID Pro Effects Integration\" (2026-10-25); deployed under his TESTING-only authorisation of the same day. Site fb8708e (run 40191766463) on TESTING 2026-10-25, from feature/mobile-public-wall-visitor-v2 (not merged); migration 20261025120000_wall_text_ice_radiation APPLIED after a rolled-back rehearsal (it also supersedes the unrecorded TESTING-only migration 20261020114332_wall_text_living_radiation, an earlier experiment: same radiation rule, now in the repository).",
-      "notes": "Awaiting Mazen's manual acceptance (desktop and Android)."
+      "record": "docs/WALL-PRO-EFFECTS.md; PROJECT_HANDOFF.md sections 129-131. Implemented under Mazen's task \"GamID Pro Effects Integration\" (2026-10-25); deployed under his TESTING-only authorisation of the same day. Site fb8708e (run 40191766463) on TESTING 2026-10-25, from feature/mobile-public-wall-visitor-v2 (not merged); migration 20261025120000_wall_text_ice_radiation APPLIED after a rolled-back rehearsal (it also supersedes the unrecorded TESTING-only migration 20261020114332_wall_text_living_radiation, an earlier experiment: same radiation rule, now in the repository). FINAL ACCEPTANCE by Mazen on 2026-10-25 after his own test on TESTING (site fb8708e, run 40191766463); Product Memory REV-0027.",
+      "notes": "ACCEPTED as implemented: the category, applying, Properties and the shared live budget above, desktop and phone. The 600-899px tablet panel is unchanged."
     },
     {
       "id": "living-ice-text",
       "name": "Living Ice V5 text effect (Wall text: Glacier Blue / Arctic White / Deep Ice materials)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/wall-editor/",
         "/@handle"
@@ -803,13 +803,13 @@
         }
       ],
       "checkpoint": "dcd5236055141dd3c9b2ba45b4de1ee0bf32b3c6",
-      "record": "docs/WALL-PRO-EFFECTS.md; PROJECT_HANDOFF.md sections 129-130. Site fb8708e (run 40191766463) on TESTING 2026-10-25, from feature/mobile-public-wall-visitor-v2 (not merged); migration 20261025120000_wall_text_ice_radiation APPLIED after a rolled-back rehearsal (it also supersedes the unrecorded TESTING-only migration 20261020114332_wall_text_living_radiation, an earlier experiment: same radiation rule, now in the repository).",
-      "notes": "Awaiting Mazen's manual acceptance. Reads best on short, bold words (the package's one-word study); the package code's provenance is for Mazen to confirm."
+      "record": "docs/WALL-PRO-EFFECTS.md; PROJECT_HANDOFF.md sections 129-131. Site fb8708e (run 40191766463) on TESTING 2026-10-25, from feature/mobile-public-wall-visitor-v2 (not merged); migration 20261025120000_wall_text_ice_radiation APPLIED after a rolled-back rehearsal (it also supersedes the unrecorded TESTING-only migration 20261020114332_wall_text_living_radiation, an earlier experiment: same radiation rule, now in the repository). FINAL ACCEPTANCE by Mazen on 2026-10-25 after his own test on TESTING (site fb8708e, run 40191766463); Product Memory REV-0027.",
+      "notes": "ACCEPTED as implemented, including its device safeguards and 2x sampling. Reads best on short, bold words (the package's one-word study)."
     },
     {
       "id": "living-radiation-text",
       "name": "Living Radiation V1 text effect (Wall text: Reactor / Meltdown / Phantom)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/wall-editor/",
         "/@handle"
@@ -834,8 +834,8 @@
         }
       ],
       "checkpoint": "dcd5236055141dd3c9b2ba45b4de1ee0bf32b3c6",
-      "record": "docs/WALL-PRO-EFFECTS.md; PROJECT_HANDOFF.md sections 129-130. Site fb8708e (run 40191766463) on TESTING 2026-10-25, from feature/mobile-public-wall-visitor-v2 (not merged); migration 20261025120000_wall_text_ice_radiation APPLIED after a rolled-back rehearsal (it also supersedes the unrecorded TESTING-only migration 20261020114332_wall_text_living_radiation, an earlier experiment: same radiation rule, now in the repository).",
-      "notes": "Awaiting Mazen's manual acceptance. The package code's provenance is for Mazen to confirm."
+      "record": "docs/WALL-PRO-EFFECTS.md; PROJECT_HANDOFF.md sections 129-131. Site fb8708e (run 40191766463) on TESTING 2026-10-25, from feature/mobile-public-wall-visitor-v2 (not merged); migration 20261025120000_wall_text_ice_radiation APPLIED after a rolled-back rehearsal (it also supersedes the unrecorded TESTING-only migration 20261020114332_wall_text_living_radiation, an earlier experiment: same radiation rule, now in the repository). FINAL ACCEPTANCE by Mazen on 2026-10-25 after his own test on TESTING (site fb8708e, run 40191766463); Product Memory REV-0027.",
+      "notes": "ACCEPTED as implemented."
     },
     {
       "id": "public-wall-publishing",
