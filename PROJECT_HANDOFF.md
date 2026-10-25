@@ -5126,3 +5126,25 @@ GamID Truth: NO CHANGE REQUIRED (restores the accepted `notifications` behaviour
 Product Memory: PROPOSED (not saved; awaiting Mazen's approval). See the completion report.
 
 Not merged; Production untouched.
+
+## 127. Notifications "Mark all as read" + sticker clip button ACCEPTED (2026-10-25, documentation only)
+
+Mazen personally tested both fixes of §126 on TESTING `1aba378` (run `40182003937`) and accepted them on 2026-10-25:
+- **Mark all as read:** the button is visible and works correctly.
+- **Friends Stickers clip (play) button:** the adjusted position is correct and approved.
+
+Three kinds of evidence, kept apart:
+- **Claude Code's automated tests** (before acceptance; §126 has the detail):
+  - `npm test`: 2,205 tests, 0 failures;
+  - the notifications database test on TESTING (rolled back): 31/31;
+  - lab browser: notifications 88/88, stickers editor 59/59 and visitor 46/46, Mobile Public Wall 196/196.
+- **TESTING deployment verification** (Claude Code): run `40182003937` succeeded; the changed files are byte-identical live; the stamp is `1aba378`; live anonymous sticker smoke 9/9.
+- **Mazen's manual acceptance:** both fixes, on TESTING. His acceptance names no devices, browsers or scenarios, so none are claimed.
+
+This covers these two fixes only. Friends Stickers V1 as a whole (Truth `friends-stickers`) stays PENDING_ACCEPTANCE (§124, §125).
+
+GamID Truth: NO CHANGE REQUIRED. It restores the accepted `notifications` behaviour, and the clip position is cosmetic (no limit or contract names it).
+
+Product Memory: SAVED, with Mazen's authorization: ISS-0017 (VERIFIED) and REV-0025 (PASS). ISS-0017 was free in every branch; an earlier unsaved Mobile Public Wall proposal that named ISS-0017 takes a new ID if it is saved.
+
+No product change, deployment, merge or Production access.

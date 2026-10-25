@@ -78,10 +78,16 @@ Rules:
 | DIS | Discussions | discussions/ | DIS-0003 |
 | DEC | Decisions | decisions/ | DEC-0011 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
-| ISS | Issues | issues/ | ISS-0016 |
-| REV | Reviews | reviews/ | REV-0024 |
+| ISS | Issues | issues/ | ISS-0017 |
+| REV | Reviews | reviews/ | REV-0025 |
 
 ## Register
+
+2026-10-25: Mazen personally tested and accepted on TESTING 1aba378 (run 40182003937) the Notifications "Mark all as read" fix and the Friends Stickers clip (play) button position, and authorized saving both.
+- New ISS-0017 (VERIFIED). In the Wall editor, the stage bar (Wall Stages V2, z-index 45) covered the Notifications panel head (also z-index 45). The panel now sits above it, and the existing bulk read only shows success after the server confirms.
+- New REV-0025 (PASS) records both acceptances, separated from Claude Code's automated tests and deployment verification.
+- Friends Stickers V1 as a whole stays PENDING_ACCEPTANCE. GamID Truth unchanged.
+- ID note: ISS-0017 had earlier been named in an unsaved Mobile Public Wall proposal; that proposal takes a new ID if it is saved.
 
 2026-10-23: F1–F8 documentation reconciliation (Mazen's task; documentation only). REV-0022 keeps its 2026-10-21 findings and decisions. Its summary, `related` and a dated Reconciliation note now record four things: F8-B1 was accepted after it (REV-0023, DEC-0007); the authorized F1–F8 scope is complete; F1's formal acceptance evidence was not found; F6-B, F7-B, the existing-MP4 migration and further F8-B options are deferred and not authorized. No status changed and no new record was created. REV-0023 and DEC-0007 are unchanged.
 
@@ -219,3 +225,5 @@ Status stays DISCUSSION; there is no implementation authorization.
 | DEC-0010 | Background inside Assets — one home for uploaded Wall media and the Wall background | ACCEPTED | [DEC-0010-background-inside-assets.md](decisions/DEC-0010-background-inside-assets.md) |
 | REV-0024 | Background inside Assets — final TESTING acceptance | COMPLETED | [REV-0024-background-inside-assets-final-acceptance.md](reviews/REV-0024-background-inside-assets-final-acceptance.md) |
 | DEC-0011 | Wall Stages — My Stage and Friends Stage (stage types, sticker moderation, conversion rules) | ACCEPTED | [DEC-0011-wall-stages-my-stage-friends-stage.md](decisions/DEC-0011-wall-stages-my-stage-friends-stage.md) |
+| ISS-0017 | Notifications "Mark all as read" covered by the Wall editor's stage bar | VERIFIED | [ISS-0017-notifications-mark-all-covered-in-wall-editor.md](issues/ISS-0017-notifications-mark-all-covered-in-wall-editor.md) |
+| REV-0025 | Notifications "Mark all as read" fix and Friends Stickers clip icon position — Mazen acceptance | COMPLETED | [REV-0025-notifications-mark-all-and-sticker-clip-icon-acceptance.md](reviews/REV-0025-notifications-mark-all-and-sticker-clip-icon-acceptance.md) |
