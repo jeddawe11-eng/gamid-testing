@@ -322,3 +322,10 @@ If the box is shorter than its lines, the fire hangs below exactly as the painte
 - `tests/wall-living-fire.test.js` +2 tests: the line breaker, and the placement, key and interim rules.
 - `npm test`: 2002 tests, 2001 passed, 1 skipped. Lint and typecheck pass.
 - The fire editor walk-through (18 / 18), the bounding-box editor walk-through (14 / 14), and 59 screen states pixel-identical to `4e59f20`, phone panels included.
+
+## Pro Effects (2026-10-25, feature branch - not on TESTING)
+
+The Text panel's Text Effects became **Pro Effects** (Neon, Living Fire, Living Ice, Living Radiation): see `docs/WALL-PRO-EFFECTS.md`.
+- Choosing a card applies its effect instead of toggling it. The Living Fire controls moved from the Text Effects section into their own LIVING FIRE EFFECTS section, first in Properties, with Remove effect. The rest of that section is now **Text Style** (Outline, Shadow, Gradient fill).
+- The live limit of 4 is now shared with every animated effect on a page; a Fire-only Wall still animates 4.
+- Living Fire's shaders, transform, setting and fallbacks are unchanged.

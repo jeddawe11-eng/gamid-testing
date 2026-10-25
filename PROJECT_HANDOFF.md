@@ -5186,3 +5186,46 @@ Product Memory: SAVED, with Mazen's authorization.
 - clip embedding.
 
 No product change, migration, deployment, merge or Production access.
+
+## 129. Pro Effects: Living Ice V5 + Living Radiation V1 (2026-10-25, feature branch only - NOT deployed)
+
+Mazen's task "GamID Pro Effects Integration". It authorises implementation on `feature/mobile-public-wall-visitor-v2` only: no deployment, merge or Production. Full record: `docs/WALL-PRO-EFFECTS.md`.
+
+**Starting point:** HEAD `547fcf0`, verified against origin.
+**Product:** `dcd5236055141dd3c9b2ba45b4de1ee0bf32b3c6`, pushed.
+**TESTING:** unchanged; it still serves `1aba378`.
+
+**What it is:**
+- **Category.** Text Effects → **Pro Effects**: Neon, Living Fire, Living Ice and Living Radiation, all free. `tier` only identifies each effect; nothing restricts them.
+- **Choosing an effect** applies it at once, in one undo step: to the selected text(s), keeping their words, or as a new selected text "Write something about yourself here". An empty text gets the placeholder. Choosing it again changes nothing. There is one Pro Effect per text.
+- **Properties.** The "<EFFECT> EFFECTS" section comes first and expanded, with only its own controls and Remove effect. The general sections follow, collapsed. The phone does the same; the 600–899px panel is unchanged.
+- **The two packages** match their MANIFESTs: Radiation 74/74, Ice 47/47.
+  - Shaders, Ice's freezing clocks and crystal placement are copied verbatim, by script, and pinned by hash.
+  - They are hosted like Living Fire, with ONE shared live budget of 4 for every animated effect.
+- **Ice adaptations.** The text's own letters instead of "FROZEN"; transparent misses (the only shader change); master camera only; 2× sampling.
+- **Ice device safeguards (measured).**
+  - One draw costs about 0.2 ms on a GPU but 400–550 ms with software rendering, where the page had fallen to 1–3 fps.
+  - Ice is therefore never drawn on a software renderer, and gives up after 3 draws over 100 ms.
+  - The page then stays at 60 fps with the static fallback.
+- **Persistence.** Saved as `payload.ice` (12 keys) and `payload.radiation` (19 keys), the packages' contracts.
+  - Migration `20261025120000_wall_text_ice_radiation` adds two revoked helpers and two new lines in the text validator.
+  - Database parity was tested on PGlite over the whole corpus.
+  - **Not applied to TESTING.**
+
+**Validation:**
+- `npm run build`: 2219 tests, 0 failures.
+- Lab browser: desktop editor 36/36 (create, apply, switch, undo, save, reload, Preview, visitor view, reopen, shared budget, cleanup); phone 16/16 at 390 × 844 and 844 × 390; reduced motion 1/1.
+- Non-regression: stickers 59 + 46, stages 60, backgrounds 12, Friends Stage 36 + 70, mobile functions 9, Mobile Public Wall 196.
+- Performance on Chrome: RTX 3060 and SwiftShader, numbers in the doc.
+- Not tested: TESTING, a signed-in account, physical phones, Safari, Firefox.
+
+**GamID Truth: NO CHANGE REQUIRED** in this task. Truth records what exists on TESTING, and nothing changed there. The exact Truth delta for the deployment task is in the doc, §7: new `pro-effects`, `living-ice-text` and `living-radiation-text` (PENDING_ACCEPTANCE); `living-fire-text`'s editor and rendering contracts amended.
+
+**Product Memory: NO CHANGE** — approval not granted.
+
+**Needs Mazen:**
+1. Authorisation to apply the migration and deploy to TESTING.
+2. A decision on the packages' code provenance.
+3. Manual acceptance.
+
+Not merged; Production untouched.

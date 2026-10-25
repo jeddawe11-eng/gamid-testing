@@ -169,7 +169,13 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-25, Friends Stickers V1 ACCEPTED):** Mazen gave his FINAL ACCEPTANCE of the entire Friends Stickers V1 system on TESTING (site `1aba378`), with no remaining feedback (§128, `docs/FRIENDS-STICKERS-V1.md` §12).
+**Latest continuation (2026-10-25, Pro Effects implemented on the feature branch - NOT deployed):** product `dcd5236` on `feature/mobile-public-wall-visitor-v2` (§129, `docs/WALL-PRO-EFFECTS.md`). TESTING still serves `1aba378`.
+- Text Effects → Pro Effects: Neon, Living Fire, Living Ice V5 and Living Radiation V1, all free. A card applies its effect (a new placeholder text when none is selected); its own section comes first in Properties, with the general sections collapsed.
+- Migration `20261025120000_wall_text_ice_radiation` is written and tested locally (PGlite), **not applied**.
+- Truth unchanged until deployment; its delta is ready in the doc, §7. Product Memory unchanged (approval not granted).
+- **Next:** Mazen's authorisation to apply the migration and deploy to TESTING, then his manual acceptance. Also confirm the provenance of the packages' engine code.
+
+**Previous continuation (2026-10-25, Friends Stickers V1 ACCEPTED):** Mazen gave his FINAL ACCEPTANCE of the entire Friends Stickers V1 system on TESTING (site `1aba378`), with no remaining feedback (§128, `docs/FRIENDS-STICKERS-V1.md` §12).
 - Truth: `friends-stickers` ACCEPTED (limits, contracts and checkpoint `6a7b89a` unchanged).
 - Product Memory: REV-0026 PASS; DEC-0011 gained "Acceptance (2026-10-25)".
 - Not built: sticker expiry, Delete All Stickers, the background catalog, Premium, Pro and any payment. These need separate authorization.
