@@ -12,6 +12,8 @@ import { paintGamidData } from "./gamid-data-paint.js";
 import { paintEmbedIcon, paintIcons } from "./icons-paint.js";
 import { markInteractive, markPassThrough } from "./interaction.js";
 import { attachFire } from "./living-fire.js";   // Living Fire text: its renderer is loaded only when such a text is painted
+import { attachIce } from "./living-ice.js";   // Pro Effects: Living Ice and Living Radiation texts, the same way (their renderers load only when such a text is painted)
+import { attachRadiation } from "./living-radiation.js";
 import { shapePath, shapeFillRule, shapeIsOpen } from "../wall/shapes.js";   // Shapes V2: vector shape geometry (numbers only)
 import { safeMediaUrl, backgroundVideo } from "./video-background.js";
 import { isEmptyFriendsStage } from "../wall/stage-types.js";
@@ -512,7 +514,13 @@ export function paintElement(item, scale, order, createNode, ctx = {}) {
   if (item.rotation) { style.setProperty("transform", `rotate(${num(item.rotation)}deg)`); style.setProperty("transform-origin", "center center"); }
   const content = item.content;
   if (content?.kind === "rect") paintRect(node, content, scale, item);
-  else if (content?.kind === "text") { paintText(node, content, scale, createNode, ctx); if (content.fire) attachFire(node, content, scale, item); }
+  else if (content?.kind === "text") {
+    paintText(node, content, scale, createNode, ctx);
+    // one animated Pro Effect per text (an older text with several shows the first, as pro-effects.js proEffectOf)
+    if (content.fire) attachFire(node, content, scale, item);
+    else if (content.ice) attachIce(node, content, scale, item);
+    else if (content.radiation) attachRadiation(node, content, scale, item);
+  }
   else if (content?.kind === "image") paintImage(node, content, scale, item, createNode, ctx);
   else if (content?.kind === "embed" && content.content?.kind === "embed") paintEmbed(node, content.content, scale, item, createNode, ctx);
   else if (content?.kind === "icons") paintIcons(node, content, scale, item, createNode, ctx);

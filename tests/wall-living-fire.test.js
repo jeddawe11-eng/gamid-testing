@@ -78,7 +78,10 @@ test("bandwidth: the renderer is fetched only when a painted Wall has a Living F
 test("performance safeguards from the audit: one shared context, shared fields, live budget, offscreen / hidden pause, reduced motion, non-blocking compile, release", () => {
   assert.equal(FIRE_LIVE_LIMIT, 4);
   assert.match(engine, /export const LIVE_LIMIT = FIRE_LIVE_LIMIT;/);
-  assert.match(engine, /const animate = !still && entry\.visible && live < budget;/, "at most the (adaptive) budget animates; the rest show a still frame");
+  assert.match(engine, /const animate = !still && entry\.visible && live < available;/, "at most the (adaptive) budget animates; the rest show a still frame");
+  // Pro Effects (2026-10-25): the budget is shared with Living Ice and Living Radiation - a Fire-only Wall still animates 4, a mixed Wall never more than 4 in all
+  assert.match(engine, /const available = Math\.min\(budget, liveAllowance\("fire"\)\);/);
+  assert.match(engine, /reportLive\("fire", live\);/);
   assert.match(engine, /if \(slowWindow\.length === 30 && mean > period \* 1\.6 && budget > 1\) \{ budget--;/, "a slow device steps down");
   assert.equal((engine.match(/getContext\("webgl2"/g) ?? []).length, 1, "one WebGL2 context for the whole page");
   assert.match(engine, /fields\.get\(key\)/, "one distance field per distinct text, shared and cached across repaints");
@@ -117,12 +120,13 @@ test("migration 20261019100000: additive - one revoked helper and the text valid
   assert.equal(body(sql).replace("  if private.wall_is_set(p -> 'fire') and not private.wall_fire_ok(p -> 'fire') then errs := array_append(errs, 'INVALID_FIRE'); end if;\n", ""), body(previous));
 });
 
-test("editor: Living Fire controls live in the Text Effects section of the desktop and the Mobile V2 phone panels; the 600-899px panel is unchanged", () => {
+test("editor: Living Fire controls live in its own LIVING FIRE EFFECTS section (Pro Effects, 2026-10-25) on desktop and the Mobile V2 phone panel; the 600-899px panel is unchanged", () => {
   const controls = read("dist/wall-editor/controls.js");
-  assert.match(controls, /if \(effectsRoot\) livingFireGroup\(root, \{ read, write \}\);   \/\/ desktop and the Mobile V2 phone panel/);
-  assert.match(controls, /const effects = later\("Text effects"\);\n\s+textControls\(body, \{ effectsRoot: effects\.inner \}\);/, "the phone passes its own Text effects section");
+  assert.match(controls, /else if \(effect\.key === "living-fire"\) livingFireControls\(root\);/, "the effect section of a Living Fire text");
+  assert.match(controls, /textControls\(sections\.content, \{ effectsRoot: sections\.effects, proEffects: true \}\);/, "desktop: no fire controls in the general sections");
+  assert.match(controls, /if \(types\.length === 1 && types\[0\] === "text"\) textControls\(body\);/, "the 600-899px panel is unchanged");
   for (const label of ['"Style"', '"Intensity %"', '"Speed ×"', '"Turbulence %"', '"Colour"', '"Flames"', '"Sparks"']) assert.ok(controls.includes(`label: ${label}`) || controls.includes(`(${label}`), label);
-  assert.match(controls, /set: style => write\(\{ fire: \{ \.\.\.defaults, \.\.\.\(read\(selectedElements\(\)\[0\]\)\.fire \?\? \{\}\), style, \.\.\.FIRE_STYLE_DEFAULTS\[style\] \} \}\)/, "a style starts from its own V3 tuning");
+  assert.match(controls, /set: style => effectSetter\("fire", defaults\)\(\{ style, \.\.\.FIRE_STYLE_DEFAULTS\[style\] \}\)/, "a style starts from its own V3 tuning");
   assert.match(read("dist/wall-kit/messages.js"), /INVALID_FIRE: "/);
 });
 

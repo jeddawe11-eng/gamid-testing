@@ -76,10 +76,10 @@ test("canvas zoom is view-only and phone-only: it scales the drawing, never the 
   assert.match(editor, /document\.addEventListener\("visibilitychange", \(\) => \{ if \(document\.hidden && canvas\.busy\) canvas\.cancel\(\); \}\);/);
 });
 
-test("Properties on a phone: common controls first, Text effects (with Living Fire), Position & size (with nudge) and Arrange & align collapsible", () => {
+test("Properties on a phone: common controls first, Text style, Position & size (with nudge) and Arrange & align collapsible (a Pro Effect's own section: tests/wall-pro-effects.test.js)", () => {
   assert.match(controls, /const phoneProps = typeof matchMedia === "function" \? matchMedia\(PHONE_QUERY\) : null;/);
   assert.match(controls, /if \(phoneProps\?\.matches\) \{ phoneRebuild\(targets, types, single, groupedSelection\); return; \}/);
-  for (const label of ["Text effects", "Position & size", "Arrange & align"]) assert.match(controls, new RegExp(`later\\("${label}"\\)`), label);
+  for (const label of ["Text style", "Position & size", "Arrange & align"]) assert.match(controls, new RegExp(`later\\("${label}"\\)`), label);
   assert.match(controls, /ops\.moveElements\(session\.doc, session\.state\.selection, dx \* step\(\), dy \* step\(\)\), \{ coalesce: "nudge" \}/);
   // the desktop branches come first and are unchanged
   assert.ok(controls.indexOf('types[0] === "text" && desktopProps?.matches') < controls.indexOf("if (phoneProps?.matches) { phoneRebuild"));

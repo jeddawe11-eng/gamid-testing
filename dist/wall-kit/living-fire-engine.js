@@ -8,6 +8,7 @@
 //   - no WebGL2, a failed shader or a lost context = the readable static fallback (living-fire.js); the context is released after IDLE_RELEASE_MS with no fire text.
 import { buildSdf, SDF_W, SDF_H } from "./living-fire-sdf.js";
 import { FIRE_LIVE_LIMIT } from "./living-fire.js";
+import { liveAllowance, reportLive } from "./effects-budget.js";   // Pro Effects (2026-10-25): the live budget is shared with Living Ice and Living Radiation
 
 const DESIGN_W = SDF_W, DESIGN_H = SDF_H;
 const VS = `#version 300 es
@@ -382,22 +383,24 @@ function loop(stamp) {
   rafId = 0;
   // a canvas leaves the page when its Wall is repainted or closed; one that never arrived within 5 s was discarded before being shown
   for (const entry of [...entries]) { if (entry.canvas.isConnected) entry.seen = true; else if (entry.seen || stamp - entry.born > 5000) unmount(entry); }
-  if (!entries.size) { if (!idleSince) idleSince = stamp; if (stamp - idleSince > IDLE_RELEASE_MS) { dropContext(true); idleSince = 0; return; } schedule(); return; }
+  if (!entries.size) { reportLive("fire", 0); if (!idleSince) idleSince = stamp; if (stamp - idleSince > IDLE_RELEASE_MS) { dropContext(true); idleSince = 0; return; } schedule(); return; }
   idleSince = 0;
   if (!programReady()) { if (!failed) schedule(); return; }
   const period = 1000 / TARGET_FPS;
-  if (document.hidden) { last = 0; lastAnimated = 0; schedule(); return; }
+  if (document.hidden) { last = 0; lastAnimated = 0; reportLive("fire", 0); schedule(); return; }
   if (last && stamp - last < period) { schedule(); return; }
   const dt = last ? Math.min((stamp - last) / 1000, 0.12) : 0;
   last = stamp;
   const still = reduced?.matches === true;
+  const available = Math.min(budget, liveAllowance("fire"));   // never more than the other animated effects leave (4 on a Fire-only Wall, as before)
   let live = 0, frozen = 0;
   for (const entry of entries) {
     if (!entry.field || entry.field.pending || !entry.field.texture) continue;
-    const animate = !still && entry.visible && live < budget;
+    const animate = !still && entry.visible && live < available;
     if (animate) { live++; entry.time += dt * entry.fire.speed; times.set(entry.id, entry.time); drawEntry(entry, entry.time); }
     else { if (entry.visible) frozen++; if (entry.dirty || !entry.drawn) drawEntry(entry, still ? STILL_TIME : entry.time); }
   }
+  reportLive("fire", live);
   if (live) adapt(stamp); else lastAnimated = 0;
   stats.frames++; stats.live = live; stats.still = frozen;
   schedule();

@@ -48,6 +48,8 @@ const BY_CODE = {
   INVALID_MEDIA: "That media type is not available.",
   INVALID_LINK: "That link is not a valid https:// or http:// web address, so it was not applied.",
   INVALID_FIRE: "That Living Fire setting is not valid, so it was not applied.",
+  INVALID_ICE: "That Living Ice setting is not valid, so it was not applied.",
+  INVALID_RADIATION: "That Living Radiation setting is not valid, so it was not applied.",
   INVALID_SHAPE: "That shape is not available, so it was not applied.",
   INVALID_SHAPE_PARAMS: "That shape setting is out of range, so it was not applied.",
   INVALID_SHAPE_PATH: "That freeform shape needs at least 2 points (3 when closed) and at most 100, so it was not applied.",

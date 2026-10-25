@@ -263,6 +263,9 @@ body[data-tool="gamid"] .ed-rail [data-tool="gamid"] i, body[data-tool="layout"]
 .ed-fx-sample { display: block; font-family: "GamID Bebas", Impact, var(--font-ui); font-size: 1.55rem; line-height: 1.1; letter-spacing: .04em; color: #fff; }
 .ed-fx-sample[data-fx="neon"] { color: #eaffff; text-shadow: 0 0 .25rem #62e7ff, 0 0 .6rem #62e7ff, 0 0 1.1rem rgba(98, 231, 255, .7); }
 .ed-fx-sample[data-fx="living-fire"] { color: #ffb347; background: linear-gradient(0deg, #ff3d00, #ff9a1f 55%, #ffe39a); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+/* Pro Effects (2026-10-25): the two new cards, drawn in each effect's own colours (static samples; the real effect is on the canvas) */
+.ed-fx-sample[data-fx="living-ice"] { color: #c8f0ff; background: linear-gradient(180deg, #effbff, #2588d2 60%, #041d49); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 .2rem rgba(200, 240, 255, .6)); }
+.ed-fx-sample[data-fx="living-radiation"] { color: #b8ff7a; text-shadow: 0 0 .25rem #80ff2b, 0 0 .7rem rgba(128, 255, 43, .6); }
 .ed-fx-text { display: grid; gap: .15rem; font-family: var(--font-ui); font-size: .82rem; font-weight: 700; letter-spacing: .04em; }
 .ed-fx-text small { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: .66rem; line-height: 1.35; font-weight: 500; letter-spacing: 0; color: var(--ink-dim); }
 .ed-font-upload { margin-bottom: .4rem; }

@@ -1,9 +1,10 @@
 // Desktop Text editor upgrade (Mazen's task 2026-10-18): the Text panel's sections (Add Text, Font Library, Text Effects, My Fonts, Upload My Font) and the text Properties
-// accordion. Desktop only (>= 900px); the phone editor, the saved Wall format and every existing control are unchanged. Living Fire is listed but NOT integrated (approval gate).
+// accordion. Desktop only (>= 900px); the phone editor, the saved Wall format and every existing control are unchanged. (Text Effects became Pro Effects on 2026-10-25 -
+// Neon, Living Fire, Living Ice, Living Radiation: tests/wall-pro-effects.test.js.)
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { TEXT_PRESETS, TEXT_EFFECTS, NEON_GLOW } from "../dist/wall-editor/tools.js";
+import { TEXT_PRESETS, PRO_EFFECTS, NEON_GLOW } from "../dist/wall-editor/tools.js";
 
 const read = path => readFileSync(path, "utf8").replace(/\r\n/g, "\n");
 const html = read("dist/wall-editor/index.html");
@@ -29,29 +30,26 @@ test("the new Text panel parts are desktop only: hidden by the shared stylesheet
   assert.match(panel, /<section id="fontUploadBox" class="ed-myfonts ed-font-upload"/, "Upload My Font shares the My Fonts desktop-only rule");
 });
 
-test("Text Effects: Neon is the existing glow (no new payload field); Living Fire writes the V3 fire setting, Organic by default (Phase C, 2026-10-19)", () => {
-  assert.deepEqual(TEXT_EFFECTS.map(effect => effect.key), ["neon", "living-fire"]);
-  const [neon, fire] = TEXT_EFFECTS;
+test("Pro Effects: Neon is the existing glow (no new payload field); Living Fire writes the V3 fire setting, Organic by default (Phase C, 2026-10-19)", () => {
+  assert.deepEqual(PRO_EFFECTS.map(effect => effect.key), ["neon", "living-fire", "living-ice", "living-radiation"]);
+  const [neon, fire] = PRO_EFFECTS;
   assert.equal(neon.field, "glow");
   assert.deepEqual(NEON_GLOW, TEXT_PRESETS.find(preset => preset.key === "gaming").overrides.glow, "the same neon the Gaming Title preset uses");
   assert.equal(fire.field, "fire");
-  assert.equal(fire.soon, undefined);
-  assert.equal(fire.value.style, "organic");
-  assert.match(tools, /disabled: effect\.soon === true/, "a future effect can still be listed as Coming soon");
-  assert.match(tools, /if \(!ids\.length\) \{ notify\("Select a text element first, then choose an effect\."\); return; \}/);
-  assert.match(tools, /revealProps\("effects"\);/, "choosing an effect opens Text Effects in Properties");
+  assert.equal(fire.create().style, "organic");
+  assert.match(tools, /revealProps\("pro"\);/, "choosing an effect opens its own section in Properties");
   assert.match(read("dist/wall-editor/editor.js"), /revealProps: section => properties\.reveal\(section\),/);
   assert.doesNotMatch(tools + controls, /webgl|getContext\(/i, "the editor holds no graphics code: the renderer lives in wall-kit and is loaded on demand");
 });
 test("Properties: five independent text sections on desktop, remembered across selections, keyboard operable; other types and the 600-899px panel are unchanged", () => {
-  assert.match(controls, /const TEXT_SECTIONS = \[\["content", "Content & Typography"\], \["effects", "Text Effects"\], \["geometry", "Position & Size"\], \["arrange", "Arrange"\], \["align", "Align to Stage"\]\];/);
+  assert.match(controls, /const TEXT_SECTIONS = \[\["content", "Content & Typography"\], \["effects", "Text Style"\], \["geometry", "Position & Size"\], \["arrange", "Arrange"\], \["align", "Align to Stage"\]\];/);
   assert.match(controls, /const textSectionOpen = \{/, "one open / closed state for the whole editor session, not per element");
   assert.match(controls, /"aria-expanded": String\(state\[key\]\), "aria-controls": id/);
   assert.match(controls, /function accordionSection\(root, key, label, state = textSectionOpen\)/, "text sections use the text state; Icon Group has its own");
   assert.match(controls, /role: "region", "aria-labelledby": `\$\{id\}-head`/);
   for (const key of ["ArrowDown", "ArrowUp", "Home", "End"]) assert.match(controls, new RegExp(`${key}:`));
   assert.match(controls, /if \(types\.length === 1 && types\[0\] === "text" && desktopProps\?\.matches\) \{/, "text-only selections on desktop");
-  assert.match(controls, /textControls\(sections\.content, \{ effectsRoot: sections\.effects \}\);/);
+  assert.match(controls, /textControls\(sections\.content, \{ effectsRoot: sections\.effects, proEffects: true \}\);/);
   assert.match(controls, /actionControls\(sections\.arrange, targets, single, \{ alignRoot: sections\.align \}\);/);
   // the flat panel (phone, and every other element type) keeps its titles
   assert.match(controls, /else root\.append\(h\("div", \{ class: "ed-group-title", text: "Effects" \}\)\);/);

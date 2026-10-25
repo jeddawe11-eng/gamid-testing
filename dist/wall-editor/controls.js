@@ -4,7 +4,11 @@ import * as ops from "../wall-kit/ops.js";
 import { elementRegistry } from "../wall/elements.js";
 import { FONT_CATALOG, fontKnown } from "../wall-kit/fonts.js";
 import { TEXT_LIMITS, WEIGHTS, LINK_MAX } from "../wall-kit/text.js";
-import { FIRE_STYLES, FIRE_STYLE_DEFAULTS, FIRE_LIMITS, FIRE_LIVE_LIMIT, createFire, fireTextFits } from "../wall-kit/living-fire.js";
+import { FIRE_STYLES, FIRE_STYLE_DEFAULTS, FIRE_LIMITS, createFire, fireTextFits } from "../wall-kit/living-fire.js";
+import { ICE_PRESETS, ICE_LIMITS, ICE_MAX_TEXT, createIce, iceMatchesPreset, iceTextFits } from "../wall-kit/living-ice.js";
+import { RADIATION_STYLES, RADIATION_COLORS, RADIATION_RANGES, RADIATION_WAVEFORMS, RADIATION_MAX_TEXT, createRadiation, radiationForStyle, radiationTextFits } from "../wall-kit/living-radiation.js";
+import { NEON_GLOW, proEffectOf, removeProEffectPatch } from "../wall-kit/pro-effects.js";
+import { EFFECT_LIVE_LIMIT } from "../wall-kit/effects-budget.js";
 import { SHAPES, SHAPE_PARAMS, SHAPE_LIMITS, SHAPE_LIBRARY, SHAPE_CATEGORIES, shapeParam, libraryIdOf } from "../wall/shapes.js";
 
 const FIRE_STYLE_LABELS = { organic: "Organic", cinematic: "Cinematic", mythic: "Mythic" };
@@ -116,8 +120,10 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
 
   // ---- panels -------------------------------------------------------------------------------------------------------------------------------------
   // `read` / `write` (Round 3): the same Text controls style a live GamID Data text field, whose style lives in payload.text (no content box there)
-  // effectsRoot: where Outline / Shadow / Glow / Gradient go - the desktop text accordion's Text Effects section; without it they follow under an "Effects" title.
-  function textControls(root, { read = payloadOf, write = patchAll, content = true, effectsRoot = null } = {}) {
+  // effectsRoot: where Outline / Shadow / Glow / Gradient go - the desktop text accordion's Text Style section; without it they follow under an "Effects" title.
+  // proEffects (Pro Effects, 2026-10-25): a Wall text on desktop or a phone - its Neon glow and animated effects are in their own effect section (proEffectControls),
+  // not here; a GamID data text and the 600-899px panel keep their Glow here, as before.
+  function textControls(root, { read = payloadOf, write = patchAll, content = true, effectsRoot = null, proEffects = false } = {}) {
     const nested = (key, name, fallback) => element => (read(element)[key] ?? { [name]: fallback })[name];
     const setNested = (key, name, defaults) => value => write({ [key]: { ...defaults, ...(read(selectedElements()[0])[key] ?? {}), [name]: value } });
     if (content) {
@@ -177,34 +183,113 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
       box.append(numberSlider({ label: "Offset X", min: -100, max: 100, step: 1, get: nested("shadow", "x", 4), set: setNested("shadow", "x", shadowDefaults), key: "shadowX" }));
       box.append(numberSlider({ label: "Offset Y", min: -100, max: 100, step: 1, get: nested("shadow", "y", 4), set: setNested("shadow", "y", shadowDefaults), key: "shadowY" }));
     } }));
-    const glowDefaults = { color: "#62e7ff", blur: 16 };
-    root.append(optionalGroup({ label: effectsRoot ? "Neon glow" : "Glow", key: "glow", get: element => read(element).glow, defaults: glowDefaults, write, build: box => {
-      box.append(colorField({ label: "Colour", get: nested("glow", "color", "#62e7ff"), set: setNested("glow", "color", glowDefaults), key: "glowColor" }));
-      box.append(numberSlider({ label: "Blur", min: 0, max: 100, step: 1, get: nested("glow", "blur", 16), set: setNested("glow", "blur", glowDefaults), key: "glowBlur" }));
-    } }));
-    if (effectsRoot) livingFireGroup(root, { read, write });   // desktop and the Mobile V2 phone panel (both pass effectsRoot); the 600-899px panel is unchanged
+    if (!proEffects) {
+      const glowDefaults = { color: "#62e7ff", blur: 16 };
+      root.append(optionalGroup({ label: effectsRoot ? "Neon glow" : "Glow", key: "glow", get: element => read(element).glow, defaults: glowDefaults, write, build: box => {
+        box.append(colorField({ label: "Colour", get: nested("glow", "color", "#62e7ff"), set: setNested("glow", "color", glowDefaults), key: "glowColor" }));
+        box.append(numberSlider({ label: "Blur", min: 0, max: 100, step: 1, get: nested("glow", "blur", 16), set: setNested("glow", "blur", glowDefaults), key: "glowBlur" }));
+      } }));
+    }
     gradientGroup(root, "Gradient fill", { read, write });
   }
 
+  // ---- Pro Effects (Mazen's task 2026-10-25): the section of the ONE effect a text shows - Neon, Living Fire, Living Ice or Living Radiation - with that effect's own
+  // controls only, then Remove effect. Every change is an ordinary undoable payload edit of the selected text(s); the typography is never touched here.
+  const LIVE_NOTE = `Up to ${EFFECT_LIVE_LIMIT} animated texts move at once on a page (fewer on slower devices); the rest show a still frame. Devices that cannot draw it, and visitors who prefer reduced motion, see a still version.`;
+  function proEffectControls(root, effect) {
+    if (effect.key === "neon") neonControls(root);
+    else if (effect.key === "living-fire") livingFireControls(root);
+    else if (effect.key === "living-ice") livingIceControls(root);
+    else if (effect.key === "living-radiation") livingRadiationControls(root);
+    root.append(h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn", type: "button", text: "Remove effect", "data-remove-effect": effect.key, onclick: () => {
+      const stage = session.stage;
+      let current = session.doc, changed = false;
+      for (const id of session.state.selection) {
+        const element = stage?.elements.find(candidate => candidate.id === id);
+        const patch = element?.type === "text" ? removeProEffectPatch(element.payload) : {};
+        if (!Object.keys(patch).length) continue;
+        const result = ops.updatePayload(current, id, patch);
+        if (!result.ok) { exec(result); return; }
+        current = result.doc; changed = true;
+      }
+      if (changed) exec({ ok: true, doc: current });
+    } })));
+  }
+  // a setting of one effect object (`field`) on every selected text: the shown text's current values, with `next` merged in
+  const effectSetter = (field, fallback) => next => patchAll({ [field]: { ...fallback(), ...(selectedElements()[0]?.payload[field] ?? {}), ...next } });
+  const effectValue = (field, name, fallback) => element => element.payload[field]?.[name] ?? fallback;
+  const fitNote = (fits, max, label, look) => {
+    const note = h("p", { class: "ed-hint", role: "status" });
+    syncers.push(targets => { note.hidden = targets.every(element => fits(element.payload.text)); note.textContent = `${label} draws up to ${max} characters; this text is longer, so it shows a still ${look} instead.`; });
+    return note;
+  };
+
+  // Neon: the existing glow (colour and size), the Gaming Title neon by default
+  function neonControls(root) {
+    const set = effectSetter("glow", () => ({ ...NEON_GLOW }));
+    root.append(colorField({ label: "Colour", get: effectValue("glow", "color", NEON_GLOW.color), set: color => set({ color }), key: "glowColor" }));
+    root.append(numberSlider({ label: "Glow size", min: 0, max: 100, step: 1, get: effectValue("glow", "blur", NEON_GLOW.blur), set: blur => set({ blur }), key: "glowBlur" }));
+  }
+
   // Living Fire (V3): the style first - choosing one starts from that style's own V3 tuning - then the engine's real controls. The letters keep this text's font.
-  function livingFireGroup(root, { read = payloadOf, write = patchAll } = {}) {
-    const defaults = createFire("organic");
-    const value = (name, fallback) => element => read(element).fire?.[name] ?? fallback;
-    const set = name => next => write({ fire: { ...defaults, ...(read(selectedElements()[0]).fire ?? {}), [name]: next } });
-    const select = (label, name, options, key) => selectField({ label, options: Object.entries(options).map(([option, text]) => ({ value: option, label: text })), get: value(name, defaults[name]), set: set(name), key });
-    root.append(optionalGroup({ label: "Living Fire", key: "fire", get: element => read(element).fire, defaults, write, build: box => {
-      box.append(selectField({ label: "Style", options: FIRE_STYLES.map(style => ({ value: style, label: FIRE_STYLE_LABELS[style] })), get: value("style", "organic"),
-        set: style => write({ fire: { ...defaults, ...(read(selectedElements()[0]).fire ?? {}), style, ...FIRE_STYLE_DEFAULTS[style] } }), key: "fireStyle" }));
-      box.append(numberSlider({ label: "Intensity %", min: Math.round(FIRE_LIMITS.intensity[0] * 100), max: Math.round(FIRE_LIMITS.intensity[1] * 100), step: 1, get: element => Math.round(value("intensity", 1)(element) * 100), set: next => set("intensity")(next / 100), key: "fireIntensity" }));
-      box.append(numberSlider({ label: "Speed ×", min: FIRE_LIMITS.speed[0], max: FIRE_LIMITS.speed[1], step: 0.05, get: value("speed", 1), set: set("speed"), key: "fireSpeed" }));
-      box.append(numberSlider({ label: "Turbulence %", min: Math.round(FIRE_LIMITS.turbulence[0] * 100), max: Math.round(FIRE_LIMITS.turbulence[1] * 100), step: 1, get: element => Math.round(value("turbulence", 0.9)(element) * 100), set: next => set("turbulence")(next / 100), key: "fireTurbulence" }));
-      box.append(select("Colour", "color", { natural: "Natural combustion", crimson: "Deep crimson", blue: "Blue flame" }, "fireColor"));
-      box.append(select("Flames", "mode", { full: "Full fire", letters: "Letters only" }, "fireMode"));
-      box.append(h("div", { class: "ed-btn-row" }, toggleButton({ label: "Sparks", get: element => value("sparks", false)(element) === true, set: on => set("sparks")(on), key: "fireSparks" })));
-      const fit = h("p", { class: "ed-hint", role: "status" });
-      syncers.push(targets => { fit.hidden = targets.every(element => fireTextFits(read(element).text)); fit.textContent = `Living Fire draws up to ${FIRE_LIMITS.maxText} characters; this text is longer, so it shows a still fire colour instead.`; });
-      box.append(fit, h("p", { class: "ed-hint", text: `Drawn in this text's own font, on the same lines as the text. Up to ${FIRE_LIVE_LIMIT} fire texts move at once (fewer on slower devices); the rest show a still flame. Devices that cannot draw it, and visitors who prefer reduced motion, see a still version.` }));
-    } }));
+  function livingFireControls(root) {
+    const defaults = () => createFire("organic");
+    const set = name => next => effectSetter("fire", defaults)({ [name]: next });
+    const value = (name, fallback) => effectValue("fire", name, fallback);
+    const select = (label, name, options, key) => selectField({ label, options: Object.entries(options).map(([option, text]) => ({ value: option, label: text })), get: value(name, defaults()[name]), set: set(name), key });
+    root.append(selectField({ label: "Style", options: FIRE_STYLES.map(style => ({ value: style, label: FIRE_STYLE_LABELS[style] })), get: value("style", "organic"),
+      set: style => effectSetter("fire", defaults)({ style, ...FIRE_STYLE_DEFAULTS[style] }), key: "fireStyle" }));
+    root.append(numberSlider({ label: "Intensity %", min: Math.round(FIRE_LIMITS.intensity[0] * 100), max: Math.round(FIRE_LIMITS.intensity[1] * 100), step: 1, get: element => Math.round(value("intensity", 1)(element) * 100), set: next => set("intensity")(next / 100), key: "fireIntensity" }));
+    root.append(numberSlider({ label: "Speed ×", min: FIRE_LIMITS.speed[0], max: FIRE_LIMITS.speed[1], step: 0.05, get: value("speed", 1), set: set("speed"), key: "fireSpeed" }));
+    root.append(numberSlider({ label: "Turbulence %", min: Math.round(FIRE_LIMITS.turbulence[0] * 100), max: Math.round(FIRE_LIMITS.turbulence[1] * 100), step: 1, get: element => Math.round(value("turbulence", 0.9)(element) * 100), set: next => set("turbulence")(next / 100), key: "fireTurbulence" }));
+    root.append(select("Colour", "color", { natural: "Natural combustion", crimson: "Deep crimson", blue: "Blue flame" }, "fireColor"));
+    root.append(select("Flames", "mode", { full: "Full fire", letters: "Letters only" }, "fireMode"));
+    root.append(h("div", { class: "ed-btn-row" }, toggleButton({ label: "Sparks", get: element => value("sparks", false)(element) === true, set: on => set("sparks")(on), key: "fireSparks" })));
+    root.append(fitNote(fireTextFits, FIRE_LIMITS.maxText, "Living Fire", "fire colour"), h("p", { class: "ed-hint", text: `Drawn in this text's own font, on the same lines as the text. ${LIVE_NOTE}` }));
+  }
+
+  // Living Ice (V5): the package's material controls - a preset (its factory starting point; every value stays editable), the four material colours and the seven
+  // optical / crystal values, with the package's own ranges and labels.
+  const ICE_SLIDERS = [["depth", "Ice depth ×", "x"], ["transparency", "Transparency %", "%"], ["frost", "Frost coverage %", "%"], ["density", "Crystal density %", "%"], ["size", "Crystal size / spike length ×", "x"], ["scattering", "Refraction / internal scattering ×", "x"], ["roughness", "Surface roughness %", "%"]];
+  function livingIceControls(root) {
+    const defaults = () => createIce("glacier");
+    const set = effectSetter("ice", defaults);
+    const value = (name, fallback) => effectValue("ice", name, fallback);
+    root.append(selectField({ label: "Preset", options: Object.entries(ICE_PRESETS).map(([key, preset]) => ({ value: key, label: preset.name })), get: value("preset", "glacier"), set: preset => set(createIce(preset)), key: "icePreset" }));
+    const state = h("p", { class: "ed-hint", role: "status" });
+    syncers.push(targets => { const ice = targets[0]?.payload.ice; if (ice) state.textContent = `${ICE_PRESETS[ice.preset]?.name ?? ""}${iceMatchesPreset(ice) ? "" : " · edited"}`; });
+    root.append(state);
+    for (const [key, label] of [["base", "Ice base colour"], ["frostColor", "Frost / snow colour"], ["shadow", "Deep ice shadow colour"], ["highlight", "Crystal highlight colour"]]) root.append(colorField({ label, get: value(key, defaults()[key]), set: color => set({ [key]: color }), key: `ice-${key}` }));
+    for (const [key, label, unit] of ICE_SLIDERS) {
+      const [lo, hi] = ICE_LIMITS[key];
+      root.append(unit === "%"
+        ? numberSlider({ label, min: Math.round(lo * 100), max: Math.round(hi * 100), step: 1, get: element => Math.round(value(key, defaults()[key])(element) * 100), set: next => set({ [key]: next / 100 }), key: `ice-${key}` })
+        : numberSlider({ label, min: lo, max: hi, step: 0.01, get: value(key, defaults()[key]), set: next => set({ [key]: next }), key: `ice-${key}` }));
+    }
+    root.append(h("div", { class: "ed-btn-row" }, h("button", { class: "ed-btn", type: "button", text: "Reset to preset", onclick: () => exec(set(createIce(selectedElements()[0]?.payload.ice?.preset ?? "glacier"))) })));
+    root.append(fitNote(iceTextFits, ICE_MAX_TEXT, "Living Ice", "ice colour"), h("p", { class: "ed-hint", text: `Your letters freeze in this text's own font, on the same lines as the text. ${LIVE_NOTE}` }));
+  }
+
+  // Living Radiation (V1, waveform refinement): the package's controls - style (a new style starts from its own defaults and keeps the colour), energy colour, waveform,
+  // its eleven values in the package's own groups and labels, and its four atmosphere layers.
+  const RADIATION_LABELS = { speed: "Wave speed", intensity: "Wave intensity", width: "Wave width", interval: "Repeat interval · seconds", distortion: "Distortion strength", ripple: "Ripple amount", fragmentation: "Fragmentation", recovery: "Recovery speed", glow: "Glow strength", cracks: "Crack brightness", afterglow: "Afterglow · seconds" };
+  const RADIATION_GROUPS = [["Wave", ["speed", "intensity", "width", "interval"]], ["Letter transformation", ["distortion", "ripple", "fragmentation", "recovery"]], ["Glow & recovery", ["glow", "cracks", "afterglow"]]];
+  const RADIATION_ATMOSPHERE = { particles: "Energy particles", mist: "Energy mist", scanLines: "Scan lines", flicker: "Gentle glitch" };
+  function livingRadiationControls(root) {
+    const defaults = () => createRadiation("reactor");
+    const set = effectSetter("radiation", defaults);
+    const value = (name, fallback) => effectValue("radiation", name, fallback);
+    root.append(selectField({ label: "Style", options: Object.entries(RADIATION_STYLES).map(([key, label]) => ({ value: key, label })), get: value("style", "reactor"),
+      set: style => patchAll({ radiation: radiationForStyle(selectedElements()[0]?.payload.radiation, style) }), key: "radiationStyle" }));
+    root.append(selectField({ label: "Colour", options: [...Object.entries(RADIATION_COLORS).map(([key, [label]]) => ({ value: key, label })), { value: "custom", label: "Custom colour" }], get: value("color", "green"), set: color => set({ color }), key: "radiationColor" }));
+    root.append(colorField({ label: "Custom colour", get: value("customColor", "#80ff2b"), set: customColor => set({ color: "custom", customColor }), key: "radiationCustomColor" }));
+    root.append(selectField({ label: "Waveform", options: RADIATION_WAVEFORMS.map(key => ({ value: key, label: key[0].toUpperCase() + key.slice(1) })), get: value("waveform", "geiger"), set: waveform => set({ waveform }), key: "radiationWaveform" }));
+    for (const [title, keys] of RADIATION_GROUPS) {
+      root.append(h("div", { class: "ed-group-title", text: title }));
+      for (const key of keys) { const [lo, hi] = RADIATION_RANGES[key]; root.append(numberSlider({ label: RADIATION_LABELS[key], min: lo, max: hi, step: key === "width" ? 0.01 : 0.05, get: value(key, defaults()[key]), set: next => set({ [key]: next }), key: `radiation-${key}` })); }
+    }
+    root.append(h("div", { class: "ed-group-title", text: "Atmosphere" }), h("div", { class: "ed-btn-row" }, ...Object.entries(RADIATION_ATMOSPHERE).map(([key, label]) => toggleButton({ label, get: element => value(key, false)(element) === true, set: on => set({ [key]: on }), key: `radiation-${key}` }))));
+    root.append(fitNote(radiationTextFits, RADIATION_MAX_TEXT, "Living Radiation", "energy colour"), h("p", { class: "ed-hint", text: `The wave runs through this text's own letters, on the same lines as the text. ${LIVE_NOTE}` }));
   }
 
   // "Other" link: the address this text opens on the Wall (a new tab). Checked with the same rule the database applies before it is stored; a refused address leaves
@@ -821,8 +906,15 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
   // Mobile Wall Editor V2 (2026-10-20): on a phone the same controls are ordered common first, the rest in collapsible sections (Text effects with Living Fire,
   // Position & size with nudge, Arrange & align). The 600-899px tablet panel is unchanged.
   const phoneProps = typeof matchMedia === "function" ? matchMedia(PHONE_QUERY) : null;
-  const TEXT_SECTIONS = [["content", "Content & Typography"], ["effects", "Text Effects"], ["geometry", "Position & Size"], ["arrange", "Arrange"], ["align", "Align to Stage"]];
+  const TEXT_SECTIONS = [["content", "Content & Typography"], ["effects", "Text Style"], ["geometry", "Position & Size"], ["arrange", "Arrange"], ["align", "Align to Stage"]];
   const textSectionOpen = { content: true, effects: true, geometry: false, arrange: false, align: false };
+  // Pro Effects (2026-10-25): a text showing a Pro Effect gets that effect's own section FIRST ("NEON EFFECTS", "LIVING FIRE EFFECTS", ...), then the same general
+  // sections. Its open / closed state is kept apart from ordinary texts' (whose behaviour is unchanged): choosing an effect opens the effect section and collapses the
+  // general ones (reveal("pro")); what the user opens afterwards is remembered for later effect texts in this session.
+  const PRO_TEXT_DEFAULT = Object.freeze({ pro: true, content: false, effects: false, geometry: false, arrange: false, align: false });
+  const proTextOpen = { ...PRO_TEXT_DEFAULT };
+  // the one Pro Effect every selected text shows (none when they differ)
+  const sharedProEffect = targets => { const keys = new Set(targets.map(element => element.type === "text" ? proEffectOf(element.payload)?.key ?? null : null)); const [key] = keys; return keys.size === 1 && key ? proEffectOf(targets[0].payload) : null; };
   // Icon Group (desktop, 2026-10-19): the same accordion, with its own remembered open / closed state. Move to stage stays the first control, above it.
   const ICON_SECTIONS = [["icons", "Icons & Links"], ["appearance", "Appearance & Spacing"], ["geometry", "Position & Size"], ["arrange", "Arrange"], ["align", "Align to Stage"]];
   const iconSectionOpen = { icons: true, appearance: true, geometry: false, arrange: false, align: false };
@@ -888,8 +980,12 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     }
     if (types.length === 1 && types[0] === "text" && desktopProps?.matches) {
       accordion = {};
-      const sections = Object.fromEntries(TEXT_SECTIONS.map(([key, name]) => [key, accordionSection(body, key, key === "align" && !single ? "Align" : name)]));
-      textControls(sections.content, { effectsRoot: sections.effects });
+      const effect = sharedProEffect(targets);
+      accordionState = effect ? proTextOpen : textSectionOpen;
+      const layout = effect ? [["pro", effect.title], ...TEXT_SECTIONS] : TEXT_SECTIONS;
+      const sections = Object.fromEntries(layout.map(([key, name]) => [key, accordionSection(body, key, key === "align" && !single ? "Align" : name, accordionState)]));
+      if (effect) { sections.pro.closest(".ed-acc").dataset.proEffect = effect.key; proEffectControls(sections.pro, effect); }
+      textControls(sections.content, { effectsRoot: sections.effects, proEffects: true });
       if (single && !groupedSelection) geometryControls(sections.geometry, { titled: false });
       else sections.geometry.append(h("p", { class: "ed-hint", text: groupedSelection ? "Groups move and resize as one unit. Ungroup to edit an element on its own." : "Multiple elements selected. Move and resize them together on the canvas." }));
       actionControls(sections.arrange, targets, single, { alignRoot: sections.align });
@@ -913,9 +1009,23 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     const later = (label, open = false) => { const holder = h("div"); const inner = section(holder, label, open); return { node: holder.firstChild, inner }; };
     const one = types.length === 1 ? types[0] : null;
     if (one === "text") {
-      const effects = later("Text effects");
-      textControls(body, { effectsRoot: effects.inner });
-      body.append(effects.node);
+      // Pro Effects (2026-10-25): a text showing one gets that effect's section first, open, and its general controls one tap away (collapsed); an ordinary text
+      // keeps the common controls first, as before. Outline / Shadow / Gradient are in Text style.
+      const effect = sharedProEffect(targets);
+      if (effect) {
+        const pro = later(effect.title, true);
+        pro.node.dataset.proEffect = effect.key;
+        proEffectControls(pro.inner, effect);
+        body.append(pro.node);
+        const content = later("Content & typography");
+        const style = later("Text style");
+        textControls(content.inner, { effectsRoot: style.inner, proEffects: true });
+        body.append(content.node, style.node);
+      } else {
+        const style = later("Text style");
+        textControls(body, { effectsRoot: style.inner, proEffects: true });
+        body.append(style.node);
+      }
     } else if (one === "rect") shapeControls(body);
     else if (one === "image") imageControls(body, targets);
     else if (one === "gamidData") dataControls(body, targets);
@@ -946,13 +1056,23 @@ export function createPropertiesPanel({ body, title, session, run, fitTextHeight
     update() {
       const targets = selectedElements();
       // (an embed's presentation is part of the key: switching Card <-> Player changes which controls apply, e.g. Shape)
-      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}${element.type === "image" ? `:${element.payload.slice?.set ?? "-"}` : ""}${element.type === "text" ? `:${element.payload.link ? "link" : "-"}` : ""}${element.type === "rect" ? `:${element.payload.shape ?? "-"}:${element.payload.path?.points.length ?? ""}` : ""}${element.type === "icons" ? `:${(element.payload.items ?? []).map(item => item.providerKey ?? "other").join("+")}` : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}|${desktopProps?.matches ? 1 : 0}|${phoneProps?.matches ? 1 : 0}`;
+      const key = `${session.state.stageId}|${targets.map(element => `${element.id}:${element.type}:${element.groupId ?? ""}:${element.type === "embed" ? element.payload.data?.presentation ?? "" : ""}${element.type === "image" ? `:${element.payload.slice?.set ?? "-"}` : ""}${element.type === "text" ? `:${element.payload.link ? "link" : "-"}:${proEffectOf(element.payload)?.key ?? "-"}` : ""}${element.type === "rect" ? `:${element.payload.shape ?? "-"}:${element.payload.path?.points.length ?? ""}` : ""}${element.type === "icons" ? `:${(element.payload.items ?? []).map(item => item.providerKey ?? "other").join("+")}` : ""}`).join(",")}|${session.doc.stages.length}|${getGamid() ? 1 : 0}|${desktopProps?.matches ? 1 : 0}|${phoneProps?.matches ? 1 : 0}`;
       if (key !== builtKey) { builtKey = key; rebuild(targets); }
       if (targets.length) for (const sync of syncers) sync(targets);
     },
     showErrors,
-    // Opens one desktop text section (e.g. Text Effects after an effect is chosen in the Text panel) and brings it into view; remembered even when no text is selected.
+    // Opens one desktop text section and brings it into view; remembered even when no text is selected. reveal("pro") - a Pro Effect was just chosen - opens the
+    // effect's section and collapses the general ones (they stay one click away), on desktop and on a phone.
     reveal(key) {
+      if (key === "pro") {
+        Object.assign(proTextOpen, PRO_TEXT_DEFAULT);
+        if (accordionState === proTextOpen) for (const name of Object.keys(PRO_TEXT_DEFAULT)) setSection(proTextOpen, name, PRO_TEXT_DEFAULT[name]);
+        const node = accordion?.pro?.head.closest(".ed-acc") ?? body.querySelector("[data-pro-effect]");
+        // phone: the effect section is the sheet's first, so the sheet shows from its top (its heading clear of the sheet's own header); desktop: into view
+        if (node?.tagName === "DETAILS") { node.open = true; requestAnimationFrame(() => node.closest("#props")?.scrollTo?.({ top: 0 })); }
+        else if (node) requestAnimationFrame(() => node.scrollIntoView({ block: "nearest" }));
+        return;
+      }
       if (!(key in textSectionOpen)) return;
       setTextSection(key, true);
       const section = accordion?.[key]?.head.closest(".ed-acc");

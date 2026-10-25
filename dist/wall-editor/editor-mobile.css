@@ -149,6 +149,8 @@ body.is-mw-keyboard .mw-bar, body.is-mw-keyboard .mw-selbar { visibility: hidden
 .ed-fx-text small { color: var(--muted); font-weight: 500; font-size: .62rem; }
 .ed-fx-sample[data-fx="neon"] { color: #e9fdff; text-shadow: 0 0 .35rem var(--cyan); }
 .ed-fx-sample[data-fx="living-fire"] { color: #ffd36b; text-shadow: 0 0 .35rem #ff7a1a; }
+.ed-fx-sample[data-fx="living-ice"] { color: #c8f0ff; text-shadow: 0 0 .35rem #2588d2; }
+.ed-fx-sample[data-fx="living-radiation"] { color: #b8ff7a; text-shadow: 0 0 .35rem #80ff2b; }
 .ed-myfonts { display: block; margin: 1rem 0 .4rem; padding: .7rem; border: 1px solid var(--mw-line); border-radius: .8rem; background: var(--navy-1); }
 .ed-myfonts-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
 .ed-myfonts-head h3 { margin: 0; font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: #c8bafc; }

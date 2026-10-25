@@ -8,7 +8,7 @@ import { normalizeLinkInput, LINK_PROBLEMS } from "../wall-kit/links.js";
 import { describeErrors } from "../wall-kit/messages.js";
 import { FONT_CATALOG, fontCss } from "../wall-kit/fonts.js";
 import { customFontRef, customFontId, customFontFamily, previewFontFile } from "../wall-kit/custom-fonts.js";
-import { createFire } from "../wall-kit/living-fire.js";
+import { PRO_EFFECTS, PRO_EFFECT_PLACEHOLDER, NEON_GLOW, proEffectOf, proEffectPatch } from "../wall-kit/pro-effects.js";
 import { SHAPE_LIBRARY, SHAPE_CATEGORIES, shapePath, shapeFillRule, libraryIdOf } from "../wall/shapes.js";
 import { createImagePayload } from "../wall-kit/image.js";
 import { defaultBackground, createImageBackground, createVideoBackground } from "../wall-kit/background.js";
@@ -46,13 +46,12 @@ export const TEXT_PRESETS = Object.freeze([
   { key: "gaming", label: "Gaming title", note: "Condensed with a neon glow", desktopLabel: "Gaming Title", desktopNote: "A condensed title box with a neon glow", overrides: { text: "GAME ON", fontFamily: "bebas-neue", fontSize: 230, fontWeight: 400, glow: { color: "#62e7ff", blur: 22 } }, size: { width: 900, height: 300 } },
 ]);
 
-// Text Effects (desktop Text panel): one entry per effect. `patch` is what the effect writes to a text payload; an entry without one is listed as "Coming soon" and does
-// nothing. Neon is the existing glow; Living Fire is the V3 effect (wall-kit/living-fire.js, Organic by default; its style and settings are in Properties). New effects are added here.
-export const NEON_GLOW = Object.freeze({ color: "#62e7ff", blur: 22 });
-export const TEXT_EFFECTS = Object.freeze([
-  { key: "neon", label: "Neon", note: "A glowing neon light around the letters", field: "glow", value: NEON_GLOW },
-  { key: "living-fire", label: "Living Fire", note: "Living flames in your own letters: Organic, Cinematic or Mythic", field: "fire", value: createFire("organic") },
-]);
+// Pro Effects (Text panel, desktop and phone; Mazen's task 2026-10-25): Neon, Living Fire, Living Ice and Living Radiation, from the one registry (wall-kit/pro-effects.js).
+// All free. Choosing one applies it to the selected text(s), or - with no text selected - adds a new text showing it, so an effect never lands on nothing.
+export { PRO_EFFECTS, NEON_GLOW };
+// the new text a Pro Effect adds when no text is selected: the placeholder in a bold display face the effects read well in (docs/WALL-EDITOR-TEXT-EFFECTS.md Phase B)
+export const PRO_EFFECT_TEXT = Object.freeze({ text: PRO_EFFECT_PLACEHOLDER, fontFamily: "bebas-neue", fontSize: 110, fontWeight: 400, align: "center", lineHeight: 1.1 });
+export const PRO_EFFECT_TEXT_SIZE = Object.freeze({ width: 900, height: 280 });
 
 // My Gamer Data (desktop GamID tool, Phase 1 2026-10-19): the Classic data a Wall can already show, by Classic section. Each choice appears ONCE and goes to the
 // existing implementation: `data` = a GamID data element (one live field), `pick` = a GamID data element bound to one chosen item, `block` = a GamID block. "All roles /
@@ -204,22 +203,36 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     const current = !currentCustom && customs.size === 1 && families.size === 1 ? [...families][0] : null;
     for (const entry of fontGroups) for (const { font, button } of entry.cards) { if (font.key === current) button.setAttribute("aria-current", "true"); else button.removeAttribute("aria-current"); }
     for (const button of myFontList?.querySelectorAll("[data-custom-font-apply]") ?? []) { if (button.dataset.customFontApply === currentCustom) button.setAttribute("aria-current", "true"); else button.removeAttribute("aria-current"); }
-    for (const { effect, button } of effectCards) if (!effect.soon) button.setAttribute("aria-pressed", String(texts.length > 0 && texts.every(element => element.payload?.[effect.field] != null)));
+    for (const { effect, button } of effectCards) button.setAttribute("aria-pressed", String(texts.length > 0 && texts.every(element => proEffectOf(element.payload)?.key === effect.key)));
   }
 
-  // ---- Text Effects (desktop Text panel): each effect is a toggle on the selected text element(s). Turning one on keeps any settings a text already has for it, then
-  // opens Text Effects in Properties, where it is fine-tuned; turning it off removes it. Nothing changes without a selected text element.
+  // ---- Pro Effects (Text panel): choosing an effect APPLIES it - immediately visible on the canvas - and opens its own section in Properties (the general sections
+  // collapsed). With text(s) selected: each gets the effect (its text kept; an empty text gets the placeholder; another animated effect it had is replaced; choosing an
+  // effect it already shows changes nothing). With no text selected: one new text showing the effect is added and selected. One undo step either way.
   const effectList = $("textEffectList");
-  const effectCards = TEXT_EFFECTS.map(effect => {
-    const button = h("button", { class: "ed-btn ed-fx", type: "button", "data-effect": effect.key, disabled: effect.soon === true, "aria-pressed": effect.soon ? null : "false", onclick: () => {
-      const stage = session.stage, ids = selectedTextIds();
-      if (!ids.length) { notify("Select a text element first, then choose an effect."); return; }
-      const lacking = ids.filter(id => stage.elements.find(element => element.id === id)?.payload?.[effect.field] == null);
-      if (lacking.length) run(ops.updatePayloadMany(doc(), lacking, { [effect.field]: structuredClone(effect.value) }));
-      else run(ops.updatePayloadMany(doc(), ids, { [effect.field]: undefined }));
-      revealProps("effects");
-    } }, h("span", { class: "ed-fx-sample", "data-fx": effect.key, "aria-hidden": "true", text: effect.label }),
-      h("span", { class: "ed-fx-text" }, effect.label, h("small", { text: effect.soon ? `${effect.note} · Coming soon` : effect.note })));
+  function applyProEffect(effect) {
+    const stage = session.stage;
+    if (!stage) return;
+    const ids = selectedTextIds();
+    if (!ids.length) addCustom("text", createTextPayload({ ...PRO_EFFECT_TEXT, [effect.field]: effect.create() }), PRO_EFFECT_TEXT_SIZE);
+    else {
+      let current = doc(), changed = false;
+      for (const id of ids) {
+        const patch = proEffectPatch(stage.elements.find(element => element.id === id)?.payload, effect.key);
+        if (!Object.keys(patch).length) continue;
+        const result = ops.updatePayload(current, id, patch);
+        if (!result.ok) { run(result); return; }
+        current = result.doc; changed = true;
+      }
+      if (changed) run({ ok: true, doc: current });
+    }
+    setTool("props");   // a phone opens Properties on the effect; desktop Properties is always open
+    revealProps("pro");
+  }
+  const effectCards = PRO_EFFECTS.map(effect => {
+    const button = h("button", { class: "ed-btn ed-fx", type: "button", "data-effect": effect.key, "data-tier": effect.tier, "aria-pressed": "false", onclick: () => applyProEffect(effect) },
+      h("span", { class: "ed-fx-sample", "data-fx": effect.key, "aria-hidden": "true", text: effect.label }),
+      h("span", { class: "ed-fx-text" }, effect.label, h("small", { text: effect.note })));
     effectList?.append(button);
     return { effect, button };
   });
