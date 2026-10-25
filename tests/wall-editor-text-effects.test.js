@@ -57,3 +57,18 @@ test("Properties: five independent text sections on desktop, remembered across s
   assert.match(controls, /if \(!alignRoot\) root\.append\(h\("div", \{ class: "ed-group-title", text: "Arrange" \}\)\);/);
   assert.match(controls, /\|\$\{desktopProps\?\.matches \? 1 : 0\}\|\$\{phoneProps\?\.matches \? 1 : 0\}`;/, "crossing the desktop (or the Mobile V2 phone) breakpoint rebuilds the panel");
 });
+
+test("Text panel accordion (2026-10-25): Pro Effects, My Fonts and Upload My Font open one at a time; content and ids unchanged; tablet unchanged", () => {
+  assert.match(tools, /const TEXT_ACCORDION = \[\["textEffects", "textEffectsTitle"\], \["myFonts", "myFontsTitle"\], \["fontUploadBox", "fontUploadTitle"\]\];/);
+  assert.match(tools, /let textSections = \[\], openTextSection = "textEffects";/, "Pro Effects open at first");
+  assert.match(tools, /const toggle = h\("button", \{ class: "ed-text-acc", type: "button", "aria-expanded": "false", "aria-controls": bodyId \}/, "a real button in each heading");
+  assert.match(tools, /title\.replaceChildren\(toggle\);/, "the button lives inside the existing heading (h3 > button)");
+  assert.match(tools, /const body = h\("div", \{ class: "ed-text-acc-body", id: bodyId, role: "region", "aria-labelledby": titleId \}\);/);
+  assert.match(tools, /for \(const entry of textSections\) \{ const open = entry\.id === id; entry\.toggle\.setAttribute\("aria-expanded", String\(open\)\); entry\.body\.hidden = !open;/, "only one open: opening one closes the others");
+  assert.match(tools, /toggle\.addEventListener\("click", \(\) => openTextPanelSection\(openTextSection === id \? null : id\)\);/, "the open heading collapses it");
+  assert.match(tools, /homeFontMessage\(\); fontMessage\.textContent = text;/, "an upload / delete message shows in the open font section");
+  for (const id of ['id="textEffectList"', 'id="myFontList"', 'id="myFontsCount"', 'id="fontLicense"', 'id="fontUpload"', 'id="fontFile"']) assert.ok(panel.includes(id), `${id} kept`);
+  assert.match(desktop, /\.ed-text-acc\[aria-expanded="true"\]::after \{ transform: rotate\(90deg\); \}/, "the font library's chevron");
+  assert.match(read("dist/wall-editor/editor-mobile.css"), /\.ed-text-acc \{ display: flex; align-items: center; gap: \.5rem; width: 100%; min-height: 2\.75rem;/, "44px headings on phones");
+  assert.match(base, /\.ed-text-sub, \.ed-text-effects \{ display: none; \}/, "the 600-899px panel still hides them");
+});

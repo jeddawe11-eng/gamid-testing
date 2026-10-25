@@ -160,6 +160,17 @@ body.is-mw-keyboard .mw-bar, body.is-mw-keyboard .mw-selbar { visibility: hidden
 .ed-myfonts-upload { width: 100%; }
 .ed-myfonts-message:empty { display: none; }
 .ed-myfonts-message[data-kind="error"] { color: #ffb4c2; }
+/* Text panel accordion (2026-10-25): Pro Effects, My Fonts and Upload My Font open one at a time; the heading is a 44px button with a chevron */
+.ed-text-acc { display: flex; align-items: center; gap: .5rem; width: 100%; min-height: 2.75rem; margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; text-align: left; cursor: pointer; }
+.ed-text-acc-name { flex: 1 1 auto; min-width: 0; }
+.ed-text-acc::after { content: ""; flex: none; width: .5rem; height: .5rem; margin-right: .3rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); }
+.ed-text-acc[aria-expanded="true"]::after { transform: rotate(45deg); }
+.ed-text-acc:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: .35rem; }
+.ed-text-acc-section h3 { flex: 1 1 auto; min-width: 0; margin: 0; }
+.ed-text-effects.ed-text-acc-section { padding: .2rem .7rem; border: 1px solid var(--mw-line); border-radius: .8rem; background: var(--navy-1); }
+.ed-text-effects .ed-text-acc-section .ed-text-sub, .ed-text-effects h3.ed-text-sub { margin: 0; }
+.ed-text-acc-body[hidden] { display: none; }
+.ed-text-acc-body { padding-bottom: .5rem; }
 /* Shapes: the full shape library (the Freeform pen stays a desktop tool) */
 #shapeQuick, .ed-shape-free { display: none !important; }
 .ed-shape-library { display: block; }

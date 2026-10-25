@@ -254,7 +254,8 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     unauthenticated: "Sign in again to manage your fonts.",
     upload: "The font could not be uploaded. Try again.",
   };
-  const sayFont = (text, kind = "info") => { if (!fontMessage) return; fontMessage.textContent = text; fontMessage.dataset.kind = kind; };
+  let textSections = [], openTextSection = "textEffects";   // the Text panel accordion (below); declared first, as the font messages use it
+  const sayFont = (text, kind = "info") => { if (!fontMessage) return; homeFontMessage(); fontMessage.textContent = text; fontMessage.dataset.kind = kind; };
   let pendingFont = null, myFontsShown = "", fontBusy = false;
   function renderMyFonts() {
     if (!myFontList || !fonts) return;
@@ -315,6 +316,39 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     fontFile.value = ""; fontFile.click();
   });
   fontFile?.addEventListener("change", () => { const file = fontFile.files?.[0]; if (file) uploadFontFile(file); });
+
+  // ---- Text panel sections (Mazen's task 2026-10-25): Pro Effects, My Fonts and Upload My Font are accordions - a real button in each heading, with a chevron -
+  // and only one is open at a time (opening one closes the others; Pro Effects is open at first). Their content, ids and behaviour are unchanged: only wrapped.
+  // Shown on desktop and phones; the 600-899px panel hides all three, as before.
+  const TEXT_ACCORDION = [["textEffects", "textEffectsTitle"], ["myFonts", "myFontsTitle"], ["fontUploadBox", "fontUploadTitle"]];
+  textSections = TEXT_ACCORDION.map(([id, titleId]) => {
+    const section = $(id), title = $(titleId);
+    if (!section || !title) return null;
+    const head = title.closest(".ed-myfonts-head") ?? title;   // what stays above the content (My Fonts keeps its n/3 count in it)
+    const bodyId = `${id}Body`;
+    const toggle = h("button", { class: "ed-text-acc", type: "button", "aria-expanded": "false", "aria-controls": bodyId }, h("span", { class: "ed-text-acc-name", text: title.textContent }));
+    const count = head.querySelector(".ed-myfonts-count");
+    if (count) toggle.append(count);
+    title.replaceChildren(toggle);
+    const body = h("div", { class: "ed-text-acc-body", id: bodyId, role: "region", "aria-labelledby": titleId });
+    while (head.nextSibling) body.append(head.nextSibling);
+    section.append(body);
+    section.classList.add("ed-text-acc-section");
+    toggle.addEventListener("click", () => openTextPanelSection(openTextSection === id ? null : id));
+    return { id, section, toggle, body };
+  }).filter(Boolean);
+  function openTextPanelSection(id) {
+    openTextSection = id;
+    for (const entry of textSections) { const open = entry.id === id; entry.toggle.setAttribute("aria-expanded", String(open)); entry.body.hidden = !open; entry.section.classList.toggle("is-open", open); }
+    homeFontMessage();
+  }
+  // the font status line (upload / delete results) is shown in whichever font section is open - an upload's result where the upload was made, a deletion's in My Fonts
+  function homeFontMessage() {
+    const open = textSections.find(entry => entry.id === openTextSection && entry.id !== "textEffects");
+    const home = open?.body ?? textSections.find(entry => entry.id === "myFonts")?.body;
+    if (fontMessage && home && fontMessage.parentNode !== home) home.append(fontMessage);
+  }
+  openTextPanelSection(openTextSection);
 
   // ---- Shapes --------------------------------------------------------------------------------------------------------------------------------
   for (const button of document.querySelectorAll("[data-shape]")) button.addEventListener("click", () => { const result = run(ops.addElement(doc(), stageId(), button.dataset.shape), { keepResultSelection: true }); if (result.ok) setTool("props"); });
