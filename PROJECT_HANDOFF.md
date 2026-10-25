@@ -5148,3 +5148,41 @@ GamID Truth: NO CHANGE REQUIRED. It restores the accepted `notifications` behavi
 Product Memory: SAVED, with Mazen's authorization: ISS-0017 (VERIFIED) and REV-0025 (PASS). ISS-0017 was free in every branch; an earlier unsaved Mobile Public Wall proposal that named ISS-0017 takes a new ID if it is saved.
 
 No product change, deployment, merge or Production access.
+
+## 128. Friends Stickers V1 ACCEPTED (2026-10-25, documentation only)
+
+Mazen gave his **FINAL ACCEPTANCE of the entire Friends Stickers V1 system** on TESTING on 2026-10-25, with no remaining feedback or requested changes. This is full feature acceptance, not only of the two fixes in §127.
+
+**Scope accepted:** as deployed at site `1aba378` (run `40182003937`):
+- V1 (§124; product `524939c`, migration `20261024100000_friends_stickers_v1`);
+- the follow-up corrections (§125; product `6a7b89a`, migration `20261025100000_friends_stickers_corrections`);
+- the clip button position (§126).
+
+**Verified before writing this:**
+- The branch matches its origin at `238e23c`.
+- The live TESTING stamp is `1aba378`.
+- Truth's contracts and limits match `docs/FRIENDS-STICKERS-V1.md`.
+
+**Evidence, kept apart:**
+- Claude Code's automated tests and TESTING deployment verification (§124–§126).
+- Mazen's acceptance, which names no devices, browsers or scenarios.
+
+GamID Truth: UPDATED.
+- `friends-stickers` changes from PENDING_ACCEPTANCE to ACCEPTED. Its record and notes now state the acceptance.
+- Unchanged: its limits, contracts and checkpoint `6a7b89a`.
+- Wording reconciled in the notes of `public-gamid-profile` and `wall-stage-types`, which called friends-stickers pending. Their statuses are unchanged.
+- `updated` 2026-10-25. No other capability changes status.
+
+Product Memory: SAVED, with Mazen's authorization.
+- New REV-0026 (PASS).
+- DEC-0011 stays ACCEPTED and gains "Acceptance (2026-10-25)" (what of its sticker direction is now implemented and accepted) plus a dated History note.
+- REV-0025 and ISS-0017 are unchanged.
+
+**Still not built and not accepted:**
+- sticker expiry, Delete All Stickers and per-friend allowances;
+- Writing Stickers;
+- the official background catalog and Premium backgrounds;
+- Premium, Pro (10 per 24 h), Boost, paid stickers and any subscription;
+- clip embedding.
+
+No product change, migration, deployment, merge or Production access.

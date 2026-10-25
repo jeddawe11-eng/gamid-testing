@@ -2,7 +2,7 @@
 
 Mazen's task "GAMID — FRIENDS STICKERS V1" and its addendum "Sender Avatar + Optional Gaming Clip Link" (2026-10-24), TESTING only. Builds on Wall Stages V2 (accepted 2026-10-23, `docs/WALL-STAGES-V2.md`), which it preserves.
 
-**Status: PENDING Mazen's manual acceptance.** Truth: `friends-stickers` PENDING_ACCEPTANCE. Deployment: §9.
+**Status: ACCEPTED** - Mazen's FINAL ACCEPTANCE of the whole system on TESTING, 2026-10-25 (§12). Truth: `friends-stickers` ACCEPTED. Deployment: §9, §10.7, §11.
 
 ## 1. What it does
 
@@ -158,7 +158,7 @@ Migration `supabase/migrations/20261024100000_friends_stickers_v1.sql`. It is ad
   - The migration is additive: the table can stay empty.
   - To fully undo it, drop the sticker functions, revert `save_my_wall_draft_impl` to its 20261022120000 definition, delete the four notification types and drop the table.
 
-## 10. Follow-up corrections (2026-10-24, PENDING Mazen's acceptance)
+## 10. Follow-up corrections (2026-10-24; accepted with the whole system on 2026-10-25, §12)
 
 Mazen's task "GAMID — FRIENDS STICKERS V1 / Follow-up Corrections" (TESTING only). He chose both recommended options for the two privacy conflicts reported before any protection changed:
 - **Show avatar + name.** A private sender's approved sticker keeps their avatar and @username. The accepted `visitor-media-access` rule ("reads end when a GamID goes PRIVATE") is narrowed for the avatar only; Truth carries the amendment.
@@ -222,4 +222,17 @@ The code comments and the migration version say 2026-10-25; the work and the dec
 - It now sits at `max(3%, 25% − button size)` from the top and right: its inner edge is 25% into the box. While the button scales with the sticker (17% of the box, boxes ≥ ~153 px, typically desktop) that is 8% from the corner; at its 26 px minimum (phones, small stickers) it stays at 3%, where it already touches the artwork.
 - Unchanged: the button's design and behaviour, the clip links (YouTube, Twitch, Medal.tv, Discord), the sender's avatar and @username (pinned by a test), saved positions and the dynamic sizing.
 - Product `1aba378`, run `40182003937`; `PROJECT_HANDOFF.md` §126.
-- Mazen personally tested it on TESTING and accepted the position on 2026-10-25 (§127, Product Memory REV-0025). This accepts the clip button position only: Friends Stickers V1 as a whole stays PENDING_ACCEPTANCE.
+- Mazen personally tested it on TESTING and accepted the position on 2026-10-25 (§127, Product Memory REV-0025). That acceptance covered the clip button position only; the whole system was accepted the same day (§12).
+
+## 12. Final acceptance (2026-10-25)
+
+Mazen gave his **FINAL ACCEPTANCE of the entire Friends Stickers V1 system** on TESTING on 2026-10-25, with no remaining feedback or requested changes. This covers V1 (§1–§9), the follow-up corrections (§10) and the clip button position (§11), as deployed at site `1aba378` (run `40182003937`).
+- **Product:** checkpoint `6a7b89a`, unchanged; `1aba378` only adjusted the clip button position.
+- **Truth:** `friends-stickers` ACCEPTED, with its limits and contracts unchanged.
+- **Review choices accepted as implemented:** the V1 choices left for his review in §2: who may send, and the 384 px sticker files.
+- **Evidence, kept apart:**
+  - Claude Code's automated tests (§7, §10.6, PROJECT_HANDOFF.md §126);
+  - TESTING deployment verification (§9, §10.7, §11);
+  - Mazen's acceptance, which names no devices, browsers or scenarios.
+- **Records:** Product Memory REV-0026; DEC-0011 "Acceptance (2026-10-25)"; PROJECT_HANDOFF.md §128.
+- **Still not built and not accepted:** §8, plus sticker expiry and Delete All Stickers; the background catalog; Premium, Pro (10 per 24 h), Boost and any payment.

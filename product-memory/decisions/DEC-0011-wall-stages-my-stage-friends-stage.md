@@ -3,17 +3,17 @@ id: DEC-0011
 title: Wall Stages — My Stage and Friends Stage (stage types, sticker moderation, conversion rules)
 status: ACCEPTED
 created: 2026-10-22
-updated: 2026-10-23
+updated: 2026-10-25
 scope: GamID Wall stages (owner editor and the future Friends Stickers system)
-summary: A Wall has at most 3 stages, each either a My Stage (the existing personal editing) or a Friends Stage (friends' stickers, owner-approved and owner-removable, official catalog backgrounds only); at least one My Stage always; a Friends Stage with active stickers cannot be deleted or converted until they are gone. Stage allowance 3 for everyone today (approved direction: Free 3 / Pro 5; Pro not implemented). A Friends Stage is optional (only the owner's explicit choice creates one; new stages are My Stages); an empty Friends Stage stays visible with a display-only message. Implemented on TESTING 2026-10-23 (4c97ed9, with the Add stage fix a084cb1); the implemented Wall Stages V2 scope was ACCEPTED by Mazen on 2026-10-23. Friends Stickers, sticker moderation, the official background catalog, Premium and Pro remain approved direction only, not implemented.
-related: [DEC-0010, DEC-0008]
+summary: A Wall has at most 3 stages, each either a My Stage (the existing personal editing) or a Friends Stage (friends' stickers, owner-approved and owner-removable, official catalog backgrounds only); at least one My Stage always; a Friends Stage with active stickers cannot be deleted or converted until they are gone. Stage allowance 3 for everyone today (approved direction: Free 3 / Pro 5; Pro not implemented). A Friends Stage is optional (only the owner's explicit choice creates one; new stages are My Stages); an empty Friends Stage stays visible with a display-only message. Implemented on TESTING 2026-10-23 (4c97ed9, with the Add stage fix a084cb1); the implemented Wall Stages V2 scope was ACCEPTED by Mazen on 2026-10-23. Friends Stickers V1 (sending, owner approval and moderation, the official Friends Stage background) was implemented on TESTING 2026-10-24 and given Mazen's FINAL ACCEPTANCE on 2026-10-25 (REV-0026). Sticker expiry, Delete All Stickers, the official background catalog, Premium and Pro remain approved direction only, not implemented.
+related: [DEC-0010, DEC-0008, REV-0025, REV-0026]
 save_approval: Mazen 2026-10-22
 authorization: Mazen 2026-10-22, task "GAMID - WALL STAGES V2" (implementation, testing and TESTING deployment; the Friends Stickers system, Premium and Pro excluded)
 acceptance: Mazen 2026-10-23 accepted Wall Stages V2 on TESTING a084cb1 after manual testing on desktop and Android (stage limit, My / Friends Stage conversion, persistence, owner and visitor empty Friends Stage messages); scope in "Acceptance (2026-10-23)"
 supersedes: []
-truth_refs: [wall-stage-types, game-id-wall, wall-editor-stages-bar, wall-assets-background, wall-universal-delete]
-checkpoints: [4be5bfc5b5ae45d59ca4e3871d0dcaeac7e254d7, 4c97ed9c4ba7bc5a4d0481cac6ed58b985f516b9, a084cb17c7c43aa0a84f1099a3f567d297dc98c7]
-sources: [docs/WALL-STAGES-V2.md, gamid-truth.json, PROJECT_HANDOFF.md, docs/WALL-BACKGROUND-INSIDE-ASSETS.md]
+truth_refs: [wall-stage-types, game-id-wall, wall-editor-stages-bar, wall-assets-background, wall-universal-delete, friends-stickers]
+checkpoints: [4be5bfc5b5ae45d59ca4e3871d0dcaeac7e254d7, 4c97ed9c4ba7bc5a4d0481cac6ed58b985f516b9, a084cb17c7c43aa0a84f1099a3f567d297dc98c7, 6a7b89a9a62a23948f6c121ca11734fb36fe1796, 1aba37844405d5c66e7777d453725b308b74a1f6]
+sources: [docs/WALL-STAGES-V2.md, gamid-truth.json, PROJECT_HANDOFF.md, docs/WALL-BACKGROUND-INSIDE-ASSETS.md, docs/FRIENDS-STICKERS-V1.md]
 ---
 
 ## Context
@@ -101,6 +101,24 @@ Mazen accepted Wall Stages V2 on TESTING `a084cb1` (run `39963845626`) after tes
 - the Free 3 / Pro 5 tiers, Pro, and any subscription or billing (F);
 - the open questions below.
 
+## Acceptance (2026-10-25): Friends Stickers V1
+
+Mazen gave his FINAL ACCEPTANCE of the whole Friends Stickers V1 system on TESTING on 2026-10-25, with no remaining feedback or requested changes (REV-0026; Truth `friends-stickers` ACCEPTED; product checkpoint 6a7b89a, TESTING site 1aba378). The "Acceptance (2026-10-23)" section above is kept as it stood that day.
+
+**Now implemented and accepted** (details in Truth `friends-stickers` and docs/FRIENDS-STICKERS-V1.md):
+- From C: friends' stickers on a Friends Stage, each shown only after the owner approves it.
+- The official GamID Friends Stage background - one supplied background, not a catalog.
+- From D: the owner removes individual approved stickers (asked once, permanent) and can move them.
+- From E: the active-sticker blocking. A Friends Stage with approved stickers can be neither deleted nor converted until they are removed.
+- Open question "Friend": settled for V1 as any signed-in player whose own GamID is public.
+- Open question "Stickers": settled for V1 as 14 free stickers and 5 counted sends per player per rolling 24 hours.
+
+**Still not implemented and not accepted:**
+- sticker expiry and Delete All Stickers (D, E);
+- the official background catalog and Premium backgrounds (C);
+- the Free 3 / Pro 5 tiers, a Pro sticker allowance, and any subscription or billing (F);
+- sticker pricing and purchase models.
+
 ## Reasoning
 
 - **Two stage types:** they give friends a dedicated, owner-controlled space without changing how the owner edits their own stages.
@@ -129,4 +147,4 @@ Mazen accepted Wall Stages V2 on TESTING `a084cb1` (run `39963845626`) after tes
 - 2026-10-22 APPROVED — Mazen approved the design and its saving as Product Memory. No implementation authorization (`authorization: NONE`); nothing implemented or accepted.
 - 2026-10-22 AUTHORIZED — Mazen authorized the implementation ("GAMID - WALL STAGES V2", TESTING only) and approved the tier direction (current 3 for everyone; future Free 3 / Pro 5; Pro not implemented). The Friends Stickers system, Premium and Pro stay out of scope. 2026-10-23: with Mazen's explicit approval this record also gained G - the Friends Stage is optional and the empty Friends Stage message (owner / visitor wording); the open visitor question is settled.
 - 2026-10-23 IMPLEMENTED — Deployed to TESTING: product 4be5bfc5b5ae45d59ca4e3871d0dcaeac7e254d7, site 4c97ed9c4ba7bc5a4d0481cac6ed58b985f516b9 (run 39821008183); migrations 20261022120000_wall_stage_types and 20261022120100_wall_public_publishing_stage_limit applied, every stored Wall unchanged (PROJECT_HANDOFF.md section 120). Truth wall-stage-types PENDING_ACCEPTANCE. Awaiting Mazen's manual acceptance. Then the Add stage at-allowance fix a084cb17c7c43aa0a84f1099a3f567d297dc98c7 (run 39963845626, section 121).
-- 2026-10-23 ACCEPTED — Mazen accepted the implemented Wall Stages V2 scope on TESTING a084cb1 after manual testing on desktop and Android: stage limit, My / Friends Stage conversion, persistence, and the owner and visitor messages. Truth wall-stage-types ACCEPTED. Friends Stickers, sticker moderation, the official catalog, Premium and Pro stay unimplemented (see "Acceptance (2026-10-23)").
+- 2026-10-23 ACCEPTED — Mazen accepted the implemented Wall Stages V2 scope on TESTING a084cb1 after manual testing on desktop and Android: stage limit, My / Friends Stage conversion, persistence, and the owner and visitor messages. Truth wall-stage-types ACCEPTED. Friends Stickers, sticker moderation, the official catalog, Premium and Pro stay unimplemented (see "Acceptance (2026-10-23)"). 2026-10-25: Friends Stickers V1 (implemented on TESTING 2026-10-24, product 524939c, follow-up 6a7b89a, clip icon 1aba378) received Mazen's FINAL ACCEPTANCE; with his authorization this record gained "Acceptance (2026-10-25)", and the status stays ACCEPTED (REV-0026).

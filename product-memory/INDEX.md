@@ -79,9 +79,14 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0011 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0017 |
-| REV | Reviews | reviews/ | REV-0025 |
+| REV | Reviews | reviews/ | REV-0026 |
 
 ## Register
+
+2026-10-25: Mazen gave his FINAL ACCEPTANCE of the entire Friends Stickers V1 system on TESTING (site 1aba378, run 40182003937), with no remaining feedback, and authorized saving it.
+- New REV-0026 (PASS) keeps Claude Code's automated tests and deployment verification apart from his acceptance.
+- DEC-0011 stays ACCEPTED and gains "Acceptance (2026-10-25)": what of its sticker direction is now implemented and accepted, and what is not (expiry, Delete All Stickers, the background catalog, Premium, Pro).
+- GamID Truth friends-stickers is ACCEPTED. REV-0025 and ISS-0017 are unchanged.
 
 2026-10-25: Mazen personally tested and accepted on TESTING 1aba378 (run 40182003937) the Notifications "Mark all as read" fix and the Friends Stickers clip (play) button position, and authorized saving both.
 - New ISS-0017 (VERIFIED). In the Wall editor, the stage bar (Wall Stages V2, z-index 45) covered the Notifications panel head (also z-index 45). The panel now sits above it, and the existing bulk read only shows success after the server confirms.
@@ -227,3 +232,4 @@ Status stays DISCUSSION; there is no implementation authorization.
 | DEC-0011 | Wall Stages — My Stage and Friends Stage (stage types, sticker moderation, conversion rules) | ACCEPTED | [DEC-0011-wall-stages-my-stage-friends-stage.md](decisions/DEC-0011-wall-stages-my-stage-friends-stage.md) |
 | ISS-0017 | Notifications "Mark all as read" covered by the Wall editor's stage bar | VERIFIED | [ISS-0017-notifications-mark-all-covered-in-wall-editor.md](issues/ISS-0017-notifications-mark-all-covered-in-wall-editor.md) |
 | REV-0025 | Notifications "Mark all as read" fix and Friends Stickers clip icon position — Mazen acceptance | COMPLETED | [REV-0025-notifications-mark-all-and-sticker-clip-icon-acceptance.md](reviews/REV-0025-notifications-mark-all-and-sticker-clip-icon-acceptance.md) |
+| REV-0026 | Friends Stickers V1 — Mazen final TESTING acceptance | COMPLETED | [REV-0026-friends-stickers-v1-final-acceptance.md](reviews/REV-0026-friends-stickers-v1-final-acceptance.md) |

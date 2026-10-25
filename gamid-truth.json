@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-24",
+  "updated": "2026-10-25",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -307,7 +307,7 @@
         "/public/"
       ],
       "record": "PROJECT_HANDOFF.md §7b, §7d, §7f and §63; Product Memory REV-0001 item 4. Mazen explicitly confirmed the Public GamID Profile on TESTING PASS and ACCEPTED on 2026-10-15, with no further manual testing required for this acceptance. Earlier pending acceptance statements are superseded. Existing implementation references retained: Slice 1 697b6e3773233d4b403becb63a6857893dbe0ea2, Slice 2 ce2018f3ff5b2de0a688d3970d81b0c71d8d5cb7, sharing b1caefacf4652e090d134e9e50851572e9a088eb; accepted responsive height §7v and Opera Intro reliability 706fc58e. Acceptance recording changes no implementation checkpoint.",
-      "notes": "Since 2026-10-24 (Mazen's decision, friends-stickers follow-up 6a7b89a, PENDING_ACCEPTANCE with that capability): a PRIVATE GamID's /@handle shows the private notice (friends-stickers contract private-identity-notice) instead of not-found; PUBLIC profiles, unknown and unpublished handles are unchanged."
+      "notes": "Since 2026-10-24 (Mazen's decision, friends-stickers follow-up 6a7b89a; accepted with that capability on 2026-10-25): a PRIVATE GamID's /@handle shows the private notice (friends-stickers contract private-identity-notice) instead of not-found; PUBLIC profiles, unknown and unpublished handles are unchanged."
     },
     {
       "id": "public-handle-url",
@@ -549,12 +549,12 @@
       ],
       "checkpoint": "a084cb17c7c43aa0a84f1099a3f567d297dc98c7",
       "record": "docs/WALL-STAGES-V2.md; PROJECT_HANDOFF.md sections 120-122; Product Memory DEC-0011. Implemented under Mazen's tasks of 2026-10-22/23 (GAMID - WALL STAGES V2, TESTING only); product 4be5bfc, site 4c97ed9 (run 39821008183); migrations 20261022120000_wall_stage_types and 20261022120100_wall_public_publishing_stage_limit APPLIED to TESTING 2026-10-23 (every stored Wall unchanged); the Add stage at-allowance fix a084cb1 (run 39963845626). ACCEPTED by Mazen 2026-10-23 on TESTING a084cb1 after his manual tests on desktop and Android: the stage limit, My / Friends Stage conversion, persistence, and the owner and visitor empty Friends Stage messages. The Friends Stickers system, Premium, Pro and the official background catalog are not implemented and not accepted.",
-      "notes": "Amended 2026-10-24 by Friends Stickers V1 (friends-stickers, PENDING_ACCEPTANCE): wall-friends-stage now shows the official Friends Stage background and its approved stickers; wall-friends-stage-empty-message no longer paints the \"coming soon\" badges; wall-stage-conversion is enforced with real sticker counts (and the server's STAGE_HAS_STICKERS). The accepted My / Friends Stage rules, the allowance and conversion rules are otherwise unchanged."
+      "notes": "Amended 2026-10-24 by Friends Stickers V1 (friends-stickers, ACCEPTED 2026-10-25): wall-friends-stage now shows the official Friends Stage background and its approved stickers; wall-friends-stage-empty-message no longer paints the \"coming soon\" badges; wall-stage-conversion is enforced with real sticker counts (and the server's STAGE_HAS_STICKERS). The accepted My / Friends Stage rules, the allowance and conversion rules are otherwise unchanged."
     },
     {
       "id": "friends-stickers",
       "name": "Friends Stickers V1 (stickers on Friends Stages: send, owner approval, dynamic size, sender attribution, optional clip link)",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/wall-editor/",
         "/@<handle>"
@@ -602,8 +602,8 @@
         }
       ],
       "checkpoint": "6a7b89a9a62a23948f6c121ca11734fb36fe1796",
-      "record": "docs/FRIENDS-STICKERS-V1.md; PROJECT_HANDOFF.md section 124; Product Memory DEC-0011. Implemented under Mazen's task \"GAMID - FRIENDS STICKERS V1\" and its addendum (2026-10-24, TESTING only); product 524939c, site run 40079878018; migration 20261024100000_friends_stickers_v1 APPLIED to TESTING 2026-10-24 (additive; every stored Wall unchanged). Follow-up corrections (2026-10-24: private senders, the 24-hour quota, Discord message links, profile links, the private notice): product 6a7b89a, site run 40098732831; migration 20261025100000_friends_stickers_corrections APPLIED (additive). Not built: Premium, Pro, Boost, paid stickers or backgrounds, Writing Stickers, a background catalog, clip embedding, sticker expiry, per-friend allowances.",
-      "notes": "Awaiting Mazen's manual acceptance (desktop and Android). Still for his review from V1: who may send (any signed-in player with a public GamID) and the 384 px sticker files. The follow-up replaced the V1 anti-spam numbers with the approved quota, added Discord message links and keeps private senders' stickers (amending visitor-media-access)."
+      "record": "docs/FRIENDS-STICKERS-V1.md; PROJECT_HANDOFF.md sections 124-128; Product Memory DEC-0011, REV-0025, REV-0026. FINAL ACCEPTANCE by Mazen on 2026-10-25 of the whole Friends Stickers V1 system on TESTING (site 1aba378, run 40182003937), with no remaining feedback or requested changes. Implemented under Mazen's task \"GAMID - FRIENDS STICKERS V1\" and its addendum (2026-10-24, TESTING only); product 524939c, site run 40079878018; migration 20261024100000_friends_stickers_v1 APPLIED to TESTING 2026-10-24 (additive; every stored Wall unchanged). Follow-up corrections (2026-10-24: private senders, the 24-hour quota, Discord message links, profile links, the private notice): product 6a7b89a, site run 40098732831; migration 20261025100000_friends_stickers_corrections APPLIED (additive). Not built: Premium, Pro, Boost, paid stickers or backgrounds, Writing Stickers, a background catalog, clip embedding, sticker expiry, per-friend allowances.",
+      "notes": "ACCEPTED as implemented: the contracts and limits above, including the V1 choices then left for Mazen's review (who may send: any signed-in player with a public GamID; the 384 px sticker files). The follow-up replaced the V1 anti-spam numbers with the approved quota, added Discord message links and keeps private senders' stickers (amending visitor-media-access). The clip button position adjusted at 1aba378 (cosmetic, accepted separately in REV-0025) leaves the checkpoint at 6a7b89a. Still not built and not accepted: everything listed as not built in the record, and Pro (10 per 24 hours is not approved)."
     },
     {
       "id": "wall-editor-mobile-v2",
