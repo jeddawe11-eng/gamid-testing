@@ -84,7 +84,9 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `1aba37844405d5c66e7777d453725b308b74a1f6`** (successful run `40182003937`, from `feature/mobile-public-wall-visitor-v2`, not merged).
+- **TESTING serves `fb8708e49e33a72445ad3b5ec7202642043d35ca`** (successful run `40191766463`, from `feature/mobile-public-wall-visitor-v2`, not merged).
+  - What it changes: Pro Effects (§129-§130, `docs/WALL-PRO-EFFECTS.md`; product `dcd5236`) - Neon, Living Fire, Living Ice V5, Living Radiation V1. Migration `20261025120000_wall_text_ice_radiation` APPLIED. Truth `pro-effects`, `living-ice-text` and `living-radiation-text` are PENDING_ACCEPTANCE.
+- **Previously served `1aba37844405d5c66e7777d453725b308b74a1f6`** (successful run `40182003937`, from `feature/mobile-public-wall-visitor-v2`, not merged).
   - What it changes: frontend only (§126). The Notifications panel is no longer covered by the Wall editor's stage bar, so "Mark all as read" shows; the bulk read is shown as done only after the server confirms it. The Friends Stickers clip button sits a little closer to its sticker on desktop. Truth unchanged. Both fixes ACCEPTED by Mazen on 2026-10-25 (§127; Product Memory ISS-0017 VERIFIED, REV-0025). Friends Stickers V1 as a whole ACCEPTED the same day on this site (§128; Truth `friends-stickers` ACCEPTED).
 - **Previously served `6a7b89a9a62a23948f6c121ca11734fb36fe1796`** (successful run `40098732831`, from `feature/mobile-public-wall-visitor-v2`, not merged).
   - What it changes: the Friends Stickers V1 follow-up corrections (§125, `docs/FRIENDS-STICKERS-V1.md` §10): private senders' stickers stay, the private notice, 5 sends per rolling 24 h, Discord message links. Migration `20261025100000_friends_stickers_corrections` APPLIED; Truth `friends-stickers` still PENDING_ACCEPTANCE.
@@ -169,7 +171,11 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-25, Pro Effects implemented on the feature branch - NOT deployed):** product `dcd5236` on `feature/mobile-public-wall-visitor-v2` (§129, `docs/WALL-PRO-EFFECTS.md`). TESTING still serves `1aba378`.
+**Latest continuation (2026-10-25, Pro Effects ON TESTING, PENDING_ACCEPTANCE):** TESTING serves `fb8708e` (run `40191766463`; product `dcd5236`); migration `20261025120000_wall_text_ice_radiation` APPLIED (§130, `docs/WALL-PRO-EFFECTS.md` §8).
+- Truth: `pro-effects`, `living-ice-text` and `living-radiation-text` are PENDING_ACCEPTANCE; `living-fire-text` stays ACCEPTED, with its editor and rendering contracts amended.
+- **Next:** Mazen's manual test (checklist in §130) and acceptance; confirm the packages' code provenance.
+
+**Previous continuation (2026-10-25, Pro Effects implemented on the feature branch, before deployment):** product `dcd5236` on `feature/mobile-public-wall-visitor-v2` (§129, `docs/WALL-PRO-EFFECTS.md`). TESTING then still served `1aba378`.
 - Text Effects → Pro Effects: Neon, Living Fire, Living Ice V5 and Living Radiation V1, all free. A card applies its effect (a new placeholder text when none is selected); its own section comes first in Properties, with the general sections collapsed.
 - Migration `20261025120000_wall_text_ice_radiation` is written and tested locally (PGlite), **not applied**.
 - Truth unchanged until deployment; its delta is ready in the doc, §7. Product Memory unchanged (approval not granted).

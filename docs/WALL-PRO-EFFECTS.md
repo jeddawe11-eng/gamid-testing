@@ -1,10 +1,9 @@
-# Pro Effects: Neon, Living Fire, Living Ice and Living Radiation (feature branch; NOT on TESTING)
+# Pro Effects: Neon, Living Fire, Living Ice and Living Radiation (on TESTING 2026-10-25; PENDING Mazen's acceptance)
 
 Mazen's task "GamID Pro Effects Integration" (2026-10-25). It authorises implementation on `feature/mobile-public-wall-visitor-v2` only: no deployment, merge or Production.
 
 - **Product:** `dcd5236055141dd3c9b2ba45b4de1ee0bf32b3c6`.
-- **Status:** implemented and tested locally. **Not deployed.** The migration below is **not applied** to TESTING. Mazen's manual acceptance has not happened.
-- TESTING still serves `1aba378`, where Living Ice and Living Radiation do not exist.
+- **Status:** on TESTING since 2026-10-25 (site `fb8708e`, run `40191766463`; migration applied); see §8. Mazen's manual acceptance is pending.
 
 ## 1. What changed for the owner
 
@@ -223,3 +222,34 @@ Existing Neon (glow-only) and Living Fire texts keep exactly the same format and
      - `living-fire-editor`: the Pro Effects card applies the effect (it no longer toggles), and the controls are in LIVING FIRE EFFECTS with Remove effect, on desktop and phone;
      - `living-fire-rendering`: "at most 4 fire texts" becomes "at most 4 animated effect texts in all".
 3. Mazen's manual acceptance on TESTING, on desktop and Android.
+
+## 8. TESTING deployment (2026-10-25)
+
+Mazen authorised deployment to TESTING only, for his own test.
+
+- **Readiness:** `npm run build` at `fb8708e`: 2219 tests, 0 failures.
+- **Database audit before applying.** TESTING held an unrecorded migration from an earlier Radiation experiment, `20261020114332_wall_text_living_radiation`. It is in TESTING's history only, and was already noted as unrelated in `docs/WALL-VIDEO-RENDITIONS-F8B1.md`. It had:
+  - created `private.wall_radiation_ok`, with the same rules as this repository's, executable by `postgres` only;
+  - added one `INVALID_RADIATION` line to `private.wall_text_payload_errors`. Without that line, the live function is byte-for-byte this repository's `20261019100000` version (md5 of the normalised body).
+  - No draft or published Wall used `ice` or `radiation`.
+  - `20261025120000` therefore re-creates both with a strict superset: Fire, Ice and Radiation.
+- **Rehearsal** (one transaction, always rolled back), 8/8:
+  - the validator has the three effects;
+  - the helpers are not executable by `anon` / `authenticated`;
+  - the synthetic persona GM-TEST-01 saved Ice (glacier, deep edited), Radiation (reactor, phantom custom colour), Fire + glow, Neon and a plain text, exactly as sent;
+  - a bad Ice setting is refused (`INVALID_ICE:i1`), as is a bad Radiation one (`INVALID_RADIATION:r1`);
+  - the Wall is published, and an anonymous visitor reads every effect exactly as saved.
+  - Afterwards: nothing persisted, and GM-TEST-01 was unchanged.
+- **Applied** `20261025120000` in one transaction and recorded it (`migration repair --status applied`). Verified live:
+  - the three effect lines in the validator;
+  - the helpers revoked;
+  - a valid Ice setting passes and a bad one is refused.
+- **Site:** run `40191766463`, successful; stamp `fb8708e`; all 17 changed files are byte-identical.
+- **Live anonymous smoke** on TESTING itself, desktop and phone (`/wall-editor/` loads to its sign-in gate):
+  - the editor has the Pro Effects category;
+  - the deployed painter draws an in-memory Wall (nothing saved) with Neon glowing and Living Fire, Living Ice and Living Radiation all **live**;
+  - the three renderers and the one shared Worker are fetched from TESTING itself.
+  - The only console errors are the signed-out editor's existing `get_my_wall_video_jobs` 401 and the favicon.
+- **Not tested by Claude Code:** the signed-in editor on TESTING (the agent does not sign in as personas). That is Mazen's test.
+- **GamID Truth:** `pro-effects`, `living-ice-text` and `living-radiation-text` are PENDING_ACCEPTANCE; `living-fire-text` stays ACCEPTED, with its editor and rendering contracts amended (noted).
+- **Rollback:** redeploy `1aba378` (run `40182003937`), then the database steps of §3. Rolling back the database restores `20261019100000`'s validator, which also drops the old experiment's Radiation line.

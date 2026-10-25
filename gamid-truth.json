@@ -731,15 +731,111 @@
         },
         {
           "id": "living-fire-editor",
-          "rule": "Desktop editor (900px and wider): one Living Fire entry in the Text panel's Text Effects toggles it on the selected text(s) and opens Text Effects in Properties, where Style, Intensity, Speed, Turbulence, Colour, Flames (Full fire / Letters only) and Sparks are set. On phones (Mobile Wall Editor V2, wall-editor-mobile-v2, PENDING_ACCEPTANCE) the same Living Fire settings are in Edit > Text effects and the Text sheet's Text Effects list; the 600-899px tablet controls are unchanged."
+          "rule": "Pro Effects (pro-effects): the Text panel's Living Fire card applies Living Fire to the selected text(s) - or adds a new text showing it when none is selected - and Properties shows LIVING FIRE EFFECTS first (Style, Intensity, Speed, Turbulence, Colour, Flames: Full fire / Letters only, Sparks, Remove effect), on desktop (900px and wider) and on phones (Mobile Wall Editor V2's Edit sheet, first section). The 600-899px tablet controls are unchanged."
         },
         {
           "id": "living-fire-rendering",
-          "rule": "The editor canvas, Preview and the published Wall (any visitor, signed in or not) draw it in the visitor's own browser: no request per frame and no streaming; its renderer is fetched only when a painted Wall has a Living Fire text. At most 4 fire texts animate at once on a page (fewer on a slow device); the others show a still V3 frame. Off-screen texts and hidden pages pause, reduced motion shows a still frame, and a device without WebGL2, a lost graphics context or a text longer than 80 characters shows a readable static fire-coloured version of the same words."
+          "rule": "The editor canvas, Preview and the published Wall (any visitor, signed in or not) draw it in the visitor's own browser: no request per frame and no streaming; its renderer is fetched only when a painted Wall has a Living Fire text. At most 4 animated effect texts (Living Fire, Living Ice and Living Radiation together; pro-effects contract pro-effects-live-budget) animate at once on a page (fewer on a slow device); the others show a still V3 frame. Off-screen texts and hidden pages pause, reduced motion shows a still frame, and a device without WebGL2, a lost graphics context or a text longer than 80 characters shows a readable static fire-coloured version of the same words."
         }
       ],
       "checkpoint": "5c0371f3b47b256918aa6cb3c0768c679d584f1f",
-      "record": "docs/WALL-EDITOR-TEXT-EFFECTS.md (Phase C); PROJECT_HANDOFF.md section 86. Implemented under Mazen's Phase C task (2026-10-18/19, variants Organic default, Cinematic, Mythic): additive migration 20261019100000_wall_text_living_fire applied on TESTING after a rolled-back rehearsal; static deployment 5c0371f (run 39147118537). Final capability acceptance explicitly granted by Mazen on 2026-10-19, including Organic, Cinematic, Mythic and the separately accepted bounding-box fix (REV-0012); documented in REV-0013."
+      "record": "docs/WALL-EDITOR-TEXT-EFFECTS.md (Phase C); PROJECT_HANDOFF.md section 86. Implemented under Mazen's Phase C task (2026-10-18/19, variants Organic default, Cinematic, Mythic): additive migration 20261019100000_wall_text_living_fire applied on TESTING after a rolled-back rehearsal; static deployment 5c0371f (run 39147118537). Final capability acceptance explicitly granted by Mazen on 2026-10-19, including Organic, Cinematic, Mythic and the separately accepted bounding-box fix (REV-0012); documented in REV-0013.",
+      "notes": "Amended 2026-10-25 by Pro Effects (pro-effects, PENDING_ACCEPTANCE; site fb8708e): living-fire-editor (the card applies instead of toggling; controls in their own LIVING FIRE EFFECTS section, also on phones) and living-fire-rendering (the live limit of 4 is shared with the other animated effects; a Fire-only Wall still animates 4). These amendments await Mazen's acceptance; the accepted V3 visuals, setting, limits and fallbacks are unchanged."
+    },
+    {
+      "id": "pro-effects",
+      "name": "Pro Effects (Wall text effects category: Neon, Living Fire, Living Ice, Living Radiation)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/",
+        "/@handle"
+      ],
+      "limits": {
+        "proEffects": 4,
+        "maxLiveEffectAnimations": 4
+      },
+      "contracts": [
+        {
+          "id": "pro-effects-category",
+          "rule": "The Text panel's Pro Effects category (desktop and phones), separate from fonts and typography, lists Neon (payload.glow), Living Fire (payload.fire), Living Ice (payload.ice) and Living Radiation (payload.radiation). All four are free and fully usable: each effect's tier only identifies it for a future entitlement - nothing restricts, prompts, or changes saving or publishing."
+        },
+        {
+          "id": "pro-effects-apply",
+          "rule": "Choosing an effect applies it at once, as one undoable change: to the selected text(s), keeping their words (an empty text gets \"Write something about yourself here\"), or - with no text selected - to one new selected text with that placeholder. Choosing the effect a text already shows changes nothing (no duplicate, its settings kept). A text shows one Pro Effect: choosing an animated effect removes the other animated ones (an earlier glow is kept; it shows only in the static fallback); choosing Neon removes the animated one."
+        },
+        {
+          "id": "pro-effects-properties",
+          "rule": "Properties of a text showing a Pro Effect: that effect's own section first and expanded (NEON EFFECTS, LIVING FIRE EFFECTS, LIVING ICE EFFECTS or LIVING RADIATION EFFECTS: only its own controls, then Remove effect), then the general sections (Content & Typography, Text Style, Position & Size, Arrange, Align to Stage), collapsed after an effect is chosen and remembered for later effect texts; switching effect switches the section. Ordinary texts keep their own panel. Phones show the same as the Edit sheet's first, open section. The 600-899px tablet panel is unchanged."
+        },
+        {
+          "id": "pro-effects-live-budget",
+          "rule": "At most 4 animated effect texts (Living Fire, Living Ice and Living Radiation together) animate at once on a page, fewer on a slow device; the others show their effect's still frame."
+        }
+      ],
+      "checkpoint": "dcd5236055141dd3c9b2ba45b4de1ee0bf32b3c6",
+      "record": "docs/WALL-PRO-EFFECTS.md; PROJECT_HANDOFF.md sections 129-130. Implemented under Mazen's task \"GamID Pro Effects Integration\" (2026-10-25); deployed under his TESTING-only authorisation of the same day. Site fb8708e (run 40191766463) on TESTING 2026-10-25, from feature/mobile-public-wall-visitor-v2 (not merged); migration 20261025120000_wall_text_ice_radiation APPLIED after a rolled-back rehearsal (it also supersedes the unrecorded TESTING-only migration 20261020114332_wall_text_living_radiation, an earlier experiment: same radiation rule, now in the repository).",
+      "notes": "Awaiting Mazen's manual acceptance (desktop and Android)."
+    },
+    {
+      "id": "living-ice-text",
+      "name": "Living Ice V5 text effect (Wall text: Glacier Blue / Arctic White / Deep Ice materials)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/",
+        "/@handle"
+      ],
+      "limits": {
+        "icePresets": 3,
+        "maxIceTextCharacters": 80
+      },
+      "contracts": [
+        {
+          "id": "living-ice-v5-visuals",
+          "rule": "Living Ice is the GAMID_LIVING_ICE_V5_MATERIALS package's effect: its vertex and fragment shaders, regional freezing clocks, crystal placement, seeded generator, 30 fps cap and 6.5 s starting moment are used verbatim. Adapted to Wall text only: the letters are the text element's own (font, lines, alignment) at the package's letter size in its 1920 x 800 frame; where no ice is hit the shader returns a transparent pixel instead of the study's backdrop (its one change); only the master camera is drawn, at twice the displayed resolution (at most the package's 1536 px)."
+        },
+        {
+          "id": "living-ice-setting",
+          "rule": "A Wall text element may carry an optional ice setting { preset glacier|arctic|deep, base, frostColor, shadow, highlight #rrggbb, depth 0.3..2.2, transparency 0..1, frost 0..1, density 0..1, size 0.55..1.2, scattering 0..2, roughness 0..1 } with every key required and no other key; choosing a preset starts from its package values, which stay editable. The editor and the database apply the same rule (INVALID_ICE)."
+        },
+        {
+          "id": "living-ice-rendering",
+          "rule": "Drawn in the visitor's own browser in the editor canvas, Preview and the published Wall; its renderer loads only for a painted Wall with a Living Ice text; the shared live budget (pro-effects-live-budget), off-screen / hidden pause and a reduced-motion still frame apply. A device without WebGL2, a software renderer, a device whose ice draws keep blocking the page (three over 100 ms in a row), a lost graphics context or a text longer than 80 characters shows a readable static version of the same words in the chosen ice colours."
+        }
+      ],
+      "checkpoint": "dcd5236055141dd3c9b2ba45b4de1ee0bf32b3c6",
+      "record": "docs/WALL-PRO-EFFECTS.md; PROJECT_HANDOFF.md sections 129-130. Site fb8708e (run 40191766463) on TESTING 2026-10-25, from feature/mobile-public-wall-visitor-v2 (not merged); migration 20261025120000_wall_text_ice_radiation APPLIED after a rolled-back rehearsal (it also supersedes the unrecorded TESTING-only migration 20261020114332_wall_text_living_radiation, an earlier experiment: same radiation rule, now in the repository).",
+      "notes": "Awaiting Mazen's manual acceptance. Reads best on short, bold words (the package's one-word study); the package code's provenance is for Mazen to confirm."
+    },
+    {
+      "id": "living-radiation-text",
+      "name": "Living Radiation V1 text effect (Wall text: Reactor / Meltdown / Phantom)",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/wall-editor/",
+        "/@handle"
+      ],
+      "limits": {
+        "radiationStyles": 3,
+        "radiationPresetColors": 10,
+        "maxRadiationTextCharacters": 80
+      },
+      "contracts": [
+        {
+          "id": "living-radiation-v1-visuals",
+          "rule": "Living Radiation is the GAMID_LIVING_RADIATION_V1_WAVEFORM_REFINEMENT package's effect: its vertex and fragment shaders, uniforms, noise, 32 fps cap and two independent clocks are used verbatim, on the text element's own letters (font, lines, alignment). The package's review tools (pause, proof and waveform-only views, hold travel) are not Wall settings."
+        },
+        {
+          "id": "living-radiation-setting",
+          "rule": "A Wall text element may carry an optional radiation setting - the package's contract: style reactor|meltdown|phantom, color one of ten presets or custom, customColor #rrggbb, waveform geiger|fracture|spectral, speed 0.25..2, intensity 0.2..1.4, width 0.08..0.5, interval 1..12, distortion 0..1, ripple 0..1, fragmentation 0..0.65, recovery 0.4..2, glow 0..1.5, cracks 0..1.5, afterglow 0.2..3, particles / mist / scanLines / flicker booleans - every key required, no other key; a new style starts from its own defaults and keeps the colour. The editor and the database apply the same rule (INVALID_RADIATION)."
+        },
+        {
+          "id": "living-radiation-rendering",
+          "rule": "Drawn in the visitor's own browser in the editor canvas, Preview and the published Wall; its renderer loads only for a painted Wall with a Living Radiation text; the shared live budget (pro-effects-live-budget), off-screen / hidden pause and a reduced-motion still frame apply. A device without WebGL2, a lost graphics context or a text longer than 80 characters shows a readable static version of the same words in the energy colour."
+        }
+      ],
+      "checkpoint": "dcd5236055141dd3c9b2ba45b4de1ee0bf32b3c6",
+      "record": "docs/WALL-PRO-EFFECTS.md; PROJECT_HANDOFF.md sections 129-130. Site fb8708e (run 40191766463) on TESTING 2026-10-25, from feature/mobile-public-wall-visitor-v2 (not merged); migration 20261025120000_wall_text_ice_radiation APPLIED after a rolled-back rehearsal (it also supersedes the unrecorded TESTING-only migration 20261020114332_wall_text_living_radiation, an earlier experiment: same radiation rule, now in the repository).",
+      "notes": "Awaiting Mazen's manual acceptance. The package code's provenance is for Mazen to confirm."
     },
     {
       "id": "public-wall-publishing",

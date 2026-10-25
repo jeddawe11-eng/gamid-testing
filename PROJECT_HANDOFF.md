@@ -5229,3 +5229,29 @@ Mazen's task "GamID Pro Effects Integration". It authorises implementation on `f
 3. Manual acceptance.
 
 Not merged; Production untouched.
+
+## 130. Pro Effects on TESTING (2026-10-25, PENDING Mazen's acceptance)
+
+Mazen authorised deployment to TESTING only, for his own test of Living Ice and Living Radiation. Details: `docs/WALL-PRO-EFFECTS.md` §8.
+
+- **Product:** `dcd5236`. **Site:** `fb8708e` (run `40191766463`); the 17 changed files are byte-identical. `npm run build`: 2219 tests, 0 failures.
+- **Migration** `20261025120000_wall_text_ice_radiation`: rehearsed (8/8, rolled back) and APPLIED.
+  - It supersedes the unrecorded TESTING-only experiment `20261020114332_wall_text_living_radiation`: the same radiation rule, now in the repository, plus Ice.
+  - No stored Wall was affected.
+- **Live anonymous smoke** (desktop and phone): the Pro Effects category is in the editor; Fire, Ice and Radiation draw live from TESTING's own files; Neon glows.
+- **GamID Truth: UPDATED.**
+  - New: `pro-effects`, `living-ice-text` and `living-radiation-text`, all PENDING_ACCEPTANCE.
+  - `living-fire-text` stays ACCEPTED; its `living-fire-editor` and `living-fire-rendering` contracts are amended, with a note that the amendment awaits acceptance.
+- **Product Memory: NO CHANGE** — approval not granted.
+
+**Manual test (Mazen), on desktop and Android:**
+1. Wall editor → Text → **Pro Effects**: four cards (Neon, Living Fire, Living Ice, Living Radiation), all usable.
+2. With nothing selected, choose **Living Ice**. A new text "Write something about yourself here" appears, frozen, and Properties opens on LIVING ICE EFFECTS (general sections collapsed). Choosing it again adds nothing.
+3. Type a short word (e.g. your name) in a bold font and try the Preset, the four colours and the sliders.
+4. Choose **Living Radiation** on the same text: the heading and controls switch. Try Style, Colour, Waveform and Atmosphere. The wave passes about every 9 s at the defaults.
+5. Select an existing text and choose an effect: its words stay. Undo and redo.
+6. **Save → Preview → Publish**, then open your `/@handle` signed out: the effects play there too.
+7. Reopen the editor, change a setting, Save and Publish again.
+8. *(Optional)* With reduced motion on, still frames show.
+
+Not merged; Production untouched.
