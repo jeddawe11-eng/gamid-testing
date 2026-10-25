@@ -282,8 +282,9 @@ test("editor: My Fonts in the desktop Text panel - count n/3, a required licence
   assert.match(panel, /<input id="fontLicense" type="checkbox" \/><span>I own this font or have a licence to embed it on the web\.<\/span>/);
   assert.match(panel, /<button id="fontUpload" class="ed-btn ed-myfonts-upload" type="button">Upload My Font<\/button>/);
   assert.match(panel, /accept="\.woff2,\.ttf,\.otf,font\/woff2,font\/ttf,font\/otf"/, "WOFF2, TTF and OTF (2026-10-18)");
-  // Text panel order (Mazen's task 2026-10-18): Add Text, Font Library, Text Effects, My Fonts, and Upload My Font at the very bottom
-  const order = ['id="textPresets"', 'id="fontSearch"', 'id="fontList"', 'id="textEffects"', 'id="myFonts"', 'id="fontUploadBox"'].map(marker => panel.indexOf(marker));
+  // Text panel order (Mazen's task 2026-10-18): Add Text, Font Library, My Fonts, and Upload My Font at the very bottom (Pro Effects is the Font Library's first
+  // category since 2026-10-25, built into #fontList by tools.js)
+  const order = ['id="textPresets"', 'id="fontSearch"', 'id="fontList"', 'id="myFonts"', 'id="fontUploadBox"'].map(marker => panel.indexOf(marker));
   assert.ok(order.every((at, index) => at > 0 && (index === 0 || at > order[index - 1])), `Text panel order ${order}`);
   assert.ok(panel.indexOf('id="fontLicense"') > panel.indexOf('id="fontUploadBox"') && panel.indexOf('id="fontUpload"') > panel.indexOf('id="fontUploadBox"'), "the licence confirmation and the upload are in Upload My Font");
   assert.match(tools, /myFontsCount\.textContent = `\$\{list\.length\}\/\$\{limit\}`;/, "n/3 from the server's own limit");

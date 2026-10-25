@@ -135,6 +135,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .ed-add-sub { display: none; }   /* shown by the desktop redesign (editor-desktop.css, >= 900px) only */
 .ed-font-search, .ed-font-sample, .ed-font-empty, .ed-myfonts { display: none; }   /* the desktop font library (search, live samples, "no match" note) is shown by editor-desktop.css only */
 .ed-text-sub, .ed-text-effects { display: none; }
+.ed-fx-group { display: none; }   /* the Font Library's Pro Effects category (heading + effect cards): desktop and phones only - the 600-899px panel keeps its layout */
 .ed-shape-library { display: none; }   /* the desktop shape library (Shapes V2, 2026-10-19), shown by editor-desktop.css only */
 #stageHost.is-path-editing > .ed-overlay { visibility: hidden; }   /* Shapes V2: while the Freeform pen / Edit Points is on, the move / resize handles step aside */   /* the desktop Text panel's section headings and Text Effects (2026-10-18), shown by editor-desktop.css only */
 .ed-add-list { display: grid; gap: .5rem; }

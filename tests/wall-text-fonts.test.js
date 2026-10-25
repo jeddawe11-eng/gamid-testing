@@ -165,7 +165,8 @@ test("category accordions (desktop only): real buttons with name, real count and
   assert.match(tools, /const desktopFonts = typeof matchMedia === "function" \? matchMedia\("\(min-width: 900px\)"\) : null;/, "the same 900px desktop breakpoint as the editor");
   assert.match(tools, /entry\.open = false;/, "every category starts collapsed");
   assert.match(tools, /h\("button", \{ class: "ed-font-group-toggle", type: "button", "aria-expanded": "false"/, "the heading is a keyboard-operable button exposing its state");
-  assert.match(tools, /text: String\(entry\.cards\.length\)/, "the count is the real number of fonts in the category");
+  assert.match(tools, /const count = entry\.count \?\? entry\.cards\.length;/, "the count is the real number of fonts in the category (Pro Effects: its number of effects)");
+  assert.match(tools, /h\("span", \{ class: "ed-font-group-count", text: String\(count\)/);
   assert.match(tools, /entry\.open = !entry\.open; applyFontFilter\(\);/, "a click toggles only that category, so several can be open");
   assert.match(tools, /button\.hidden = !match \|\| \(accordion && !query && !entry\.open\);/, "a collapsed category hides its cards only while not searching");
   assert.match(tools, /entry\.toggle\.setAttribute\("aria-expanded", String\(query \? visible > 0 : entry\.open\)\);/, "during search matching categories show open; afterwards the stored state returns");

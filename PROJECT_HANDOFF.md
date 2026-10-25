@@ -5291,3 +5291,15 @@ Mazen's task "GamID — Text Panel Accordion UX Improvement", TESTING only.
 GamID Truth: NO CHANGE REQUIRED (a layout change; no capability or contract changes).
 Product Memory: NO CHANGE — approval not given.
 Not merged; Production untouched.
+
+## 133. Pro Effects moved into the Font Library (2026-10-25, feature branch only - NOT deployed)
+
+Pro Effects is the Font Library's first category, above Gaming. It uses the same header component as the font categories; on desktop it is collapsed at first and expands to the four cards. The old standalone section was removed. My Fonts and Upload My Font are unchanged in place and behaviour. Phones show a plain heading with the cards; the tablet is unchanged. Details: `docs/WALL-EDITOR-TEXT-EFFECTS.md`.
+
+**Validation:**
+- `npm run build`: 2220 tests, 0 failures. Five structural tests were updated to the new structure.
+- Lab walk-through, 21/21: order; identical header style; collapse / expand; effects apply and draw live; search behaviour; My Fonts / Upload unchanged; Save; phone; tablet.
+- Regression: stickers 59, stages 60, Friends Stage 36, mobile functions 9.
+- Two older lab scripts (pro-editor, pro-phone) still need their helper updated to expand the category first. Their phone part passed 16/16.
+
+GamID Truth: NO CHANGE REQUIRED (layout only). Product Memory: NO CHANGE. Not deployed; not merged.

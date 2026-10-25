@@ -341,3 +341,12 @@ Mazen's task "GamID — Text Panel Accordion UX Improvement". In the Text panel,
 - **Font library:** unchanged.
 - **The 600-899px panel** still hides all three sections.
 - **Code:** `dist/wall-editor/tools.js` (it wraps the existing markup; `index.html` is unchanged), `editor-desktop.css` and `editor-mobile.css`.
+
+## Pro Effects inside the Font Library (2026-10-25, feature branch - not deployed)
+
+Pro Effects is now the Font Library's **first category**, above Gaming. Its header uses the same component, style, count (4) and chevron as the font categories, and the standalone Pro Effects section is gone.
+
+- **Desktop:** the category is collapsed at first; expanding it shows the four effect cards. A font search hides it, because effects are not fonts.
+- **Phones:** a plain heading with its cards, like the other categories there.
+- **Tablet (600-899px):** hidden, as before.
+- **Unchanged:** My Fonts and Upload My Font keep their places and stay one-open-at-a-time (both start closed). Effect behaviour, Properties, rendering and saving are unchanged.

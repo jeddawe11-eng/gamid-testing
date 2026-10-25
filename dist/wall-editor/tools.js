@@ -123,6 +123,10 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   const FONT_SAMPLE = "Legend";
   const fontGroups = [...new Set(FONT_CATALOG.map(font => font.group))].map(group => ({ group, heading: h("div", { class: "group", text: group }), cards: [] }));
   const fontEmpty = h("p", { class: "ed-hint ed-font-empty", role: "status", hidden: true });
+  // Pro Effects (Mazen's task 2026-10-25): the Font Library's FIRST category, above Gaming - the same heading, toggle, count and chevron as the font categories; it
+  // holds the four effect cards (built below, Pro Effects). It is not a font: a font search hides it. The 600-899px panel hides it, as before (.ed-fx-group).
+  const proGroup = { group: "Pro Effects", heading: h("div", { class: "group ed-fx-group", text: "Pro Effects" }), list: h("div", { id: "textEffectList", class: "ed-fx-list ed-fx-group" }), countLabel: `${PRO_EFFECTS.length} effects`, count: PRO_EFFECTS.length };
+  fontList.append(proGroup.heading, proGroup.list);
   for (const entry of fontGroups) {
     fontList.append(entry.heading);
     for (const font of FONT_CATALOG.filter(candidate => candidate.group === entry.group)) {
@@ -149,13 +153,14 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   // open, and the open / closed choice is kept while searching. Below 900px the heading stays the plain text it always was and every card shows (no accordion).
   const desktopFonts = typeof matchMedia === "function" ? matchMedia("(min-width: 900px)") : null;
   const accordionOn = () => Boolean(desktopFonts?.matches);
-  for (const entry of fontGroups) {
+  for (const entry of [proGroup, ...fontGroups]) {
     entry.open = false;
+    const count = entry.count ?? entry.cards.length;
     entry.toggle = h("button", { class: "ed-font-group-toggle", type: "button", "aria-expanded": "false", onclick: () => { if (fontSearching()) return; entry.open = !entry.open; applyFontFilter(); } },
-      h("span", { class: "ed-font-group-name", text: entry.group }), h("span", { class: "ed-font-group-count", text: String(entry.cards.length), "aria-label": `${entry.cards.length} fonts` }));
+      h("span", { class: "ed-font-group-name", text: entry.group }), h("span", { class: "ed-font-group-count", text: String(count), "aria-label": entry.countLabel ?? `${count} fonts` }));
   }
   function renderFontHeadings() {
-    for (const entry of fontGroups) {
+    for (const entry of [proGroup, ...fontGroups]) {
       if (accordionOn()) { if (entry.toggle.parentNode !== entry.heading) { entry.heading.replaceChildren(entry.toggle); entry.heading.classList.add("is-accordion"); } }
       else if (entry.heading.classList.contains("is-accordion")) { entry.heading.classList.remove("is-accordion"); entry.heading.replaceChildren(entry.group); }
     }
@@ -181,6 +186,10 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     }
     fontEmpty.hidden = shown > 0;
     if (!shown) fontEmpty.textContent = `No font matches "${query}".`;
+    // Pro Effects: collapsed / open like a font category; hidden while searching fonts (its cards are not fonts)
+    proGroup.heading.hidden = Boolean(query);
+    proGroup.list.hidden = Boolean(query) || (accordion && !proGroup.open);
+    proGroup.toggle.setAttribute("aria-expanded", String(!query && proGroup.open));
   }
   fontSearch?.addEventListener("input", applyFontFilter);
   // The desktop wording of the presets and the library heading; the phone keeps its own.
@@ -209,7 +218,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   // ---- Pro Effects (Text panel): choosing an effect APPLIES it - immediately visible on the canvas - and opens its own section in Properties (the general sections
   // collapsed). With text(s) selected: each gets the effect (its text kept; an empty text gets the placeholder; another animated effect it had is replaced; choosing an
   // effect it already shows changes nothing). With no text selected: one new text showing the effect is added and selected. One undo step either way.
-  const effectList = $("textEffectList");
+  const effectList = proGroup.list;   // the Font Library's Pro Effects category (above)
   function applyProEffect(effect) {
     const stage = session.stage;
     if (!stage) return;
@@ -254,7 +263,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
     unauthenticated: "Sign in again to manage your fonts.",
     upload: "The font could not be uploaded. Try again.",
   };
-  let textSections = [], openTextSection = "textEffects";   // the Text panel accordion (below); declared first, as the font messages use it
+  let textSections = [], openTextSection = null;   // the Text panel accordion (below); declared first, as the font messages use it
   const sayFont = (text, kind = "info") => { if (!fontMessage) return; homeFontMessage(); fontMessage.textContent = text; fontMessage.dataset.kind = kind; };
   let pendingFont = null, myFontsShown = "", fontBusy = false;
   function renderMyFonts() {
@@ -317,10 +326,10 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   });
   fontFile?.addEventListener("change", () => { const file = fontFile.files?.[0]; if (file) uploadFontFile(file); });
 
-  // ---- Text panel sections (Mazen's task 2026-10-25): Pro Effects, My Fonts and Upload My Font are accordions - a real button in each heading, with a chevron -
-  // and only one is open at a time (opening one closes the others; Pro Effects is open at first). Their content, ids and behaviour are unchanged: only wrapped.
-  // Shown on desktop and phones; the 600-899px panel hides all three, as before.
-  const TEXT_ACCORDION = [["textEffects", "textEffectsTitle"], ["myFonts", "myFontsTitle"], ["fontUploadBox", "fontUploadTitle"]];
+  // ---- Text panel sections (Mazen's tasks 2026-10-25): My Fonts and Upload My Font are accordions - a real button in each heading, with a chevron - and only one
+  // is open at a time (opening one closes the other; both start closed). Their content, ids and behaviour are unchanged: only wrapped. (Pro Effects moved into the
+  // Font Library as its first category.) Shown on desktop and phones; the 600-899px panel hides both, as before.
+  const TEXT_ACCORDION = [["myFonts", "myFontsTitle"], ["fontUploadBox", "fontUploadTitle"]];
   textSections = TEXT_ACCORDION.map(([id, titleId]) => {
     const section = $(id), title = $(titleId);
     if (!section || !title) return null;
@@ -344,7 +353,7 @@ export function createTools({ session, run, notify, assets, fonts = null, getGam
   }
   // the font status line (upload / delete results) is shown in whichever font section is open - an upload's result where the upload was made, a deletion's in My Fonts
   function homeFontMessage() {
-    const open = textSections.find(entry => entry.id === openTextSection && entry.id !== "textEffects");
+    const open = textSections.find(entry => entry.id === openTextSection);
     const home = open?.body ?? textSections.find(entry => entry.id === "myFonts")?.body;
     if (fontMessage && home && fontMessage.parentNode !== home) home.append(fontMessage);
   }

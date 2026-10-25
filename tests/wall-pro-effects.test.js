@@ -171,7 +171,16 @@ test("Pro Effects: Neon, Living Fire, Living Ice, Living Radiation - one registr
     assert.doesNotMatch(code(source), /\.tier\b|subscription|entitle|upgrade|paywall|premium|isPro\b|billing/i, name);
   }
   const panel = read("dist/wall-editor/index.html");
-  assert.match(panel, /<h3 id="textEffectsTitle" class="ed-text-sub">Pro Effects<\/h3>/, "the category is presented as Pro Effects");
+  // the category is presented as Pro Effects: the Font Library's FIRST category (2026-10-25), above Gaming, with the font categories' own heading, toggle, count
+  // and chevron; no separate section remains
+  assert.match(tools, /const proGroup = \{ group: "Pro Effects", heading: h\("div", \{ class: "group ed-fx-group", text: "Pro Effects" \}\), list: h\("div", \{ id: "textEffectList", class: "ed-fx-list ed-fx-group" \}\)/);
+  assert.match(tools, /fontList\.append\(proGroup\.heading, proGroup\.list\);\n\s+for \(const entry of fontGroups\) \{\n\s+fontList\.append\(entry\.heading\);/, "first, before the font categories");
+  assert.match(tools, /for \(const entry of \[proGroup, \.\.\.fontGroups\]\) \{\n\s+entry\.open = false;/, "the same toggle as the font categories, collapsed at first");
+  assert.match(tools, /proGroup\.list\.hidden = Boolean\(query\) \|\| \(accordion && !proGroup\.open\);/, "expanding it reveals the cards; a font search hides it");
+  assert.match(tools, /const effectList = proGroup\.list;/);
+  assert.doesNotMatch(panel, /id="textEffects"|Pro Effects</, "no standalone Pro Effects section");
+  assert.match(read("dist/wall-editor/editor.css"), /\.ed-fx-group \{ display: none; \}/, "the 600-899px panel keeps its layout");
+  assert.match(read("dist/wall-editor/editor-mobile.css"), /\.ed-fonts \.group\.ed-fx-group \{ display: block; \}/, "phones: a plain heading like the font categories there");
   assert.match(tools, /const effectCards = PRO_EFFECTS\.map\(effect => \{/, "one card per registered effect");
   assert.match(tools, /"data-tier": effect\.tier/, "the tier only identifies the card");
 });

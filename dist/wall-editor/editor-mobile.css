@@ -138,9 +138,7 @@ body.is-mw-keyboard .mw-bar, body.is-mw-keyboard .mw-selbar { visibility: hidden
 .mw-tool b { display: grid; place-items: center; flex: none; width: 2rem; height: 2rem; border-radius: .55rem; background: rgba(139, 93, 255, .2); color: var(--cyan); }
 /* Text: the font search, My Fonts (with upload) and Text Effects are on phones too */
 .ed-font-search { display: block; margin: 0 0 .6rem; }
-.ed-text-effects { display: block; margin-top: 1rem; }
-.ed-text-effects .ed-text-sub { display: block; margin: 0 0 .35rem; font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: #c8bafc; }
-.ed-text-effects .ed-text-sub-note { text-transform: none; letter-spacing: 0; color: #817b8e; font-size: .7rem; }
+.ed-fonts .group.ed-fx-group { display: block; }   /* Pro Effects: the Font Library's first category, a plain heading like the font categories on a phone */
 .ed-fx-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem; }
 .ed-fx { display: grid; gap: .15rem; min-height: 3.6rem; padding: .45rem .55rem; text-align: left; }
 .ed-fx[aria-pressed="true"] { background: #2a1f4a; border-color: var(--violet); }
@@ -167,8 +165,6 @@ body.is-mw-keyboard .mw-bar, body.is-mw-keyboard .mw-selbar { visibility: hidden
 .ed-text-acc[aria-expanded="true"]::after { transform: rotate(45deg); }
 .ed-text-acc:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; border-radius: .35rem; }
 .ed-text-acc-section h3 { flex: 1 1 auto; min-width: 0; margin: 0; }
-.ed-text-effects.ed-text-acc-section { padding: .2rem .7rem; border: 1px solid var(--mw-line); border-radius: .8rem; background: var(--navy-1); }
-.ed-text-effects .ed-text-acc-section .ed-text-sub, .ed-text-effects h3.ed-text-sub { margin: 0; }
 .ed-text-acc-body[hidden] { display: none; }
 .ed-text-acc-body { padding-bottom: .5rem; }
 /* Shapes: the full shape library (the Freeform pen stays a desktop tool) */
