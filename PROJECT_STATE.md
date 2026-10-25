@@ -84,7 +84,9 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `6a7b89a9a62a23948f6c121ca11734fb36fe1796`** (successful run `40098732831`, from `feature/mobile-public-wall-visitor-v2`, not merged).
+- **TESTING serves `1aba37844405d5c66e7777d453725b308b74a1f6`** (successful run `40182003937`, from `feature/mobile-public-wall-visitor-v2`, not merged).
+  - What it changes: frontend only (§126). The Notifications panel is no longer covered by the Wall editor's stage bar, so "Mark all as read" shows; the bulk read is shown as done only after the server confirms it. The Friends Stickers clip button sits a little closer to its sticker on desktop. Truth unchanged; PENDING Mazen's check.
+- **Previously served `6a7b89a9a62a23948f6c121ca11734fb36fe1796`** (successful run `40098732831`, from `feature/mobile-public-wall-visitor-v2`, not merged).
   - What it changes: the Friends Stickers V1 follow-up corrections (§125, `docs/FRIENDS-STICKERS-V1.md` §10): private senders' stickers stay, the private notice, 5 sends per rolling 24 h, Discord message links. Migration `20261025100000_friends_stickers_corrections` APPLIED; Truth `friends-stickers` still PENDING_ACCEPTANCE.
 - **Previously served `524939cfda495abb3f90534b53914ffc634038b2`** (successful run `40079878018`, from `feature/mobile-public-wall-visitor-v2`, not merged).
   - What it changes: Friends Stickers V1 (§124, `docs/FRIENDS-STICKERS-V1.md`). Migration `20261024100000_friends_stickers_v1` APPLIED; Truth `friends-stickers` PENDING_ACCEPTANCE.
@@ -167,7 +169,12 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-24, Friends Stickers V1 follow-up corrections on TESTING, PENDING_ACCEPTANCE):** live at `6a7b89a` (run `40098732831`), not merged (§125, `docs/FRIENDS-STICKERS-V1.md` §10).
+**Latest continuation (2026-10-25, Notifications Mark all as read + sticker clip button, PENDING Mazen's check):** live at `1aba378` (run `40182003937`), not merged (§126).
+- **Root cause:** the shared Notifications panel and the Wall editor's stage bar (Wall Stages V2) shared z-index 45, so the stage bar hid the panel head with "Mark all as read". Fixed by lifting the panel to the Usage panel's level; the existing bulk read is reused and now never claims success early.
+- **Also:** the Friends Stickers clip (play) button sits 8% (was 3%) from the sticker box's corner while it scales with the sticker; unchanged at its 26 px minimum (phones).
+- **Next:** Mazen's checks (§126), then the Friends Stickers V1 acceptance below (§124 / §125) and the pending Product Memory proposals.
+
+**Previous continuation (2026-10-24, Friends Stickers V1 follow-up corrections on TESTING, PENDING_ACCEPTANCE):** live at `6a7b89a` (run `40098732831`), not merged (§125, `docs/FRIENDS-STICKERS-V1.md` §10).
 - **Mazen's decisions:** a private sender's approved sticker keeps their avatar and @username (`visitor-media-access` amended for a PRIVATE GamID's current avatar); a PRIVATE GamID's `/@handle` shows a private notice only.
 - **Changes:** the avatar + @username open the sender's GamID; 5 counted sends per sender in any rolling 24 hours across all recipients (a rejection releases; removed and deleted still count; Pro not approved); Discord message permalinks accepted, Discord file links refused. Migration `20261025100000` applied.
 - **Next:**

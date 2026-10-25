@@ -215,3 +215,10 @@ The code comments and the migration version say 2026-10-25; the work and the dec
 - **Site:** run `40098732831`, successful; stamp `6a7b89a`; the changed files are byte-identical to the commit (`public/index.html` differs only by the version stamps).
 - **Live smoke** (anonymous, read-only): stickers 9/9, Wall Stages smoke passes.
 - **Rollback:** redeploy `524939c` (run `40079878018`). The migration is additive; to fully undo it, restore the three replaced functions and the clip rule from `20261024100000`, drop the notice function, the private-avatar policy and the ledger.
+
+## 11. Clip button position (2026-10-25, PENDING Mazen's check)
+
+- On published Friends Stages the clip (play) button sat slightly too far from its sticker: at `top: 3%; right: 3%` of the square sticker box, while the artwork is drawn `object-fit: contain` inside it.
+- It now sits at `max(3%, 25% − button size)` from the top and right: its inner edge is 25% into the box. While the button scales with the sticker (17% of the box, boxes ≥ ~153 px, typically desktop) that is 8% from the corner; at its 26 px minimum (phones, small stickers) it stays at 3%, where it already touches the artwork.
+- Unchanged: the button's design and behaviour, the clip links (YouTube, Twitch, Medal.tv, Discord), the sender's avatar and @username (pinned by a test), saved positions and the dynamic sizing.
+- Product `1aba378`, run `40182003937`; `PROJECT_HANDOFF.md` §126.

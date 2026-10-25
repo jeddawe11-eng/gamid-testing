@@ -5082,3 +5082,47 @@ GamID Truth: UPDATED.
 Product Memory: PROPOSED (not saved; awaiting Mazen's approval). See the completion report.
 
 Not merged; Production untouched.
+
+## 126. Notifications "Mark all as read" + Friends Stickers clip button (2026-10-25, PENDING Mazen's acceptance)
+
+Mazen's task "GAMID — Notifications & Friends Stickers UI Fix", TESTING only. A focused correction; no redesign, no database change.
+
+**Root cause (Mark all as read not visible):**
+- The bulk action already existed and is ACCEPTED (Truth `notifications`): the button in the panel head and `mark_all_my_notifications_read`.
+- The shared Notifications panel had `z-index: 45`. Wall Stages V2 (§120) added the editor's stage bar (`.ed-stage-bar`) with the same `z-index: 45`, later in the page. The stage bar therefore painted over the panel's head (title + "Mark all as read"), while the rows below with their Mark read buttons stayed visible.
+- Classic (`/account/`), Crew and Play Together were not covered: there the button was visible but small and pale.
+- The public Wall has no notifications (the authenticated shell never mounts on public pages). The phone Wall editor (Mobile Wall Editor V2) hides the desktop header while editing, so it has no bell. Both are unchanged.
+
+**What changed:**
+- `dist/notifications/notifications.css`: the panel uses `z-index: 10000`, as the Usage panel beside it. "Mark all as read" is a clearer cyan pill (larger text, focus ring); a panel status line for errors.
+- `dist/notifications/notification-center.js`: the existing bulk read is reused; no new RPC or table.
+  - It marks every unread notification of the signed-in person up to the newest id the page has loaded, including older ones never listed. The server scopes it to the caller.
+  - It is shown as done only after the server confirms it: "Marking…", busy and disabled meanwhile; a second click does nothing.
+  - A failure changes nothing and says "Couldn't mark your notifications as read. Try again." for ~3 s.
+  - Afterwards the list and count are re-read after any re-read already under way. A notification that arrived meanwhile (higher id) stays unread, and a stale re-read cannot undo the result.
+  - Individual Mark read is unchanged.
+- `dist/wall-kit/wall-kit.css`: the clip (play) button's inset is now `max(3%, 25% − button size)` (top and right). While the button scales with the sticker (box ≥ ~153 px, desktop) it moves from 3% to 8% of the box from the corner (e.g. 5 → 14 px on a 176 px sticker). At its 26 px minimum (phones, small stickers) it keeps 3%, where it already touches the artwork. Avatar, @username, saved positions, sizing and clip links are unchanged.
+
+**Delivery:** product `1aba37844405d5c66e7777d453725b308b74a1f6`; site run `40182003937` (stamp `1aba378`); the three changed files are byte-identical live. Live anonymous smoke 9/9. Rollback: redeploy `6a7b89a` (run `40098732831`).
+
+**Validation:**
+- `npm test`: 2,205 tests, 2,203 pass, 0 failures. New: the bulk read covers unlisted rows; no false success, plus transient failure feedback and the busy state; an arrival during the request stays unread and a stale re-read cannot undo it; the panel stays above page bars; the clip inset is pinned and the caption CSS is pinned by hash.
+- Database: `tests/integration/notifications-db.sql` on TESTING (always rolled back) 31/31, including "C cannot mark B's notifications read" and "a newer one stays unread".
+- Browser (lab, fake client): 88/88. Wall editor at 1024/1280/1440/1920, Classic at 1440/390/844×390, Crew and Play Together at 1440/390: the button is visible and on top, 40 unread → Mark read → Mark all as read with a notification arriving mid-request → badge 1; the failure path.
+- Friends Stickers: editor 59/59, visitor 46/46 (clip links incl. Discord). Clip probe of the 14 stickers at 1440/390/844×390: no overlap with the caption or other stickers, always inside the stage. Mobile Public Wall check 196/196.
+- Not tested: a real signed-in account, persistence across a real refresh/device (covered by the server RPC and the DB test), physical devices, Safari, Firefox.
+
+**Manual checks (Mazen):**
+1. **Wall editor (desktop):** with unread notifications, open the bell. The panel head with "Mark all as read" is fully visible above the stage bar.
+2. Click Mark read on one: the count drops by one.
+3. Click Mark all as read: briefly "Marking…", then the badge disappears and every row shows as read. Also check older rows ("Show older").
+4. Refresh, then open Classic on another device: the notifications are still read and the badge stays clear.
+5. **Classic (`/account/`), desktop and Android:** the same, with the more visible button.
+6. **Arrival:** while another account sends you something, the new notification stays unread after Mark all as read.
+7. **Stickers:** on a published Friends Stage with a clip sticker, the play button sits a little closer to the sticker on desktop; on Android it is where it was. It opens the clip in a new tab; the avatar and @username look and behave as before.
+
+GamID Truth: NO CHANGE REQUIRED (restores the accepted `notifications` behaviour; the clip button change is cosmetic).
+
+Product Memory: PROPOSED (not saved; awaiting Mazen's approval). See the completion report.
+
+Not merged; Production untouched.

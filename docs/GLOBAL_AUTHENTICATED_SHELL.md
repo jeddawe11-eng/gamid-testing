@@ -30,3 +30,5 @@ Auth changes emit a data-free event from the shared client. Logout/account repla
 `scripts/check-authenticated-shell.mjs` runs with lint: it discovers HTML entry-module graphs and rejects missing headers, page-local notification mounts, and a CSP blocking the private TESTING WebSocket. Regression fixtures include a previously unknown future management route. Public pages and embedded renderers are explicitly covered as exclusions.
 
 Wall responsive changes apply only to the header: at narrow widths, the existing action buttons occupy a second toolbar row so the global bell does not cover accepted controls. The editor's existing `--top` layout variable accounts for the row; Wall data, canvas operations, rendering, Templates and persistence are untouched.
+
+Layering (2026-10-25, §126): the Notifications panel sits at `z-index: 10000`, as the Usage panel beside it, so no page bar can cover it. Before this, the Wall editor's stage bar (Wall Stages V2, `z-index: 45`, later in the page) covered the panel head with "Mark all as read". `tests/notifications.test.js` keeps the panel above the page bars.
