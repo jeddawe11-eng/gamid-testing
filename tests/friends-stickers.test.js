@@ -275,3 +275,13 @@ test("follow-up 2026-10-25: a PRIVATE GamID's /@handle shows the private notice 
   assert.doesNotMatch(fn, /bio|getPublicWall|games|sections/i, "nothing but who it is");
   assert.match(read("dist/public/public.css"), /\.private-state\[hidden\]\{display:none\}/, "hidden means hidden (the grid display would otherwise show it on every not-found page)");
 });
+
+test("the clip button sits a little closer to its sticker (inner edge 25% into the box; 3% from the corner while at its 26px minimum); the sender caption is unchanged", async () => {
+  const { createHash } = await import("node:crypto");
+  const css = read("dist/wall-kit/wall-kit.css");
+  const inset = "max(3%, calc(25% - max(26px, var(--sticker-px) * .17)))";
+  assert.ok(css.includes(`.wall-sticker-clip { position: absolute; top: ${inset}; right: ${inset}; display: grid; place-items: center; width: max(26px, calc(var(--sticker-px) * .17));`));
+  // Mazen approved the avatar + @username as they are: the caption rules (.wall-sticker-by .. .wall-sticker-name) are byte-for-byte those of 6a7b89a
+  const caption = css.slice(css.indexOf(".wall-sticker-by {"), css.indexOf("\n", css.indexOf(".wall-sticker-name {")));
+  assert.equal(createHash("sha256").update(caption).digest("hex"), "bb31874edb38bd03e1d889b8240c64c68de495c661c0384676b827970fc72672");
+});

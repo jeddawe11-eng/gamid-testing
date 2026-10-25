@@ -177,6 +177,74 @@ test("5 + 6. Mark all as read sets unread to zero (up to what this page loaded);
   assert.equal(byClass(a.center.root, "gn-mark-all")[0].disabled, true);
 });
 
+test("Mark all as read also reads the older notifications this page never listed (only the first page is loaded)", async () => {
+  const server = fakeServer(Array.from({ length: PAGE_SIZE + 12 }, (_, i) => note(i + 1, "duo.request_received")));
+  const a = await page(server);
+  assert.equal(a.rows().length, PAGE_SIZE);
+  assert.equal(a.center.unread, PAGE_SIZE + 12);
+  await byClass(a.center.root, "gn-mark-all")[0].fire("click"); await tick();
+  assert.deepEqual(server.calls.all, [PAGE_SIZE + 12]);
+  assert.equal(server.rows.filter(row => !row.read_at).length, 0, "the 12 unlisted ones too");
+  assert.equal(a.center.unread, 0); assert.equal(a.badge.hidden, true);
+  await byClass(a.center.root, "gn-older")[0].fire("click"); await tick();
+  assert.ok(a.rows().every(row => /is-read/.test(row.className)), "older pages arrive read");
+});
+
+test("Mark all as read is shown as done only after the server confirms it; a failure changes nothing and says so (transient)", async () => {
+  const server = fakeServer([note(1, "duo.request_received"), note(2, "duo.ended")]);
+  let release, fail = true;
+  const api = { ...server.api, markAllMyNotificationsRead: upTo => new Promise((resolve, reject) => { release = () => fail ? reject(new Error("offline")) : resolve(server.api.markAllMyNotificationsRead(upTo)); }) };
+  const a = await page({ ...server, api });
+  const markAll = byClass(a.center.root, "gn-mark-all")[0];
+  const status = byClass(a.center.root, "gn-status")[0];
+  const pending = markAll.fire("click"); await tick();
+  assert.equal(markAll.textContent, "Marking…"); assert.equal(markAll.getAttribute("aria-busy"), "true"); assert.equal(markAll.disabled, true);
+  assert.equal(a.center.unread, 2, "nothing claimed while the request runs"); assert.ok(a.rows().every(row => /is-unread/.test(row.className)));
+  await markAll.fire("click");                             // a second click while busy does nothing
+  release(); await pending; await tick();
+  assert.equal(a.center.unread, 2); assert.equal(a.badge.textContent, "2");
+  assert.ok(a.rows().every(row => /is-unread/.test(row.className)), "no false success");
+  assert.equal(status.hidden, false); assert.match(status.textContent, /Couldn't mark your notifications as read/);
+  assert.equal(markAll.textContent, "Mark all as read"); assert.equal(markAll.disabled, false);
+  assert.ok(a.timers.delays.includes(3000), "the message is transient (~3 s)");
+  a.timers.runAll(); assert.equal(status.hidden, true);
+  fail = false;
+  const retry = markAll.fire("click"); await tick(); release(); await retry; await tick();
+  assert.equal(a.center.unread, 0); assert.ok(a.rows().every(row => /is-read/.test(row.className)));
+});
+
+test("a notification arriving during Mark all as read stays unread, and a re-read already under way cannot undo the result", async () => {
+  const server = fakeServer([note(1, "duo.request_received"), note(2, "duo.ended")]);
+  let release;
+  const api = { ...server.api, markAllMyNotificationsRead: upTo => new Promise(resolve => { release = () => resolve(server.api.markAllMyNotificationsRead(upTo)); }) };
+  let slowList = null;
+  const listing = api.getMyNotifications;
+  api.getMyNotifications = async (...args) => { const rows = await listing(...args); if (slowList) await slowList; return rows; };
+  const a = await page({ ...server, api });
+  const pending = byClass(a.center.root, "gn-mark-all")[0].fire("click"); await tick();
+  server.add(note(3, "crew.invite_received"));            // arrives while the request runs
+  let releaseList; slowList = new Promise(resolve => { releaseList = resolve; });
+  const staleSignal = a.signal();                          // a re-read that read the log BEFORE the server marked it
+  await tick();
+  release(); await tick();
+  slowList = null; releaseList(); await staleSignal; await pending; await tick();
+  assert.deepEqual(server.calls.all, [2]);
+  assert.equal(a.center.unread, 1, "only the new one");
+  const byId = Object.fromEntries(a.rows().map(row => [row.dataset.id, row.className]));
+  assert.match(byId["3"], /is-unread/); assert.match(byId["2"], /is-read/); assert.match(byId["1"], /is-read/);
+});
+
+test("the Notifications panel sits above every page's own bars, so its head (Mark all as read) is never covered - the Wall editor's stage bar included", () => {
+  const z = (css, selector) => Number(new RegExp(`${selector.replace(/[.*()[\]]/g, "\\$&")}\\s*\\{[^}]*z-index:\\s*(\\d+)`).exec(css)?.[1]);
+  const panel = z(read("dist/notifications/notifications.css"), ".gn-panel");
+  assert.ok(panel >= z(read("dist/usage/usage.css"), ".usage-panel"), "as high as the Usage panel beside it");
+  for (const [file, selector] of [["dist/wall-editor/editor.css", ".ed-stage-bar"], ["dist/wall-editor/editor.css", ".ed-stage-confirm"], ["dist/wall-editor/editor-mobile.css", ".mw-bar:not([hidden])"], ["dist/account/mobile-editor.css", ".deck-nav"]]) {
+    const value = z(read(file), selector);
+    assert.ok(Number.isFinite(value), `${selector} found`); assert.ok(panel > value, `${selector} (${value}) stays below the panel (${panel})`);
+  }
+  assert.match(read("dist/notifications/notifications.css"), /\.gn-status\[hidden\]\{display:none\}/);
+});
+
 // ---------- 7 + 8: ordering, five rows, paging ----------
 test("8. the log is newest first", async () => {
   const server = fakeServer([note(2, "duo.request_cancelled", "two"), note(5, "duo.ended", "five"), note(1, "duo.request_received", "one")]);

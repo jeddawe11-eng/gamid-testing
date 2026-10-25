@@ -10,8 +10,10 @@
 // Delivery: the private, data-free Realtime signal notifications_changed (the page passes `subscribe`) wakes the bell; the database stays the source of truth. The
 // page-load fetch and Realtime fetches are serialised and de-duplicated by id, so a race can neither toast twice nor list twice.
 import { notificationText, destinationOf } from "./notification-types.js";
+import { TRANSIENT_MESSAGE_MS } from "../account/transient-message.js";
 
 export const TOAST_MS = 5000;
+export const MARK_ALL_LABEL = "Mark all as read";
 export const PAGE_SIZE = 30;
 export const VISIBLE_ROWS = 5;
 
@@ -38,6 +40,7 @@ export function createNotificationCenter({ api, doc = globalThis.document, timer
   let chain = Promise.resolve();     // serialises load / refresh so they never race
   const toastQueue = [];
   let toasting = null, toastTimer = null, stopped = false, unsubscribe = null;
+  let markingAll = false, statusTimer = null;
 
   // ---- DOM ----
   const root = make("div", "gn");
@@ -56,15 +59,19 @@ export function createNotificationCenter({ api, doc = globalThis.document, timer
   panel.hidden = true;
   const head = make("div", "gn-panel-head");
   const title = make("strong", "gn-title", "Notifications");
-  const markAll = make("button", "gn-mark-all", "Mark all as read");
+  const markAll = make("button", "gn-mark-all", MARK_ALL_LABEL);
   markAll.type = "button";
   head.append(title, markAll);
+  // the panel's own status line: "Mark all as read" failing is said here (transient, ~3 s), never shown as done
+  const status = make("p", "gn-status");
+  status.setAttribute("role", "status");
+  status.hidden = true;
   const list = make("ul", "gn-list");
   list.style?.setProperty?.("--gn-visible-rows", String(VISIBLE_ROWS));
   const empty = make("p", "gn-empty", "No notifications yet.");
   const older = make("button", "gn-older", "Show older");
   older.type = "button";
-  panel.append(head, list, empty, older);
+  panel.append(head, status, list, empty, older);
   root.append(bell, panel);
   const toast = make("button", "gn-toast");
   toast.type = "button";
@@ -113,7 +120,7 @@ export function createNotificationCenter({ api, doc = globalThis.document, timer
     list.replaceChildren(...rows.map(row));
     empty.hidden = rows.length > 0;
     older.hidden = !hasOlder;
-    markAll.disabled = unread <= 0;
+    markAll.disabled = markingAll || unread <= 0;
   }
   const render = () => { renderBadge(); renderList(); };
 
@@ -177,16 +184,35 @@ export function createNotificationCenter({ api, doc = globalThis.document, timer
     renderBadge();
   }
 
+  function say(text) {
+    if (statusTimer !== null) timers.clearTimeout(statusTimer);
+    status.textContent = text;
+    status.hidden = false;
+    statusTimer = timers.setTimeout(() => { statusTimer = null; status.hidden = true; }, TRANSIENT_MESSAGE_MS);
+  }
+
+  // Every unread notification of the signed-in person up to the newest one this page has loaded - also the older ones not listed here (the server marks by id,
+  // only the caller's own). One that arrives meanwhile has a higher id and stays unread. Shown as read only after the server confirmed it; a failure changes nothing.
   async function markAllRead() {
+    if (markingAll) return;
     const upTo = highest([...items.values()]);
     if (!upTo) return;
-    const stamp = new Date(now()).toISOString();
-    for (const [key, item] of items) if (!item.read_at && Number(item.notification_id) <= upTo) items.set(key, { ...item, read_at: stamp });
-    unread = 0;
+    markingAll = true;
+    markAll.textContent = "Marking…";
+    markAll.setAttribute("aria-busy", "true");
+    renderList();
+    let done = true;
+    try { await api.markAllMyNotificationsRead(upTo); } catch { done = false; }
+    markingAll = false;
+    markAll.textContent = MARK_ALL_LABEL;
+    markAll.removeAttribute?.("aria-busy");
+    if (stopped) return;
+    if (done) {
+      const stamp = new Date(now()).toISOString();
+      for (const [key, item] of items) if (!item.read_at && Number(item.notification_id) <= upTo) items.set(key, { ...item, read_at: stamp });
+    } else say("Couldn't mark your notifications as read. Try again.");
     render();
-    try { await api.markAllMyNotificationsRead(upTo); } catch { /* corrected below */ }
-    await count();
-    renderBadge();
+    await refresh();   // after any re-read already under way: the server's list and count (a notification that arrived meanwhile stays unread)
   }
 
   function activate(item) {
@@ -238,6 +264,7 @@ export function createNotificationCenter({ api, doc = globalThis.document, timer
     destroy() {
       stopped = true;
       if (toastTimer !== null) timers.clearTimeout(toastTimer);
+      if (statusTimer !== null) timers.clearTimeout(statusTimer);
       unsubscribe?.();
       doc.removeEventListener?.("keydown", onKey);
       doc.removeEventListener?.("click", onOutside, true);
