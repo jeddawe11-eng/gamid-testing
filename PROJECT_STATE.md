@@ -84,7 +84,9 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `fb8708e49e33a72445ad3b5ec7202642043d35ca`** (successful run `40191766463`, from `feature/mobile-public-wall-visitor-v2`, not merged).
+- **TESTING serves `9ee23d8634232146602dc232589e626db5e1e8ab`** (successful run `40194686665`, from `feature/mobile-public-wall-visitor-v2`, not merged).
+  - What it changes: frontend only (§132). In the Text panel, Pro Effects, My Fonts and Upload My Font are accordions, one open at a time. Truth unchanged; PENDING Mazen's check.
+- **Previously served `fb8708e49e33a72445ad3b5ec7202642043d35ca`** (successful run `40191766463`, from `feature/mobile-public-wall-visitor-v2`, not merged).
   - What it changes: Pro Effects (§129-§130, `docs/WALL-PRO-EFFECTS.md`; product `dcd5236`) - Neon, Living Fire, Living Ice V5, Living Radiation V1. Migration `20261025120000_wall_text_ice_radiation` APPLIED. Truth `pro-effects`, `living-ice-text` and `living-radiation-text` were PENDING_ACCEPTANCE; Mazen ACCEPTED them on 2026-10-25 (§131).
 - **Previously served `1aba37844405d5c66e7777d453725b308b74a1f6`** (successful run `40182003937`, from `feature/mobile-public-wall-visitor-v2`, not merged).
   - What it changes: frontend only (§126). The Notifications panel is no longer covered by the Wall editor's stage bar, so "Mark all as read" shows; the bulk read is shown as done only after the server confirms it. The Friends Stickers clip button sits a little closer to its sticker on desktop. Truth unchanged. Both fixes ACCEPTED by Mazen on 2026-10-25 (§127; Product Memory ISS-0017 VERIFIED, REV-0025). Friends Stickers V1 as a whole ACCEPTED the same day on this site (§128; Truth `friends-stickers` ACCEPTED).
@@ -171,7 +173,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-25, Pro Effects ACCEPTED):** Mazen gave his FINAL ACCEPTANCE of the current Pro Effects implementation on TESTING `fb8708e` (§131, `docs/WALL-PRO-EFFECTS.md` §9).
+**Latest continuation (2026-10-25, Text panel accordion on TESTING `9ee23d8`, PENDING Mazen's check):** Pro Effects, My Fonts and Upload My Font are accordions, one open at a time (§132). Next: Mazen's check.
+
+**Previous continuation (2026-10-25, Pro Effects ACCEPTED):** Mazen gave his FINAL ACCEPTANCE of the current Pro Effects implementation on TESTING `fb8708e` (§131, `docs/WALL-PRO-EFFECTS.md` §9).
 - Truth: `pro-effects`, `living-ice-text` and `living-radiation-text` are ACCEPTED; `living-fire-text` stays ACCEPTED with its amended contracts.
 - Product Memory: REV-0027 (PASS).
 - **Next:** remaining PENDING capabilities in Truth (`wall-editor-mobile-v2`, `custom-wall-fonts`, `public-wall-mobile-v2`) and the pending Product Memory proposals; the packages' code provenance (for Mazen).

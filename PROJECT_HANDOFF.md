@@ -5268,3 +5268,26 @@ Mazen reviewed the new Pro Effects on TESTING (site `fb8708e`, run `40191766463`
 - **Evidence:** Claude Code's tests and TESTING verification are in §129–§130. Mazen's acceptance names no devices, browsers or scenarios.
 
 No product change, deployment, merge or Production access.
+
+## 132. Text panel accordion (2026-10-25, PENDING Mazen's check)
+
+Mazen's task "GamID — Text Panel Accordion UX Improvement", TESTING only.
+
+**What changed:** Pro Effects, My Fonts and Upload My Font are accordions, one open at a time (Pro Effects at first), with clickable headings and chevrons. The content and behaviour inside each section are unchanged. Desktop and phones; the tablet layout is unchanged. Details: `docs/WALL-EDITOR-TEXT-EFFECTS.md` (Text panel accordion).
+
+**Delivery:** product `9ee23d8634232146602dc232589e626db5e1e8ab`, TESTING run `40194686665`; the 3 changed files are byte-identical live, and the live editor builds the accordion (Pro Effects open) on desktop and phone with no page errors.
+
+**Validation:**
+- `npm run build`: 2220 tests, 0 failures (+1 test).
+- Lab accordion walk-through, 25/25:
+  - every section opens and closes, with only one open; keyboard;
+  - Living Ice applies and draws live; a library font applies;
+  - upload without a licence is refused; two real WOFF2 uploads succeed; choose and delete with confirmation; the messages show in the open section;
+  - Save and Preview work;
+  - phone 390 × 844: 44px headings, exclusive opening, a Pro Effect still applies, no horizontal scroll;
+  - tablet: the sections are still hidden.
+- Regression: Pro Effects 36/36 desktop and 17/17 phone; stickers 59; stages 60; Friends Stage editor 36; mobile functions 9; live anonymous effects smoke 8/8 (the only console errors are the existing signed-out 401 and the favicon).
+
+GamID Truth: NO CHANGE REQUIRED (a layout change; no capability or contract changes).
+Product Memory: NO CHANGE — approval not given.
+Not merged; Production untouched.

@@ -329,3 +329,15 @@ The Text panel's Text Effects became **Pro Effects** (Neon, Living Fire, Living 
 - Choosing a card applies its effect instead of toggling it. The Living Fire controls moved from the Text Effects section into their own LIVING FIRE EFFECTS section, first in Properties, with Remove effect. The rest of that section is now **Text Style** (Outline, Shadow, Gradient fill).
 - The live limit of 4 is now shared with every animated effect on a page; a Fire-only Wall still animates 4.
 - Living Fire's shaders, transform, setting and fallbacks are unchanged.
+
+## Text panel accordion (2026-10-25, TESTING `9ee23d8`)
+
+Mazen's task "GamID — Text Panel Accordion UX Improvement". In the Text panel, **Pro Effects**, **My Fonts** and **Upload My Font** are now accordions.
+
+- **Headings:** each existing heading holds a real button (`aria-expanded`, `aria-controls`) with a chevron: the font library's on desktop, a 44px CSS chevron on phones. Its content sits in a labelled region.
+- **One open at a time:** opening one closes the others, and clicking the open heading closes it. Pro Effects is open at first, and the choice is kept while the editor is open.
+- **Unchanged:** content, ids and behaviour - the four effect cards, My Fonts (list, n/3, choose, delete) and Upload My Font (licence, upload, limits).
+- **Font status line:** the shared upload / delete message shows in whichever font section is open, so an upload's result appears in Upload My Font and a deletion's in My Fonts.
+- **Font library:** unchanged.
+- **The 600-899px panel** still hides all three sections.
+- **Code:** `dist/wall-editor/tools.js` (it wraps the existing markup; `index.html` is unchanged), `editor-desktop.css` and `editor-mobile.css`.
