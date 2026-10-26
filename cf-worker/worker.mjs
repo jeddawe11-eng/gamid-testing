@@ -32,7 +32,12 @@
 // it in place of the OG embed; the OG / Twitter tags above are unchanged for every other platform, and a null identity still gets no card at all. Its divider
 // lines are a static image from this site's /assets (DIVIDER_IMAGE_PATH), served by the unchanged static-asset path below.
 //
-// Routing (see wrangler.jsonc: assets.run_worker_first: ["/@*"]): ONLY requests whose path matches "/@<segment>" or "/@<segment>/intro.webm" are handled here;
+// INTRO THUMBNAIL FOR DISCORD (2026-10-26, TESTING review) update: when the owner chose a thumbnail frame and its share copy is ready, the card's Intro is a
+// third route, /@<handle>/intro-discord.webm: the same passthrough, of that copy (the chosen frame first, then the whole Intro from 0:00). Without a ready copy
+// that route serves the unchanged derivative, so an older Discord message never breaks. og:video stays the derivative for every other platform.
+//
+// Routing (see wrangler.jsonc: assets.run_worker_first: ["/@*"]): ONLY requests whose path matches "/@<segment>", "/@<segment>/intro.webm" or
+// "/@<segment>/intro-discord.webm" are handled here;
 // the Worker runs BEFORE Cloudflare's own static-asset routing for that pattern, which matters because that routing was observed (Phase 0a) to redirect a
 // literal "/@black" to "/%40black" before ever reaching a Worker. Every other path (including "/@handle/extra" and non-GET/HEAD methods) falls straight through to
 // the accepted Phase 0a static-asset behavor (env.ASSETS.fetch), so Phase 0a's own tested behavior - the accepted 404 page, the normal site - is unchanged.
@@ -44,7 +49,7 @@
 // apart from "exists, is public, but has no Intro" from either response.
 
 import { normalizeHandle, validateHandle } from "../dist/account/domain.js";
-import { DIVIDER_IMAGE_PATH, componentEmbedScript, fetchPublicExtras } from "./discord-card.mjs";
+import { DIVIDER_IMAGE_PATH, INTRO_SHARE_ROUTE, componentEmbedScript, fetchPublicExtras, fetchPublicIntroShare, introShareUrl } from "./discord-card.mjs";
 
 const SUPABASE_URL = "https://upvtrczefcvigxdyuylw.supabase.co";
 // The browser's own public ("anon") key, copied verbatim from dist/account/supabase-client.js. Not a secret: it ships in every page load already and is
@@ -91,6 +96,7 @@ export function buildVideoUrl(identity, handle, origin, version) {
 
 const HANDLE_PATH_RE = /^\/@([^/]+)\/?$/;   // the same shape dist/404.html's own client-side redirect already matches
 const INTRO_PATH_RE = /^\/@([^/]+)\/intro\.webm\/?$/;
+const INTRO_SHARE_PATH_RE = new RegExp(`^/@([^/]+)/${INTRO_SHARE_ROUTE.replace(".", "\\.")}/?$`);
 
 export function parseHandlePath(pathname) {
   const match = HANDLE_PATH_RE.exec(pathname);
@@ -99,6 +105,11 @@ export function parseHandlePath(pathname) {
 
 export function parseIntroPath(pathname) {
   const match = INTRO_PATH_RE.exec(pathname);
+  return match ? match[1] : null;
+}
+
+export function parseIntroSharePath(pathname) {
+  const match = INTRO_SHARE_PATH_RE.exec(pathname);
   return match ? match[1] : null;
 }
 
@@ -157,13 +168,14 @@ export async function fetchPublicIdentity(handle, fetchImpl = fetch) {
 // the upstream status/headers back, stream the body. No Range parsing/slicing is implemented here - it would only duplicate what the storage backend already
 // does correctly. A short AbortController timeout bounds only the wait for the upstream response to START (headers), never the body transfer itself, so large
 // videos are never cut off once streaming begins.
-async function fetchIntroVideo(path, rangeHeader, fetchImpl = fetch) {
+// (The Discord share copy is read the same way from its own bucket, whose storage policy admits only the current ready copy of a PUBLIC GamID.)
+async function fetchIntroVideo(path, rangeHeader, fetchImpl = fetch, bucket = "intro-media") {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 6000);
   try {
     const headers = { apikey: PUBLISHABLE_KEY };
     if (rangeHeader) headers.Range = rangeHeader;
-    return await fetchImpl(`${SUPABASE_URL}/storage/v1/object/authenticated/intro-media/${path.split("/").map(encodeURIComponent).join("/")}`, { headers, signal: controller.signal });
+    return await fetchImpl(`${SUPABASE_URL}/storage/v1/object/authenticated/${bucket}/${path.split("/").map(encodeURIComponent).join("/")}`, { headers, signal: controller.signal });
   } catch {
     return null;
   } finally {
@@ -177,11 +189,11 @@ async function fetchIntroVideo(path, rangeHeader, fetchImpl = fetch) {
 const PASSTHROUGH_VIDEO_STATUSES = new Set([200, 206, 416]);
 const FORWARDED_VIDEO_HEADERS = ["content-type", "content-length", "content-range", "accept-ranges", "etag", "last-modified"];
 
-export async function handleIntroRequest(request, check, identity) {
-  const introPath = check.valid ? identity?.intro_derivative_path : null;
-  if (!introPath) return new Response("Not Found", { status: 404 });   // invalid handle, unknown handle, unpublished identity, or no Intro: identical response
+export async function handleIntroRequest(request, check, identity, share = null) {
+  const media = !check.valid ? null : share?.path ? { bucket: "intro-share-copies", path: share.path } : identity?.intro_derivative_path ? { bucket: "intro-media", path: identity.intro_derivative_path } : null;
+  if (!media) return new Response("Not Found", { status: 404 });   // invalid handle, unknown handle, unpublished identity, or no Intro: identical response
 
-  const upstream = await fetchIntroVideo(introPath, request.headers.get("range"));
+  const upstream = await fetchIntroVideo(media.path, request.headers.get("range"), fetch, media.bucket);
   if (!upstream || !PASSTHROUGH_VIDEO_STATUSES.has(upstream.status)) return new Response("Not Found", { status: 404 });
 
   const headers = new Headers();
@@ -258,16 +270,25 @@ export default {
       const identity = check.valid ? await fetchPublicIdentity(check.handle, fetch) : null;
       return handleIntroRequest(request, check, identity);
     }
+    // the Discord card's Intro: the share copy when one is ready, else the unchanged derivative (the identity is looked up only then)
+    const shareSegment = parseIntroSharePath(url.pathname);
+    if (shareSegment !== null) {
+      const check = parseHandleFromRequest(shareSegment);
+      const share = check.valid ? await fetchPublicIntroShare(check.handle, { supabaseUrl: SUPABASE_URL, publishableKey: PUBLISHABLE_KEY }) : null;
+      const identity = check.valid && !share ? await fetchPublicIdentity(check.handle, fetch) : null;
+      return handleIntroRequest(request, check, identity, share);
+    }
 
     const rawSegment = parseHandlePath(url.pathname);
     if (rawSegment === null) return env.ASSETS.fetch(request);   // not a single-segment "/@..." URL: unchanged Phase 0a static-asset behavior (incl. the accepted 404)
 
     const check = parseHandleFromRequest(rawSegment);
-    // the Discord card's Banner / Location come from the same anonymous extras RPC the profile page calls; both lookups run together, for every well-formed
-    // handle alike (a malformed one still makes no call at all)
-    const [identity, extras] = check.valid
-      ? await Promise.all([fetchPublicIdentity(check.handle, fetch), fetchPublicExtras(check.handle, { supabaseUrl: SUPABASE_URL, publishableKey: PUBLISHABLE_KEY })])
-      : [null, null];
+    // the Discord card's Banner / Location come from the same anonymous extras RPC the profile page calls, and its thumbnail-first Intro from the share-copy
+    // lookup; all three run together, for every well-formed handle alike (a malformed one still makes no call at all)
+    const lookup = { supabaseUrl: SUPABASE_URL, publishableKey: PUBLISHABLE_KEY };
+    const [identity, extras, share] = check.valid
+      ? await Promise.all([fetchPublicIdentity(check.handle, fetch), fetchPublicExtras(check.handle, lookup), fetchPublicIntroShare(check.handle, lookup)])
+      : [null, null, null];
 
     const shellRes = await env.ASSETS.fetch(new Request(`${url.origin}/public/`, { method: "GET" }));
     if (!shellRes.ok) return shellRes;   // fail safe: surface whatever the assets layer itself returned rather than mask it
@@ -280,8 +301,10 @@ export default {
     const image = buildImageUrl(identity, check.handle, version) || `${url.origin}${SOCIAL_CARD_PATH}`;
     const video = buildVideoUrl(identity, check.handle, url.origin, version);
     const profileUrl = `${url.origin}/@${encodeURIComponent(check.handle)}`;
+    // the card's Intro: the share copy (the owner's chosen frame first) when one is ready, else the same URL as og:video
+    const cardVideo = video && share ? await introShareUrl(share, check.handle, url.origin) : video;
     // the card's divider image is this site's own static asset (dropping dividerUrl restores Version A's native grey Separators)
-  const componentEmbed = componentEmbedScript({ identity, extras, handle: check.handle, profileUrl, videoUrl: video, supabaseUrl: SUPABASE_URL, version, dividerUrl: `${url.origin}${DIVIDER_IMAGE_PATH}` });
+  const componentEmbed = componentEmbedScript({ identity, extras, handle: check.handle, profileUrl, videoUrl: cardVideo, supabaseUrl: SUPABASE_URL, version, dividerUrl: `${url.origin}${DIVIDER_IMAGE_PATH}` });
     const html = injectMetadata(shellHtml, { ...meta, url: `${url.origin}${url.pathname}`, image, video, componentEmbed });
 
     return new Response(request.method === "HEAD" ? null : html, {

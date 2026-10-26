@@ -89,7 +89,13 @@ test("WORKER: its own defensive 150 MiB processing ceiling, derivative ceiling, 
 
 test("no other migration redefines the Intro source limit after this one, and the Usage gateway never changes bucket caps", () => {
   const later = readdirSync(new URL("../supabase/migrations/", import.meta.url)).filter(name => name > migrationName);
-  for (const name of later) assert.doesNotMatch(stripSql(read(`supabase/migrations/${name}`)), /intro-sources|intro_processing_jobs|queue_my_intro|source_size_bytes|52428800|157286400/i, `${name} leaves the Intro source limit alone`);
+  // Intro Thumbnail for Discord only READS the Intro jobs (its share copies reference the active job); it never touches the source path, table limits or queue
+  const readsIntroJobs = new Set(["20261026120000_intro_discord_thumbnail.sql"]);
+  for (const name of later) {
+    const sql = stripSql(read(`supabase/migrations/${name}`));
+    assert.doesNotMatch(sql, readsIntroJobs.has(name) ? /intro-sources|queue_my_intro|source_size_bytes|52428800|157286400|alter\s+table\s+public\.intro_processing_jobs|update\s+public\.intro_processing_jobs/i
+      : /intro-sources|intro_processing_jobs|queue_my_intro|source_size_bytes|52428800|157286400/i, `${name} leaves the Intro source limit alone`);
+  }
   const usage = stripSql(read("supabase/migrations/20261004170252_global_usage_gateway.sql"));
   assert.doesNotMatch(usage, /alter\s+table\s+storage\.buckets|update\s+storage\.buckets|52428800|157286400/i, "Usage reuses bucket limits and extends ownership only");
 });

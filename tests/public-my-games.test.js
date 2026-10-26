@@ -540,6 +540,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261022110000_usage_media_orphans.sql",   // Universal deletion: the owner's Usage cleanup removes left-behind Wall media files; authorize_usage_delete refuses registered Wall files
       "20261024100000_friends_stickers_v1.sql",   // Friends Stickers V1: own table + sticker RPCs, four notification types, the draft save's STAGE_HAS_STICKERS check; public identity / My Games untouched
       "20261025100000_friends_stickers_corrections.sql",   // Friends Stickers follow-up: quota ledger, Discord message links, private senders' stickers + avatars, get_private_identity_notice; public identity / My Games untouched
+      "20261026120000_intro_discord_thumbnail.sql",   // Intro Thumbnail for Discord: two Intro-settings columns, own share-copy bucket / table / RPCs, usage gains one bucket; public identity / My Games untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

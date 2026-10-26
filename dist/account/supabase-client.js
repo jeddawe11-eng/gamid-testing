@@ -509,6 +509,14 @@ export async function queueIntro({ jobId, sourcePath, transitionKey, sourceMime,
 }
 
 export const setIntroTransition = transitionKey => rpc("set_my_intro_transition", { candidate_transition:transitionKey });
+// Intro Thumbnail for Discord (supabase/migrations/20261026120000_intro_discord_thumbnail.sql): the chosen frame of the ACTIVE Intro and its share copy's state
+export async function getMyIntroThumbnail() {
+  const row = (await rpc("get_my_intro_thumbnail"))?.[0];
+  return row?.job_id ? { jobId:row.job_id, thumbnailMs:row.thumbnail_ms ?? null, shareState:row.share_state ?? null, shareFailureCode:row.share_failure_code ?? null,
+    durationMs:Number(row.intro_duration_ms) || 0, fps:Number(row.intro_fps) || 0 } : null;
+}
+// null = the Intro's own first frame; jobId must still be the active Intro (INTRO_THUMBNAIL_INTRO_CHANGED otherwise)
+export const setIntroThumbnail = (jobId, thumbnailMs) => rpc("set_my_intro_thumbnail", { candidate_job_id:jobId, candidate_thumbnail_ms:thumbnailMs ?? null });
 export const removeIntro = () => rpc("remove_my_intro");
 
 export async function setMyIdentityVisibility(candidatePublic) {

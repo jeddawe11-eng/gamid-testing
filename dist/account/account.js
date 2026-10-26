@@ -6,6 +6,7 @@ import { PRESETS } from "../transition-engine.js";
 import * as api from "./supabase-client.js";
 import { createIntroSourceResolver } from "./intro-source.js";
 import { createEditorPreviewEnd } from "./intro-preview-host.js";
+import { mountIntroThumbnailPicker } from "./intro-thumbnail.js";
 import { mountClassicPreview } from "./classic-preview.js";
 import { authenticatedReturnPath } from "./testing-auth-handoff.js";
 import { createOwnedUploadBlob } from "./resumable-upload.js";
@@ -108,6 +109,9 @@ window.addEventListener('pagehide',()=>editor.desktop.clearMedia());
 window.addEventListener(api.AUTH_SESSION_EVENT, () => { stopIntroPreview(); introSource.invalidate(); });
 window.addEventListener("storage", event => { if (event.key === "gamid.testing.auth.session.v1") { stopIntroPreview(); introSource.invalidate(); } });
 window.addEventListener("pagehide", () => { stopIntroPreview(); introSource.invalidate(); });
+// Intro Thumbnail for Discord: the frame of the SAVED Intro that Discord shows before Play (saved with this section's Save Changes)
+const introThumbnail = mountIntroThumbnailPicker(document, { resolveSource:() => introSource.resolve(), loadState:() => api.getMyIntroThumbnail(), onChange:() => updateProfilePreview() });
+window.addEventListener(api.AUTH_SESSION_EVENT, () => { if (api.userIdFromToken() !== introOwner) introThumbnail.destroy(); });
 
 let introAction = "keep";
 let pendingPreviewConfig = null;
@@ -226,7 +230,7 @@ function profileDraft() {
 }
 
 function introDraft() {
-  return { transitionKey:document.getElementById("introTransition").value || "fade", action:introAction, pendingJobId:pendingIntroSource?.jobId || null };
+  return { transitionKey:document.getElementById("introTransition").value || "fade", action:introAction, pendingJobId:pendingIntroSource?.jobId || null, thumbnailMs:introThumbnail.value };
 }
 
 const profileCatalogs = () => ({ roleKeys:roleCatalog.map(role => role.key), educationStatuses:educationWorkCatalog.map(status => status.key) });
@@ -473,6 +477,8 @@ function renderIntroState() {
   } else { status.textContent = "No video selected."; summary.textContent = "No intro yet"; }
   document.getElementById("previewIntroButton").disabled = introAction === "remove" || !(pendingIntroSource?.url || activeIntroPath);
   document.getElementById("removeIntroButton").disabled = !(pendingIntroSource || savedIntro?.activeJobId || ["pending","processing"].includes(savedIntro?.latestJobState));
+  // a frame belongs to the kept, settled Intro: not while a new one is chosen, removed or processing
+  introThumbnail.setEnabled(Boolean(!pendingIntroSource && introAction === "keep" && savedIntro?.activeJobId && !["pending","processing"].includes(savedIntro?.latestJobState)));
 }
 
 function renderVisibility() {
@@ -512,10 +518,14 @@ async function restoreIntroState(intro) {
   const nextPath = intro?.active_derivative_path || null;
   if (activeIntroPath !== nextPath || introOwner !== api.userIdFromToken()) { stopIntroPreview(); introSource.invalidate(); }
   activeIntroPath = nextPath; introOwner = api.userIdFromToken();
+  // the Discord thumbnail of THIS active Intro (none for another Intro, or when it cannot be read: Discord then shows the Intro's first frame)
+  let thumbnail = null;
+  if (intro?.active_job_id) { try { thumbnail = await api.getMyIntroThumbnail(); } catch { thumbnail = null; } }
+  introThumbnail.setSaved(thumbnail?.jobId === intro?.active_job_id ? thumbnail : null);
   savedIntro = {
     transitionKey:intro?.transition_key || "fade", action:"keep", activeJobId:intro?.active_job_id || null,
     latestJobId:intro?.latest_job_id || null, latestJobState:intro?.latest_job_state || null,
-    latestFailureCode:intro?.latest_failure_code || null,
+    latestFailureCode:intro?.latest_failure_code || null, thumbnailMs:introThumbnail.saved,
   };
   document.getElementById("introTransition").value = savedIntro.transitionKey;
   renderIntroState();
@@ -2315,6 +2325,7 @@ async function saveEditorSection(key){
       sourcePath=await api.uploadIntroSource(source.file,owner,source.jobId);if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error("AUTH_REQUIRED");await api.queueIntro({jobId:source.jobId,sourcePath,transitionKey:introChange.transitionKey,sourceMime:source.file.type,sourceSize:source.file.size,durationMs:source.durationMs});}catch(error){if (sourcePath) {try{await api.deleteIntroSource(sourcePath);}catch{/* Existing server cleanup remains available. */}}throw error;}}
    else if(introChange.action==='remove'){await api.removeIntro();api.reconcileUsageUploads().catch(()=>{});}   // ISS-0011: the removed Intro's file is released now, not at the next Intro
    else if(savedIntro?.transitionKey!==introChange.transitionKey)await api.setIntroTransition(introChange.transitionKey);
+   if(!source&&introChange.action==='keep'&&introThumbnail.jobId&&introChange.thumbnailMs!==savedIntro?.thumbnailMs)await api.setIntroThumbnail(introThumbnail.jobId,introChange.thumbnailMs);   // Discord thumbnail frame
    if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');
    const intro=await api.getMyIntro();if(epoch!==profileFeedbackEpoch||owner!==api.userIdFromToken()||entity!==identity?.entity_id)throw Error('AUTH_REQUIRED');await restoreIntroState(intro);if(isProcessingIntroState(intro))introStatusPoller.start();
   }else if(['name','bio','avatar','roles','education'].includes(key)){
@@ -2441,7 +2452,7 @@ document.getElementById("signOutButton").addEventListener("click", async () => {
   if (wallDialog.open) wallDialog.close();
   wallVisibility = undefined; wallBusy = false; renderWallVisibility();
   try { await api.signOut(); }
-  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; stopCrewRealtime?.(); stopCrewRealtime = null; crewPanel = null; introStatusPoller.stop(); releasePendingIntro(); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; stagedVisibility.clear(); actionDrafts.clear(); savedLanguage=null; showView("auth"); document.getElementById("signinTab").click(); }
+  finally { stopDuoRealtime?.(); stopDuoRealtime = null; duoPanel = null; stopCrewRealtime?.(); stopCrewRealtime = null; crewPanel = null; introStatusPoller.stop(); introThumbnail.destroy(); releasePendingIntro(); activeIntroUrl = null; identity = null; savedProfile = null; savedIntro = null; pendingAvatar = null; stagedVisibility.clear(); actionDrafts.clear(); savedLanguage=null; showView("auth"); document.getElementById("signinTab").click(); }
 });
 window.addEventListener("beforeunload", event => {
   if (!isProfileDirty()) return;

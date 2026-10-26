@@ -37,6 +37,7 @@ test("every <video> GamID creates is muted or never played - except the Intro, w
     "dist/account/intro-preview.js": "Intro preview: only its split / ambient clones are created here, muted",
     "dist/account/account.js": "reads an Intro source's duration (metadata only, never played)",
     "dist/account/editor-media.js": "muted frame capture",
+    "dist/account/index.html": "the Discord thumbnail picker (#introThumbnailVideo): muted, only scrubbed while paused, never played",
     "dist/wall-editor/assets.js": "muted metadata probe of an upload",
     "dist/wall-editor/video-preview.js": "muted still-frame probe, never played",
     "dist/wall-kit/video-background.js": "Wall background / video layers: always muted",
@@ -46,6 +47,8 @@ test("every <video> GamID creates is muted or never played - except the Intro, w
   assert.deepEqual(creators.sort(), Object.keys(ALLOWED).sort(), "a new place that creates a <video> needs a silent-UI review");
   for (const file of ["dist/account/editor-media.js", "dist/wall-editor/assets.js", "dist/wall-editor/video-preview.js", "dist/wall-kit/video-background.js"]) assert.match(read(file), /\.muted\s*=\s*true/, file);
   assert.match(read("dist/account/intro-preview.js"), /clone\.muted=true/);
+  assert.match(read("dist/account/index.html"), /<video id="introThumbnailVideo" class="intro-thumbnail-frame" muted /, "the thumbnail picker's frame is muted");
+  assert.doesNotMatch(read("dist/account/intro-thumbnail.js"), /\.play\(|autoplay|controls/, "the thumbnail picker only seeks a paused video");
   assert.doesNotMatch(read("dist/account/account.js").slice(read("dist/account/account.js").indexOf('const video = document.createElement("video");'), read("dist/account/account.js").indexOf('const video = document.createElement("video");') + 600), /\.play\(/, "the duration probe never plays");
   assert.match(read("dist/account/intro-preview.html"), /<video id="introVideo" playsinline preload="metadata"><\/video>/, "the Intro player is unchanged (not muted by this policy)");
 });

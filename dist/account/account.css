@@ -472,6 +472,17 @@ a.duo-handle:hover,a.duo-handle:focus-visible{text-decoration:underline}
 .role-review-head{margin:0}
 .role-review-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
 .role-review-actions input,.role-review-actions select{flex:1 1 12rem;margin-top:0}
+/* Intro Thumbnail for Discord: scrub the saved Intro, the paused frame is the preview */
+.intro-thumbnail{display:grid;gap:.6rem;padding-top:.9rem;border-top:1px solid #2b2738}
+.intro-thumbnail[hidden],.intro-thumbnail-stage[hidden],.intro-thumbnail .secondary[hidden]{display:none}
+.intro-thumbnail-title{display:grid;gap:.2rem;margin:0}.intro-thumbnail-title small{color:var(--muted);font-size:.78rem}
+.intro-thumbnail-stage{display:grid;gap:.5rem}
+.intro-thumbnail-frame{display:block;width:100%;max-width:28rem;aspect-ratio:16/9;object-fit:contain;border:1px solid #312a40;border-radius:.65rem;background:#000}
+.intro-thumbnail-scrub{display:grid;grid-template-columns:auto 1fr auto;gap:.5rem;align-items:center}
+.intro-thumbnail-scrub .secondary{margin:0;min-width:2.8rem;min-height:2.8rem;padding:0 .7rem}
+.intro-thumbnail-scrub input[type=range]{width:100%;margin:0;accent-color:#b14cff}
+.intro-thumbnail-meta{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:space-between;align-items:center;margin:0;font-variant-numeric:tabular-nums;color:var(--muted)}
+.intro-thumbnail-meta .text-button{margin:0;min-height:2.4rem}
 /* Steam Connection Foundation: the SteamID64 is the whole identity, so on the Steam card it wraps and is never ellipsized (same approach as
    the League card fix). Scoped to the Steam card only: Discord and League styling is untouched. */
 .connection-card[data-provider="steam"] .connection-head{flex-wrap:wrap;row-gap:.6rem}

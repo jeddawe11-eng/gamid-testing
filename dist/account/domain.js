@@ -131,7 +131,9 @@ export function validateIntroSource(file, durationMs) {
 export function hasIntroChanges(saved, draft, hasPendingSource = false) {
   const before = normalizeIntroDraft(saved);
   const after = normalizeIntroDraft(draft);
-  return hasPendingSource || before.transitionKey !== after.transitionKey || after.action !== "keep";
+  // the Discord thumbnail frame (dist/account/intro-thumbnail.js) belongs to the kept Intro; null = its own first frame
+  const frameChanged = after.action === "keep" && (saved?.thumbnailMs ?? null) !== (draft?.thumbnailMs ?? null);
+  return hasPendingSource || before.transitionKey !== after.transitionKey || after.action !== "keep" || frameChanged;
 }
 
 export const errorMessage = reason => ({
@@ -160,6 +162,9 @@ export const errorMessage = reason => ({
   INTRO_DURATION_INVALID: "Intro video must be between 0.5 and 30 seconds.",
   INTRO_PROCESSING_IN_PROGRESS: "Your previous Intro is still processing.",
   INVALID_INTRO_TRANSITION: "Choose an available Intro transition.",
+  INTRO_THUMBNAIL_INTRO_CHANGED: "Your Intro changed. Choose the Discord thumbnail frame again.",
+  INVALID_INTRO_THUMBNAIL: "Choose a frame inside your Intro.",
+  INTRO_THUMBNAIL_RATE_LIMITED: "You changed the Discord thumbnail many times in the last hour. Try again later.",
   INTRO_UPLOAD_NETWORK_ERROR: "Intro upload was interrupted. Check your connection, then select Save Changes again.",
   INTRO_UPLOAD_FAILED: "Intro upload could not be completed. Select Save Changes to try again.",
   // upload gateway refusals (supabase/functions/_shared/usage-upload.js), shared by Avatar and Intro saves

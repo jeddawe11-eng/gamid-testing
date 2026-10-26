@@ -82,6 +82,41 @@ export async function fetchPublicExtras(handle, { supabaseUrl, publishableKey, f
   }
 }
 
+// Intro Thumbnail for Discord (2026-10-26): the owner's chosen frame reaches Discord as the FIRST frame of a share copy (worker/intro-share.mjs: that frame +
+// the whole Intro, audio delayed by one frame). The anonymous lookup returns the current READY copy of a PUBLIC GamID only, else nothing; fails SAFE to null,
+// and the card then plays the unchanged Intro exactly as before.
+const SHARE_PATH_RE = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.webm$/;
+export async function fetchPublicIntroShare(handle, { supabaseUrl, publishableKey, fetchImpl = fetch } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4000);
+  try {
+    const res = await fetchImpl(`${supabaseUrl}/rest/v1/rpc/get_public_intro_share`, {
+      method: "POST",
+      headers: { apikey: publishableKey, "content-type": "application/json" },
+      body: JSON.stringify({ candidate_handle: handle }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    const path = Array.isArray(rows) ? rows[0]?.share_path : null;
+    return typeof path === "string" && SHARE_PATH_RE.test(path) ? { path } : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// The card's Intro URL when a share copy is ready: this Worker's own route, tagged by the copy's (unguessable, per-attempt) path, so every new frame is a new
+// URL Discord fetches afresh. The tag is a one-way 8-hex digest; the path itself never reaches the payload.
+export const INTRO_SHARE_ROUTE = "intro-discord.webm";
+export async function introShareUrl(share, handle, origin) {
+  if (!share?.path) return null;
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(share.path));
+  const version = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 8);
+  return `${origin}/@${encodeURIComponent(handle)}/${INTRO_SHARE_ROUTE}?v=${version}`;
+}
+
 const tag = (url, version) => (version ? `${url}${url.includes("?") ? "&" : "?"}v=${version}` : url);
 
 export function avatarTileUrl(supabaseUrl, handle, version) {

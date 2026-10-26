@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { processOneWallVideoJob, transcodeWallBackground } from "./wall-video.mjs";
 import { processOneWallVideoRendition } from "./wall-rendition.mjs";
+import { processOneIntroShare, sweepIntroShares } from "./intro-share.mjs";
 import { uploadGatewayFile, deleteGatewayObject } from './usage-upload.mjs';
 
 const run = promisify(execFile);
@@ -112,14 +113,19 @@ async function cleanupEligible() {
     if (row.derivative_path) { await deleteGatewayObject(backend,'intro-media',row.derivative_path); derivativeDeleted=true; }
     await api("/rest/v1/rpc/worker_confirm_intro_cleanup", { body:{ candidate_job_id:row.job_id,candidate_source_deleted:sourceDeleted,candidate_derivative_deleted:derivativeDeleted } });
   }
+  // Discord share copies of a replaced, removed or re-framed Intro (see intro-share.mjs); a failure here never fails the Intro run
+  try { const {url,key}=environment(); await sweepIntroShares({ url, headers:contentType => backendRequestHeaders(key, contentType ? "" : undefined, contentType) }); } catch { /* the next run sweeps */ }
 }
 
 export async function processOneRemoteJob() {
   const rows = await api("/rest/v1/rpc/worker_claim_intro_job", { body:{} }); const job = rows?.[0];
   if (!job) {
     await cleanupEligible();
-    // no Intro waiting: the same Job execution serves one queued Wall background video (HEVC -> H.264, see wall-video.mjs)
     const { url,key } = environment();
+    // no Intro waiting: one queued Discord share copy (the owner's chosen thumbnail frame + the whole Intro, see intro-share.mjs)
+    const share = await processOneIntroShare({ url, headers:contentType => backendRequestHeaders(key, contentType ? "" : undefined, contentType) });
+    if (share.processed) return { processed:true, kind:"intro-share", ...share };
+    // nor a share copy: the same Job execution serves one queued Wall background video (HEVC -> H.264, see wall-video.mjs)
     const wall = await processOneWallVideoJob({ url, headers:contentType => backendRequestHeaders(key, contentType ? "" : undefined, contentType) });
     if (wall.processed) return { processed:true, kind:"wall-video", ...wall };
     // F8-B1: no conversion waiting either: one queued internal visitor rendition (see wall-rendition.mjs); the original always stays the owner's video
@@ -155,6 +161,10 @@ if (command === "encode") {
   // F8-B1: synthetic, in-image only (no credentials, Storage or user data); proves the VMAF-only binary and the real gate inside the deployed image
   const { renditionSmoke } = await import("./wall-rendition.mjs");
   console.log(JSON.stringify(await renditionSmoke()));
+} else if (command === "share-smoke") {
+  // Intro Thumbnail for Discord: synthetic, in-image only (no credentials, Storage or user data); the real D3 encode, then the real share copy + validation
+  const { shareSmoke } = await import("./intro-share.mjs");
+  console.log(JSON.stringify(await shareSmoke(encodeD3)));
 } else if (command === "intro-timing-smoke") {
   const { smokeIntroFrameTiming } = await import("./intro-timing-smoke.mjs");
   const {url,key}=environment();

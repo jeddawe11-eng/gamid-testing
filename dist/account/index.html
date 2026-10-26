@@ -92,6 +92,16 @@
               <label>Intro video <span>Private · max 30 seconds</span><input id="introVideoInput" type="file" accept="video/mp4,video/quicktime,video/webm" /><small>MP4, MOV, or WebM · max 50 MB. GamID prepares the approved D3 version in the background.</small></label>
               <p id="introFileStatus" class="intro-file-status">No video selected.</p>
               <label>Transition<select id="introTransition"></select><small>Uses the accepted GamID Transition Engine.</small></label>
+              <div id="introThumbnailPicker" class="intro-thumbnail" hidden>
+                <p class="intro-thumbnail-title"><strong>Discord thumbnail</strong><small>The frame Discord shows before Play when your GamID link is shared. Your Intro still plays from the beginning.</small></p>
+                <button id="introThumbnailOpen" class="secondary" type="button">CHOOSE A FRAME</button>
+                <div id="introThumbnailStage" class="intro-thumbnail-stage" hidden>
+                  <video id="introThumbnailVideo" class="intro-thumbnail-frame" muted playsinline preload="auto" disablepictureinpicture aria-label="Selected thumbnail frame"></video>
+                  <div class="intro-thumbnail-scrub"><button id="introThumbnailBack" class="secondary" type="button" aria-label="Previous frame">‹</button><input id="introThumbnailRange" type="range" min="0" max="0" step="1" value="0" aria-label="Thumbnail frame" /><button id="introThumbnailForward" class="secondary" type="button" aria-label="Next frame">›</button></div>
+                  <p class="intro-thumbnail-meta"><span id="introThumbnailTime">First frame (default)</span><button id="introThumbnailReset" class="text-button" type="button">Use first frame</button></p>
+                </div>
+                <p id="introThumbnailStatus" class="intro-file-status" role="status" aria-live="polite"></p>
+              </div>
               <div class="intro-actions"><button id="previewIntroButton" class="secondary" type="button" disabled>PREVIEW INTRO</button><button id="removeIntroButton" class="text-button danger" type="button" disabled>Remove Intro</button></div>
             </div>
           </div>
