@@ -5388,3 +5388,29 @@ Mazen asked for purple dividers in place of the grey ones and authorized live te
 GamID Truth: UPDATED. The `discord-share-card-layout` contract now describes the line-image dividers as a test, with Version A as the rollback. New limits: divider image 1200 × 8 px. The checkpoint is `2d08e89`.
 
 GamID Truth: UPDATED. The `discord-share-card-layout` contract describes the Version A styling (accent, dividers, subtext, headings), and the checkpoint is `7507d12`. Status stays PENDING_ACCEPTANCE.
+
+## 136. Intro Thumbnail for Discord: implemented locally (2026-10-26, NOT deployed)
+
+Mazen's task "Implement Intro Thumbnail Selection for Discord" (2026-10-26): the owner picks a frame of their saved Intro, and Discord shows it before Play. Play still runs the whole Intro from 0:00 in sync. See `docs/INTRO-DISCORD-THUMBNAIL.md`.
+
+**Product commit:** `02c98c5` on `feature/discord-share-card-v2`.
+- **Editor:** a frame picker in the Intro section, shared by desktop and mobile. Saved with Save Changes and restored on reopen. No image upload.
+- **Migration** `20261026120000_intro_discord_thumbnail.sql`, **not applied**: the selection columns, the private `intro-share-copies` bucket (not counted in quota), the `intro_share_copies` queue, and the owner, visitor and worker RPCs, the sweep and dispatch.
+- **Worker** `worker/intro-share.mjs`: 1 chosen frame plus the whole Intro at the unchanged D3 settings, with the audio delayed by one frame. It runs in the existing image and Job, which are **not redeployed**.
+- **Cloudflare Worker:** the card's Intro becomes `/@<handle>/intro-discord.webm` when a copy is ready. og:video, the `/intro.webm` route and the B1 card are unchanged. **Not redeployed.**
+- **Rollout script:** `worker/cloud-run/deploy-intro-share-testing.sh`, reviewed and not run.
+
+**Tests:** `npm run build` passed: 2,258 tests, 0 failures, 3 opt-in skips. The native ffmpeg check (`GAMID_NATIVE_FFMPEG=1`) also passed at 30, 29.97 and 60 fps:
+- the chosen frame comes first;
+- every Intro frame follows unchanged;
+- the audio moves by one frame.
+
+**Deployment prerequisites** (each needs Mazen's approval):
+1. Apply the migration on TESTING.
+2. Rebuild and redeploy the worker image (Job and dispatcher) from Cloud Shell.
+3. Deploy the site and Worker.
+4. Run the live checks: desktop and mobile; Discord Web, the desktop app and a phone.
+
+The Cloudflare video-terms question (REV-0028, proposed ISS-0018) remains open.
+
+GamID Truth: UPDATED. `discord-share-card` notes record the local implementation. Its media contract still describes TESTING, where no share copy is deployed. Status and checkpoint unchanged.

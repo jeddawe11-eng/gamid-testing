@@ -76,7 +76,7 @@ Open GamID is the card's only link. `+N more` is not clickable.
 
 ## Limitations
 
-- **Thumbnail-first:** not available. The card plays the stored Intro derivative, so Discord's preview frame is the Intro's own first frame. A thumbnail-first share copy needs new Intro processing (the Cloud Run worker image), storage and a decision on which frame. None of that was authorized.
+- **Thumbnail-first:** not live on TESTING. The card plays the stored Intro derivative, so Discord's preview frame is the Intro's own first frame. The owner-chosen thumbnail frame is implemented locally (`02c98c5`) but not deployed: see `docs/INTRO-DISCORD-THUMBNAIL.md`. Once it is deployed, a ready share copy replaces only the card's Intro URL (`/@<handle>/intro-discord.webm`); the layout and B1 are unchanged.
 - **Cloudflare terms (unchanged, still open):** the Intro reaches Discord through the existing `/@<handle>/intro.webm` Worker stream of Supabase-hosted video, the same path `og:video` has used since Phase 1. This card adds no new video path. Whether Cloudflare's CDN video terms cover it is still unresolved (REV-0028).
 - **Caching:** Discord keeps a preview per page URL for a while. A change made after a link was first posted may only show when the link is posted again later.
 - **Banner version:** the Banner URL carries the identity version tag, which doesn't include the Banner itself.

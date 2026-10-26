@@ -176,6 +176,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 **Latest continuation (2026-10-26, Discord share card Version A, PENDING Mazen's visual review):** a shared `/@<handle>` link shows the Components V2 card in Discord, now in Mazen's approved Version A styling (§133–§134, `docs/DISCORD-SHARE-CARD.md`, Truth `discord-share-card`). The first version was deployed as `850d85e`. Purple line-image divider tests B1 (static) and B2 (animated) followed, with Version A's native Separators as the rollback; Mazen selected B1 (§135).
 - **Deployed from:** `feature/discord-share-card-v2`, which is `9ee23d8` plus docs, the REV-0028 records and the card. It does not contain `b9aa4c7` (Font Library order, on `feature/mobile-public-wall-visitor-v2`, not authorized for deployment).
 - **Next:** Mazen's visual review in Discord.
+- **Intro Thumbnail for Discord (2026-10-26):** implemented locally at `02c98c5` on this branch and **NOT deployed** (§136, `docs/INTRO-DISCORD-THUMBNAIL.md`).
+  - Its migration is not applied, the worker image is not redeployed and the Worker is not redeployed.
+  - Next: Mazen's approval for each deployment step.
 
 **Previous continuation (2026-10-25, Text panel accordion on TESTING `9ee23d8`, PENDING Mazen's check):** Pro Effects, My Fonts and Upload My Font are accordions, one open at a time (§132). Next: Mazen's check. (The accordion is still part of what TESTING serves.)
 
