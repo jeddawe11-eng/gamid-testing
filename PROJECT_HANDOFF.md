@@ -5414,3 +5414,39 @@ Mazen's task "Implement Intro Thumbnail Selection for Discord" (2026-10-26): the
 The Cloudflare video-terms question (REV-0028, proposed ISS-0018) remains open.
 
 GamID Truth: UPDATED. `discord-share-card` notes record the local implementation. Its media contract still describes TESTING, where no share copy is deployed. Status and checkpoint unchanged.
+
+## 137. Intro Thumbnail for Discord: deployed on TESTING and checked end to end (2026-10-27, PENDING_ACCEPTANCE)
+
+Mazen's task "Complete Intro Thumbnail Deployment & Acceptance on TESTING". Details, method and measurements: `docs/INTRO-DISCORD-THUMBNAIL.md`, "TESTING deployment".
+
+**Deployment** (existing infrastructure only; Production untouched; not merged):
+1. **Migration** `20261026120000_intro_discord_thumbnail`: rehearsed in a rolled-back transaction, applied in one transaction, recorded with `migration repair`. Usage was unchanged for every owner, and the existing Intros were untouched.
+2. **Worker image, Job and dispatcher:** deployed by Mazen in Cloud Shell, `deploy-intro-share-testing.sh` at `ee08a4a` (worker code identical to `02c98c5`). The image-only change was verified; `share-smoke`, `f2-smoke` and `rendition-smoke` passed.
+3. **Site and Worker:** `ee08a4a`, run `40358104036` (success).
+
+**End to end** (GM-TEST-01, synthetic media, temporarily PUBLIC, restored to DRAFT):
+
+PASS:
+- Intro processing on the new image.
+- The share copy: the chosen frame first; every Intro frame one frame later; the audio shifted by one frame.
+- The Worker serves the exact bytes.
+- Discord Web shows the chosen frame before Play, and again after a frame change with a new URL. Playback, Open GamID and B1 work.
+- Supersede, idempotency, the error paths and the hourly rate limit (tested in a rolled-back transaction).
+- Replacing the Intro voids the selection; older URLs fall back to the current Intro.
+- Removing the Intro: the copy is not served and the routes return 404.
+- The sweep after the 10-minute grace.
+- The quota exclusion (rolled-back probe).
+- F8-B1: `rendition-smoke` passed, and the existing rendition stayed ready.
+
+NOT TESTED by the agent:
+- the signed-in editor picker on desktop and mobile;
+- the Discord desktop app;
+- Discord on a phone.
+
+**Observed:** Mazen's own @black Intro got a share copy at 4.402 s during the session. It was left untouched.
+
+**Fresh test links** in #clips-test: messages `1564317528258257007` (3.000 s) and `1564318351524761741` (1.500 s).
+
+**Next:** Mazen's personal verification in GamID (desktop and mobile editor) and in Discord, then his acceptance decision.
+
+GamID Truth: UPDATED. New capability `intro-discord-thumbnail` (PENDING_ACCEPTANCE, checkpoint `02c98c5`). `discord-share-card`: the media contract now describes the share-copy URL with its fallback; checkpoint `02c98c5`; notes updated.

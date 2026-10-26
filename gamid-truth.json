@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-26",
+  "updated": "2026-10-27",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -346,12 +346,42 @@
         },
         {
           "id": "discord-share-card-media",
-          "rule": "Card media use the existing anonymous delivery only: the avatar tile is rendered by social-card (variant=avatar, 256x256, the same identity check, avatar read and letter fallback as the Identity Card), the Banner is served by profile-banner, and the Intro is the existing /@<handle>/intro.webm stream of the stored playback derivative, the same URL as og:video. Media URLs carry the existing content version tag. On TESTING the Intro starts at its own first frame: no thumbnail-first share copy is deployed. Other platforms keep the unchanged Open Graph / Twitter preview (public-handle-url)."
+          "rule": "Card media use the existing anonymous delivery only: the avatar tile is rendered by social-card (variant=avatar, 256x256, the same identity check, avatar read and letter fallback as the Identity Card) and the Banner is served by profile-banner. The Intro is the owner's ready Discord share copy, /@<handle>/intro-discord.webm?v=<8-hex digest of the copy's path> (intro-discord-thumbnail), when one exists; otherwise it is the existing /@<handle>/intro.webm stream of the stored playback derivative, the same URL as og:video. The intro-discord.webm route falls back to the derivative, so an older Discord message keeps playing. og:video and the intro.webm route are unchanged. Media URLs carry the existing content version tag. Other platforms keep the unchanged Open Graph / Twitter preview (public-handle-url)."
         }
       ],
-      "checkpoint": "b110f07bf12d67160a6029e27897eb8bb2972f7e",
-      "record": "docs/DISCORD-SHARE-CARD.md; PROJECT_HANDOFF.md §133 (first version, 8306d90), §134 (Version A styling, 7507d12, approved by Mazen as a visual design on 2026-10-26) and §135 (B1 / B2 divider live tests, authorized by Mazen 2026-10-26; B1 selected by Mazen the same day, b110f07) and §136 (Intro Thumbnail for Discord, local implementation 02c98c5, not deployed); design and measurements from the isolated Share Card lab (social-lab, Product Memory REV-0028). Implemented under Mazen's task of 2026-10-26 (\"Discord Components V2: Implement & Deploy to TESTING\") for his visual review; social-card redeployed on TESTING the same day. Branch feature/discord-share-card-v2 (not merged).",
-      "notes": "Pending Mazen's visual review; final design acceptance not given. Intro Thumbnail for Discord (owner-chosen frame shown before Play, Mazen task 2026-10-26) is implemented in code only at 02c98c5 on feature/discord-share-card-v2 and is NOT deployed to TESTING: its migration is not applied, the worker image and the Cloudflare Worker are not redeployed, and it is not accepted (docs/INTRO-DISCORD-THUMBNAIL.md, PROJECT_HANDOFF.md §136). Until it is deployed the media contract above stays the TESTING state. Not part of this capability: gender (GamID has no such field), and any change to Open Graph previews on other platforms."
+      "checkpoint": "02c98c5d10cc6bfd47af0eaee05eb37a5a95fca9",
+      "record": "docs/DISCORD-SHARE-CARD.md; PROJECT_HANDOFF.md §133 (first version, 8306d90), §134 (Version A styling, 7507d12, approved by Mazen as a visual design on 2026-10-26) and §135 (B1 / B2 divider live tests, authorized by Mazen 2026-10-26; B1 selected by Mazen the same day, b110f07) and §136-§137 (Intro Thumbnail for Discord: implementation 02c98c5, deployed to TESTING 2026-10-27, see intro-discord-thumbnail); design and measurements from the isolated Share Card lab (social-lab, Product Memory REV-0028). Implemented under Mazen's task of 2026-10-26 (\"Discord Components V2: Implement & Deploy to TESTING\") for his visual review; social-card redeployed on TESTING the same day. Branch feature/discord-share-card-v2 (not merged).",
+      "notes": "Pending Mazen's visual review; final design acceptance not given. The card's layout and B1 dividers are unchanged by the Intro Thumbnail for Discord (intro-discord-thumbnail), which only replaces the Intro URL when a share copy is ready. Not part of this capability: gender (GamID has no such field), and any change to Open Graph previews on other platforms."
+    },
+    {
+      "id": "intro-discord-thumbnail",
+      "name": "Intro Thumbnail for Discord: an owner-chosen Intro frame shown before Play in the Discord share card",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "/account/ Profile Editor, Intro section: Discord thumbnail (desktop and mobile deck)",
+        "https://gamid-testing-static.gamid.workers.dev/@<handle>/intro-discord.webm (Discord share card Intro)"
+      ],
+      "limits": {
+        "shareCopyMaxBytes": 15728640,
+        "shareCopiesPerProfilePerHour": 20,
+        "shareCopyAttempts": 2,
+        "shareCopyReclaimMinutes": 20,
+        "shareCleanupGraceMinutes": 10,
+        "countsTowardStorageQuota": false
+      },
+      "contracts": [
+        {
+          "id": "intro-discord-thumbnail-selection",
+          "rule": "The owner picks one frame of their saved, active Intro in the Profile Editor (CHOOSE A FRAME loads the Intro only on request; a slider and one-frame steps; \"Use first frame\" returns to the default) and saves it with the section's Save Changes. The choice is stored as profile_intro_settings.thumbnail_job_id + thumbnail_ms and counts only while that job is the active Intro: replacing or removing the Intro voids it at once and the new Intro starts at its own first frame. 0 / null means the first frame and needs no share copy. set_my_intro_thumbnail refuses another Intro (INTRO_THUMBNAIL_INTRO_CHANGED), a time outside the Intro (INVALID_INTRO_THUMBNAIL) and more than 20 new copies per profile per hour (INTRO_THUMBNAIL_RATE_LIMITED); the same frame again is idempotent. There is no image-upload option."
+        },
+        {
+          "id": "intro-discord-thumbnail-share-copy",
+          "rule": "The existing Intro worker (same image, Job and dispatcher) makes a Discord share copy from the private playback derivative: one frame of the chosen time (the last frame presented at or before it), then every Intro frame unchanged and one frame later, with the audio delayed by exactly one frame, at the unchanged D3 encoding settings. The copy is validated (frames, codec, geometry, audio, size, duration) before it completes; any failure leaves Discord on the unchanged Intro. The original Intro derivative is never modified. Copies are stored in the private intro-share-copies bucket (WebM, at most 15 MiB, written and deleted only by the worker), do not count toward the owner's storage quota, and the only read path is the current ready copy of a PUBLIC GamID (get_public_intro_share and its storage policy). Superseded, removed and orphaned copies are deleted by the worker's storage-driven sweep at a later worker run, once older than 10 minutes; they are never served after they stop being current."
+        }
+      ],
+      "checkpoint": "02c98c5d10cc6bfd47af0eaee05eb37a5a95fca9",
+      "record": "docs/INTRO-DISCORD-THUMBNAIL.md; PROJECT_HANDOFF.md §136 (implementation 02c98c5) and §137 (TESTING deployment 2026-10-27: migration 20261026120000 applied, worker image and dispatcher redeployed from ee08a4a by Mazen in Cloud Shell, site and Worker deployed by run 40358104036). Implemented under Mazen's task of 2026-10-26 (\"Implement Intro Thumbnail Selection for Discord\") and deployed under his task \"Complete Intro Thumbnail Deployment & Acceptance on TESTING\". Branch feature/discord-share-card-v2 (not merged).",
+      "notes": "Deployed on TESTING; pending Mazen's personal verification in the editor and in Discord, final acceptance not given. The Cloudflare video-terms question for video streamed through the Worker (REV-0028) also covers the share copy."
     },
     {
       "id": "public-section-visibility",

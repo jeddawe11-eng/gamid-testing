@@ -22,7 +22,7 @@ These are all native Components V2 features; no image, border or background styl
 | | `-# 📍 <Location>` | `get_public_profile_extras` (null unless the owner shows it) |
 | | thumbnail: the avatar tile | `social-card?handle=<handle>&variant=avatar` |
 | ── Media gallery | the public Banner | `profile-banner/<handle>` (only when `has_banner`) |
-| ── Text + media gallery | `### 🎮 My Gaming Intro` + the public Intro | `/@<handle>/intro.webm` (same URL as `og:video`) |
+| ── Text + media gallery | `### 🎮 My Gaming Intro` + the public Intro | `/@<handle>/intro-discord.webm?v=<digest>` when a share copy with the owner's chosen frame is ready; otherwise `/@<handle>/intro.webm` (same URL as `og:video`) |
 | ── Footer section | `**Explore <name>'s GamID**` + one link button, **Open GamID** | the profile's own `/@<handle>` URL |
 
 (── = a divider.)
@@ -76,7 +76,10 @@ Open GamID is the card's only link. `+N more` is not clickable.
 
 ## Limitations
 
-- **Thumbnail-first:** not live on TESTING. The card plays the stored Intro derivative, so Discord's preview frame is the Intro's own first frame. The owner-chosen thumbnail frame is implemented locally (`02c98c5`) but not deployed: see `docs/INTRO-DISCORD-THUMBNAIL.md`. Once it is deployed, a ready share copy replaces only the card's Intro URL (`/@<handle>/intro-discord.webm`); the layout and B1 are unchanged.
+- **Thumbnail-first:** live on TESTING since 2026-10-27 (`02c98c5`; Truth `intro-discord-thumbnail`, PENDING_ACCEPTANCE; see `docs/INTRO-DISCORD-THUMBNAIL.md`).
+  - **With a chosen frame:** when the owner has chosen a frame and its share copy is ready, the card's Intro is `/@<handle>/intro-discord.webm?v=<digest>`, so Discord previews that frame.
+  - **Otherwise:** the card plays the stored derivative, `/@<handle>/intro.webm`, from its own first frame.
+  - **What does not change:** the layout, B1 and og:video.
 - **Cloudflare terms (unchanged, still open):** the Intro reaches Discord through the existing `/@<handle>/intro.webm` Worker stream of Supabase-hosted video, the same path `og:video` has used since Phase 1. This card adds no new video path. Whether Cloudflare's CDN video terms cover it is still unresolved (REV-0028).
 - **Caching:** Discord keeps a preview per page URL for a while. A change made after a link was first posted may only show when the link is posted again later.
 - **Banner version:** the Banner URL carries the identity version tag, which doesn't include the Banner itself.

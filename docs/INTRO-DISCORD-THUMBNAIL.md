@@ -1,8 +1,6 @@
 # Intro Thumbnail for Discord
 
-Status: **implemented locally, NOT deployed.** Product commit `02c98c5` on `feature/discord-share-card-v2`, under Mazen's task of 2026-10-26, "Implement Intro Thumbnail Selection for Discord".
-
-Nothing is live on TESTING yet: the migration is not applied, the Cloud Run worker image is not rebuilt and the Cloudflare Worker is not redeployed. Until then TESTING behaves exactly as before: Discord shows the Intro's own first frame. Not merged; Production untouched.
+Status: **deployed on TESTING (2026-10-27), PENDING_ACCEPTANCE** (GamID Truth `intro-discord-thumbnail`). Product commit `02c98c5` on `feature/discord-share-card-v2`, under Mazen's task of 2026-10-26, "Implement Intro Thumbnail Selection for Discord". Deployed under his task "Complete Intro Thumbnail Deployment & Acceptance on TESTING"; see [TESTING deployment](#testing-deployment-2026-10-27) below. Final acceptance needs Mazen's personal check. Not merged; Production untouched.
 
 ## What it does
 
@@ -29,7 +27,7 @@ The Intro section of the Profile Editor gains **Discord thumbnail**. Desktop and
 - **No image upload:** this phase has no image-upload option.
 - **Code:** `dist/account/intro-thumbnail.js`, `dist/account/account.js`, `dist/account/index.html` and `dist/account/account.css`, plus `getMyIntroThumbnail` / `setIntroThumbnail` in `supabase-client.js`.
 
-## Database: `supabase/migrations/20261026120000_intro_discord_thumbnail.sql` (not applied)
+## Database: `supabase/migrations/20261026120000_intro_discord_thumbnail.sql` (applied on TESTING)
 
 - **The selection:** `profile_intro_settings.thumbnail_job_id` + `thumbnail_ms`.
   - A selection counts only while `thumbnail_job_id` is the active Intro. Replacing or removing the Intro therefore voids it at once, and the new Intro starts at its default.
@@ -49,7 +47,7 @@ The Intro section of the Profile Editor gains **Discord thumbnail**. Desktop and
 - **Cleanup:** a storage-driven sweep (`worker_intro_share_sweep`) deletes every share object that is not the current ready copy or an in-flight attempt, once it is older than 10 minutes.
 - **Dispatch:** a new row calls the existing dispatcher, with the same Vault secrets.
 
-## Worker: `worker/intro-share.mjs` (same image and Job, not redeployed)
+## Worker: `worker/intro-share.mjs` (same image and Job, redeployed on TESTING)
 
 1. Claim a copy and stream the private D3 derivative.
 2. Read its frame timestamps.
@@ -69,9 +67,9 @@ Any failure leaves Discord on the unchanged Intro.
   - every Intro frame is identical, one frame later;
   - the audio onsets move by one frame (33.3 / 33.4 / 16.7 ms).
 
-  It ran on ffmpeg 7.1. The image's Debian FFmpeg (5.1) is proven only by `share-smoke` after deployment.
+  It ran on ffmpeg 7.1. The image's Debian FFmpeg passed `share-smoke` at deployment, and the live copies were checked the same way (below).
 
-## Cloudflare Worker (not redeployed)
+## Cloudflare Worker (deployed on TESTING)
 
 - **Card:** with a ready copy, the card's Intro is `/@<handle>/intro-discord.webm?v=<8-hex digest of the copy's path>`. Every new frame is a new URL, which Discord fetches afresh.
 - **Without a copy:** the card uses the same `/@<handle>/intro.webm` as before. That route also falls back to the derivative, so an older Discord message never breaks.
@@ -86,15 +84,69 @@ Any failure leaves Discord on the unchanged Intro.
 - **`tests/intro-discord-thumbnail-db.test.js`:** the real migration on the real Slice 3C schema, in PGlite. It covers selection, queue, supersede, replacement and removal, the public read, the sweep, the quota, the rate bound and privileges.
 - **`tests/intro-discord-thumbnail.test.js`:** the plan, the exact graph, validation, the whole job and its failures, the wiring, the card and share route with B1 unchanged, the picker, and the opt-in native check.
 
-## Deployment prerequisites (each needs Mazen's approval)
+## TESTING deployment (2026-10-27)
 
-1. **Apply the migration** on TESTING.
-2. **Rebuild and redeploy the worker image**, Job and dispatcher, from the exact commit with `worker/cloud-run/deploy-intro-share-testing.sh` in Cloud Shell (Google Cloud access needed). The script verifies an image-only change, then runs `share-smoke`, `f2-smoke` and `rendition-smoke`.
-   - The image also carries every other worker module at this branch. These are unchanged since `3bb2871`, the deployed F8-B1 code.
-   - **Before the image is live:** a saved frame simply waits pending, and Discord keeps the unchanged Intro.
-3. **Deploy the site and Worker** with the existing TESTING workflow.
-4. **Live checks:** desktop and mobile editor; Discord Web, the desktop app and a phone (the last two are untested so far).
-5. **Still open:** the Cloudflare video-terms question (REV-0028, proposed ISS-0018). It now also covers the share copy streamed through the Worker.
+Authorized by Mazen's task "Complete Intro Thumbnail Deployment & Acceptance on TESTING". It used the existing infrastructure only: no new project, service or recurring resource.
+
+1. **Migration** `20261026120000` was rehearsed in a rolled-back transaction, then applied in one transaction and recorded with `migration repair` (never `db push`).
+   - The rehearsal found storage usage unchanged for every owner and the 3 existing Intros untouched.
+   - Live, the bucket is private (WebM, 15 MiB) and both usage functions are patched.
+   - Anonymous callers can use only `get_public_intro_share`; the owner and worker RPCs and the table refuse them.
+2. **Worker image, Job and dispatcher:** deployed by Mazen in Cloud Shell with `deploy-intro-share-testing.sh ee08a4ac89f6b8816c5ccfdf3210df85108af5d9`.
+   - The worker code is identical to `02c98c5`; the head adds only docs and the script.
+   - The script verified an image-only change, and `share-smoke`, `f2-smoke` and `rendition-smoke` passed (`INTRO_SHARE_TESTING_WORKER_AND_DISPATCHER_DEPLOYED`).
+3. **Site and Worker:** `ee08a4a` deployed by `deploy-cloudflare-testing.yml` run `40358104036` (success, full validation in the run).
+
+### End-to-end check (GM-TEST-01, synthetic media)
+
+**Method:**
+- **Persona:** GM-TEST-01 only.
+- **Media:** 6 s 720p30 and 5 s 720p30 synthetic clips with a burned-in timestamp and frame counter.
+- **Owner actions:** through the real owner RPCs.
+- **Visibility:** temporarily PUBLIC for the visitor and Discord checks, then restored to DRAFT.
+
+**Processing:**
+- **The Intro:** it was processed by the new image (ready in about 12 s). Its source was cleaned up as before.
+- **The share copy:** with a frame at 3.000 s, the copy was ready about 28 s after saving.
+- **Frame check:** the copy has 181 frames for the Intro's 180.
+  - Frame 0 is Intro frame 90 (SSIM 0.999; 0.934 against frame 0).
+  - Every Intro frame follows exactly one frame later (SSIM ≥ 0.989 after the second encode).
+  - The audio moves by 33 ms, one frame.
+- **Serving:** the Worker's `/intro-discord.webm` serves the copy's exact bytes, and `/intro.webm` the derivative's.
+- **The original Intro derivative** is not changed.
+
+**Discord Web** (Mazen's Chrome, #clips-test):
+- The preview before Play shows the chosen frame: `00:00:03.000 / 90`, not `00:00:00.000`.
+- Play runs the Intro from its start, with sound.
+- Open GamID opens `/@gm_test_01`.
+- The card keeps B1's three purple line dividers.
+- After the frame changed to 1.500 s, a fresh post showed `00:00:01.500 / 45` with a new `?v=` URL.
+
+**Changes:**
+- **Changing the frame:** it supersedes the old copy, and the old copy is refused at once.
+- **The same frame again:** idempotent.
+- **Errors:** a time outside the Intro is refused (`INVALID_INTRO_THUMBNAIL`), and so is another job (`INTRO_THUMBNAIL_INTRO_CHANGED`).
+- **Rate limit:** the 21st copy in an hour is refused (`INTRO_THUMBNAIL_RATE_LIMITED`). This was tested in a rolled-back transaction, so no worker runs were started.
+- **Replacing the Intro:** voids the selection. The owner sees the default, and the card returns to `intro.webm`. Older Discord URLs play the current Intro.
+- **Removing the Intro:**
+  - the copy is refused at once;
+  - the card has no Intro part (B1 kept);
+  - both routes return 404.
+
+**Cleanup:**
+- The sweep deletes each superseded, removed or orphaned share object at the first worker run after its 10-minute grace, leaving other owners' current copies.
+- There is no schedule for this. One run was started for the check through the existing dispatcher.
+
+**Quota:** in a rolled-back probe, a share object added 0 bytes to usage, while an Intro object counted in full.
+
+**Not tested by the agent** (the agent never signs in):
+- the signed-in editor picker on desktop and on mobile;
+- the Discord desktop app;
+- Discord on a phone.
+
+These are left for Mazen's personal check.
+
+**Still open:** the Cloudflare video-terms question (REV-0028, proposed ISS-0018). It now also covers the share copy streamed through the Worker.
 
 ## Known limits
 
