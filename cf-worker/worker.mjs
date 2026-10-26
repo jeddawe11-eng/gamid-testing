@@ -27,6 +27,10 @@
 // identical content always produces the identical URL (stays cacheable) and any real change produces a new one (forces a fresh fetch on the platform's next
 // crawl). No random token, no RPC/schema change: the tag is a deterministic SHA-256 of fields already returned by get_public_identity.
 //
+// DISCORD SHARE CARD (Components V2, 2026-10-26, TESTING review) update: for a resolved identity the page head also carries Discord's component-embed card
+// (cf-worker/discord-card.mjs), built from get_public_identity plus the anonymous get_public_profile_extras RPC (Banner presence, public Location). Discord shows
+// it in place of the OG embed; the OG / Twitter tags above are unchanged for every other platform, and a null identity still gets no card at all.
+//
 // Routing (see wrangler.jsonc: assets.run_worker_first: ["/@*"]): ONLY requests whose path matches "/@<segment>" or "/@<segment>/intro.webm" are handled here;
 // the Worker runs BEFORE Cloudflare's own static-asset routing for that pattern, which matters because that routing was observed (Phase 0a) to redirect a
 // literal "/@black" to "/%40black" before ever reaching a Worker. Every other path (including "/@handle/extra" and non-GET/HEAD methods) falls straight through to
@@ -39,6 +43,7 @@
 // apart from "exists, is public, but has no Intro" from either response.
 
 import { normalizeHandle, validateHandle } from "../dist/account/domain.js";
+import { componentEmbedScript, fetchPublicExtras } from "./discord-card.mjs";
 
 const SUPABASE_URL = "https://upvtrczefcvigxdyuylw.supabase.co";
 // The browser's own public ("anon") key, copied verbatim from dist/account/supabase-client.js. Not a secret: it ships in every page load already and is
@@ -191,7 +196,8 @@ export async function handleIntroRequest(request, check, identity) {
 
 // Injects <base>, the per-request <title>/description, and the OG/Twitter tags into the ACCEPTED public shell, touching nothing else. Every anchor is matched as
 // an exact literal string (not a loose regex): if the shipped shell's markup ever changes, this throws loudly instead of silently shipping broken/missing metadata.
-export function injectMetadata(shellHtml, { title, description, url, image, video }) {
+// `componentEmbed` (optional) is the Discord Components V2 card's ready-made <script> block (see discord-card.mjs); it goes in the same head insertion.
+export function injectMetadata(shellHtml, { title, description, url, image, video, componentEmbed = "" }) {
   const CHARSET = '<meta charset="UTF-8" />';
   const TITLE = "<title>GamID</title>";
   const DESCRIPTION = '<meta name="description" content="A GamID public identity." />';
@@ -230,7 +236,7 @@ export function injectMetadata(shellHtml, { title, description, url, image, vide
   html = html.replace(CHARSET, `${CHARSET}\n  <base href="/public/">`);
   html = html.replace(TITLE, `<title>${escapeHtml(title)}</title>`);
   html = html.replace(DESCRIPTION, `<meta name="description" content="${escapeHtml(description)}" />`);
-  html = html.replace(HEAD_CLOSE, `${metaBlock}\n  <link rel="canonical" href="${escapeHtml(url)}">\n${HEAD_CLOSE}`);
+  html = html.replace(HEAD_CLOSE, `${metaBlock}\n  <link rel="canonical" href="${escapeHtml(url)}">\n${componentEmbed ? `  ${componentEmbed}\n` : ""}${HEAD_CLOSE}`);
   return html;
 }
 
@@ -256,7 +262,11 @@ export default {
     if (rawSegment === null) return env.ASSETS.fetch(request);   // not a single-segment "/@..." URL: unchanged Phase 0a static-asset behavior (incl. the accepted 404)
 
     const check = parseHandleFromRequest(rawSegment);
-    const identity = check.valid ? await fetchPublicIdentity(check.handle, fetch) : null;
+    // the Discord card's Banner / Location come from the same anonymous extras RPC the profile page calls; both lookups run together, for every well-formed
+    // handle alike (a malformed one still makes no call at all)
+    const [identity, extras] = check.valid
+      ? await Promise.all([fetchPublicIdentity(check.handle, fetch), fetchPublicExtras(check.handle, { supabaseUrl: SUPABASE_URL, publishableKey: PUBLISHABLE_KEY })])
+      : [null, null];
 
     const shellRes = await env.ASSETS.fetch(new Request(`${url.origin}/public/`, { method: "GET" }));
     if (!shellRes.ok) return shellRes;   // fail safe: surface whatever the assets layer itself returned rather than mask it
@@ -268,7 +278,9 @@ export default {
     const version = await computeContentVersion(identity);
     const image = buildImageUrl(identity, check.handle, version) || `${url.origin}${SOCIAL_CARD_PATH}`;
     const video = buildVideoUrl(identity, check.handle, url.origin, version);
-    const html = injectMetadata(shellHtml, { ...meta, url: `${url.origin}${url.pathname}`, image, video });
+    const profileUrl = `${url.origin}/@${encodeURIComponent(check.handle)}`;
+    const componentEmbed = componentEmbedScript({ identity, extras, handle: check.handle, profileUrl, videoUrl: video, supabaseUrl: SUPABASE_URL, version });
+    const html = injectMetadata(shellHtml, { ...meta, url: `${url.origin}${url.pathname}`, image, video, componentEmbed });
 
     return new Response(request.method === "HEAD" ? null : html, {
       status: 200,

@@ -16,6 +16,7 @@ import { validateHandle } from "../_shared/handle.js";
 import {
   CARD_WIDTH, CARD_HEIGHT, roleLine, fetchIdentityForCard, fetchAvatarBytes, buildCardElement, buildFallbackElement, resolveAvatarDataUri,
 } from "../_shared/social-card.js";
+import { AVATAR_TILE_SIZE, isAvatarVariant, buildAvatarTileElement } from "../_shared/social-avatar.js";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const PUBLISHABLE_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -61,10 +62,10 @@ async function loadInterFont() {
   return fontPromise;
 }
 
-async function renderCard(element) {
+async function renderCard(element, width = CARD_WIDTH, height = CARD_HEIGHT) {
   const fontData = await loadInterFont();
   const fonts = fontData ? [{ name: "Inter", data: fontData, weight: 800, style: "normal" }] : [];
-  return new ImageResponse(element, { width: CARD_WIDTH, height: CARD_HEIGHT, fonts });
+  return new ImageResponse(element, { width, height, fonts });
 }
 
 // The real GamID avatar pipeline only ever produces WebP (dist/account/avatar-cropper.js), which Satori cannot render (see toDataUri in _shared/social-card.js).
@@ -109,6 +110,9 @@ Deno.serve(async request => {
     ? await fetchIdentityForCard(check.handle, { supabaseUrl: SUPABASE_URL, publishableKey: PUBLISHABLE_KEY, signal: identityTimeout.signal }).finally(identityTimeout.clear)
     : null;
 
+  // variant=avatar: the Discord share card's square avatar thumbnail - same identity check, same avatar fetch, same letter fallback, smaller canvas
+  const avatarTile = isAvatarVariant(url.searchParams);
+
   let element;
   if (identity) {
     const avatarTimeout = withTimeout(FETCH_TIMEOUT_MS);
@@ -117,17 +121,21 @@ Deno.serve(async request => {
       : null;
     // resolveAvatarDataUri converts the real WebP avatar to PNG (see convertWebpToPng above) so Satori can actually render it; if conversion isn't possible
     // for any reason, it falls back to null and buildCardElement renders the same letter avatar used when there is no avatar at all.
-    element = buildCardElement({
-      displayName: identity.display_name,
-      handle: check.handle,
-      roles: roleLine(identity),
-      avatarDataUri: await resolveAvatarDataUri(avatar, { convertWebpToPng }),
-    });
+    const avatarDataUri = await resolveAvatarDataUri(avatar, { convertWebpToPng });
+    element = avatarTile
+      ? buildAvatarTileElement({ displayName: identity.display_name, handle: check.handle, avatarDataUri })
+      : buildCardElement({
+        displayName: identity.display_name,
+        handle: check.handle,
+        roles: roleLine(identity),
+        avatarDataUri,
+      });
   } else {
-    element = buildFallbackElement(check.valid ? check.handle : "gamid");
+    const fallbackHandle = check.valid ? check.handle : "gamid";
+    element = avatarTile ? buildAvatarTileElement({ displayName: null, handle: fallbackHandle, avatarDataUri: null }) : buildFallbackElement(fallbackHandle);
   }
 
-  const image = await renderCard(element);
+  const image = avatarTile ? await renderCard(element, AVATAR_TILE_SIZE, AVATAR_TILE_SIZE) : await renderCard(element);
   const headers = new Headers(image.headers);
   headers.set("cache-control", "public, max-age=60");
   return new Response(request.method === "HEAD" ? null : image.body, { status: 200, headers });
