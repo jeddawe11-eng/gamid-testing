@@ -5330,3 +5330,20 @@ GamID Truth: UPDATED. New capability `discord-share-card` (PENDING_ACCEPTANCE), 
   - An unknown and a malformed handle get no card and the generic page.
   - No storage path or key is in any payload.
 - **Not yet seen rendered in Discord:** the Developer Portal Embed Debugger needs a sign-in, and posting the real link in #clips-test needs Mazen's OK.
+
+## 134. Discord share card Version A on TESTING (2026-10-26, PENDING Mazen's visual review)
+
+Mazen approved Version A from the three-way visual mockup: current, A (structured), B (compact). He authorized implementing it and deploying it to TESTING only. Final acceptance is not granted.
+
+**Changes:** only `cf-worker/discord-card.mjs` and its tests.
+- The accent is `#B14CFF` instead of `#62E7FF`.
+- A divider with large spacing (`spacing: 2`) sits between the header, Banner, Intro and footer. Only parts that are present get one, so there are never two in a row and none at the ends.
+- Roles and Location are `-# ` subtext.
+- `### 🎮 My Gaming Intro` is a heading.
+- The footer line is bold, and "GAMID" in the header is bold in full.
+
+Unchanged: the data, privacy rules, media URLs, `+N more` (plain text), Open GamID, `social-card`, and every other platform's preview.
+
+**Product:** `7507d1243e2465257cb4d6227e503379f9be2d0c`.
+
+GamID Truth: UPDATED. The `discord-share-card-layout` contract describes the Version A styling (accent, dividers, subtext, headings), and the checkpoint is `7507d12`. Status stays PENDING_ACCEPTANCE.

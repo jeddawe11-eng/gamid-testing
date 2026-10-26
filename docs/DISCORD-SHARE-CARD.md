@@ -6,17 +6,26 @@ Status: on TESTING for Mazen's visual review, PENDING_ACCEPTANCE (GamID Truth `d
 
 When a `/@<handle>` link is posted, Discord reads one `<script id="discord:component-embed" type="application/json">` from the page's first response and shows it in place of the Open Graph embed. Every other platform keeps the unchanged OG / Twitter tags (`public-handle-url`).
 
-The layout is the approved Share Card lab design (`social-lab/worker.mjs`, `shareCard`), using real public data:
+The layout is the approved Share Card lab design (`social-lab/worker.mjs`, `shareCard`), using real public data. It is styled as **Version A**, which Mazen approved as a visual design on 2026-10-26, from a three-way mockup comparison:
+- the Container's accent bar is purple `#B14CFF`;
+- a divider with large spacing (Separator `divider: true, spacing: 2`) sits between every pair of parts that are present;
+- Gaming Roles and Location are Discord subtext (`-# `);
+- the Intro title is a `###` heading;
+- the footer line is bold.
+
+These are all native Components V2 features; no image, border or background styling is used.
 
 | Part | Content | Source |
 |---|---|---|
-| Header section | `## <display name>`, `@<handle> · GAMID` | `get_public_identity` |
-| | the first two Gaming Roles (primary first), then `+N more` as plain text | `get_public_identity` |
-| | `📍 <Location>` | `get_public_profile_extras` (null unless the owner shows it) |
+| Header section | `## <display name>`, `@<handle> · **GAMID**` | `get_public_identity` |
+| | `-# ` the first two Gaming Roles (primary first), then `+N more` as plain text | `get_public_identity` |
+| | `-# 📍 <Location>` | `get_public_profile_extras` (null unless the owner shows it) |
 | | thumbnail: the avatar tile | `social-card?handle=<handle>&variant=avatar` |
-| Media gallery | the public Banner | `profile-banner/<handle>` (only when `has_banner`) |
-| Text + media gallery | "My Gaming Intro" + the public Intro | `/@<handle>/intro.webm` (same URL as `og:video`) |
-| Separator, footer section | "Explore <name>'s GamID" + one link button, **Open GamID** | the profile's own `/@<handle>` URL |
+| ── Media gallery | the public Banner | `profile-banner/<handle>` (only when `has_banner`) |
+| ── Text + media gallery | `### 🎮 My Gaming Intro` + the public Intro | `/@<handle>/intro.webm` (same URL as `og:video`) |
+| ── Footer section | `**Explore <name>'s GamID**` + one link button, **Open GamID** | the profile's own `/@<handle>` URL |
+
+(── = a divider with large spacing.)
 
 Open GamID is the card's only link. `+N more` is not clickable.
 
