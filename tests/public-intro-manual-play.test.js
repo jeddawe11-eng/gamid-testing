@@ -33,7 +33,9 @@ test("player: the waiting poster is the chosen frame in the same video element, 
 test("player: a waiting Intro is not ended by its lease; Play on a lease too short for the Intro asks the host for a fresh one", () => {
   assert.match(player, /if\(Number\.isFinite\(config\.sourceExpiresAt\)&&!awaitPlay\)\{leaseTimer=/);
   assert.match(player, /if\(config\.sourceExpiresAt-Date\.now\(\)<leaseNeededMs\(\)\)\{els\.previewStart\.hidden=true;parent\.postMessage\(\{type:"gamid-intro-preview-play"\},location\.origin\);return;\}/);
-  assert.match(player, /function leaseNeededMs\(\)\{const d=els\.introVideo\.duration;return \(Number\.isFinite\(d\)&&d>0\?d:31\)\*1000\+5000;\}/);
+  // the same margin the resolver guarantees for every playback, so a renewed lease always suffices (and the renewed config plays without waiting again)
+  assert.match(player, /function leaseNeededMs\(\)\{return 35000;\}/);
+  assert.match(read("dist/account/intro-source.js"), /const PLAYBACK_MARGIN_MS = 35000;/);
 });
 
 test("player: a clear centered Play button with a Play icon and the label Play Intro; Skip stays in the player", () => {
