@@ -25,7 +25,21 @@ These are all native Components V2 features; no image, border or background styl
 | ── Text + media gallery | `### 🎮 My Gaming Intro` + the public Intro | `/@<handle>/intro.webm` (same URL as `og:video`) |
 | ── Footer section | `**Explore <name>'s GamID**` + one link button, **Open GamID** | the profile's own `/@<handle>` URL |
 
-(── = a divider with large spacing.)
+(── = a divider.)
+
+### Divider live tests (B1 / B2, 2026-10-26, Mazen's decision pending)
+
+Discord's native Separator has only `divider` and `spacing`; it has no colour, so it is always grey. To match the purple accent, each divider can instead be a one-item Media Gallery that shows a thin line image from this site's own assets. The image has no description, so Discord shows no ALT badge on it.
+
+| Test | Image | Size |
+|---|---|---|
+| B1 | `dist/assets/discord-divider-purple.png`: a solid `#B14CFF` line | 1200 × 8 px |
+| B2 | `dist/assets/discord-divider-gradient.gif`: the same line with a soft pink (`#FF5FD2`) glow sweeping across it, looping every 3 s | 1200 × 8 px |
+
+- **Generator:** both images come from `scripts/generate-discord-dividers.ps1`, which uses ffmpeg.
+- **Switch:** `DIVIDER_IMAGE_PATH` in `cf-worker/discord-card.mjs` names the image the card uses. Its `?v=` tag changes whenever the image does.
+- **Rollback:** without a `dividerUrl`, the card keeps Version A's native Separators (`divider: true, spacing: 2`). Rolling back means dropping `dividerUrl` in `cf-worker/worker.mjs`.
+- **Component count:** each line replaces one Separator, so the count is unchanged (about 15 of Discord's 40). The payload grows by about 100 bytes per line.
 
 Open GamID is the card's only link. `+N more` is not clickable.
 

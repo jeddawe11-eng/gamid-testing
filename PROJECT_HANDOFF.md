@@ -5358,5 +5358,16 @@ Unchanged: the data, privacy rules, media URLs, `+N more` (plain text), Open Gam
 - **`@zshot`** (no Banner or Location): types `[9,14,10,12,14,9]`.
 - **Unknown or invalid handle:** no card.
 - **Discord rendering:** not yet checked; posting the real link needs Mazen's OK.
+- **Discord rendering, later the same day (Mazen's OK):** checked in #clips-test with `@black?v=a1`. The card shows the purple accent, three grey dividers, the banner, an Intro that plays in Discord (1920 × 1080), and Open GamID → `/@black`.
+
+## 135. Discord card divider live tests B1 / B2 on TESTING (2026-10-26, PENDING Mazen's decision)
+
+Mazen asked for purple dividers in place of the grey ones and authorized live tests of both options on TESTING only. Discord's Separator has no colour field (official Components V2 reference), so each divider becomes a one-item Media Gallery of a thin line image from this site's `/assets`. See `docs/DISCORD-SHARE-CARD.md` → Divider live tests.
+
+**What is unchanged:** the avatar, banner, Intro, profile data, Open GamID, the privacy rules and `social-card`. Version A's native Separators stay in the code as the rollback baseline.
+
+**B1, static purple line:** `a9c0182` (`discord-divider-purple.png`, 1200 × 8, 153 bytes).
+
+GamID Truth: UPDATED. The `discord-share-card-layout` contract now describes the line-image dividers as a test, with Version A as the rollback. New limits: divider image 1200 × 8 px. The checkpoint is `a9c0182`.
 
 GamID Truth: UPDATED. The `discord-share-card-layout` contract describes the Version A styling (accent, dividers, subtext, headings), and the checkpoint is `7507d12`. Status stays PENDING_ACCEPTANCE.
