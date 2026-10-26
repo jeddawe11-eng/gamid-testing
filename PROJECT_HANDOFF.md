@@ -5374,7 +5374,14 @@ Mazen asked for purple dividers in place of the grey ones and authorized live te
   - **Alt text:** Discord gives the image its default alt text "Image".
 - **Phone width:** not checked. The Chrome window could not be resized.
 
-**B2, animated glow line:** `2d08e89` (`discord-divider-gradient.gif`, 1200 × 8, 60 frames at 20 fps, 112,305 B).
+**B2, animated glow line:** `2d08e89` (`discord-divider-gradient.gif`, 1200 × 8, 60 frames at 20 fps, 112,305 B). Deployed as docs head `bda173d` in run `40331749356`; TESTING serves B2.
+- **Live JSON:** `@black` is 1,372 B with 15 components. The GIF returns 200 `image/gif`, and unknown or invalid handles still get no card.
+- **Discord** (`@black?v=b2`, desktop web): same size and placement as B1, 566 × 3.8 CSS px.
+  - **Animation:** the glow moves along the lines.
+  - **"Play GIFs when Discord is focused" off:** the lines show the GIF's first frame (pink ends) and animate only while hovered.
+  - **Reduced Motion on:** Discord automatically switches GIF playback off, so the result is the same as autoplay off.
+  - **Settings:** Mazen's settings were restored afterwards (Reduced Motion off, Sync on, GIFs and animated emoji on).
+- **Evidence:** screenshots and a recording made from real captures are in `.review/discord-divider-live/`, which is not committed.
 
 GamID Truth: UPDATED. The `discord-share-card-layout` contract now describes the line-image dividers as a test, with Version A as the rollback. New limits: divider image 1200 × 8 px. The checkpoint is `2d08e89`.
 
