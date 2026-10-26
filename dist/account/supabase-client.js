@@ -534,6 +534,11 @@ export async function getMySocialLinks() { return (await rpc("get_my_social_link
 export async function setMySocialLinks(links) { return (await rpc("set_my_social_links", { candidate_links: links })) || []; }
 // A PUBLISHED GamID's saved links (anonymous; an unpublished GamID returns none).
 // Desktop Classic Profile extras of a PUBLISHED GamID: Member Since, whether a Banner can be shown, and only the About Me values the owner made public.
+// The public Intro's poster (Mazen 2026-10-27): the owner's chosen Discord thumbnail time while its share copy is ready, else null (the Intro's first frame)
+export async function getPublicIntroPosterMs(handle) {
+  const ms = Number((await rpc("get_public_intro_share", { candidate_handle: handle }, { anonymous: true }))?.[0]?.thumbnail_ms);
+  return Number.isFinite(ms) && ms > 0 ? ms : null;
+}
 export async function getPublicProfileExtras(handle) { return (await rpc("get_public_profile_extras", { candidate_handle: handle }, { anonymous: true }))?.[0] ?? null; }
 // The Banner is never a Storage address: the profile-banner Edge Function decides on every request (PUBLIC + attached) and streams it with no-store.
 export const publicBannerUrl = handle => `${SUPABASE_URL}/functions/v1/profile-banner/${encodeURIComponent(handle)}`;

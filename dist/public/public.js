@@ -1,4 +1,4 @@
-import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl, getPublicCrews, getPublicFavoriteGames, getMyGameArtwork, getPrivateIdentityNotice } from "../account/supabase-client.js";
+import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, getPublicIntroPosterMs,SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl, getPublicCrews, getPublicFavoriteGames, getMyGameArtwork, getPrivateIdentityNotice } from "../account/supabase-client.js";
 import { createDesktopProfile, crewsEntry, connectedGamesSection, connectedGameItem, favoriteGamesSection, DESKTOP_QUERY } from "./public-desktop.js";
 import { createProfilePanel } from "./profile-panel.js";
 import { createCrewsDirectory } from "./crews-directory.js";
@@ -221,6 +221,9 @@ async function render() {
   let initialSendDone = false;
   let revealed = false;
   let introSource = null, introRequest = 0, latestIntroIdentity = null, introResolving = false;
+  // The visitor Intro never starts by itself (Mazen 2026-10-27): the first presentation waits for Play on the chosen thumbnail frame; Replay is a click and plays
+  // at once. A Play pressed on an expiring lease asks for a fresh one (renewLease) without stopping the paused Intro first, so the profile never flashes.
+  let awaitFirstPlay = true, renewLease = false;
   const stopIntro = () => { introRequest++; frame.contentWindow?.postMessage({ type: "gamid-intro-preview-stop" }, location.origin); };
   const sendReplay = async () => {
     if (!config) return;
@@ -229,11 +232,14 @@ async function render() {
       frame.contentWindow?.postMessage({ type:'gamid-intro-preview', config:{ ...config, videoUrl:'' } }, location.origin);
       return;
     }
-    stopIntro();
+    const awaitPlay = awaitFirstPlay && !renewLease; awaitFirstPlay = false;
+    if (renewLease) { renewLease = false; introRequest++; } else stopIntro();
     const current = introRequest;
     introResolving = true;
     let source = null;
     try { source = await introSource.resolve(); } catch { /* Signing fails closed; no stale URL fallback. */ }
+    let posterMs = null;
+    if (awaitPlay && source?.url && latestIntroIdentity?.gamid_handle) { try { posterMs = await getPublicIntroPosterMs(latestIntroIdentity.gamid_handle); } catch { /* the first frame */ } }
     if (current !== introRequest || !config) return;
     introResolving = false;
     if (!latestIntroIdentity) {
@@ -243,7 +249,7 @@ async function render() {
       return;
     }
     config = { ...config, videoUrl: source?.url || "", sourceExpiresAt: source?.expiresAt,
-      transitionKey: latestIntroIdentity.intro_transition_key || "fade" };
+      transitionKey: latestIntroIdentity.intro_transition_key || "fade", awaitPlay, posterMs };
     hasIntro = Boolean(config.videoUrl);
     frame.contentWindow?.postMessage({ type: "gamid-intro-preview", config }, location.origin);
   };
@@ -266,6 +272,7 @@ async function render() {
   addEventListener("message", event => {
     if (event.origin !== location.origin) return;
     if (event.data?.type === "gamid-intro-preview-ready") { frameReady = true; sendInitial(); }
+    if (event.data?.type === "gamid-intro-preview-play" && event.source === frame.contentWindow && hasIntro && !ownerPreview) { renewLease = true; sendReplay(); }
     if (event.data?.type === "gamid-intro-preview-state") {
       // The child only ever broadcasts a state after play() has actually applied a config, so this is
       // the proof (not a guess) that the iframe now shows this identity rather than its raw placeholder markup.
