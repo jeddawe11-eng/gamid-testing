@@ -27,7 +27,16 @@ These are all native Components V2 features; no image, border or background styl
 
 (── = a divider.)
 
-### Divider live tests (B1 / B2, 2026-10-26, Mazen's decision pending)
+### Dividers: B1 selected (2026-10-26)
+
+Mazen chose **B1**, the static purple line, after live tests of both options; since `b110f07` the card uses it again. B2's GIF stays in `dist/assets` but is not used. Final acceptance of the card is still pending.
+
+What the tests showed in Discord (desktop web, `@black?v=b1` and `?v=b2`):
+- **Sizing:** each line renders full width at about 566 × 3.8 CSS px, with no letterbox, box or extra padding.
+- **Behaviour:** a line is clickable and opens Discord's image viewer, and Discord gives it the alt text "Image".
+- **B2 motion:** B2 animates, but it shows its first frame when GIF autoplay is off or Reduced Motion is on. Reduced Motion switches GIF playback off automatically.
+
+### Divider live tests (B1 / B2)
 
 Discord's native Separator has only `divider` and `spacing`; it has no colour, so it is always grey. To match the purple accent, each divider can instead be a one-item Media Gallery that shows a thin line image from this site's own assets. The image has no description, so Discord shows no ALT badge on it.
 
@@ -37,7 +46,7 @@ Discord's native Separator has only `divider` and `spacing`; it has no colour, s
 | B2 | `dist/assets/discord-divider-gradient.gif`: the same line with a soft pink (`#FF5FD2`) glow sweeping across it, looping every 3 s | 1200 × 8 px |
 
 - **Generator:** both images come from `scripts/generate-discord-dividers.ps1`, which uses ffmpeg.
-- **Switch:** `DIVIDER_IMAGE_PATH` in `cf-worker/discord-card.mjs` names the image the card uses. It is B2 since `2d08e89`. Its `?v=` tag changes whenever the image does.
+- **Switch:** `DIVIDER_IMAGE_PATH` in `cf-worker/discord-card.mjs` names the image the card uses. It was B2 from `2d08e89` and is B1 again since `b110f07`. Its `?v=` tag changes whenever the image does.
 - **Rollback:** without a `dividerUrl`, the card keeps Version A's native Separators (`divider: true, spacing: 2`). Rolling back means dropping `dividerUrl` in `cf-worker/worker.mjs`.
 - **Component count:** each line replaces one Separator, so the count is unchanged (about 15 of Discord's 40). The payload grows by about 100 bytes per line.
 

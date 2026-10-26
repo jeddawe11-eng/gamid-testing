@@ -5383,6 +5383,8 @@ Mazen asked for purple dividers in place of the grey ones and authorized live te
   - **Settings:** Mazen's settings were restored afterwards (Reduced Motion off, Sync on, GIFs and animated emoji on).
 - **Evidence:** screenshots and a recording made from real captures are in `.review/discord-divider-live/`, which is not committed.
 
+**Decision:** Mazen selected **B1** the same day, and the card is back on the static purple line from `b110f07`. B2's GIF is no longer used. This authorizes TESTING only; final acceptance of the card is still pending.
+
 GamID Truth: UPDATED. The `discord-share-card-layout` contract now describes the line-image dividers as a test, with Version A as the rollback. New limits: divider image 1200 × 8 px. The checkpoint is `2d08e89`.
 
 GamID Truth: UPDATED. The `discord-share-card-layout` contract describes the Version A styling (accent, dividers, subtext, headings), and the checkpoint is `7507d12`. Status stays PENDING_ACCEPTANCE.
