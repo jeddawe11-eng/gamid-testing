@@ -5291,3 +5291,29 @@ Mazen's task "GamID — Text Panel Accordion UX Improvement", TESTING only.
 GamID Truth: NO CHANGE REQUIRED (a layout change; no capability or contract changes).
 Product Memory: NO CHANGE — approval not given.
 Not merged; Production untouched.
+
+## 133. Discord share card (Components V2) on TESTING (2026-10-26, PENDING Mazen's visual review)
+
+Mazen's task "GamID Discord Components V2: Implement & Deploy to TESTING".
+
+**What it is:** a shared `/@<handle>` link now shows, in Discord, the approved lab card with real public data:
+- the name and @handle · GAMID;
+- two Gaming Roles plus "+N more" (plain text);
+- the public Location and the avatar tile;
+- the Banner;
+- "My Gaming Intro" with the public Intro;
+- Open GamID, which goes straight to `/@<handle>`.
+
+Other platforms keep the unchanged Open Graph preview. Details: `docs/DISCORD-SHARE-CARD.md`.
+
+**Branch:** `feature/discord-share-card-v2`, from `692369f` (the deployed `9ee23d8` plus docs). The REV-0028 records were cherry-picked onto it. `b9aa4c7` (Font Library order) is deliberately not on it, because it isn't authorized for deployment.
+
+**Product:** `8306d90b6c69c3c99511bbd84efebdc583bad101`. `social-card` was redeployed on TESTING (`supabase functions deploy social-card --use-api`); live, `variant=avatar` returns the 256 × 256 avatar tile, or the letter tile for an unknown handle.
+
+**Not done:**
+- **Gender:** GamID has no gender field.
+- **Thumbnail-first:** no share copy exists; it needs new Intro processing.
+
+**Cloudflare terms:** the existing `/@<handle>/intro.webm` Supabase stream is reused unchanged, the same path as `og:video`. The terms question stays open (REV-0028).
+
+GamID Truth: UPDATED. New capability `discord-share-card` (PENDING_ACCEPTANCE), with its layout, privacy and media contracts and limits (3,000-byte payload, 2 named roles, 256 px tile). `public-handle-url` gains a note; its status and contracts are unchanged.

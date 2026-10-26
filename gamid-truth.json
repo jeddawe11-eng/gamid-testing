@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "about": "GamID Truth: the authoritative current PRODUCT STATE and APPROVED PRODUCT CONTRACTS of GamID. Not an issue tracker: never add bugs, suspected problems, Monitor findings, test results or secrets. Rules: AGENTS.md.",
-  "updated": "2026-10-25",
+  "updated": "2026-10-26",
   "environment": "TESTING",
   "production": "NOT_RELEASED",
   "statuses": {
@@ -318,7 +318,38 @@
       ],
       "checkpoint": "8047bc22ef8ddc3bad70e208ae96462e4e8cb990",
       "record": "main commit 8047bc2 (Phase 1 accepted on Discord and WhatsApp)",
-      "notes": "The 2026-10-24 private notice for PRIVATE GamIDs (public-gamid-profile) is page-side only; the Worker's social identity preview for crawlers is unchanged."
+      "notes": "The 2026-10-24 private notice for PRIVATE GamIDs (public-gamid-profile) is page-side only; the Worker's social identity preview for crawlers is unchanged. Since 2026-10-26 Discord shows the discord-share-card Components V2 card for the same URL; the Open Graph / Twitter preview above is unchanged for every other platform."
+    },
+    {
+      "id": "discord-share-card",
+      "name": "Discord share card (Components V2) for a shared /@handle link",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "https://gamid-testing-static.gamid.workers.dev/@<handle> (Discord link preview)",
+        "/functions/v1/social-card?handle=<handle>&variant=avatar"
+      ],
+      "limits": {
+        "componentEmbedMaxBytes": 3000,
+        "shownGamingRoles": 2,
+        "avatarTilePixels": 256
+      },
+      "contracts": [
+        {
+          "id": "discord-share-card-layout",
+          "rule": "For a resolved public identity the /@<handle> page head carries one Discord component embed (a single Container): a header section with the display name, @handle · GAMID, the first two Gaming Roles (primary first) followed by \"+N more\" as plain text for the rest, and the public Location, with the avatar tile as its thumbnail; the public Banner; \"My Gaming Intro\" with the public Intro; a separator; and \"Explore <name>'s GamID\" with one link button, Open GamID, that opens the profile's own /@<handle> URL directly. Open GamID is the card's only link. A part whose public value is missing (no Banner, Location hidden or empty, no roles, no Intro) is left out; nothing is invented, and no other profile field (bio, gender or any field GamID does not have) is shown."
+        },
+        {
+          "id": "discord-share-card-privacy",
+          "rule": "The card is built only from what an anonymous visitor already receives: get_public_identity and get_public_profile_extras (which returns the Location only when the owner shows it). An invalid, unknown, unpublished or PRIVATE handle gets no card and the same generic page as before. User text is shown literally (markdown, links and mentions escaped, line breaks collapsed); the payload carries no storage path, key or private value and stays within Discord's 3,000-byte cap (the Location, then the Banner, are dropped first; otherwise no card)."
+        },
+        {
+          "id": "discord-share-card-media",
+          "rule": "Card media use the existing anonymous delivery only: the avatar tile is rendered by social-card (variant=avatar, 256x256, the same identity check, avatar read and letter fallback as the Identity Card), the Banner is served by profile-banner, and the Intro is the existing /@<handle>/intro.webm stream of the stored playback derivative, the same URL as og:video. Media URLs carry the existing content version tag. The Intro starts at its own first frame: no thumbnail-first share copy exists. Other platforms keep the unchanged Open Graph / Twitter preview (public-handle-url)."
+        }
+      ],
+      "checkpoint": "8306d90b6c69c3c99511bbd84efebdc583bad101",
+      "record": "docs/DISCORD-SHARE-CARD.md; PROJECT_HANDOFF.md §133; design and measurements from the isolated Share Card lab (social-lab, Product Memory REV-0028). Implemented under Mazen's task of 2026-10-26 (\"Discord Components V2: Implement & Deploy to TESTING\") for his visual review; social-card redeployed on TESTING the same day. Branch feature/discord-share-card-v2 (not merged).",
+      "notes": "Pending Mazen's visual review; final design acceptance not given. Not part of this capability: a thumbnail-first share copy of the Intro (needs new Intro processing and a frame choice), gender (GamID has no such field), and any change to Open Graph previews on other platforms."
     },
     {
       "id": "public-section-visibility",
