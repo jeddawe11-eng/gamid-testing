@@ -31,19 +31,20 @@ const parts = card => flatten(card.component);
 const texts = card => parts(card).filter(part => part.type === 10).map(part => part.content);
 
 // ------------------------------------------------------------------------------------------------------------------------------ layout
-test("the card is the approved lab layout: header section with avatar, Banner, My Gaming Intro, separator, Open GamID section", () => {
+test("the card is the approved Version A layout: header, Banner, Intro and footer, with a large-spacing divider between each part", () => {
   const card = buildDiscordCard(input());
   assert.equal(card.component.type, 17);
-  assert.equal(card.component.accent_color, 0x62e7ff);
-  assert.deepEqual(card.component.components.map(part => part.type), [9, 12, 10, 12, 14, 9]);
-  const [header, banner, introTitle, intro, , footer] = card.component.components;
-  assert.deepEqual(header.components.map(part => part.content), ["## Espada\n\\@black · **GAM**ID", "CONTENT CREATOR · PLAYER · \\+3 more", "📍 Jeddah, Saudi Arabia"]);
+  assert.equal(card.component.accent_color, 0xb14cff, "the purple accent");
+  assert.deepEqual(card.component.components.map(part => part.type), [9, 14, 12, 14, 10, 12, 14, 9]);
+  const [header, sep1, banner, sep2, introTitle, intro, sep3, footer] = card.component.components;
+  for (const sep of [sep1, sep2, sep3]) assert.deepEqual(sep, { type: 14, divider: true, spacing: 2 });
+  assert.deepEqual(header.components.map(part => part.content), ["## Espada\n\\@black · **GAMID**", "-# CONTENT CREATOR · PLAYER · \\+3 more", "-# 📍 Jeddah, Saudi Arabia"]);
   assert.equal(header.accessory.type, 11);
   assert.equal(header.accessory.media.url, `${SUPABASE}/functions/v1/social-card?handle=black&variant=avatar&v=abcd1234`);
   assert.deepEqual(banner.items.map(item => item.media.url), [`${SUPABASE}/functions/v1/profile-banner/black?v=abcd1234`]);
-  assert.equal(introTitle.content, "**My Gaming Intro**");
+  assert.equal(introTitle.content, "### 🎮 My Gaming Intro");
   assert.deepEqual(intro.items.map(item => item.media.url), [`${ORIGIN}/@black/intro.webm?v=abcd1234`]);
-  assert.equal(footer.components[0].content, "Explore Espada's GamID");
+  assert.equal(footer.components[0].content, "**Explore Espada's GamID**");
   assert.deepEqual(footer.accessory, { type: 2, style: 5, label: "Open GamID", url: `${ORIGIN}/@black` });
 });
 
@@ -69,7 +70,9 @@ test("roles: primary first, then the saved order; two named, the rest counted; n
 
 test("missing public values are never invented: no Banner, no Location, no Intro each simply leave their part out", () => {
   const bare = buildDiscordCard(input({ extras: { ...EXTRAS, has_banner: false, about_location: null }, videoUrl: null }));
-  assert.deepEqual(bare.component.components.map(part => part.type), [9, 14, 9]);
+  assert.deepEqual(bare.component.components.map(part => part.type), [9, 14, 9], "dividers only between parts that exist - never two in a row, none at the ends");
+  const bannerOnly = buildDiscordCard(input({ videoUrl: null }));
+  assert.deepEqual(bannerOnly.component.components.map(part => part.type), [9, 14, 12, 14, 9]);
   assert.equal(bare.component.components[0].components.length, 2);
   assert.doesNotMatch(JSON.stringify(bare), /profile-banner|intro\.webm|📍|My Gaming Intro/);
   const noExtras = buildDiscordCard(input({ extras: null }));
@@ -103,7 +106,8 @@ test("markdown in user values is shown literally: names and locations cannot add
 
 test("line breaks and control characters in values are collapsed, so a value can never add a line of its own", () => {
   const card = buildDiscordCard(input({ identity: { ...IDENTITY, display_name: "A\nB C\tD" } }));
-  assert.equal(texts(card)[0], "## A B C D\n\\@black · **GAM**ID");
+  assert.equal(texts(card)[0], "## A B C D\n\\@black · **GAMID**");
+  assert.ok(texts(card).slice(1, 3).every(line => line.startsWith("-# ")), "roles and Location are subtext lines; the prefix itself is never escaped");
 });
 
 test("embedJson cannot close the <script> element or start markup, and still parses back to the same card", () => {

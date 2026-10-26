@@ -2,10 +2,11 @@
 //
 // Discord reads one <script id="discord:component-embed" type="application/json"> from the page's first response and renders it in place of the Open Graph
 // embed; every other platform keeps reading the unchanged OG / Twitter tags. The layout is the approved Share Card lab design (social-lab/worker.mjs shareCard),
-// with real public data instead of the synthetic Lab Player:
-//   Section: "## <name>" / "@<handle> · GAMID", the first two Gaming Roles + "+N more" (plain text, never a link), the public Location;  avatar thumbnail
-//   Media Gallery: the public Banner          Text: "My Gaming Intro"          Media Gallery: the public Intro          Separator
-//   Section: "Explore <name>'s GamID" with one link button, Open GamID -> the profile's own /@<handle> URL (no intermediate page)
+// with real public data instead of the synthetic Lab Player, styled as Mazen's approved Version A (2026-10-26): purple accent, a divider with large spacing
+// between every part, roles and Location as Discord subtext (-#), the Intro title as a ### heading and a bold footer line. Native component features only.
+//   Section: "## <name>" / "@<handle> · **GAMID**", -# the first two Gaming Roles + "+N more" (plain text, never a link), -# the public Location;  avatar thumbnail
+//   ── Media Gallery: the public Banner ── "### 🎮 My Gaming Intro" + Media Gallery: the public Intro ──
+//   Section: "**Explore <name>'s GamID**" with one link button, Open GamID -> the profile's own /@<handle> URL (no intermediate page)
 //
 // Privacy: built ONLY from what an anonymous visitor's browser already receives - get_public_identity (name, handle, roles, whether there is an Intro) and
 // get_public_profile_extras (has_banner, about_location, which is already null unless the owner shows it). No card at all for a null identity, so unknown,
@@ -15,7 +16,11 @@
 
 export const COMPONENT_EMBED_MAX_BYTES = 3000;   // Discord's documented cap for the component-embed JSON
 export const SHOWN_ROLES = 2;
-const ACCENT = 0x62e7ff;
+export const ACCENT = 0xb14cff;
+// a divider line with large padding between the card's parts (Separator: divider true, spacing 2)
+const DIVIDER = Object.freeze({ type: 14, divider: true, spacing: 2 });
+// Discord subtext: a line starting "-# " is shown smaller and muted
+const subtext = line => `-# ${line}`;
 
 const catalogLabel = (catalog, key) => catalog?.find?.(item => item.key === key)?.label || key || "";
 
@@ -83,21 +88,20 @@ export function bannerUrl(supabaseUrl, handle, version) {
 export function buildDiscordCard({ identity, extras, handle, profileUrl, videoUrl, supabaseUrl, version }) {
   if (!identity) return null;
   const name = plainText(identity.display_name, 40) || `@${handle}`;
-  const header = [{ type: 10, content: `## ${escapeMarkdown(name)}\n${escapeMarkdown(`@${handle}`)} · **GAM**ID` }];
+  const header = [{ type: 10, content: `## ${escapeMarkdown(name)}\n${escapeMarkdown(`@${handle}`)} · **GAMID**` }];
   const roles = roleLine(identity);
-  if (roles) header.push({ type: 10, content: roles });
+  if (roles) header.push({ type: 10, content: subtext(roles) });
   const location = locationLine(extras);
-  if (location) header.push({ type: 10, content: location });
+  if (location) header.push({ type: 10, content: subtext(location) });
 
-  const components = [
-    { type: 9, components: header, accessory: { type: 11, media: { url: avatarTileUrl(supabaseUrl, handle, version) }, description: `${name} avatar` } },
+  // the card's parts in order; only the ones with a public value exist, and a divider goes between each pair
+  const blocks = [
+    [{ type: 9, components: header, accessory: { type: 11, media: { url: avatarTileUrl(supabaseUrl, handle, version) }, description: `${name} avatar` } }],
   ];
-  if (extras?.has_banner === true) components.push({ type: 12, items: [{ media: { url: bannerUrl(supabaseUrl, handle, version) }, description: "Profile banner" }] });
-  if (videoUrl) components.push({ type: 10, content: "**My Gaming Intro**" }, { type: 12, items: [{ media: { url: videoUrl } }] });
-  components.push(
-    { type: 14, divider: true, spacing: 1 },
-    { type: 9, components: [{ type: 10, content: `Explore ${escapeMarkdown(name)}'s GamID` }], accessory: { type: 2, style: 5, label: "Open GamID", url: profileUrl } },
-  );
+  if (extras?.has_banner === true) blocks.push([{ type: 12, items: [{ media: { url: bannerUrl(supabaseUrl, handle, version) }, description: "Profile banner" }] }]);
+  if (videoUrl) blocks.push([{ type: 10, content: "### 🎮 My Gaming Intro" }, { type: 12, items: [{ media: { url: videoUrl } }] }]);
+  blocks.push([{ type: 9, components: [{ type: 10, content: `**Explore ${escapeMarkdown(name)}'s GamID**` }], accessory: { type: 2, style: 5, label: "Open GamID", url: profileUrl } }]);
+  const components = blocks.flatMap((block, index) => (index ? [{ ...DIVIDER }, ...block] : block));
   return { component: { type: 17, accent_color: ACCENT, components } };
 }
 
