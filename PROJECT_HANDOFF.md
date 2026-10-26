@@ -5346,4 +5346,17 @@ Unchanged: the data, privacy rules, media URLs, `+N more` (plain text), Open Gam
 
 **Product:** `7507d1243e2465257cb4d6227e503379f9be2d0c`.
 
+**Deployment:** the docs head `5253134` went to TESTING in run `40320154256` (success; full validation 2,234 tests, 0 failures, 2 skipped). The live asset stamp is `5253134`.
+
+**Anonymous live check:** both cards measured against the live page.
+- **`@black`** (1,102 B):
+  - accent `#b14cff`;
+  - types `[9,14,12,14,10,12,14,9]`, with three `{divider: true, spacing: 2}` separators;
+  - subtext roles (`+9 more` plain) and Location;
+  - avatar 200 PNG, banner 200 JPEG, Intro 206 WebM;
+  - Open GamID → `/@black`.
+- **`@zshot`** (no Banner or Location): types `[9,14,10,12,14,9]`.
+- **Unknown or invalid handle:** no card.
+- **Discord rendering:** not yet checked; posting the real link needs Mazen's OK.
+
 GamID Truth: UPDATED. The `discord-share-card-layout` contract describes the Version A styling (accent, dividers, subtext, headings), and the checkpoint is `7507d12`. Status stays PENDING_ACCEPTANCE.
