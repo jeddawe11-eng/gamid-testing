@@ -5366,8 +5366,16 @@ Mazen asked for purple dividers in place of the grey ones and authorized live te
 
 **What is unchanged:** the avatar, banner, Intro, profile data, Open GamID, the privacy rules and `social-card`. Version A's native Separators stay in the code as the rollback baseline.
 
-**B1, static purple line:** `a9c0182` (`discord-divider-purple.png`, 1200 × 8, 153 bytes).
+**B1, static purple line:** `a9c0182` (`discord-divider-purple.png`, 1200 × 8, 153 bytes). Deployed as docs head `46a9752` in run `40330646016`.
+- **Live JSON:** `@black` is 1,366 B with 15 components (Discord allows 40). The image returns 200 `image/png`, and unknown or invalid handles still get no card.
+- **Discord** (`@black?v=b1`, desktop web): each line renders full width at 566 × 3.8 CSS px. There is no letterbox, box or extra padding.
+  - **Spacing:** slightly tighter than Version A's large-spacing Separators.
+  - **Clicking:** a line is clickable (pointer cursor), and a click opens Discord's image viewer showing the line.
+  - **Alt text:** Discord gives the image its default alt text "Image".
+- **Phone width:** not checked. The Chrome window could not be resized.
 
-GamID Truth: UPDATED. The `discord-share-card-layout` contract now describes the line-image dividers as a test, with Version A as the rollback. New limits: divider image 1200 × 8 px. The checkpoint is `a9c0182`.
+**B2, animated glow line:** `2d08e89` (`discord-divider-gradient.gif`, 1200 × 8, 60 frames at 20 fps, 112,305 B).
+
+GamID Truth: UPDATED. The `discord-share-card-layout` contract now describes the line-image dividers as a test, with Version A as the rollback. New limits: divider image 1200 × 8 px. The checkpoint is `2d08e89`.
 
 GamID Truth: UPDATED. The `discord-share-card-layout` contract describes the Version A styling (accent, dividers, subtext, headings), and the checkpoint is `7507d12`. Status stays PENDING_ACCEPTANCE.

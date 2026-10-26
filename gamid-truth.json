@@ -349,7 +349,7 @@
           "rule": "Card media use the existing anonymous delivery only: the avatar tile is rendered by social-card (variant=avatar, 256x256, the same identity check, avatar read and letter fallback as the Identity Card), the Banner is served by profile-banner, and the Intro is the existing /@<handle>/intro.webm stream of the stored playback derivative, the same URL as og:video. Media URLs carry the existing content version tag. The Intro starts at its own first frame: no thumbnail-first share copy exists. Other platforms keep the unchanged Open Graph / Twitter preview (public-handle-url)."
         }
       ],
-      "checkpoint": "a9c0182d7f76216826aae889606f00ac24175898",
+      "checkpoint": "2d08e89e3b6ac5d18b84bd65378f221aa2f7f9b5",
       "record": "docs/DISCORD-SHARE-CARD.md; PROJECT_HANDOFF.md §133 (first version, 8306d90), §134 (Version A styling, 7507d12, approved by Mazen as a visual design on 2026-10-26) and §135 (B1 / B2 divider live tests, authorized by Mazen 2026-10-26); design and measurements from the isolated Share Card lab (social-lab, Product Memory REV-0028). Implemented under Mazen's task of 2026-10-26 (\"Discord Components V2: Implement & Deploy to TESTING\") for his visual review; social-card redeployed on TESTING the same day. Branch feature/discord-share-card-v2 (not merged).",
       "notes": "Pending Mazen's visual review; final design acceptance not given. Not part of this capability: a thumbnail-first share copy of the Intro (needs new Intro processing and a frame choice), gender (GamID has no such field), and any change to Open Graph previews on other platforms."
     },

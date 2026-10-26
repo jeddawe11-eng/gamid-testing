@@ -37,7 +37,7 @@ Discord's native Separator has only `divider` and `spacing`; it has no colour, s
 | B2 | `dist/assets/discord-divider-gradient.gif`: the same line with a soft pink (`#FF5FD2`) glow sweeping across it, looping every 3 s | 1200 × 8 px |
 
 - **Generator:** both images come from `scripts/generate-discord-dividers.ps1`, which uses ffmpeg.
-- **Switch:** `DIVIDER_IMAGE_PATH` in `cf-worker/discord-card.mjs` names the image the card uses. Its `?v=` tag changes whenever the image does.
+- **Switch:** `DIVIDER_IMAGE_PATH` in `cf-worker/discord-card.mjs` names the image the card uses. It is B2 since `2d08e89`. Its `?v=` tag changes whenever the image does.
 - **Rollback:** without a `dividerUrl`, the card keeps Version A's native Separators (`divider: true, spacing: 2`). Rolling back means dropping `dividerUrl` in `cf-worker/worker.mjs`.
 - **Component count:** each line replaces one Separator, so the count is unchanged (about 15 of Discord's 40). The payload grows by about 100 bytes per line.
 
