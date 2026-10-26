@@ -83,6 +83,12 @@ Rules:
 
 ## Register
 
+2026-10-26: At Mazen's request, REV-0028 gained a dated Reconciliation note.
+- The stored Intro playback derivative is capped at 1080p / 15 MiB (Truth intro-derivative-d3).
+- The record's 4K / 50 MB scenario is hypothetical and does not represent the current Discord Intro delivery.
+- No R2 is in use.
+- Measurements, limitations and status are unchanged. GamID Truth unchanged.
+
 2026-10-26: Mazen approved saving Claude Code's isolated-lab Discord video cache and bandwidth investigation as a review, not a decision.
 - New REV-0028 (INCONCLUSIVE).
 - Discord does not cache linked videos: a new preview fetches the file twice, and every play by every viewer fetches it again through Discord's media proxy.

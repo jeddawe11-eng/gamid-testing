@@ -135,6 +135,17 @@ Costs:
   - the Supabase rate class for the Intro endpoint.
 - **Authorization:** any implementation needs Mazen's separate, explicit task authorization.
 
+**Reconciliation (2026-10-26, Mazen's authorized correction, after the read-only storage audit the same day).** The measurements, limitations, assumptions and recommendation above are unchanged and describe the lab investigation.
+
+- **The stored Intro is not 4K.** GamID Truth `intro-identity` / `intro-derivative-d3` caps the stored Intro playback derivative at 1920 × 1080 (VP9/WebM CRF 40) and 15 MiB. Example: @black's is 6,965,053 B.
+- **The 4K / 50 MB rows are hypothetical.**
+  - "4K" refers only to the lab's synthetic 4K WebM test file and to a hypothetical Intro the size of the 50 MiB *upload* limit.
+  - They do not represent the current Discord Intro delivery.
+  - Today, `/@<handle>/intro.webm` (`og:video`) passes that ≤1080p, ≤15 MiB derivative through from Supabase Storage.
+- **Current costs are bounded by the 15 MiB ceiling.** For current delivery, the per-share and per-play multipliers above (2× per new preview, 1–2× per play) apply to the real derivative size, at most 15 MiB.
+- **Not corrected:** the 1080p rows' 20 MB is an assumed share-copy size, unchanged.
+- **The audit also confirmed** that no R2 is in use. R2 is not enabled on the visible Cloudflare account, and no branch has an R2 binding.
+
 ## History
 
 - 2026-10-26 COMPLETED — Claude Code lab investigation saved with Mazen's explicit approval as a review only; the architecture is a recommendation, nothing implemented or authorized; GamID Truth unchanged.
