@@ -84,8 +84,10 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The preceding Play Together notifications fix `e97594c52d5d341da40fd578c63404ec3b305475` remains **ACCEPTED by Mazen**.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
-- **TESTING serves `ee08a4ac89f6b8816c5ccfdf3210df85108af5d9`** (successful run `40358104036`, from `feature/discord-share-card-v2`, not merged).
-  - What it changes: the Discord share card (§133–§135, B1 dividers) and the Intro Thumbnail for Discord (§136–§137). Migration `20261026120000_intro_discord_thumbnail` APPLIED; the worker image was redeployed from the same commit. Truth `discord-share-card` and `intro-discord-thumbnail` PENDING_ACCEPTANCE.
+- **TESTING serves `aefa2da62936344f3e3ede796aecce16b807a41c`** (successful run `40370232675`, from `feature/discord-share-card-v2`, not merged).
+  - What it changes: frontend only (§138, `docs/PUBLIC-INTRO-MANUAL-PLAY.md`). The public Intro waits for Play on the chosen thumbnail frame. Truth `public-intro-manual-play` PENDING_ACCEPTANCE.
+- **Previously served `ee08a4ac89f6b8816c5ccfdf3210df85108af5d9`** (successful run `40358104036`, from `feature/discord-share-card-v2`, not merged).
+  - What it changes: the Discord share card (§133–§135, B1 dividers) and the Intro Thumbnail for Discord (§136–§137). Migration `20261026120000_intro_discord_thumbnail` APPLIED; the worker image was redeployed from the same commit. Truth `discord-share-card` and `intro-discord-thumbnail` ACCEPTED by Mazen on 2026-10-27 (§138).
   - Earlier card deployments from this branch (§133–§135) are recorded in the handoff.
 - **Previously served `9ee23d8634232146602dc232589e626db5e1e8ab`** (successful run `40194686665`, from `feature/mobile-public-wall-visitor-v2`, not merged).
   - What it changes: frontend only (§132). In the Text panel, Pro Effects, My Fonts and Upload My Font are accordions, one open at a time. Truth unchanged; PENDING Mazen's check.
@@ -179,10 +181,13 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 **Latest continuation (2026-10-26, Discord share card Version A, PENDING Mazen's visual review):** a shared `/@<handle>` link shows the Components V2 card in Discord, now in Mazen's approved Version A styling (§133–§134, `docs/DISCORD-SHARE-CARD.md`, Truth `discord-share-card`). The first version was deployed as `850d85e`. Purple line-image divider tests B1 (static) and B2 (animated) followed, with Version A's native Separators as the rollback; Mazen selected B1 (§135).
 - **Deployed from:** `feature/discord-share-card-v2`, which is `9ee23d8` plus docs, the REV-0028 records and the card. It does not contain `b9aa4c7` (Font Library order, on `feature/mobile-public-wall-visitor-v2`, not authorized for deployment).
 - **Next:** Mazen's visual review in Discord.
-- **Intro Thumbnail for Discord: deployed on TESTING (2026-10-27), PENDING_ACCEPTANCE** (§136–§137, `docs/INTRO-DISCORD-THUMBNAIL.md`, Truth `intro-discord-thumbnail`).
+- **2026-10-27: the Discord card and the Intro Thumbnail for Discord are ACCEPTED by Mazen** (§138; Truth `discord-share-card`, `intro-discord-thumbnail`).
+  - **New on TESTING:** the public Intro waits for Play (`aefa2da`, run `40370232675`; Truth `public-intro-manual-play` PENDING_ACCEPTANCE).
+  - **Next:** Mazen's personal check of the public Intro (desktop, phone, Safari / iOS untested by the agent). The Product Memory acceptance review is proposed, not saved.
+- **Intro Thumbnail for Discord: deployed on TESTING (2026-10-27)**, since ACCEPTED (§136–§138, `docs/INTRO-DISCORD-THUMBNAIL.md`, Truth `intro-discord-thumbnail`).
   - **What's deployed:** product `02c98c5`; site and Worker `ee08a4a` (run `40358104036`); worker image, Job and dispatcher redeployed by Mazen from `ee08a4a`. Migration `20261026120000_intro_discord_thumbnail` APPLIED.
   - **End-to-end check:** passed on GM-TEST-01 (restored to DRAFT). The signed-in editor, the Discord desktop app and phones were not tested by the agent.
-  - **Next:** Mazen's personal check in GamID and Discord, then his acceptance decision.
+  - **Acceptance:** Mazen accepted it on 2026-10-27 (§138).
 
 **Previous continuation (2026-10-25, Text panel accordion on TESTING `9ee23d8`, PENDING Mazen's check):** Pro Effects, My Fonts and Upload My Font are accordions, one open at a time (§132). Next: Mazen's check. (The accordion is still part of what TESTING serves.)
 

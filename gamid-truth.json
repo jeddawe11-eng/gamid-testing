@@ -261,7 +261,7 @@
       "contracts": [
         {
           "id": "intro-landscape-hint-display",
-          "rule": "The shared Intro player (account/intro-preview.html: the public visitor Intro and the editor Preview Intro) shows a small animated phone turning from portrait to landscape, bottom-left above the progress bar, once per presentation and only after metadata shows a landscape video (width / height of at least 1.2) on a touch-first (coarse pointer) screen held in portrait. It is never shown for portrait or square videos, before metadata, in landscape or on Desktop. It stays about 6 s: fully visible for 5.5 s, then a 0.5 s fade during which it is still tappable, gone at 6 s (Mazen 2026-10-17). It never loops, never covers Tap to play, Skip, the progress bar or the host controls, and is static with reduced motion."
+          "rule": "The shared Intro player (account/intro-preview.html: the public visitor Intro and the editor Preview Intro) shows a small animated phone turning from portrait to landscape, bottom-left above the progress bar, once per presentation and only after metadata shows a landscape video (width / height of at least 1.2) on a touch-first (coarse pointer) screen held in portrait. It is never shown for portrait or square videos, before metadata, in landscape or on Desktop. It stays about 6 s: fully visible for 5.5 s, then a 0.5 s fade during which it is still tappable, gone at 6 s (Mazen 2026-10-17). It never loops, never covers the Play button (Play Intro), Skip, the progress bar or the host controls, and is static with reduced motion."
         },
         {
           "id": "intro-landscape-fullscreen",
@@ -323,7 +323,7 @@
     {
       "id": "discord-share-card",
       "name": "Discord share card (Components V2) for a shared /@handle link",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "https://gamid-testing-static.gamid.workers.dev/@<handle> (Discord link preview)",
         "/functions/v1/social-card?handle=<handle>&variant=avatar"
@@ -350,13 +350,13 @@
         }
       ],
       "checkpoint": "02c98c5d10cc6bfd47af0eaee05eb37a5a95fca9",
-      "record": "docs/DISCORD-SHARE-CARD.md; PROJECT_HANDOFF.md §133 (first version, 8306d90), §134 (Version A styling, 7507d12, approved by Mazen as a visual design on 2026-10-26) and §135 (B1 / B2 divider live tests, authorized by Mazen 2026-10-26; B1 selected by Mazen the same day, b110f07) and §136-§137 (Intro Thumbnail for Discord: implementation 02c98c5, deployed to TESTING 2026-10-27, see intro-discord-thumbnail); design and measurements from the isolated Share Card lab (social-lab, Product Memory REV-0028). Implemented under Mazen's task of 2026-10-26 (\"Discord Components V2: Implement & Deploy to TESTING\") for his visual review; social-card redeployed on TESTING the same day. Branch feature/discord-share-card-v2 (not merged).",
-      "notes": "Pending Mazen's visual review; final design acceptance not given. The card's layout and B1 dividers are unchanged by the Intro Thumbnail for Discord (intro-discord-thumbnail), which only replaces the Intro URL when a share copy is ready. Not part of this capability: gender (GamID has no such field), and any change to Open Graph previews on other platforms."
+      "record": "docs/DISCORD-SHARE-CARD.md; PROJECT_HANDOFF.md §133 (first version, 8306d90), §134 (Version A styling, 7507d12, approved by Mazen as a visual design on 2026-10-26) and §135 (B1 / B2 divider live tests, authorized by Mazen 2026-10-26; B1 selected by Mazen the same day, b110f07) and §136-§137 (Intro Thumbnail for Discord: implementation 02c98c5, deployed to TESTING 2026-10-27, see intro-discord-thumbnail); design and measurements from the isolated Share Card lab (social-lab, Product Memory REV-0028). Implemented under Mazen's task of 2026-10-26 (\"Discord Components V2: Implement & Deploy to TESTING\") for his visual review; social-card redeployed on TESTING the same day. Branch feature/discord-share-card-v2 (not merged). Final acceptance: PROJECT_HANDOFF.md §138.",
+      "notes": "FINAL ACCEPTANCE by Mazen on TESTING 2026-10-27 (task \"Final Discord Acceptance + Public Intro Manual Play\"): the card design with all B1 purple dividers, the selected Intro frame before playback, the Play button and manual playback in Discord, playback from the beginning with audio, Open GamID and its destination, and the fallback and thumbnail updates. Preserve unless he authorizes a change. The card's layout and B1 dividers are unchanged by the Intro Thumbnail for Discord (intro-discord-thumbnail), which only replaces the Intro URL when a share copy is ready. Not part of this capability: gender (GamID has no such field), and any change to Open Graph previews on other platforms."
     },
     {
       "id": "intro-discord-thumbnail",
       "name": "Intro Thumbnail for Discord: an owner-chosen Intro frame shown before Play in the Discord share card",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "/account/ Profile Editor, Intro section: Discord thumbnail (desktop and mobile deck)",
         "https://gamid-testing-static.gamid.workers.dev/@<handle>/intro-discord.webm (Discord share card Intro)"
@@ -380,8 +380,30 @@
         }
       ],
       "checkpoint": "02c98c5d10cc6bfd47af0eaee05eb37a5a95fca9",
-      "record": "docs/INTRO-DISCORD-THUMBNAIL.md; PROJECT_HANDOFF.md §136 (implementation 02c98c5) and §137 (TESTING deployment 2026-10-27: migration 20261026120000 applied, worker image and dispatcher redeployed from ee08a4a by Mazen in Cloud Shell, site and Worker deployed by run 40358104036). Implemented under Mazen's task of 2026-10-26 (\"Implement Intro Thumbnail Selection for Discord\") and deployed under his task \"Complete Intro Thumbnail Deployment & Acceptance on TESTING\". Branch feature/discord-share-card-v2 (not merged).",
-      "notes": "Deployed on TESTING; pending Mazen's personal verification in the editor and in Discord, final acceptance not given. The Cloudflare video-terms question for video streamed through the Worker (REV-0028) also covers the share copy."
+      "record": "docs/INTRO-DISCORD-THUMBNAIL.md; PROJECT_HANDOFF.md §136 (implementation 02c98c5) and §137 (TESTING deployment 2026-10-27: migration 20261026120000 applied, worker image and dispatcher redeployed from ee08a4a by Mazen in Cloud Shell, site and Worker deployed by run 40358104036). Implemented under Mazen's task of 2026-10-26 (\"Implement Intro Thumbnail Selection for Discord\") and deployed under his task \"Complete Intro Thumbnail Deployment & Acceptance on TESTING\". Branch feature/discord-share-card-v2 (not merged). Final acceptance: §138.",
+      "notes": "FINAL ACCEPTANCE by Mazen on TESTING 2026-10-27 (with discord-share-card). The chosen frame is also the public profile's Intro poster (public-intro-manual-play). The Cloudflare video-terms question for video streamed through the Worker (REV-0028) also covers the share copy."
+    },
+    {
+      "id": "public-intro-manual-play",
+      "name": "Public Intro waits for the visitor's Play",
+      "status": "PENDING_ACCEPTANCE",
+      "surfaces": [
+        "https://gamid-testing-static.gamid.workers.dev/@<handle> (public profile Intro, desktop and mobile)",
+        "/account/intro-preview.html (the shared Intro player, public visitor mode)"
+      ],
+      "contracts": [
+        {
+          "id": "public-intro-manual-play-start",
+          "rule": "When a visitor opens a public GamID whose Intro is available, the Intro is never started by the page, a media load, navigation or the browser's autoplay rules, whether the visitor arrives from Discord, a direct URL or another platform. The existing full-screen Intro player (same size, cropping, position and responsive behaviour, desktop and mobile) shows a static frame with a centered Play button (a Play icon and \"Play Intro\") and Skip. Play starts the Intro from 0:00 with sound; Skip before or during playback, and the Intro's end, run the existing transition to the published, enabled Wall, else the Classic Profile. Without an available Intro the page opens the Wall or the Classic Profile directly, as before. Replay Intro is an explicit click and plays at once. The owner's Preview Intro in the editor and the Discord card (discord-share-card) are unchanged."
+        },
+        {
+          "id": "public-intro-manual-play-poster",
+          "rule": "The static frame is the owner's chosen Intro Thumbnail frame (intro-discord-thumbnail) while its Discord share copy is ready, read with the existing anonymous get_public_intro_share; otherwise (no choice, a copy still being prepared, or a failed lookup) it is the Intro's first frame. It is the same playback derivative paused at that time, not a separate image. The 120-second visitor lease (visitor-media-leases) is unchanged: a waiting Intro is not ended by it, and a Play pressed when the lease no longer covers the whole Intro asks the page for a fresh lease, which revalidates the PUBLIC identity and active Intro, without showing the profile in between."
+        }
+      ],
+      "checkpoint": "aefa2da62936344f3e3ede796aecce16b807a41c",
+      "record": "PROJECT_HANDOFF.md §138; docs/PUBLIC-INTRO-MANUAL-PLAY.md. Implemented and deployed to TESTING under Mazen's task of 2026-10-27, \"Final Discord Acceptance + Public Intro Manual Play\". Branch feature/discord-share-card-v2 (not merged).",
+      "notes": "Replaces the public visitor's earlier automatic start (the player called play() on load since 2026-09-16, 37812de; whether it succeeded depended on the browser). Pending Mazen's personal verification; final acceptance not given."
     },
     {
       "id": "public-section-visibility",
@@ -1261,7 +1283,7 @@
         },
         {
           "id": "desktop-preserves",
-          "rule": "The Intro still plays first (full screen) and its transition reveals the desktop profile; Replay Intro, Skip and Back work as before; a published, enabled Wall still replaces the Classic Profile. Below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, ACCEPTED) applies, and crossing the width switches between the two in place without replaying the Intro."
+          "rule": "The Intro still comes first (full screen) and starts only when the visitor presses Play (public-intro-manual-play) and its transition reveals the desktop profile; Replay Intro, Skip and Back work as before; a published, enabled Wall still replaces the Classic Profile. Below 1280px Mobile Public Visitor V2 (public-profile-mobile-v2, ACCEPTED) applies, and crossing the width switches between the two in place without replaying the Intro."
         },
         {
           "id": "desktop-discord",
@@ -1319,7 +1341,7 @@
         },
         {
           "id": "public-mobile-intro",
-          "rule": "The Intro still plays first and full screen; at every width the Intro frame only plays the Intro (hostReveal) and its transition reveals the page profile. Skip, the visitor Back / Skip Intro, Replay Intro and the landscape hint are unchanged. Crossing 1280px switches between the desktop layout and Mobile V2 in place without replaying the Intro. The owner Classic Preview shows the same page."
+          "rule": "The Intro still comes first and full screen, and starts only when the visitor presses Play (public-intro-manual-play); at every width the Intro frame only plays the Intro (hostReveal) and its transition reveals the page profile. Skip, the visitor Back / Skip Intro, Replay Intro and the landscape hint are unchanged. Crossing 1280px switches between the desktop layout and Mobile V2 in place without replaying the Intro. The owner Classic Preview shows the same page."
         },
         {
           "id": "public-mobile-socials",

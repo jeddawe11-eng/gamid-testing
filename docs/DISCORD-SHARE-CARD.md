@@ -1,6 +1,6 @@
 # Discord share card (Components V2)
 
-Status: on TESTING for Mazen's visual review, PENDING_ACCEPTANCE (GamID Truth `discord-share-card`). Implemented under Mazen's task of 2026-10-26, "GamID Discord Components V2: Implement & Deploy to TESTING". Not merged; Production untouched.
+Status: **ACCEPTED** (GamID Truth `discord-share-card`). Mazen's FINAL ACCEPTANCE was given on TESTING on 2026-10-27, together with the Intro Discord Thumbnail; see `PROJECT_HANDOFF.md` §138. Do not change the card or its behaviour without his authorization. Implemented under Mazen's task of 2026-10-26, "GamID Discord Components V2: Implement & Deploy to TESTING". Not merged; Production untouched.
 
 ## What Discord shows
 
@@ -29,7 +29,7 @@ These are all native Components V2 features; no image, border or background styl
 
 ### Dividers: B1 selected (2026-10-26)
 
-Mazen chose **B1**, the static purple line, after live tests of both options; since `b110f07` the card uses it again. B2's GIF stays in `dist/assets` but is not used. Final acceptance of the card is still pending.
+Mazen chose **B1**, the static purple line, after live tests of both options; since `b110f07` the card uses it again. B2's GIF stays in `dist/assets` but is not used. The card, B1 included, was finally accepted on 2026-10-27.
 
 What the tests showed in Discord (desktop web, `@black?v=b1` and `?v=b2`):
 - **Sizing:** each line renders full width at about 566 × 3.8 CSS px, with no letterbox, box or extra padding.
@@ -76,7 +76,7 @@ Open GamID is the card's only link. `+N more` is not clickable.
 
 ## Limitations
 
-- **Thumbnail-first:** live on TESTING since 2026-10-27 (`02c98c5`; Truth `intro-discord-thumbnail`, PENDING_ACCEPTANCE; see `docs/INTRO-DISCORD-THUMBNAIL.md`).
+- **Thumbnail-first:** live on TESTING since 2026-10-27 and ACCEPTED the same day (`02c98c5`; Truth `intro-discord-thumbnail`; see `docs/INTRO-DISCORD-THUMBNAIL.md`).
   - **With a chosen frame:** when the owner has chosen a frame and its share copy is ready, the card's Intro is `/@<handle>/intro-discord.webm?v=<digest>`, so Discord previews that frame.
   - **Otherwise:** the card plays the stored derivative, `/@<handle>/intro.webm`, from its own first frame.
   - **What does not change:** the layout, B1 and og:video.

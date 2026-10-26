@@ -5450,3 +5450,42 @@ NOT TESTED by the agent:
 **Next:** Mazen's personal verification in GamID (desktop and mobile editor) and in Discord, then his acceptance decision.
 
 GamID Truth: UPDATED. New capability `intro-discord-thumbnail` (PENDING_ACCEPTANCE, checkpoint `02c98c5`). `discord-share-card`: the media contract now describes the share-copy URL with its fallback; checkpoint `02c98c5`; notes updated.
+## 138. Discord FINAL ACCEPTANCE + public Intro waits for Play (2026-10-27)
+
+Mazen's task: "Final Discord Acceptance + Public Intro Manual Play".
+
+**Part 1: final acceptance.**
+- **What Mazen accepted:**
+  - the Discord share card, with all B1 purple dividers;
+  - the selected Intro frame before playback;
+  - Play and manual playback in Discord, from the beginning with audio;
+  - Open GamID and its destination;
+  - the fallback and thumbnail updates.
+- **Truth:** `discord-share-card` and `intro-discord-thumbnail` are ACCEPTED.
+- **Unchanged:** the card and its behaviour.
+- **Product Memory:** the acceptance review is proposed and not saved, because saving needs his separate approval.
+
+**Part 2: the public Intro waits for Play.** Details: `docs/PUBLIC-INTRO-MANUAL-PLAY.md`.
+- **Cause:** the player had called `play()` on load since `37812de` (2026-09-16). It was not a regression.
+- **Product commits:** `4b0ac98` and `aefa2da`.
+  - The first public presentation shows the owner's chosen thumbnail frame (else the first frame), paused in the existing full-screen player, with a centred "Play Intro" button and Skip.
+  - Play starts from 0:00 with sound; Replay plays at once.
+  - Lease renewal on a late Play, without a profile flash.
+- **Deployed:** `aefa2da` by run `40370232675` (site and Worker only; no database, Worker-code, Cloud Run or Discord change).
+- **Tests:** `npm run build` passed: 2,265 tests, 0 failures, 3 skipped.
+
+**Live checks.**
+- **PASS:**
+  - Chromium with autoplay allowed, at desktop and phone sizes: all four Intro / Wall / Classic routes, Play, Skip before and during playback, the Intro end, Replay, and the 97 s lease renewal;
+  - Mazen's own Chrome 156 as a returning visitor;
+  - Android Chrome 154 in the emulator, with a real tap.
+- **PARTIAL:** WebKit on Windows: no autoplay, but this build decodes no WebM, so the poster frame could not be checked.
+- **NOT TESTED:** Firefox (it does not start here), real Safari on macOS / iOS, and physical phones.
+
+**Next:** Mazen's personal verification of the public Intro, then his acceptance decision.
+
+GamID Truth: UPDATED.
+- `discord-share-card` and `intro-discord-thumbnail` are ACCEPTED.
+- New capability `public-intro-manual-play` (PENDING_ACCEPTANCE, checkpoint `aefa2da`).
+- `classic-profile-desktop` (desktop-preserves) and `public-profile-mobile-v2` (public-mobile-intro) now say the Intro starts only when the visitor presses Play.
+- `intro-landscape-hint` names the Play button.

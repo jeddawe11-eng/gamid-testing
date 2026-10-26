@@ -1,6 +1,6 @@
 # Intro Thumbnail for Discord
 
-Status: **deployed on TESTING (2026-10-27), PENDING_ACCEPTANCE** (GamID Truth `intro-discord-thumbnail`). Product commit `02c98c5` on `feature/discord-share-card-v2`, under Mazen's task of 2026-10-26, "Implement Intro Thumbnail Selection for Discord". Deployed under his task "Complete Intro Thumbnail Deployment & Acceptance on TESTING"; see [TESTING deployment](#testing-deployment-2026-10-27) below. Final acceptance needs Mazen's personal check. Not merged; Production untouched.
+Status: **ACCEPTED** (GamID Truth `intro-discord-thumbnail`). Mazen's FINAL ACCEPTANCE was given on TESTING on 2026-10-27 (§138). The chosen frame is also the public profile's Intro poster (`docs/PUBLIC-INTRO-MANUAL-PLAY.md`). Previously: deployed on TESTING on 2026-10-27. Product commit `02c98c5` on `feature/discord-share-card-v2`, under Mazen's task of 2026-10-26, "Implement Intro Thumbnail Selection for Discord". Deployed under his task "Complete Intro Thumbnail Deployment & Acceptance on TESTING"; see [TESTING deployment](#testing-deployment-2026-10-27) below. Final acceptance needs Mazen's personal check. Not merged; Production untouched.
 
 ## What it does
 
@@ -144,7 +144,7 @@ Authorized by Mazen's task "Complete Intro Thumbnail Deployment & Acceptance on 
 - the Discord desktop app;
 - Discord on a phone.
 
-These are left for Mazen's personal check.
+These were left for Mazen's personal check. He then gave his final acceptance on 2026-10-27.
 
 **Still open:** the Cloudflare video-terms question (REV-0028, proposed ISS-0018). It now also covers the share copy streamed through the Worker.
 
