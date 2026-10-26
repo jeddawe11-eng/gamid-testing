@@ -7,7 +7,7 @@
 //   Section: "## <name>" / "@<handle> · **GAMID**", -# the first two Gaming Roles + "+N more" (plain text, never a link), -# the public Location;  avatar thumbnail
 //   ── Media Gallery: the public Banner ── "### 🎮 My Gaming Intro" + Media Gallery: the public Intro ──
 //   Section: "**Explore <name>'s GamID**" with one link button, Open GamID -> the profile's own /@<handle> URL (no intermediate page)
-// Dividers (B1 / B2 live test, 2026-10-26, Mazen's review pending): Discord's native Separator is always grey (it has no colour field), so with a `dividerUrl`
+// Dividers (B1, chosen by Mazen after the B1 / B2 live tests, 2026-10-26): Discord's native Separator is always grey (it has no colour field), so with a `dividerUrl`
 // each ── is a one-item Media Gallery showing a thin accent-coloured image from this site's own assets (scripts/generate-discord-dividers.ps1). Without one the
 // card keeps Version A's native Separators, the rollback baseline.
 //
@@ -22,9 +22,9 @@ export const SHOWN_ROLES = 2;
 export const ACCENT = 0xb14cff;
 // a divider line with large padding between the card's parts (Separator: divider true, spacing 2)
 const DIVIDER = Object.freeze({ type: 14, divider: true, spacing: 2 });
-// B2: the #B14CFF line with a soft pink glow sweeping across it (animated GIF); B1 is /assets/discord-divider-purple.png?v=1, the solid line.
+// B1, chosen by Mazen 2026-10-26: the solid #B14CFF line (the tested B2 alternative, /assets/discord-divider-gradient.gif, is not used).
 // The ?v tag changes whenever the image is regenerated, since Discord caches media by URL.
-export const DIVIDER_IMAGE_PATH = "/assets/discord-divider-gradient.gif?v=1";
+export const DIVIDER_IMAGE_PATH = "/assets/discord-divider-purple.png?v=1";
 // a decorative line: no description, so Discord shows no ALT badge on it
 const divider = dividerUrl => (dividerUrl ? { type: 12, items: [{ media: { url: dividerUrl } }] } : { ...DIVIDER });
 // Discord subtext: a line starting "-# " is shown smaller and muted
