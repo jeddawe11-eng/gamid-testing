@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import worker from "../cf-worker/worker.mjs";
 import {
-  COMPONENT_EMBED_MAX_BYTES, buildDiscordCard, componentEmbedScript, embedJson, escapeMarkdown, fetchPublicExtras, locationLine, roleLine, roleSummary,
+  COMPONENT_EMBED_MAX_BYTES, DIVIDER_IMAGE_PATH, buildDiscordCard, componentEmbedScript, embedJson, escapeMarkdown, fetchPublicExtras, locationLine, roleLine,
+  roleSummary,
 } from "../cf-worker/discord-card.mjs";
 import { AVATAR_TILE_SIZE, avatarLetter, buildAvatarTileElement, isAvatarVariant } from "../supabase/functions/_shared/social-avatar.js";
 
@@ -22,22 +23,25 @@ const IDENTITY = {
   intro_derivative_path: "07991366-84e9/intro-d3.webm",
 };
 const EXTRAS = { member_since_year: 2026, has_banner: true, about_location: "Jeddah, Saudi Arabia", about_languages: [], about_genres: [] };
+const DIVIDER_URL = `${ORIGIN}${DIVIDER_IMAGE_PATH}`;
 const input = (over = {}) => ({
   identity: IDENTITY, extras: EXTRAS, handle: "black", profileUrl: `${ORIGIN}/@black`, videoUrl: `${ORIGIN}/@black/intro.webm?v=abcd1234`,
-  supabaseUrl: SUPABASE, version: "abcd1234", ...over,
+  supabaseUrl: SUPABASE, version: "abcd1234", dividerUrl: DIVIDER_URL, ...over,
 });
+const DIVIDER_GALLERY = { type: 12, items: [{ media: { url: DIVIDER_URL } }] };
+const isDivider = part => JSON.stringify(part) === JSON.stringify(DIVIDER_GALLERY);
+const shape = card => card.component.components.map(part => (isDivider(part) ? "line" : part.type));
 const flatten = node => [node, ...(node?.components || []).flatMap(flatten), ...(node?.accessory ? [node.accessory] : [])];
 const parts = card => flatten(card.component);
 const texts = card => parts(card).filter(part => part.type === 10).map(part => part.content);
 
 // ------------------------------------------------------------------------------------------------------------------------------ layout
-test("the card is the approved Version A layout: header, Banner, Intro and footer, with a large-spacing divider between each part", () => {
+test("the card is the Version A layout: header, Banner, Intro and footer, with a purple divider image between each part", () => {
   const card = buildDiscordCard(input());
   assert.equal(card.component.type, 17);
   assert.equal(card.component.accent_color, 0xb14cff, "the purple accent");
-  assert.deepEqual(card.component.components.map(part => part.type), [9, 14, 12, 14, 10, 12, 14, 9]);
-  const [header, sep1, banner, sep2, introTitle, intro, sep3, footer] = card.component.components;
-  for (const sep of [sep1, sep2, sep3]) assert.deepEqual(sep, { type: 14, divider: true, spacing: 2 });
+  assert.deepEqual(shape(card), [9, "line", 12, "line", 10, 12, "line", 9]);
+  const [header, , banner, , introTitle, intro, , footer] = card.component.components;
   assert.deepEqual(header.components.map(part => part.content), ["## Espada\n\\@black · **GAMID**", "-# CONTENT CREATOR · PLAYER · \\+3 more", "-# 📍 Jeddah, Saudi Arabia"]);
   assert.equal(header.accessory.type, 11);
   assert.equal(header.accessory.media.url, `${SUPABASE}/functions/v1/social-card?handle=black&variant=avatar&v=abcd1234`);
@@ -46,6 +50,28 @@ test("the card is the approved Version A layout: header, Banner, Intro and foote
   assert.deepEqual(intro.items.map(item => item.media.url), [`${ORIGIN}/@black/intro.webm?v=abcd1234`]);
   assert.equal(footer.components[0].content, "**Explore Espada's GamID**");
   assert.deepEqual(footer.accessory, { type: 2, style: 5, label: "Open GamID", url: `${ORIGIN}/@black` });
+});
+
+test("dividers: a decorative one-item gallery of the site's own line image (no ALT text); without a dividerUrl, Version A's native Separators", () => {
+  assert.match(DIVIDER_IMAGE_PATH, /^\/assets\/discord-divider-[a-z]+\.(png|gif)\?v=\d+$/);
+  const lines = buildDiscordCard(input()).component.components.filter(isDivider);
+  assert.equal(lines.length, 3);
+  for (const line of lines) assert.equal(line.items[0].description, undefined);
+  const native = buildDiscordCard(input({ dividerUrl: undefined }));
+  assert.deepEqual(native.component.components.map(part => part.type), [9, 14, 12, 14, 10, 12, 14, 9], "the rollback baseline");
+  for (const sep of native.component.components.filter(part => part.type === 14)) assert.deepEqual(sep, { type: 14, divider: true, spacing: 2 });
+});
+
+test("divider images: the committed assets are 1200 x 8 (a thin line at any card width) and small", () => {
+  for (const [file, magic] of [["discord-divider-purple.png", "\x89PNG"], ["discord-divider-gradient.gif", "GIF89a"]]) {
+    let bytes;
+    try { bytes = readFileSync(new URL(`../dist/assets/${file}`, import.meta.url)); } catch { continue; }   // the GIF exists only from the B2 test on
+    assert.equal(bytes.subarray(0, magic.length).toString("latin1"), magic, file);
+    const [width, height] = magic === "GIF89a" ? [bytes.readUInt16LE(6), bytes.readUInt16LE(8)] : [bytes.readUInt32BE(16), bytes.readUInt32BE(20)];
+    assert.deepEqual([width, height], [1200, 8], file);
+    assert.ok(bytes.length <= 150_000, `${file} is ${bytes.length} bytes`);
+  }
+  assert.ok(readFileSync(new URL(`../dist${DIVIDER_IMAGE_PATH.split("?")[0]}`, import.meta.url)).length > 0, "the image the card points at exists");
 });
 
 test("Open GamID is the ONLY link: '+N more' is plain text, and no text component carries a markdown link or a bare URL", () => {
@@ -70,9 +96,9 @@ test("roles: primary first, then the saved order; two named, the rest counted; n
 
 test("missing public values are never invented: no Banner, no Location, no Intro each simply leave their part out", () => {
   const bare = buildDiscordCard(input({ extras: { ...EXTRAS, has_banner: false, about_location: null }, videoUrl: null }));
-  assert.deepEqual(bare.component.components.map(part => part.type), [9, 14, 9], "dividers only between parts that exist - never two in a row, none at the ends");
+  assert.deepEqual(shape(bare), [9, "line", 9], "dividers only between parts that exist - never two in a row, none at the ends");
   const bannerOnly = buildDiscordCard(input({ videoUrl: null }));
-  assert.deepEqual(bannerOnly.component.components.map(part => part.type), [9, 14, 12, 14, 9]);
+  assert.deepEqual(shape(bannerOnly), [9, "line", 12, "line", 9]);
   assert.equal(bare.component.components[0].components.length, 2);
   assert.doesNotMatch(JSON.stringify(bare), /profile-banner|intro\.webm|📍|My Gaming Intro/);
   const noExtras = buildDiscordCard(input({ extras: null }));
@@ -152,6 +178,7 @@ test("the /@black page head carries exactly one parseable component embed; the O
     assert.ok(html.indexOf(scripts[0][0]) < html.indexOf("</head>"), "in the head");
     const card = JSON.parse(scripts[0][1]);
     assert.equal(card.component.components.at(-1).accessory.url, `${ORIGIN}/@black`);
+    assert.equal(card.component.components[1].items[0].media.url, DIVIDER_URL, "the divider image is this site's own asset");
     assert.match(html, /property="og:video" content="https:\/\/gamid-testing-static\.gamid\.workers\.dev\/@black\/intro\.webm\?v=[0-9a-f]{8}"/);
     assert.match(JSON.stringify(card), /\/@black\/intro\.webm\?v=[0-9a-f]{8}/, "the card plays the same Intro URL as og:video");
     assert.equal(html.slice(html.indexOf("<body>")), shell.slice(shell.indexOf("<body>")));

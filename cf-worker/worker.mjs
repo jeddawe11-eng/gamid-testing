@@ -29,7 +29,8 @@
 //
 // DISCORD SHARE CARD (Components V2, 2026-10-26, TESTING review) update: for a resolved identity the page head also carries Discord's component-embed card
 // (cf-worker/discord-card.mjs), built from get_public_identity plus the anonymous get_public_profile_extras RPC (Banner presence, public Location). Discord shows
-// it in place of the OG embed; the OG / Twitter tags above are unchanged for every other platform, and a null identity still gets no card at all.
+// it in place of the OG embed; the OG / Twitter tags above are unchanged for every other platform, and a null identity still gets no card at all. Its divider
+// lines are a static image from this site's /assets (DIVIDER_IMAGE_PATH), served by the unchanged static-asset path below.
 //
 // Routing (see wrangler.jsonc: assets.run_worker_first: ["/@*"]): ONLY requests whose path matches "/@<segment>" or "/@<segment>/intro.webm" are handled here;
 // the Worker runs BEFORE Cloudflare's own static-asset routing for that pattern, which matters because that routing was observed (Phase 0a) to redirect a
@@ -43,7 +44,7 @@
 // apart from "exists, is public, but has no Intro" from either response.
 
 import { normalizeHandle, validateHandle } from "../dist/account/domain.js";
-import { componentEmbedScript, fetchPublicExtras } from "./discord-card.mjs";
+import { DIVIDER_IMAGE_PATH, componentEmbedScript, fetchPublicExtras } from "./discord-card.mjs";
 
 const SUPABASE_URL = "https://upvtrczefcvigxdyuylw.supabase.co";
 // The browser's own public ("anon") key, copied verbatim from dist/account/supabase-client.js. Not a secret: it ships in every page load already and is
@@ -279,7 +280,8 @@ export default {
     const image = buildImageUrl(identity, check.handle, version) || `${url.origin}${SOCIAL_CARD_PATH}`;
     const video = buildVideoUrl(identity, check.handle, url.origin, version);
     const profileUrl = `${url.origin}/@${encodeURIComponent(check.handle)}`;
-    const componentEmbed = componentEmbedScript({ identity, extras, handle: check.handle, profileUrl, videoUrl: video, supabaseUrl: SUPABASE_URL, version });
+    // the card's divider image is this site's own static asset (dropping dividerUrl restores Version A's native grey Separators)
+  const componentEmbed = componentEmbedScript({ identity, extras, handle: check.handle, profileUrl, videoUrl: video, supabaseUrl: SUPABASE_URL, version, dividerUrl: `${url.origin}${DIVIDER_IMAGE_PATH}` });
     const html = injectMetadata(shellHtml, { ...meta, url: `${url.origin}${url.pathname}`, image, video, componentEmbed });
 
     return new Response(request.method === "HEAD" ? null : html, {
