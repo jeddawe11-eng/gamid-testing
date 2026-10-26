@@ -22,8 +22,9 @@ export const SHOWN_ROLES = 2;
 export const ACCENT = 0xb14cff;
 // a divider line with large padding between the card's parts (Separator: divider true, spacing 2)
 const DIVIDER = Object.freeze({ type: 14, divider: true, spacing: 2 });
-// B1: the solid #B14CFF line image (the ?v tag changes whenever the image is regenerated, since Discord caches media by URL)
-export const DIVIDER_IMAGE_PATH = "/assets/discord-divider-purple.png?v=1";
+// B2: the #B14CFF line with a soft pink glow sweeping across it (animated GIF); B1 is /assets/discord-divider-purple.png?v=1, the solid line.
+// The ?v tag changes whenever the image is regenerated, since Discord caches media by URL.
+export const DIVIDER_IMAGE_PATH = "/assets/discord-divider-gradient.gif?v=1";
 // a decorative line: no description, so Discord shows no ALT badge on it
 const divider = dividerUrl => (dividerUrl ? { type: 12, items: [{ media: { url: dividerUrl } }] } : { ...DIVIDER });
 // Discord subtext: a line starting "-# " is shown smaller and muted
