@@ -79,9 +79,15 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0011 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0017 |
-| REV | Reviews | reviews/ | REV-0027 |
+| REV | Reviews | reviews/ | REV-0028 |
 
 ## Register
+
+2026-10-26: Mazen approved saving Claude Code's isolated-lab Discord video cache and bandwidth investigation as a review, not a decision.
+- New REV-0028 (INCONCLUSIVE).
+- Discord does not cache linked videos: a new preview fetches the file twice, and every play by every viewer fetches it again through Discord's media proxy.
+- It records the measurements, limitations, financial assumptions and the proposed R2 + Worker 1080p share-copy architecture (recommendation only, nothing implemented or authorized), and leaves the Cloudflare terms question unresolved.
+- GamID Truth unchanged; IDEA-0003 unchanged.
 
 2026-10-25: Mazen gave his FINAL ACCEPTANCE of the current Pro Effects implementation on TESTING (site fb8708e, run 40191766463) and authorized saving it.
 - Pro Effects covers Neon, Living Fire, Living Ice V5 and Living Radiation V1.
@@ -240,3 +246,4 @@ Status stays DISCUSSION; there is no implementation authorization.
 | REV-0025 | Notifications "Mark all as read" fix and Friends Stickers clip icon position — Mazen acceptance | COMPLETED | [REV-0025-notifications-mark-all-and-sticker-clip-icon-acceptance.md](reviews/REV-0025-notifications-mark-all-and-sticker-clip-icon-acceptance.md) |
 | REV-0026 | Friends Stickers V1 — Mazen final TESTING acceptance | COMPLETED | [REV-0026-friends-stickers-v1-final-acceptance.md](reviews/REV-0026-friends-stickers-v1-final-acceptance.md) |
 | REV-0027 | Pro Effects (Neon, Living Fire, Living Ice V5, Living Radiation V1) — Mazen final TESTING acceptance | COMPLETED | [REV-0027-pro-effects-final-acceptance.md](reviews/REV-0027-pro-effects-final-acceptance.md) |
+| REV-0028 | Discord video cache and bandwidth investigation (isolated lab) | COMPLETED | [REV-0028-discord-video-cache-bandwidth-investigation.md](reviews/REV-0028-discord-video-cache-bandwidth-investigation.md) |
