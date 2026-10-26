@@ -5317,3 +5317,16 @@ Other platforms keep the unchanged Open Graph preview. Details: `docs/DISCORD-SH
 **Cloudflare terms:** the existing `/@<handle>/intro.webm` Supabase stream is reused unchanged, the same path as `og:video`. The terms question stays open (REV-0028).
 
 GamID Truth: UPDATED. New capability `discord-share-card` (PENDING_ACCEPTANCE), with its layout, privacy and media contracts and limits (3,000-byte payload, 2 named roles, 256 px tile). `public-handle-url` gains a note; its status and contracts are unchanged.
+
+**Delivery:** site `850d85e14b84152c9dee4789c5d298d135f40f8f`, TESTING run `40315368959`. Every workflow step succeeded, including the full validation and smoke checks; the live asset stamp is `850d85e`.
+
+**Validation:**
+- `npm run build`: 2234 tests, 0 failures, 2 skipped (+14 tests in `tests/discord-share-card.test.js`).
+- **Live, anonymous:**
+  - `/@black` carries one card (1,008 bytes).
+  - Its text: "Espada", `@black · GAMID`, "GAMING CONTENT CREATOR · CASUAL GAMER · +9 more", "📍 Jeddah, Saudi Arabia".
+  - Its media: avatar tile 200 image/png, Banner 200 image/jpeg, Intro 206 video/webm. Open GamID opens `/@black`.
+  - `/@zshot` (no public roles, Location or Banner) has only the name, avatar, Intro and Open GamID.
+  - An unknown and a malformed handle get no card and the generic page.
+  - No storage path or key is in any payload.
+- **Not yet seen rendered in Discord:** the Developer Portal Embed Debugger needs a sign-in, and posting the real link in #clips-test needs Mazen's OK.

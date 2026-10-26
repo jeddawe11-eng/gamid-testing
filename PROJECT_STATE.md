@@ -173,7 +173,11 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-25, Text panel accordion on TESTING `9ee23d8`, PENDING Mazen's check):** Pro Effects, My Fonts and Upload My Font are accordions, one open at a time (§132). Next: Mazen's check.
+**Latest continuation (2026-10-26, Discord share card on TESTING `850d85e`, PENDING Mazen's visual review):** a shared `/@<handle>` link shows the Components V2 card in Discord (§133, `docs/DISCORD-SHARE-CARD.md`, Truth `discord-share-card`).
+- **Deployed from:** `feature/discord-share-card-v2`, which is `9ee23d8` plus docs, the REV-0028 records and the card. It does not contain `b9aa4c7` (Font Library order, on `feature/mobile-public-wall-visitor-v2`, not authorized for deployment).
+- **Next:** Mazen's visual review in Discord.
+
+**Previous continuation (2026-10-25, Text panel accordion on TESTING `9ee23d8`, PENDING Mazen's check):** Pro Effects, My Fonts and Upload My Font are accordions, one open at a time (§132). Next: Mazen's check. (The accordion is still part of what TESTING serves.)
 
 **Previous continuation (2026-10-25, Pro Effects ACCEPTED):** Mazen gave his FINAL ACCEPTANCE of the current Pro Effects implementation on TESTING `fb8708e` (§131, `docs/WALL-PRO-EFFECTS.md` §9).
 - Truth: `pro-effects`, `living-ice-text` and `living-radiation-text` are ACCEPTED; `living-fire-text` stays ACCEPTED with its amended contracts.
