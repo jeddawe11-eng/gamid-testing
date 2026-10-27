@@ -5489,3 +5489,34 @@ GamID Truth: UPDATED.
 - New capability `public-intro-manual-play` (PENDING_ACCEPTANCE, checkpoint `aefa2da`).
 - `classic-profile-desktop` (desktop-preserves) and `public-profile-mobile-v2` (public-mobile-intro) now say the Intro starts only when the visitor presses Play.
 - `intro-landscape-hint` names the Play button.
+## 139. Production release authorized but BLOCKED (no Production environment); Social Lab removal blocked by a permission check (2026-10-27)
+
+Mazen's task: "Authorized Production Release + Legacy Social Lab Cleanup".
+- **What he authorized:** the Production release of the Discord share card (B1), the Intro Discord Thumbnail and the public Intro manual play.
+- **Acceptance:** he approved the final TESTING results, so Truth `public-intro-manual-play` is now ACCEPTED.
+
+**Production: NOT released.** The verification found no GamID Production environment:
+- Truth says `production: NOT_RELEASED`.
+- The only GamID Supabase project is "GamID — TESTING" (`upvtrczefcvigxdyuylw`).
+- The only active deployment workflow is `deploy-cloudflare-testing.yml`; `deploy-pages.yml` has been retired since 2026-10-07.
+- The only site Worker is `gamid-testing-static`, and the Intro worker exists only as the Cloud Run `gamid-testing` jobs.
+- No Production release procedure is documented.
+
+A release would first need new infrastructure, which the task excludes:
+- a Production Supabase project with every migration;
+- a Production Worker and domain;
+- Production Cloud Run worker and dispatcher;
+- secrets and a release workflow.
+
+It would also need a decision on what Production carries. The feature branch also holds other unmerged, partly unaccepted work, and `main` is far behind. Nothing was created, merged or deployed. This needs Mazen's separate decision.
+
+**Social Lab** (`https://gamid-social-lab.gamid.workers.dev/p/labplayer`):
+- **What serves it:** the separate Worker `gamid-social-lab` (Phase 0b lab, section 7x). It is a free-plan Worker with static assets only, no bindings or secrets, on `workers.dev` only. Its last deployment was version `0a1194f9` on 2026-10-26, which also served the Share Card and thumbnail labs.
+- **Dependencies:** no runtime dependency. Only docs, Truth records, REV-0028 and code comments name it as provenance.
+- **Removal:** independent, so safe to remove. Removing it means deleting that Worker (`npx wrangler@4.86.0 delete --name gamid-social-lab`, the removal documented in `social-lab/wrangler.jsonc`). The agent's attempt was refused by the session's permission check, so the page is **still live** (200).
+- **Kept:** the repository `social-lab/` folder stays as history. No other Worker or resource is touched.
+
+GamID Truth: UPDATED.
+- `public-intro-manual-play` is ACCEPTED.
+- The notes of the three capabilities record the authorized-but-not-performed Production release.
+- `production` stays NOT_RELEASED.

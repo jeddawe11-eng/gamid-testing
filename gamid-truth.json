@@ -350,8 +350,8 @@
         }
       ],
       "checkpoint": "02c98c5d10cc6bfd47af0eaee05eb37a5a95fca9",
-      "record": "docs/DISCORD-SHARE-CARD.md; PROJECT_HANDOFF.md §133 (first version, 8306d90), §134 (Version A styling, 7507d12, approved by Mazen as a visual design on 2026-10-26) and §135 (B1 / B2 divider live tests, authorized by Mazen 2026-10-26; B1 selected by Mazen the same day, b110f07) and §136-§137 (Intro Thumbnail for Discord: implementation 02c98c5, deployed to TESTING 2026-10-27, see intro-discord-thumbnail); design and measurements from the isolated Share Card lab (social-lab, Product Memory REV-0028). Implemented under Mazen's task of 2026-10-26 (\"Discord Components V2: Implement & Deploy to TESTING\") for his visual review; social-card redeployed on TESTING the same day. Branch feature/discord-share-card-v2 (not merged). Final acceptance: PROJECT_HANDOFF.md §138.",
-      "notes": "FINAL ACCEPTANCE by Mazen on TESTING 2026-10-27 (task \"Final Discord Acceptance + Public Intro Manual Play\"): the card design with all B1 purple dividers, the selected Intro frame before playback, the Play button and manual playback in Discord, playback from the beginning with audio, Open GamID and its destination, and the fallback and thumbnail updates. Preserve unless he authorizes a change. The card's layout and B1 dividers are unchanged by the Intro Thumbnail for Discord (intro-discord-thumbnail), which only replaces the Intro URL when a share copy is ready. Not part of this capability: gender (GamID has no such field), and any change to Open Graph previews on other platforms."
+      "record": "docs/DISCORD-SHARE-CARD.md; PROJECT_HANDOFF.md §133 (first version, 8306d90), §134 (Version A styling, 7507d12, approved by Mazen as a visual design on 2026-10-26) and §135 (B1 / B2 divider live tests, authorized by Mazen 2026-10-26; B1 selected by Mazen the same day, b110f07) and §136-§137 (Intro Thumbnail for Discord: implementation 02c98c5, deployed to TESTING 2026-10-27, see intro-discord-thumbnail); design and measurements from the isolated Share Card lab (social-lab, Product Memory REV-0028). Implemented under Mazen's task of 2026-10-26 (\"Discord Components V2: Implement & Deploy to TESTING\") for his visual review; social-card redeployed on TESTING the same day. Branch feature/discord-share-card-v2 (not merged). Final acceptance: PROJECT_HANDOFF.md §138. Release status: §139.",
+      "notes": "FINAL ACCEPTANCE by Mazen on TESTING 2026-10-27 (task \"Final Discord Acceptance + Public Intro Manual Play\"): the card design with all B1 purple dividers, the selected Intro frame before playback, the Play button and manual playback in Discord, playback from the beginning with audio, Open GamID and its destination, and the fallback and thumbnail updates. Preserve unless he authorizes a change. The card's layout and B1 dividers are unchanged by the Intro Thumbnail for Discord (intro-discord-thumbnail), which only replaces the Intro URL when a share copy is ready. Not part of this capability: gender (GamID has no such field), and any change to Open Graph previews on other platforms. Production release authorized by Mazen on 2026-10-27 (task \"Authorized Production Release + Legacy Social Lab Cleanup\") but NOT performed: no GamID Production environment exists (no Production Supabase project, Worker, Cloud Run job or deployment workflow), and creating one was not authorized; Production stays NOT_RELEASED (PROJECT_HANDOFF.md §139)."
     },
     {
       "id": "intro-discord-thumbnail",
@@ -380,13 +380,13 @@
         }
       ],
       "checkpoint": "02c98c5d10cc6bfd47af0eaee05eb37a5a95fca9",
-      "record": "docs/INTRO-DISCORD-THUMBNAIL.md; PROJECT_HANDOFF.md §136 (implementation 02c98c5) and §137 (TESTING deployment 2026-10-27: migration 20261026120000 applied, worker image and dispatcher redeployed from ee08a4a by Mazen in Cloud Shell, site and Worker deployed by run 40358104036). Implemented under Mazen's task of 2026-10-26 (\"Implement Intro Thumbnail Selection for Discord\") and deployed under his task \"Complete Intro Thumbnail Deployment & Acceptance on TESTING\". Branch feature/discord-share-card-v2 (not merged). Final acceptance: §138.",
-      "notes": "FINAL ACCEPTANCE by Mazen on TESTING 2026-10-27 (with discord-share-card). The chosen frame is also the public profile's Intro poster (public-intro-manual-play). The Cloudflare video-terms question for video streamed through the Worker (REV-0028) also covers the share copy."
+      "record": "docs/INTRO-DISCORD-THUMBNAIL.md; PROJECT_HANDOFF.md §136 (implementation 02c98c5) and §137 (TESTING deployment 2026-10-27: migration 20261026120000 applied, worker image and dispatcher redeployed from ee08a4a by Mazen in Cloud Shell, site and Worker deployed by run 40358104036). Implemented under Mazen's task of 2026-10-26 (\"Implement Intro Thumbnail Selection for Discord\") and deployed under his task \"Complete Intro Thumbnail Deployment & Acceptance on TESTING\". Branch feature/discord-share-card-v2 (not merged). Final acceptance: §138. Release status: §139.",
+      "notes": "FINAL ACCEPTANCE by Mazen on TESTING 2026-10-27 (with discord-share-card). The chosen frame is also the public profile's Intro poster (public-intro-manual-play). The Cloudflare video-terms question for video streamed through the Worker (REV-0028) also covers the share copy. Production release authorized by Mazen on 2026-10-27 (task \"Authorized Production Release + Legacy Social Lab Cleanup\") but NOT performed: no GamID Production environment exists (no Production Supabase project, Worker, Cloud Run job or deployment workflow), and creating one was not authorized; Production stays NOT_RELEASED (PROJECT_HANDOFF.md §139)."
     },
     {
       "id": "public-intro-manual-play",
       "name": "Public Intro waits for the visitor's Play",
-      "status": "PENDING_ACCEPTANCE",
+      "status": "ACCEPTED",
       "surfaces": [
         "https://gamid-testing-static.gamid.workers.dev/@<handle> (public profile Intro, desktop and mobile)",
         "/account/intro-preview.html (the shared Intro player, public visitor mode)"
@@ -402,8 +402,8 @@
         }
       ],
       "checkpoint": "aefa2da62936344f3e3ede796aecce16b807a41c",
-      "record": "PROJECT_HANDOFF.md §138; docs/PUBLIC-INTRO-MANUAL-PLAY.md. Implemented and deployed to TESTING under Mazen's task of 2026-10-27, \"Final Discord Acceptance + Public Intro Manual Play\". Branch feature/discord-share-card-v2 (not merged).",
-      "notes": "Replaces the public visitor's earlier automatic start (the player called play() on load since 2026-09-16, 37812de; whether it succeeded depended on the browser). Pending Mazen's personal verification; final acceptance not given."
+      "record": "PROJECT_HANDOFF.md §138; docs/PUBLIC-INTRO-MANUAL-PLAY.md. Implemented and deployed to TESTING under Mazen's task of 2026-10-27, \"Final Discord Acceptance + Public Intro Manual Play\". Branch feature/discord-share-card-v2 (not merged). Final acceptance and release status: §139.",
+      "notes": "FINAL ACCEPTANCE by Mazen on TESTING 2026-10-27 (he approved the final TESTING results). Replaces the public visitor's earlier automatic start (the player called play() on load since 2026-09-16, 37812de; whether it succeeded depended on the browser). Production release authorized by Mazen on 2026-10-27 (task \"Authorized Production Release + Legacy Social Lab Cleanup\") but NOT performed: no GamID Production environment exists (no Production Supabase project, Worker, Cloud Run job or deployment workflow), and creating one was not authorized; Production stays NOT_RELEASED (PROJECT_HANDOFF.md §139)."
     },
     {
       "id": "public-section-visibility",

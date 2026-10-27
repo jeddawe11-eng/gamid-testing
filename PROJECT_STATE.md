@@ -85,7 +85,7 @@ Snapshot from 2026-10-16; verify with `git status -sb` and `git log -1`.
   - The video asset preview fix `c932781`, also ACCEPTED, is in its ancestry.
   - `main` is `da2e020928f546e6b637f38629fd673b15544c2b`, an ancestor of the tip.
 - **TESTING serves `aefa2da62936344f3e3ede796aecce16b807a41c`** (successful run `40370232675`, from `feature/discord-share-card-v2`, not merged).
-  - What it changes: frontend only (§138, `docs/PUBLIC-INTRO-MANUAL-PLAY.md`). The public Intro waits for Play on the chosen thumbnail frame. Truth `public-intro-manual-play` PENDING_ACCEPTANCE.
+  - What it changes: frontend only (§138, `docs/PUBLIC-INTRO-MANUAL-PLAY.md`). The public Intro waits for Play on the chosen thumbnail frame. Truth `public-intro-manual-play` ACCEPTED (§139).
 - **Previously served `ee08a4ac89f6b8816c5ccfdf3210df85108af5d9`** (successful run `40358104036`, from `feature/discord-share-card-v2`, not merged).
   - What it changes: the Discord share card (§133–§135, B1 dividers) and the Intro Thumbnail for Discord (§136–§137). Migration `20261026120000_intro_discord_thumbnail` APPLIED; the worker image was redeployed from the same commit. Truth `discord-share-card` and `intro-discord-thumbnail` ACCEPTED by Mazen on 2026-10-27 (§138).
   - Earlier card deployments from this branch (§133–§135) are recorded in the handoff.
@@ -182,8 +182,11 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 - **Deployed from:** `feature/discord-share-card-v2`, which is `9ee23d8` plus docs, the REV-0028 records and the card. It does not contain `b9aa4c7` (Font Library order, on `feature/mobile-public-wall-visitor-v2`, not authorized for deployment).
 - **Next:** Mazen's visual review in Discord.
 - **2026-10-27: the Discord card and the Intro Thumbnail for Discord are ACCEPTED by Mazen** (§138; Truth `discord-share-card`, `intro-discord-thumbnail`).
-  - **New on TESTING:** the public Intro waits for Play (`aefa2da`, run `40370232675`; Truth `public-intro-manual-play` PENDING_ACCEPTANCE).
-  - **Next:** Mazen's personal check of the public Intro (desktop, phone, Safari / iOS untested by the agent). The Product Memory acceptance review is proposed, not saved.
+  - **New on TESTING:** the public Intro waits for Play (`aefa2da`, run `40370232675`). Truth `public-intro-manual-play` ACCEPTED by Mazen on 2026-10-27 (§139).
+  - **Production release:** authorized by Mazen on 2026-10-27 for these three features, but BLOCKED. No GamID Production environment exists, and creating one is not authorized (§139). Production stays NOT_RELEASED.
+  - **Next:** Mazen's decision on how Production is to be created and what it carries.
+  - **Social Lab:** the `gamid-social-lab` Worker is independent and safe to delete. The agent's delete was refused by a permission check, so it is still live; Mazen can run `npx wrangler@4.86.0 delete --name gamid-social-lab`.
+  - **Product Memory:** the acceptance proposals (REV-0030, DEC-0013) are not saved.
 - **Intro Thumbnail for Discord: deployed on TESTING (2026-10-27)**, since ACCEPTED (§136–§138, `docs/INTRO-DISCORD-THUMBNAIL.md`, Truth `intro-discord-thumbnail`).
   - **What's deployed:** product `02c98c5`; site and Worker `ee08a4a` (run `40358104036`); worker image, Job and dispatcher redeployed by Mazen from `ee08a4a`. Migration `20261026120000_intro_discord_thumbnail` APPLIED.
   - **End-to-end check:** passed on GM-TEST-01 (restored to DRAFT). The signed-in editor, the Discord desktop app and phones were not tested by the agent.

@@ -1,6 +1,7 @@
 # Public Intro waits for Play
 
-Status: **on TESTING (2026-10-27), PENDING_ACCEPTANCE** (GamID Truth `public-intro-manual-play`).
+Status: **ACCEPTED** (GamID Truth `public-intro-manual-play`): Mazen's final acceptance on TESTING, 2026-10-27.
+- **Production:** release authorized the same day but **not performed**. No GamID Production environment exists (`PROJECT_HANDOFF.md` §139).
 - **Product:** `4b0ac98` and `aefa2da` on `feature/discord-share-card-v2`, under Mazen's task of 2026-10-27, "Final Discord Acceptance + Public Intro Manual Play".
 - **Deployed:** `aefa2da` by `deploy-cloudflare-testing.yml` run `40370232675`.
 - Not merged; Production untouched.
