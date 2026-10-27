@@ -178,6 +178,12 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
+**Latest continuation (2026-10-27, Infrastructure Optimization & Security Hardening V1):** product `bcbdc7d` deployed to TESTING (run `40507974877`; migrations `20261027120000` + `20261027120100` applied; §140, `docs/INFRA-OPTIMIZATION-V1.md`).
+- **Live:** media route hardening (Truth `public-media-route-protection`, PENDING_ACCEPTANCE) and the 7-day pg_cron run-log retention.
+- **Inert until Mazen acts:** the public Intro still poster (Truth `public-intro-poster`, PENDING_ACCEPTANCE) needs `worker/cloud-run/deploy-intro-poster-testing.sh <checkpoint>` in Cloud Shell, then a separately authorized `worker/cloud-run/intro-poster-backfill.sql` for existing Intros, then his visual acceptance.
+- **Test data:** GM-TEST-01 (DRAFT) keeps a synthetic 6 s Intro, share copy at 2000 ms and two ready posters.
+- **Product Memory:** REV-0030, ISS-0018, ISS-0019 saved with Mazen's approval.
+
 **Latest continuation (2026-10-26, Discord share card Version A, PENDING Mazen's visual review):** a shared `/@<handle>` link shows the Components V2 card in Discord, now in Mazen's approved Version A styling (§133–§134, `docs/DISCORD-SHARE-CARD.md`, Truth `discord-share-card`). The first version was deployed as `850d85e`. Purple line-image divider tests B1 (static) and B2 (animated) followed, with Version A's native Separators as the rollback; Mazen selected B1 (§135).
 - **Deployed from:** `feature/discord-share-card-v2`, which is `9ee23d8` plus docs, the REV-0028 records and the card. It does not contain `b9aa4c7` (Font Library order, on `feature/mobile-public-wall-visitor-v2`, not authorized for deployment).
 - **Next:** Mazen's visual review in Discord.

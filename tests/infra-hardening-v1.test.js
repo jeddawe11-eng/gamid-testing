@@ -98,6 +98,8 @@ test("worker: any failure is a typed fail with the claim token (the page keeps s
 
 test("worker image + dispatcher: the poster module ships, runs before the share copy in the same Job, and the dispatcher accepts its queue", () => {
   assert.match(read("worker/Dockerfile"), /COPY worker\/intro-poster\.mjs \.\/intro-poster\.mjs/);
+  assert.match(read("worker/cloud-run/usage-testing.gcloudignore"), /^!worker\/intro-poster\.mjs$/m, "the Cloud Build allowlist ships it");
+  assert.match(read("worker/cloud-run/deploy-intro-poster-testing.sh"), /for smoke in poster-smoke share-smoke f2-smoke rendition-smoke; do/);
   const w = read("worker/intro-worker.mjs");
   assert.ok(w.indexOf("processOneIntroPoster({") < w.indexOf("processOneIntroShare({"));
   assert.equal(validateWebhookPayload({ type: "INSERT", schema: "public", table: "intro_posters", record: { job_id: "x", state: "pending" } }), true);

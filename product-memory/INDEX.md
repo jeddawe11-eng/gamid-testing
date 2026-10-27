@@ -78,10 +78,15 @@ Rules:
 | DIS | Discussions | discussions/ | DIS-0003 |
 | DEC | Decisions | decisions/ | DEC-0012 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
-| ISS | Issues | issues/ | ISS-0017 |
-| REV | Reviews | reviews/ | REV-0029 |
+| ISS | Issues | issues/ | ISS-0019 |
+| REV | Reviews | reviews/ | REV-0030 |
 
 ## Register
+
+2026-10-27 (Infrastructure Optimization & Security Hardening V1): Mazen approved recording the infrastructure cost study and the two issues it found.
+- New REV-0030 (PARTIAL): the measured bandwidth / caching / cost study and its V1 follow-up measurements; R2 assessed, not implemented.
+- New ISS-0018 (FIXED): pg_cron's run log grew without bound; a daily 7-day retention job now bounds it on TESTING.
+- New ISS-0019 (FIXED): the public Intro video routes had no rate limit or Range validation; the TESTING Worker now enforces both (GamID Truth public-media-route-protection, PENDING_ACCEPTANCE).
 
 2026-10-27: Mazen gave his final TESTING acceptance and approved saving two records.
 - New REV-0029 (PASS): the Discord Share Card (B1) and the Intro Discord Thumbnail selection from the Classic Editor. GamID Truth discord-share-card and intro-discord-thumbnail are ACCEPTED.
@@ -260,3 +265,6 @@ Status stays DISCUSSION; there is no implementation authorization.
 | REV-0028 | Discord video cache and bandwidth investigation (isolated lab) | COMPLETED | [REV-0028-discord-video-cache-bandwidth-investigation.md](reviews/REV-0028-discord-video-cache-bandwidth-investigation.md) |
 | REV-0029 | Discord Share Card and Intro Discord Thumbnail — Mazen final TESTING acceptance | COMPLETED | [REV-0029-discord-share-card-and-intro-thumbnail-final-acceptance.md](reviews/REV-0029-discord-share-card-and-intro-thumbnail-final-acceptance.md) |
 | DEC-0012 | Public Intro waits for Play — the visitor always decides when the Intro starts | ACCEPTED | [DEC-0012-public-intro-waits-for-play.md](decisions/DEC-0012-public-intro-waits-for-play.md) |
+| REV-0030 | Infrastructure, storage, bandwidth and cost study, and its V1 follow-up measurements | COMPLETED | [REV-0030-infrastructure-cost-study.md](reviews/REV-0030-infrastructure-cost-study.md) |
+| ISS-0018 | pg_cron run log (cron.job_run_details) grows without bound | FIXED | [ISS-0018-cron-run-log-unbounded-growth.md](issues/ISS-0018-cron-run-log-unbounded-growth.md) |
+| ISS-0019 | Public Intro video routes had no rate limit, Range validation or HEAD short-cut (egress amplification) | FIXED | [ISS-0019-public-intro-route-abuse-rate-limits.md](issues/ISS-0019-public-intro-route-abuse-rate-limits.md) |
