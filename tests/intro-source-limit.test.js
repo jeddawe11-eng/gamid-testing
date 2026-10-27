@@ -91,7 +91,8 @@ test("no other migration redefines the Intro source limit after this one, and th
   const later = readdirSync(new URL("../supabase/migrations/", import.meta.url)).filter(name => name > migrationName);
   // Intro Thumbnail for Discord only READS the Intro jobs (its share copies reference the active job); it never touches the source path, table limits or queue
   // the public Intro poster (2026-10-27) likewise only reads them: its posters reference the active, ready job
-  const readsIntroJobs = new Set(["20261026120000_intro_discord_thumbnail.sql", "20261027120000_intro_posters.sql"]);
+  // and so does its acceptance gate (the same function bodies, gated)
+  const readsIntroJobs = new Set(["20261026120000_intro_discord_thumbnail.sql", "20261027120000_intro_posters.sql", "20261027140000_intro_poster_activation_gate.sql"]);
   for (const name of later) {
     const sql = stripSql(read(`supabase/migrations/${name}`));
     assert.doesNotMatch(sql, readsIntroJobs.has(name) ? /intro-sources|queue_my_intro|source_size_bytes|52428800|157286400|alter\s+table\s+public\.intro_processing_jobs|update\s+public\.intro_processing_jobs/i

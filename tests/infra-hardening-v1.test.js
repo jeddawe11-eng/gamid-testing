@@ -133,6 +133,28 @@ test("migration: the visitor lookup keeps the earlier frame decision (chosen fra
   assert.match(migration, /candidate_width is distinct from intro\.output_width or candidate_height is distinct from intro\.output_height/);
 });
 
+const gate = read("supabase/migrations/20261027140000_intro_poster_activation_gate.sql").replace(/^--.*$/gm, "");
+const body = name => gate.slice(gate.indexOf(`create or replace function ${name}(`), gate.indexOf("$$;", gate.indexOf(`create or replace function ${name}(`)));
+
+test("acceptance gate: posters only for activated profiles, seeded with the GM-TEST-01 fixture alone (exactly one or the migration aborts)", () => {
+  assert.match(gate, /where e\.gamid_handle = 'gm_test_01' and e\.entity_type = 'SOLO';\s+get diagnostics added = row_count;\s+if added <> 1 then raise exception 'INTRO_POSTER_GATE_FIXTURE_NOT_FOUND'/);
+  assert.equal((gate.match(/insert into private\.intro_poster_activation/g) || []).length, 1, "no other profile is activated");
+  assert.match(gate, /revoke all on table private\.intro_poster_activation from public, anon, authenticated;/);
+  assert.doesNotMatch(gate, /grant /i, "no new privilege");
+});
+
+test("acceptance gate: enforced at queueing, claiming, completing and serving", () => {
+  assert.match(body("private.enqueue_intro_posters"), /if not private\.intro_poster_activated\(candidate_profile_id\) then return 0; end if;\s+select \* into settings/);
+  const claim = body("private.worker_claim_intro_poster_impl");
+  assert.match(claim, /set state = 'superseded', failure_code = 'INTRO_POSTER_NOT_ACTIVATED'[^;]+not private\.intro_poster_activated\(r\.profile_id\);/);
+  assert.match(claim, /and private\.intro_poster_activated\(r\.profile_id\)\s+order by r\.created_at for update skip locked limit 1;/);
+  assert.match(body("private.worker_complete_intro_poster_impl"), /if not private\.intro_poster_activated\(job\.profile_id\) then raise exception using errcode = '22023', message = 'INTRO_POSTER_NOT_ACTIVATED'/);
+  assert.match(body("private.intro_poster_is_public"), /and private\.intro_poster_activated\(r\.profile_id\)/);
+  const lookup = body("private.get_public_intro_poster_impl");
+  assert.match(lookup, /x\.state = 'ready' and private\.intro_poster_activated\(i\.profile_id\)/);
+  assert.match(lookup, /select i\.chosen_ms, r\.poster_path/, "poster_ms is unchanged for every account; only the poster is gated");
+});
+
 test("cron retention: one daily job deletes only FINISHED run-log rows older than 7 days; the reconcile job is untouched", () => {
   assert.match(retention, /select cron\.schedule\(\s*'gamid-cron-log-retention',\s*'17 3 \* \* \*',\s*\$\$delete from cron\.job_run_details where end_time is not null and end_time < now\(\) - interval '7 days'\$\$\s*\);/);
   const sql = retention.replace(/^--.*$/gm, "");

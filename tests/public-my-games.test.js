@@ -542,7 +542,8 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261025100000_friends_stickers_corrections.sql",   // Friends Stickers follow-up: quota ledger, Discord message links, private senders' stickers + avatars, get_private_identity_notice; public identity / My Games untouched
       "20261026120000_intro_discord_thumbnail.sql",
       "20261027120000_intro_posters.sql",
-      "20261027120100_cron_log_retention.sql",   // Intro Thumbnail for Discord: two Intro-settings columns, own share-copy bucket / table / RPCs, usage gains one bucket; public identity / My Games untouched
+      "20261027120100_cron_log_retention.sql",
+      "20261027140000_intro_poster_activation_gate.sql",   // Intro Thumbnail for Discord: two Intro-settings columns, own share-copy bucket / table / RPCs, usage gains one bucket; public identity / My Games untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );
