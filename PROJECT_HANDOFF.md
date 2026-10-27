@@ -5489,7 +5489,10 @@ GamID Truth: UPDATED.
 - New capability `public-intro-manual-play` (PENDING_ACCEPTANCE, checkpoint `aefa2da`).
 - `classic-profile-desktop` (desktop-preserves) and `public-profile-mobile-v2` (public-mobile-intro) now say the Intro starts only when the visitor presses Play.
 - `intro-landscape-hint` names the Play button.
-## 139. Production release authorized but BLOCKED (no Production environment); Social Lab removal blocked by a permission check (2026-10-27)
+
+## 139. Production release authorized but BLOCKED (no Production environment); Social Lab Worker removed (2026-10-27)
+
+Product Memory: REV-0029 and DEC-0012 saved with Mazen's approval (commit `be0f23e`).
 
 Mazen's task: "Authorized Production Release + Legacy Social Lab Cleanup".
 - **What he authorized:** the Production release of the Discord share card (B1), the Intro Discord Thumbnail and the public Intro manual play.
@@ -5514,6 +5517,12 @@ It would also need a decision on what Production carries. The feature branch als
 - **What serves it:** the separate Worker `gamid-social-lab` (Phase 0b lab, section 7x). It is a free-plan Worker with static assets only, no bindings or secrets, on `workers.dev` only. Its last deployment was version `0a1194f9` on 2026-10-26, which also served the Share Card and thumbnail labs.
 - **Dependencies:** no runtime dependency. Only docs, Truth records, REV-0028 and code comments name it as provenance.
 - **Removal:** independent, so safe to remove. Removing it means deleting that Worker (`npx wrangler@4.86.0 delete --name gamid-social-lab`, the removal documented in `social-lab/wrangler.jsonc`). The agent's attempt was refused by the session's permission check, so the page is **still live** (200).
+- **Removed later the same day (2026-10-27)**, with Mazen's explicit authorization in a separate task:
+  - **Identity reconfirmed first:** Worker `gamid-social-lab` on his Cloudflare account, latest version `0a1194f9`, only the `ASSETS` static-assets binding.
+  - **Deletion:** `npx wrangler@4.86.0 delete --name gamid-social-lab` reported `Successfully deleted gamid-social-lab`.
+  - **Verified:** `/p/labplayer` and `/` on `gamid-social-lab.gamid.workers.dev` return 404, and the Cloudflare API reports that the Worker does not exist (code 10007).
+  - **Unaffected:** `gamid-testing-static` still serves `/` (200), `/@black` (200, with its Discord card and the chosen-frame `intro-discord.webm`) and `/@black/intro.webm` (206).
+  - **Nothing else changed:** no other Worker, database, bucket or Supabase project. The repository `social-lab/` folder remains as history.
 - **Kept:** the repository `social-lab/` folder stays as history. No other Worker or resource is touched.
 
 GamID Truth: UPDATED.
