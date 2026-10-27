@@ -92,6 +92,23 @@ Mazen's task "GAMID — Infrastructure Optimization & Security Hardening V1". It
   - **Decision:** for Mazen's visual acceptance.
 - **Regression.** @black, anonymous and read-only, has no poster. It waits on its 4.402 s frame exactly as before, with the same Intro bytes and the Discord card and `og:video` unchanged.
 
+### Acceptance gate (migration `20261027140000`, product `5ddb18c`; applied)
+
+Requested by Mazen before the worker deployment: until his visual acceptance, no real account may receive a poster.
+- **Who:** `private.intro_poster_activation` lists the profiles that may have posters. It holds the GM-TEST-01 fixture alone, and the migration aborts unless exactly one profile matches.
+- **Where it is enforced:**
+  - queueing: `enqueue_intro_posters`, which the trigger and the backfill both use;
+  - claiming: other profiles' rows are superseded with `INTRO_POSTER_NOT_ACTIVATED`, never claimed;
+  - completing: refused with `INTRO_POSTER_NOT_ACTIVATED`;
+  - serving: the lookup and the storage read policy.
+- **Every other account:** the lookup returns the same frame with no poster, so the page seeks the video exactly as before.
+- **Verified:**
+  - a rolled-back rehearsal, 11 of 11 checks, including a simulated backfill over every active Intro;
+  - the real worker poster code, run locally against TESTING, generated fixture posters only (1000 ms, then 2000 ms, byte-identical to before);
+  - the fixture visitor E2E on desktop and mobile;
+  - 0 poster rows and 0 poster objects for real accounts.
+- **Lifting it:** a later migration making `private.intro_poster_activated` true for every profile. Adding a profile is one insert. Both need Mazen's approval.
+
 ### Activation (Mazen; not done)
 
 1. In Cloud Shell, run:
@@ -100,12 +117,16 @@ Mazen's task "GAMID — Infrastructure Optimization & Security Hardening V1". It
    worker/cloud-run/deploy-intro-poster-testing.sh <checkpoint>
    ```
 
-   The script:
-   - rebuilds the image with `intro-poster.mjs`, and the dispatcher that accepts `intro_posters`;
-   - verifies an image-only update;
-   - runs `poster-smoke`, `share-smoke`, `f2-smoke` and `rendition-smoke`.
-2. Separately authorize posters for existing Intros, real accounts included, with `worker/cloud-run/intro-poster-backfill.sql`. Without it, posters appear only for newly activated Intros and new thumbnail choices.
-3. Visually accept on real phones and desktop. The fixture GM-TEST-01 keeps the synthetic Intro, as a DRAFT.
+   - The checkpoint must be `3d55ef9` or later.
+   - The gate is in the database, so it applies whatever the image.
+   - The script:
+     - rebuilds the image with `intro-poster.mjs`, and the dispatcher that accepts `intro_posters`;
+     - verifies an image-only update;
+     - runs `poster-smoke`, `share-smoke`, `f2-smoke` and `rendition-smoke`.
+2. Visually accept on real phones and desktop, on GM-TEST-01. It keeps the synthetic Intro, as a DRAFT.
+3. With separate approvals:
+   - lift the gate;
+   - then queue posters for existing Intros with `worker/cloud-run/intro-poster-backfill.sql`. While the gate is in place, it reaches only GM-TEST-01.
 
 ## 2. Media route hardening (Cloudflare Worker; deployed)
 

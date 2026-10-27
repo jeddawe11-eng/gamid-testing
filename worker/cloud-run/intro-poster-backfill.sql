@@ -4,6 +4,8 @@
 -- Each queued row dispatches one worker run (the same Vault-held dispatcher as every Intro job); the per-profile bound (20 per hour) still applies.
 -- Undo for a single profile: update public.intro_posters set state = 'superseded', claim_token = null, updated_at = now() where profile_id = '<id>' and
 -- state in ('pending', 'processing', 'ready'); (the page then seeks the video again; the sweep deletes the objects later).
+-- While the acceptance gate (migration 20261027140000) is in place, this queues posters only for the activated profiles (GM-TEST-01): it reaches real
+-- accounts only after the gate is lifted, which needs Mazen's separate approval.
 select count(*) as profiles, sum(queued) as posters_queued
 from (
   select private.enqueue_intro_posters(s.profile_id) as queued

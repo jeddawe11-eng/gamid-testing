@@ -5561,3 +5561,36 @@ Mazen's task: "GAMID — Infrastructure Optimization & Security Hardening V1". T
   - zone caching / WAF;
   - sticker re-encoding;
   - Wall lease, picture-copy and stable-Intro-URL contract changes.
+
+## 141. Intro poster acceptance gate (GM-TEST-01 only) before the worker deployment (2026-10-27)
+
+Mazen's request: before the Intro Poster Worker is deployed, restrict automatic poster generation to GM-TEST-01 during the acceptance phase. No real account may receive a poster before his visual acceptance. Record: `docs/INFRA-OPTIMIZATION-V1.md` §1, "Acceptance gate".
+
+- **Why it was needed:** the worker deployment alone would have started posters for any account that activated a new Intro or chose a new frame. The deployment instructions were held back until the gate was in place.
+- **Product:** `5ddb18c5ce6cb124ff6be4899d020bcb6669208a`: migration `20261027140000_intro_poster_activation_gate` and tests. No site, Worker or worker-image change.
+- **Migration:** rehearsed on TESTING in a rolled-back transaction (11 of 11 checks), then APPLIED (transaction, then `migration repair`).
+- **What the gate does:** `private.intro_poster_activation` holds GM-TEST-01 alone; the migration aborts unless exactly one profile matches. It is enforced at four points:
+  - **queueing:** `enqueue_intro_posters` queues nothing for any other profile (the trigger and the backfill both go through it);
+  - **claiming:** the worker never claims another profile's poster, and supersedes any such pending or processing row with `INTRO_POSTER_NOT_ACTIVATED`;
+  - **completing:** `worker_complete_intro_poster` refuses with `INTRO_POSTER_NOT_ACTIVATED`;
+  - **serving:** the lookup and the storage read policy return no poster for any other profile. The lookup's frame (`poster_ms`) is unchanged, so the page keeps seeking the video exactly as `public-intro-manual-play-poster`.
+- **Rehearsal checks:**
+  - simulating the backfill over every active Intro (3 non-fixture) queued 0 rows for them;
+  - with the fixture deactivated, standing in for a real account: the same frame and no poster, the storage predicate false, the trigger queued nothing, completion was refused, and an in-flight row was not claimed but superseded.
+- **Worker processing on the fixture (real worker code, run locally against TESTING through the gated RPCs; the Cloud Run image is not deployed):**
+  - frame 2000 → 1000 ms: one poster queued, claimed, generated (32,664 bytes, 1280×720, q90) and completed; the 2000 ms poster superseded;
+  - frame restored to 2000 ms: a new poster generated, byte-identical to the earlier one (33,804 bytes);
+  - the queue was then empty.
+- **Visitor check (fixture PUBLIC temporarily, restored to DRAFT):**
+  - desktop and mobile: 33.8 KB poster and 0 video bytes before Play;
+  - Play from 0.005 s, unmuted, with audio;
+  - Replay plays at once; Skip downloads 0 video bytes; the Intro ends on the profile;
+  - a repeat visit downloads 0 bytes before Play;
+  - same frame: 46.8 dB desktop, 32.9 dB mobile, as in §140.
+- **Real accounts:** 0 poster rows and 0 poster objects outside the fixture. Anonymous lookups for @black (4402 ms) and @zshot return no poster.
+- **Tests:** `npm test` 2,284 tests, 0 failures.
+- **GamID Truth:** `public-intro-poster` stays PENDING_ACCEPTANCE; it gains the gate in its `public-intro-poster-image` contract, the limit `activatedProfilesDuringAcceptance: 1`, and checkpoint `5ddb18c`.
+- **Next (Mazen):**
+  1. Deploy the worker with `worker/cloud-run/deploy-intro-poster-testing.sh` at this checkpoint or later.
+  2. Do the visual acceptance on GM-TEST-01.
+  3. Lifting the gate (a later migration) and the backfill each need his separate approval.

@@ -178,7 +178,13 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-27, Infrastructure Optimization & Security Hardening V1):** product `bcbdc7d` deployed to TESTING (run `40507974877`; migrations `20261027120000` + `20261027120100` applied; §140, `docs/INFRA-OPTIMIZATION-V1.md`).
+**Latest continuation (2026-10-27, Intro poster acceptance gate):** product `5ddb18c`, migration `20261027140000` APPLIED on TESTING (§141). Posters are generated and served only for GM-TEST-01 until Mazen's visual acceptance; every other account keeps today's Intro behavior.
+- **Next (Mazen):**
+  1. Deploy the worker: `worker/cloud-run/deploy-intro-poster-testing.sh <checkpoint at or after 5ddb18c>` in Cloud Shell.
+  2. Visual acceptance on GM-TEST-01.
+  3. Separately approve lifting the gate, then the backfill.
+
+**Previous continuation (2026-10-27, Infrastructure Optimization & Security Hardening V1):** product `bcbdc7d` deployed to TESTING (run `40507974877`; migrations `20261027120000` + `20261027120100` applied; §140, `docs/INFRA-OPTIMIZATION-V1.md`).
 - **Live:** media route hardening (Truth `public-media-route-protection`, PENDING_ACCEPTANCE) and the 7-day pg_cron run-log retention.
 - **Inert until Mazen acts:** the public Intro still poster (Truth `public-intro-poster`, PENDING_ACCEPTANCE) needs `worker/cloud-run/deploy-intro-poster-testing.sh <checkpoint>` in Cloud Shell, then a separately authorized `worker/cloud-run/intro-poster-backfill.sql` for existing Intros, then his visual acceptance.
 - **Test data:** GM-TEST-01 (DRAFT) keeps a synthetic 6 s Intro, share copy at 2000 ms and two ready posters.
