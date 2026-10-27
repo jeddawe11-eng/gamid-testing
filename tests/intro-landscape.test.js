@@ -103,7 +103,8 @@ test('without the Fullscreen API the hint is a manual-rotation cue that only dis
 test('the shared Intro player wires the hint without autoplay or a second video', () => {
   const player = read('dist/account/intro-preview.js');
   assert.match(player, /createLandscapeHint\(\{ target: els\.introLayer/);
-  assert.match(player, /landscapeHintEligible\(\{videoWidth:v\.videoWidth,videoHeight:v\.videoHeight/);
+  assert.match(player, /landscapeHintEligible\(\{videoWidth:media\.width,videoHeight:media\.height/);
+  assert.match(player, /function mediaSize\(\)\{const v=els\.introVideo;return v\.videoWidth&&v\.videoHeight\?\{width:v\.videoWidth,height:v\.videoHeight\}:still\?\{width:still\.width,height:still\.height\}:null;\}/);
   assert.match(player, /function releasePlayback\(\)\{[^}]*landscape\.hide\(\);landscape\.leave\(\);/, 'stop, skip, page hide and the end release the hint and fullscreen');
   assert.match(player, /if\(landscape\.active\)\{if\(!endingAfterFullscreen\)/, 'the transition waits until fullscreen has closed');
   const html = read('dist/account/intro-preview.html');

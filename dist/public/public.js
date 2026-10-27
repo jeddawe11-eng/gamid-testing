@@ -1,4 +1,4 @@
-import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, getPublicIntroPosterMs,SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl, getPublicCrews, getPublicFavoriteGames, getMyGameArtwork, getPrivateIdentityNotice } from "../account/supabase-client.js";
+import { getPublicIdentity, getPublicIdentityByQr, getPublicMyGames, loadPublicAvatar, signPublicIntroMedia, getPublicIntroPoster,SUPABASE_URL, getPublicWall, getPublicCrewWall, getPublicSocialLinks, getPublicDiscordCard, getPublicProfileExtras, publicBannerUrl, getPublicCrews, getPublicFavoriteGames, getMyGameArtwork, getPrivateIdentityNotice } from "../account/supabase-client.js";
 import { createDesktopProfile, crewsEntry, connectedGamesSection, connectedGameItem, favoriteGamesSection, DESKTOP_QUERY } from "./public-desktop.js";
 import { createProfilePanel } from "./profile-panel.js";
 import { createCrewsDirectory } from "./crews-directory.js";
@@ -233,15 +233,19 @@ async function render() {
       return;
     }
     const awaitPlay = awaitFirstPlay && !renewLease; awaitFirstPlay = false;
+    const renewing = renewLease;
     if (renewLease) { renewLease = false; introRequest++; } else stopIntro();
     const current = introRequest;
     introResolving = true;
     let source = null;
     try { source = await introSource.resolve(); } catch { /* Signing fails closed; no stale URL fallback. */ }
-    let posterMs = null;
-    if (awaitPlay && source?.url && latestIntroIdentity?.gamid_handle) { try { posterMs = await getPublicIntroPosterMs(latestIntroIdentity.gamid_handle); } catch { /* the first frame */ } }
+    // the waiting frame, and its still poster when one is ready (the video is then not loaded before Play); a renewed lease keeps the poster shown meanwhile
+    let posterMs = null, still = renewing ? config.still ?? null : null;
+    if (awaitPlay && source?.url && latestIntroIdentity?.gamid_handle) { try { ({ posterMs, still } = await getPublicIntroPoster(latestIntroIdentity.gamid_handle)); } catch { /* the first frame */ } }
+    if (still && still !== config?.still && (current !== introRequest || !config)) URL.revokeObjectURL(still.url);
     if (current !== introRequest || !config) return;
     introResolving = false;
+    if (config.still && config.still !== still) URL.revokeObjectURL(config.still.url);
     if (!latestIntroIdentity) {
       introSource.invalidate(); hasIntro = false; config = null;
       wall?.hide(); hideDesktop(); experienceWrap.hidden = true; sectionsPanel.hidden = true; gamesBlock.hidden = true;
@@ -249,7 +253,7 @@ async function render() {
       return;
     }
     config = { ...config, videoUrl: source?.url || "", sourceExpiresAt: source?.expiresAt,
-      transitionKey: latestIntroIdentity.intro_transition_key || "fade", awaitPlay, posterMs };
+      transitionKey: latestIntroIdentity.intro_transition_key || "fade", awaitPlay, posterMs, still };
     hasIntro = Boolean(config.videoUrl);
     frame.contentWindow?.postMessage({ type: "gamid-intro-preview", config }, location.origin);
   };

@@ -80,7 +80,9 @@ test("the limit is a documented constant and can be tuned without changing the l
 test("the Intro page applies it: data-fit from real video dimensions and the stage, on load and resize, including the live Split Reveal clips", () => {
   const js = read("dist/account/intro-preview.js"), css = read("dist/account/intro-preview.css");
   assert.match(js, /import \{ ambientCanvasSize, ambientCoverScale, resolvePresentation \} from "\.\.\/video-fit\.js";/);
-  assert.match(js, /resolvePresentation\(v\.videoWidth,v\.videoHeight,stageW,stageH,window\.devicePixelRatio\|\|1\)/);
+  // the real video shape once known, else the public poster's (the same frame of the same Intro, at its own size)
+  assert.match(js, /resolvePresentation\(media\.width,media\.height,stageW,stageH,window\.devicePixelRatio\|\|1\)/);
+  assert.match(js, /return v\.videoWidth&&v\.videoHeight\?\{width:v\.videoWidth,height:v\.videoHeight\}:still\?/);
   assert.match(js, /const stageW=els\.mediaStage\.clientWidth,stageH=els\.mediaStage\.clientHeight/, "layout size (unaffected by the Shrink transform)");
   assert.match(js, /addEventListener\("loadedmetadata",applyVideoFit\)/);
   assert.match(js, /addEventListener\("resize",applyVideoFit\)/);
@@ -201,7 +203,9 @@ test("the Intro page implements the ambient from the SAME video: one video eleme
   const js = read("dist/account/intro-preview.js"), html = read("dist/account/intro-preview.html");
   assert.equal((html.match(/<video\b/g) || []).length, 1, "the page still has one video element; the ambient is a canvas");
   assert.match(html, /<canvas id="introAmbient" class="intro-ambient" aria-hidden="true"/);
-  assert.match(js, /ambientCtx\.drawImage\(v,0,0,ambient\.w,ambient\.h\)/, "a downscaled copy of the current frame of the SAME element");
+  assert.match(js, /ambientCtx\.drawImage\(source,0,0,ambient\.w,ambient\.h\)/, "a downscaled copy of the current frame of the SAME element");
+  // the source is the video once it has a frame, else the public poster already in memory (a blob: URL, never a request)
+  assert.match(js, /const source=v\.readyState>=2\?v:still&&stillImage\.complete&&stillImage\.naturalWidth\?stillImage:null;if\(!source\)return;/);
   assert.doesNotMatch(js, /getImageData|toDataURL|createImageBitmap|new Worker|fetch\(|XMLHttpRequest|createElement\("video"\).*ambient/, "no pixel analysis, no extra media request");
   assert.match(js, /requestVideoFrameCallback/, "driven by presented video frames, not a free-running loop");
   assert.match(js, /const gap=reduceMotion\.matches\?2000:90/, "about 11 draws per second (one every 2 s under reduced motion)");

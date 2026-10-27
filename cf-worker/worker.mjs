@@ -189,12 +189,44 @@ async function fetchIntroVideo(path, rangeHeader, fetchImpl = fetch, bucket = "i
 const PASSTHROUGH_VIDEO_STATUSES = new Set([200, 206, 416]);
 const FORWARDED_VIDEO_HEADERS = ["content-type", "content-length", "content-range", "accept-ranges", "etag", "last-modified"];
 
+// MEDIA ROUTE HARDENING (Infrastructure Optimization & Security Hardening V1, 2026-10-27). These two routes stream a whole Intro from Supabase Storage to ANY
+// anonymous caller, uncached (workers.dev has no edge cache), so each request is Supabase egress plus 1-2 database lookups. They are only ever needed by link
+// crawlers (og:video, the Discord card); visitors' browsers play the Intro from their own short signed lease. So:
+//   * Range: exactly one well-formed byte range (what every video player and crawler sends) or none; anything else (multiple ranges, garbage) is refused with
+//     416 before any lookup, so a single request can never fan out into several upstream ranges.
+//   * HEAD: the upstream body is cancelled at once (headers only), instead of being streamed and discarded.
+//   * Rate limits (the Workers Rate Limiting binding, wrangler.jsonc "ratelimits"; approximate and per Cloudflare location by design): per client IP AND handle
+//     for the media routes, per client IP for the page; Discord's crawler/media proxy (many people behind few IPs) gets a separate, higher allowance. Keyed by
+//     IP + handle, a shared IP (NAT, campus, carrier) is only ever limited on one profile, at a rate far above any person's. A missing or failing binding
+//     never blocks anyone (fail open: availability first; the limit is defence in depth, not access control).
+const SINGLE_RANGE_RE = /^bytes=(?:\d{1,15}-\d{0,15}|-\d{1,15})$/;
+export function acceptableRange(header) {
+  if (header === null || header === undefined) return true;
+  const value = String(header).trim();
+  if (!SINGLE_RANGE_RE.test(value)) return false;
+  const [start, end] = value.slice(6).split("-");
+  return !(start !== "" && end !== "" && Number(end) < Number(start));
+}
+export const RATE_LIMITED = () => new Response("Too Many Requests", { status: 429, headers: { "retry-after": "60", "cache-control": "no-store" } });
+const isDiscordAgent = request => /Discordbot/i.test(request.headers.get("user-agent") || "");
+// -> true when this request may proceed
+export async function withinRateLimit(env, request, route, handle = "") {
+  const ip = request.headers.get("cf-connecting-ip") || "unknown";
+  const limiter = isDiscordAgent(request) ? env?.CRAWLER_LIMITER : route === "page" ? env?.PAGE_LIMITER : env?.MEDIA_LIMITER;
+  if (typeof limiter?.limit !== "function") return true;
+  try {
+    const { success } = await limiter.limit({ key: `${route}|${ip}|${route === "page" ? "" : handle}` });
+    return success !== false;
+  } catch { return true; }
+}
+
 export async function handleIntroRequest(request, check, identity, share = null) {
   const media = !check.valid ? null : share?.path ? { bucket: "intro-share-copies", path: share.path } : identity?.intro_derivative_path ? { bucket: "intro-media", path: identity.intro_derivative_path } : null;
   if (!media) return new Response("Not Found", { status: 404 });   // invalid handle, unknown handle, unpublished identity, or no Intro: identical response
 
   const upstream = await fetchIntroVideo(media.path, request.headers.get("range"), fetch, media.bucket);
-  if (!upstream || !PASSTHROUGH_VIDEO_STATUSES.has(upstream.status)) return new Response("Not Found", { status: 404 });
+  if (!upstream || !PASSTHROUGH_VIDEO_STATUSES.has(upstream.status)) { try { await upstream?.body?.cancel(); } catch { /* nothing to release */ } return new Response("Not Found", { status: 404 }); }
+  if (request.method === "HEAD") { try { await upstream.body?.cancel(); } catch { /* headers are all a HEAD needs */ } }
 
   const headers = new Headers();
   for (const key of FORWARDED_VIDEO_HEADERS) {
@@ -265,13 +297,17 @@ export default {
     if (request.method !== "GET" && request.method !== "HEAD") return env.ASSETS.fetch(request);
 
     const introSegment = parseIntroPath(url.pathname);
+    const shareSegment = introSegment === null ? parseIntroSharePath(url.pathname) : null;
+    if (introSegment !== null || shareSegment !== null) {
+      if (!acceptableRange(request.headers.get("range"))) return new Response("Range Not Satisfiable", { status: 416, headers: { "cache-control": "no-store" } });
+      if (!(await withinRateLimit(env, request, "media", String(introSegment ?? shareSegment).toLowerCase()))) return RATE_LIMITED();
+    }
     if (introSegment !== null) {
       const check = parseHandleFromRequest(introSegment);
       const identity = check.valid ? await fetchPublicIdentity(check.handle, fetch) : null;
       return handleIntroRequest(request, check, identity);
     }
     // the Discord card's Intro: the share copy when one is ready, else the unchanged derivative (the identity is looked up only then)
-    const shareSegment = parseIntroSharePath(url.pathname);
     if (shareSegment !== null) {
       const check = parseHandleFromRequest(shareSegment);
       const share = check.valid ? await fetchPublicIntroShare(check.handle, { supabaseUrl: SUPABASE_URL, publishableKey: PUBLISHABLE_KEY }) : null;
@@ -282,6 +318,7 @@ export default {
     const rawSegment = parseHandlePath(url.pathname);
     if (rawSegment === null) return env.ASSETS.fetch(request);   // not a single-segment "/@..." URL: unchanged Phase 0a static-asset behavior (incl. the accepted 404)
 
+    if (!(await withinRateLimit(env, request, "page"))) return RATE_LIMITED();
     const check = parseHandleFromRequest(rawSegment);
     // the Discord card's Banner / Location come from the same anonymous extras RPC the profile page calls, and its thumbnail-first Intro from the share-copy
     // lookup; all three run together, for every well-formed handle alike (a malformed one still makes no call at all)

@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import { processOneWallVideoJob, transcodeWallBackground } from "./wall-video.mjs";
 import { processOneWallVideoRendition } from "./wall-rendition.mjs";
 import { processOneIntroShare, sweepIntroShares } from "./intro-share.mjs";
+import { processOneIntroPoster } from "./intro-poster.mjs";
 import { uploadGatewayFile, deleteGatewayObject } from './usage-upload.mjs';
 
 const run = promisify(execFile);
@@ -122,7 +123,10 @@ export async function processOneRemoteJob() {
   if (!job) {
     await cleanupEligible();
     const { url,key } = environment();
-    // no Intro waiting: one queued Discord share copy (the owner's chosen thumbnail frame + the whole Intro, see intro-share.mjs)
+    // no Intro waiting: one queued public Intro poster first (a small still of the frame visitors see before Play, see intro-poster.mjs)
+    const poster = await processOneIntroPoster({ url, headers:contentType => backendRequestHeaders(key, contentType ? "" : undefined, contentType) });
+    if (poster.processed) return { processed:true, kind:"intro-poster", ...poster };
+    // nor a poster: one queued Discord share copy (the owner's chosen thumbnail frame + the whole Intro, see intro-share.mjs)
     const share = await processOneIntroShare({ url, headers:contentType => backendRequestHeaders(key, contentType ? "" : undefined, contentType) });
     if (share.processed) return { processed:true, kind:"intro-share", ...share };
     // nor a share copy: the same Job execution serves one queued Wall background video (HEVC -> H.264, see wall-video.mjs)
@@ -165,6 +169,10 @@ if (command === "encode") {
   // Intro Thumbnail for Discord: synthetic, in-image only (no credentials, Storage or user data); the real D3 encode, then the real share copy + validation
   const { shareSmoke } = await import("./intro-share.mjs");
   console.log(JSON.stringify(await shareSmoke(encodeD3)));
+} else if (command === "poster-smoke") {
+  // Public Intro poster: synthetic, in-image only (no credentials, Storage or user data); the real D3 encode, then the real poster plan + encode + validation
+  const { posterSmoke } = await import("./intro-poster.mjs");
+  console.log(JSON.stringify(await posterSmoke(encodeD3)));
 } else if (command === "intro-timing-smoke") {
   const { smokeIntroFrameTiming } = await import("./intro-timing-smoke.mjs");
   const {url,key}=environment();

@@ -47,11 +47,13 @@ test("player: a clear centered Play button with a Play icon and the label Play I
 
 test("public page: only the first presentation waits for Play; Replay plays at once; a lease renewal never stops the paused Intro first", () => {
   assert.match(publicJs, /let awaitFirstPlay = true, renewLease = false;/);
-  assert.match(publicJs, /const awaitPlay = awaitFirstPlay && !renewLease; awaitFirstPlay = false;\n\s*if \(renewLease\) \{ renewLease = false; introRequest\+\+; \} else stopIntro\(\);/);
-  assert.match(publicJs, /transitionKey: latestIntroIdentity\.intro_transition_key \|\| "fade", awaitPlay, posterMs \};/);
+  assert.match(publicJs, /const awaitPlay = awaitFirstPlay && !renewLease; awaitFirstPlay = false;\n\s*const renewing = renewLease;\n\s*if \(renewLease\) \{ renewLease = false; introRequest\+\+; \} else stopIntro\(\);/);
+  assert.match(publicJs, /transitionKey: latestIntroIdentity\.intro_transition_key \|\| "fade", awaitPlay, posterMs, still \};/);
   assert.match(publicJs, /if \(event\.data\?\.type === "gamid-intro-preview-play" && event\.source === frame\.contentWindow && hasIntro && !ownerPreview\) \{ renewLease = true; sendReplay\(\); \}/);
   // the poster is looked up only for a waiting presentation with a signed source, and a failed lookup keeps the first frame
-  assert.match(publicJs, /if \(awaitPlay && source\?\.url && latestIntroIdentity\?\.gamid_handle\) \{ try \{ posterMs = await getPublicIntroPosterMs\(latestIntroIdentity\.gamid_handle\); \} catch/);
+  assert.match(publicJs, /if \(awaitPlay && source\?\.url && latestIntroIdentity\?\.gamid_handle\) \{ try \{ \(\{ posterMs, still \} = await getPublicIntroPoster\(latestIntroIdentity\.gamid_handle\)\); \} catch/);
+  // a renewed lease keeps the poster on screen; Replay never shows one
+  assert.match(publicJs, /let posterMs = null, still = renewing \? config\.still \?\? null : null;/);
 });
 
 test("public poster lookup: the existing anonymous get_public_intro_share, its thumbnail time only (no storage path leaves the function)", () => {

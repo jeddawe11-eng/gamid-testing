@@ -10,6 +10,13 @@
   "main": "./cf-worker/worker.mjs",
   "workers_dev": true,
   "preview_urls": false,
+  // Media-route hardening (cf-worker/worker.mjs withinRateLimit, 2026-10-27): Workers Rate Limiting, approximate and per Cloudflare location. Media = per client IP
+  // and handle on /@<handle>/intro.webm and /intro-discord.webm; crawler = the same key for Discord's crawler / media proxy; page = per client IP on /@<handle>.
+  "ratelimits": [
+    { "name": "MEDIA_LIMITER", "namespace_id": "27101", "simple": { "limit": 120, "period": 60 } },
+    { "name": "CRAWLER_LIMITER", "namespace_id": "27102", "simple": { "limit": 1200, "period": 60 } },
+    { "name": "PAGE_LIMITER", "namespace_id": "27103", "simple": { "limit": 300, "period": 60 } }
+  ],
   "assets": {
     "directory": "./.cloudflare-stage",
     "binding": "ASSETS",

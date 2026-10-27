@@ -539,6 +539,22 @@ export async function getPublicIntroPosterMs(handle) {
   const ms = Number((await rpc("get_public_intro_share", { candidate_handle: handle }, { anonymous: true }))?.[0]?.thumbnail_ms);
   return Number.isFinite(ms) && ms > 0 ? ms : null;
 }
+// The public Intro's still poster (supabase/migrations/20261027120000_intro_posters.sql): the frame the page shows (posterMs: as getPublicIntroPosterMs) and, when
+// that frame's poster is ready, the poster itself as a local image (read anonymously like the public avatar; the storage policy admits only a current ready
+// poster of a PUBLIC GamID). still is null when there is none or it cannot be read - the player then seeks the video as before.
+export async function getPublicIntroPoster(handle) {
+  let row;
+  try { row = (await rpc("get_public_intro_poster", { candidate_handle: handle }, { anonymous: true }))?.[0]; }
+  catch { return { posterMs: await getPublicIntroPosterMs(handle), still: null }; }   // a database without posters: exactly the earlier lookup
+  const ms = Number(row?.poster_ms), posterMs = Number.isFinite(ms) && ms > 0 ? ms : null;
+  const width = Number(row?.poster_width), height = Number(row?.poster_height);
+  if (!row?.poster_path || !(width > 0 && height > 0)) return { posterMs, still: null };
+  try {
+    const response = await fetch(`${SUPABASE_URL}/storage/v1/object/authenticated/intro-posters/${encodeStoragePath(row.poster_path)}`, { headers: { apikey: PUBLISHABLE_KEY } });
+    if (!response.ok) return { posterMs, still: null };
+    return { posterMs, still: { url: URL.createObjectURL(await response.blob()), width, height } };
+  } catch { return { posterMs, still: null }; }
+}
 export async function getPublicProfileExtras(handle) { return (await rpc("get_public_profile_extras", { candidate_handle: handle }, { anonymous: true }))?.[0] ?? null; }
 // The Banner is never a Storage address: the profile-banner Edge Function decides on every request (PUBLIC + attached) and streams it with no-store.
 export const publicBannerUrl = handle => `${SUPABASE_URL}/functions/v1/profile-banner/${encodeURIComponent(handle)}`;
