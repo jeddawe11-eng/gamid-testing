@@ -76,13 +76,18 @@ Rules:
 | Prefix | Category | Folder | Last issued |
 |---|---|---|---|
 | DIS | Discussions | discussions/ | DIS-0003 |
-| DEC | Decisions | decisions/ | DEC-0011 |
+| DEC | Decisions | decisions/ | DEC-0012 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0017 |
-| REV | Reviews | reviews/ | REV-0028 |
+| REV | Reviews | reviews/ | REV-0029 |
 
 ## Register
 
+2026-10-27: Mazen gave his final TESTING acceptance and approved saving two records.
+- New REV-0029 (PASS): the Discord Share Card (B1) and the Intro Discord Thumbnail selection from the Classic Editor. GamID Truth discord-share-card and intro-discord-thumbnail are ACCEPTED.
+- New DEC-0012 (ACCEPTED): the public Intro waits for Play, with the chosen frame as a full-screen poster, a mandatory Play button, no autoplay, Skip, Replay and Wall / Classic routing. GamID Truth public-intro-manual-play is ACCEPTED.
+- The Production release was authorized but not performed: no Production environment exists (PROJECT_HANDOFF.md §139).
+- ID note: they were proposed as REV-0030 and DEC-0013. The validator requires consecutive IDs, and REV-0029 and DEC-0012 had only been named in unsaved proposals, so these records take them; those proposals take new IDs if saved. REV-0028 is unchanged.
 2026-10-26: At Mazen's request, REV-0028 gained a dated Reconciliation note.
 - The stored Intro playback derivative is capped at 1080p / 15 MiB (Truth intro-derivative-d3).
 - The record's 4K / 50 MB scenario is hypothetical and does not represent the current Discord Intro delivery.
@@ -253,3 +258,5 @@ Status stays DISCUSSION; there is no implementation authorization.
 | REV-0026 | Friends Stickers V1 — Mazen final TESTING acceptance | COMPLETED | [REV-0026-friends-stickers-v1-final-acceptance.md](reviews/REV-0026-friends-stickers-v1-final-acceptance.md) |
 | REV-0027 | Pro Effects (Neon, Living Fire, Living Ice V5, Living Radiation V1) — Mazen final TESTING acceptance | COMPLETED | [REV-0027-pro-effects-final-acceptance.md](reviews/REV-0027-pro-effects-final-acceptance.md) |
 | REV-0028 | Discord video cache and bandwidth investigation (isolated lab) | COMPLETED | [REV-0028-discord-video-cache-bandwidth-investigation.md](reviews/REV-0028-discord-video-cache-bandwidth-investigation.md) |
+| REV-0029 | Discord Share Card and Intro Discord Thumbnail — Mazen final TESTING acceptance | COMPLETED | [REV-0029-discord-share-card-and-intro-thumbnail-final-acceptance.md](reviews/REV-0029-discord-share-card-and-intro-thumbnail-final-acceptance.md) |
+| DEC-0012 | Public Intro waits for Play — the visitor always decides when the Intro starts | ACCEPTED | [DEC-0012-public-intro-waits-for-play.md](decisions/DEC-0012-public-intro-waits-for-play.md) |

@@ -186,7 +186,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
   - **Production release:** authorized by Mazen on 2026-10-27 for these three features, but BLOCKED. No GamID Production environment exists, and creating one is not authorized (§139). Production stays NOT_RELEASED.
   - **Next:** Mazen's decision on how Production is to be created and what it carries.
   - **Social Lab:** the `gamid-social-lab` Worker is independent and safe to delete. The agent's delete was refused by a permission check, so it is still live; Mazen can run `npx wrangler@4.86.0 delete --name gamid-social-lab`.
-  - **Product Memory:** the acceptance proposals (REV-0030, DEC-0013) are not saved.
+  - **Product Memory:** saved with Mazen's approval on 2026-10-27: REV-0029 (the Discord Share Card + Intro Thumbnail acceptance) and DEC-0012 (the public Intro waits for Play).
 - **Intro Thumbnail for Discord: deployed on TESTING (2026-10-27)**, since ACCEPTED (§136–§138, `docs/INTRO-DISCORD-THUMBNAIL.md`, Truth `intro-discord-thumbnail`).
   - **What's deployed:** product `02c98c5`; site and Worker `ee08a4a` (run `40358104036`); worker image, Job and dispatcher redeployed by Mazen from `ee08a4a`. Migration `20261026120000_intro_discord_thumbnail` APPLIED.
   - **End-to-end check:** passed on GM-TEST-01 (restored to DRAFT). The signed-in editor, the Discord desktop app and phones were not tested by the agent.
