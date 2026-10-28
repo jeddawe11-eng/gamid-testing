@@ -78,10 +78,13 @@ Rules:
 | DIS | Discussions | discussions/ | DIS-0003 |
 | DEC | Decisions | decisions/ | DEC-0012 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
-| ISS | Issues | issues/ | ISS-0019 |
+| ISS | Issues | issues/ | ISS-0020 |
 | REV | Reviews | reviews/ | REV-0030 |
 
 ## Register
+
+2026-10-28 (Finish Intro Poster Validation & Discord Frame Bug): Mazen approved saving ISS-0020 and authorized its TESTING fix.
+- New ISS-0020 (AUTHORIZED): the Intro share copy, and the poster, used the frame after the chosen one when an Intro's first frame is not at 0. The poster fix is deployed and verified; the share-copy fix (`e52de5a`) awaits the worker redeployment. Existing real-account share copies are not replaced without separate approval.
 
 2026-10-27 (Infrastructure Optimization & Security Hardening V1): Mazen approved recording the infrastructure cost study and the two issues it found.
 - New REV-0030 (PARTIAL): the measured bandwidth / caching / cost study and its V1 follow-up measurements; R2 assessed, not implemented.
@@ -268,3 +271,4 @@ Status stays DISCUSSION; there is no implementation authorization.
 | REV-0030 | Infrastructure, storage, bandwidth and cost study, and its V1 follow-up measurements | COMPLETED | [REV-0030-infrastructure-cost-study.md](reviews/REV-0030-infrastructure-cost-study.md) |
 | ISS-0018 | pg_cron run log (cron.job_run_details) grows without bound | FIXED | [ISS-0018-cron-run-log-unbounded-growth.md](issues/ISS-0018-cron-run-log-unbounded-growth.md) |
 | ISS-0019 | Public Intro video routes had no rate limit, Range validation or HEAD short-cut (egress amplification) | FIXED | [ISS-0019-public-intro-route-abuse-rate-limits.md](issues/ISS-0019-public-intro-route-abuse-rate-limits.md) |
+| ISS-0020 | Intro share copy (and poster) used the frame after the chosen one when an Intro's first frame is not at 0 | AUTHORIZED | [ISS-0020-share-copy-frame-after-chosen-frame.md](issues/ISS-0020-share-copy-frame-after-chosen-frame.md) |

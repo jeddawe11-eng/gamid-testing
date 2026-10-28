@@ -5655,3 +5655,40 @@ Mazen's authorization: a controlled visual test on his real TESTING profile @bla
 - **Next:**
   1. Mazen redeploys the worker from `8895ed0` or later.
   2. Re-queue @black's chosen-frame poster (`private.enqueue_intro_posters`), verify, then Mazen's visual review.
+
+## 144. @black poster validated on the corrected worker; ISS-0020 share-copy fix (2026-10-28)
+
+Mazen's task: "Finish Intro Poster Validation & Discord Frame Bug". TESTING only.
+
+- **Corrected worker:** Mazen redeployed it from `1449bbc` (the frame rule of `8895ed0`) and reported DEPLOYED with all smokes passed.
+  - `private.enqueue_intro_posters(@black)` queued 1 poster (4402 ms); none of @black's settings changed.
+  - The dispatcher answered 202; the Cloud Run worker had it ready in 18 s, on 1 attempt, at 1920×1080.
+  - The poster is 208,466 bytes, byte-identical to the corrected code's local output for frame 131. The old worker's frame-132 poster was 161,386 bytes. This shows the deployed image has the corrected rule.
+- **@black E2E** (anonymous browser; desktop 1440×900, mobile Pixel 7):
+
+  | Check | Desktop | Mobile |
+  |---|---|---|
+  | Bytes before Play | 208.5 KB poster, 0 video bytes | 208.5 KB poster, 0 video bytes |
+  | Earlier seek mode, for comparison | 1.78 MB of video | 1.66 MB of video |
+  | Same frame: whole screen | 44.0 dB (0.002% of pixels off by more than 12) | 32.7 dB |
+  | Same frame: Intro area | 43.5 dB | 27.4 dB |
+  | Same box | yes | yes |
+  | Play | starts at 0.010 s, unmuted, audio decoded | starts at 0.011 s, the same |
+  | Replay | immediate, no poster | the same |
+  | Skip | 0 video bytes | the same |
+  | Intro ends on | the published Wall | the published Wall |
+  | Repeat visit, before Play | 0 bytes | 0 bytes |
+
+  - **Phone difference:** Chrome's image vs video downscale filters, larger on this detailed content than on the fixture. At 3× zoom it is the same frame and composition; the poster's fine edges are slightly softer. For Mazen's judgement.
+- **@black untouched:** before/after snapshot identical for visibility, Intro settings, chosen frame, active job, share copies, Wall publication and Intro media objects. Poster rows: 3 (one superseded, the wrong pre-fix frame).
+- **Gate:** activated GM-TEST-01 and @black only. Outside them, 0 poster rows and 0 objects. @zshot: no poster.
+- **Discord:** @black's and @zshot's card metadata (`og:video`, `og:image`) present for Discordbot; @black's `/intro-discord.webm` HEAD 200 (6,205,647 bytes, unchanged).
+- **ISS-0020 (saved with Mazen's approval; AUTHORIZED): share-copy fix `e52de5a`.**
+  - **What changed:** `sharePlan` in `worker/intro-share.mjs` now uses the same media-timeline rule as the poster.
+  - **Regression tests:** a non-zero first frame, an exact frame boundary, one millisecond before it, before the first frame, and @black's real timestamps.
+  - **Local check on @black's derivative (nothing uploaded):** the first frame is frame 131 (46.8 dB; 19.1 dB against frame 132), and `validateShare` passes. The rest of the Intro equals the accepted copy: 44.47 vs 44.52 dB against the derivative, 332 frames each, duration 11.049 s.
+  - **Not active** until the worker image is redeployed from `e52de5a` or later.
+  - Existing share copies, @black's included, are not replaced without Mazen's separate approval.
+- **Tests:** `npm test` 2,285 tests, 0 failures; Product Memory validation passed (68 records).
+- **GamID Truth:** `public-intro-poster` notes record the redeployment; the bug sentence added in §143 was removed (bugs belong to Product Memory). It stays PENDING_ACCEPTANCE, checkpoint `8895ed0`. `intro-discord-thumbnail` unchanged until the share-copy fix is deployed.
+- **Review state:** @black and GM-TEST-01 are activated and PUBLIC for Mazen's review. GM-TEST-01 stays PUBLIC until he closes that review.

@@ -178,7 +178,16 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-28, real-Intro poster review on @black, §143):**
+**Latest continuation (2026-10-28, @black poster ready for review; ISS-0020, §144):**
+- **Poster:** the corrected worker is deployed (from `1449bbc`). @black's poster is regenerated and correct, ready for Mazen's visual review. `public-intro-poster` stays PENDING_ACCEPTANCE.
+- **ISS-0020:** saved, AUTHORIZED. The share-copy fix `e52de5a` is committed and tested; the worker must be redeployed from `e52de5a` or later.
+- **Next:**
+  1. Mazen redeploys the worker.
+  2. Verify a new share copy on GM-TEST-01.
+  3. Separately approve replacing existing share copies.
+  4. Mazen's visual decision on the poster.
+
+**Previous continuation (2026-10-28, real-Intro poster review on @black, §143):**
 - **State:** @black added to the gate (migration `20261028100000` applied).
 - **Defect:** a one-frame-late poster frame (Intro first frame not at 0) was fixed in `8895ed0`, but is not deployed. @black's wrong poster is retired, so its page behaves as before.
 - **Next:**
