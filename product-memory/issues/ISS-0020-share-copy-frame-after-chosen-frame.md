@@ -1,15 +1,16 @@
 ---
 id: ISS-0020
 title: Intro share copy (and poster) used the frame after the chosen one when an Intro's first frame is not at 0
-status: FIXED
+status: VERIFIED
 created: 2026-10-28
 updated: 2026-10-28
 scope: Intro worker frame selection - worker/intro-share.mjs (Discord share copy, Truth intro-discord-thumbnail) and worker/intro-poster.mjs (public Intro poster, Truth public-intro-poster)
 summary: Both picked the thumbnail frame on a timeline relative to the first frame, but Chrome shows a paused video on the media's own timeline; when the Intro's first video frame is not at 0 (@black: 0.007 s) they used the next frame, 33 ms late. Fixed and deployed on TESTING (poster 8895ed0, share copy e52de5a; worker redeployed from 75df33e); @black's share copy regenerated with Mazen's authorization now starts on the correct frame.
-related: [REV-0029, DEC-0012, REV-0030]
+related: [REV-0029, DEC-0012, REV-0030, REV-0031]
 save_approval: Mazen 2026-10-28
 kind: BUG
 authorization: Mazen 2026-10-28, task "GamID - Finish Intro Poster Validation & Discord Frame Bug" (TESTING only; fix the share-copy frame rule, add regression tests; no replacement of real-account Discord media without separate approval)
+acceptance: Mazen 2026-10-28 confirmed the fix on TESTING (worker redeployed from 75df33e; @black's poster and regenerated share copy show frame 131, the chosen frame; evidence PROJECT_HANDOFF.md §144-§145)
 truth_refs: [intro-discord-thumbnail, public-intro-poster]
 checkpoints: [8895ed01cf158e8fccb5740f34c2b9d63dde6962, e52de5a79021de906690c424d4fffda68c9eec53]
 sources: [PROJECT_HANDOFF.md, docs/INFRA-OPTIMIZATION-V1.md]
@@ -63,3 +64,4 @@ sources: [PROJECT_HANDOFF.md, docs/INFRA-OPTIMIZATION-V1.md]
 - 2026-10-28 OPEN — found during Mazen's real-Intro poster review on @black (PROJECT_HANDOFF.md §143).
 - 2026-10-28 AUTHORIZED — Mazen approved saving this record and authorized the TESTING fix. The poster fix was deployed and verified; the share-copy fix is committed and tested locally, and awaits the worker redeployment.
 - 2026-10-28 FIXED — worker redeployed by Mazen (`75df33e`); @black's share copy regenerated with his authorization and verified (frame 131, full Intro, audio sync, Discord route). PROJECT_HANDOFF.md §145. VERIFIED awaits Mazen's confirmation.
+- 2026-10-28 VERIFIED — Mazen confirmed (task "Roll Out Public Intro Poster to All TESTING Accounts").

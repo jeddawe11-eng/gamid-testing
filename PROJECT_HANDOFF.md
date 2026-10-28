@@ -5718,3 +5718,66 @@ Mazen's task: "Finish Intro Poster Validation & Discord Frame Bug". TESTING only
   - a REV-0031 record of the poster acceptance is proposed, not saved.
 - **Fixture:** GM-TEST-01 restored to DRAFT; Mazen's review is finished.
 - **Still pending in Truth:** `public-media-route-protection`, `wall-editor-mobile-v2`, `custom-wall-fonts`, `public-wall-mobile-v2`.
+
+## 146. Public Intro poster rolled out to all TESTING accounts (2026-10-28)
+
+Mazen's task "Roll Out Public Intro Poster to All TESTING Accounts" authorized the rollout of the accepted poster to every TESTING account, existing and future Intros included, plus ISS-0020 VERIFIED and REV-0031.
+
+- **Pre-checks:**
+  - @black's poster (frame 131, 4,402 ms) and share copy were confirmed current.
+  - The deployed worker is the one from `75df33e`; no redeployment was needed.
+- **Migration `20261028120000` (product `ef1eef2`; applied, history repaired):**
+  - **The switch:** a singleton table, `private.intro_poster_rollout`, with `all_accounts = true`, RLS on and no client grants.
+  - **The gate:** `private.intro_poster_activated` returns true when the switch is on, or for a profile in the review list (GM-TEST-01, @black).
+  - **Effect:** new accounts, new Intros and new chosen frames are queued automatically, by the existing trigger.
+  - **Rollback:** `update private.intro_poster_rollout set all_accounts = false, updated_at = now();` returns every other profile to the paused-video waiting frame at once, without touching any Intro.
+  - **Rehearsal** (rolled back, dispatch trigger disabled):
+    - all 4 Intro profiles and a random uuid were activated;
+    - the backfill simulation queued exactly 2 posters (@nmk, @zshot);
+    - switching off deactivated them and kept @black.
+- **Eligible:** 4 profiles with an active ready Intro:
+
+  | Account | Visibility | Chosen frame | Poster |
+  |---|---|---|---|
+  | @black | PUBLIC | 4402 ms | already had one |
+  | GM-TEST-01 fixture | DRAFT | 2000 ms | already had one |
+  | @nmk | PUBLIC | none (first frame) | backfilled |
+  | @zshot | PUBLIC | none (first frame) | backfilled |
+
+- **Backfill:** `private.enqueue_intro_posters`, one profile at a time, waiting for each to finish. The run was resumable and duplicate-free.
+  - @nmk: 1 queued; dispatcher 202; ready in 18 s on 1 attempt (161,338 bytes, 1920×1080).
+  - @zshot: 1 queued; dispatcher 202; ready in 10 s on 1 attempt (19,298 bytes).
+- **Coverage after the backfill:**
+  - all 4 shown frames have a ready current poster;
+  - 6 ready rows (1,003,860 bytes) match 6 storage objects;
+  - 5 superseded rows (earlier frames, swept as designed);
+  - 0 failed, 0 pending or processing.
+- **Visitor E2E** (anonymous Chrome, desktop 1440×900 and Pixel 7). Before, the waiting frame was the paused video; after, it is the poster, with `preload=none`.
+
+  | Account | Device | Before (video bytes before Play) | After: poster | After: video bytes before Play | Same frame (PSNR) |
+  |---|---|---|---|---|---|
+  | @nmk | desktop | 968,042 | 161 KB | 0 | 44.3 dB |
+  | @nmk | mobile | 1,221,313 | 161 KB | 0 | 32.8 dB screen / 27.7 dB Intro area |
+  | @zshot | desktop | 309,357 | 19 KB | 0 | 49.1 dB |
+  | @zshot | mobile | 113,389 | 19 KB | 0 | 46.7 dB |
+  | @black | desktop | 1.76–1.78 MB (earlier path) | 208 KB | 0 | 44.0 dB |
+  | @black | mobile | 1.76–1.78 MB (earlier path) | 208 KB | 0 | 32.7 / 27.4 dB |
+
+  - **Playback:** Play starts from 0:00 in 0.004–0.019 s, unmuted, with audio decoded.
+  - **Routing:** after the Intro, @nmk goes to Classic; @zshot and @black go to the Wall.
+  - **Replay, Skip, repeat visits:** Replay is immediate, with no poster; Skip downloads 0 video bytes; a repeat visit downloads 0 bytes.
+  - **Before the rollout, repeat visits** downloaded about 1.2 MB (@nmk) and 0.26–0.29 MB (@zshot) each time.
+- **Fallback:** with the poster image forced to return 500, the page seeks the video to the shown frame (@nmk 0 s, @black 4.402 s), and Play works.
+- **Integrity:**
+  - @black's snapshot (visibility, settings, chosen frame, active job, Wall, media, share copy) is unchanged.
+  - @nmk and @zshot settings were not written (`updated_at` unchanged since Sep 2026), and no share copy was created for them.
+  - No original Intro was deleted or replaced.
+- **Tests:** `npm test` passes, with a new test for the rollout switch and its rollback. Truth and Product Memory validation pass.
+- **GamID Truth:** `public-intro-poster` stays ACCEPTED.
+  - The activation contract now records the switch.
+  - Limit `allAccountsActivated: true`; checkpoint `ef1eef2`.
+- **Product Memory (approved by Mazen):** ISS-0020 VERIFIED; REV-0031 saved.
+- **Resources:** no new infrastructure.
+  - It uses the same Cloud Run Job, dispatcher and private bucket.
+  - The posters total 1.0 MB of storage.
+  - Each new Intro or frame choice costs one short worker run.

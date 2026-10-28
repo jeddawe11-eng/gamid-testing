@@ -135,6 +135,21 @@ Requested by Mazen before the worker deployment: until his visual acceptance, no
    - lift the gate;
    - then queue posters for existing Intros with `worker/cloud-run/intro-poster-backfill.sql`. While the gate is in place, it reaches only GM-TEST-01.
 
+### Rollout to all TESTING accounts (done 2026-10-28, `PROJECT_HANDOFF.md` §146)
+
+- **Authorization:** Mazen accepted the poster on @black (§145) and then authorized the rollout.
+- **Migration `20261028120000`** (product `ef1eef2`; applied) adds the switch `private.intro_poster_rollout.all_accounts = true`.
+  - While the switch is on, `private.intro_poster_activated` is true for every profile, so new accounts, Intros and frame choices are queued automatically.
+  - The review list (GM-TEST-01, @black) still applies when the switch is off.
+- **Rollback:** `update private.intro_poster_rollout set all_accounts = false, updated_at = now();`
+- **Backfill:** run one profile at a time.
+  - @nmk and @zshot: 1 poster each, ready in 18 s and 10 s.
+  - @black and GM-TEST-01 already had theirs.
+- **Coverage:** 4 of 4 active Intros, 0 failed, 1.0 MB of posters.
+- **Measured:** 0 Intro video bytes before Play on desktop and mobile, against 0.11–1.22 MB per visit before for @nmk / @zshot. The table is in §146.
+- **Unchanged:** the frame, Play, Skip, Replay and routing.
+- **Fallback:** a failed poster read falls back to the paused video.
+
 ## 2. Media route hardening (Cloudflare Worker; deployed)
 
 These routes are `/@<handle>/intro.webm` and `/intro-discord.webm`. Only link crawlers need them; visitors use signed leases.

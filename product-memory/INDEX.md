@@ -79,9 +79,13 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0012 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0020 |
-| REV | Reviews | reviews/ | REV-0030 |
+| REV | Reviews | reviews/ | REV-0031 |
 
 ## Register
+
+2026-10-28 (Roll Out Public Intro Poster to All TESTING Accounts): Mazen approved both changes.
+- ISS-0020 is VERIFIED.
+- New REV-0031 (PASS): the public Intro poster's real-Intro visual acceptance on @black and its rollout to every TESTING account (GamID Truth public-intro-poster ACCEPTED).
 
 2026-10-28 (final Discord fix verification): ISS-0020 is FIXED. Both fixes are deployed on TESTING, and @black's share copy, regenerated with Mazen's authorization, starts on the correct frame. VERIFIED awaits Mazen's confirmation.
 
@@ -273,4 +277,5 @@ Status stays DISCUSSION; there is no implementation authorization.
 | REV-0030 | Infrastructure, storage, bandwidth and cost study, and its V1 follow-up measurements | COMPLETED | [REV-0030-infrastructure-cost-study.md](reviews/REV-0030-infrastructure-cost-study.md) |
 | ISS-0018 | pg_cron run log (cron.job_run_details) grows without bound | FIXED | [ISS-0018-cron-run-log-unbounded-growth.md](issues/ISS-0018-cron-run-log-unbounded-growth.md) |
 | ISS-0019 | Public Intro video routes had no rate limit, Range validation or HEAD short-cut (egress amplification) | FIXED | [ISS-0019-public-intro-route-abuse-rate-limits.md](issues/ISS-0019-public-intro-route-abuse-rate-limits.md) |
-| ISS-0020 | Intro share copy (and poster) used the frame after the chosen one when an Intro's first frame is not at 0 | FIXED | [ISS-0020-share-copy-frame-after-chosen-frame.md](issues/ISS-0020-share-copy-frame-after-chosen-frame.md) |
+| ISS-0020 | Intro share copy (and poster) used the frame after the chosen one when an Intro's first frame is not at 0 | VERIFIED | [ISS-0020-share-copy-frame-after-chosen-frame.md](issues/ISS-0020-share-copy-frame-after-chosen-frame.md) |
+| REV-0031 | Public Intro poster - real-Intro visual acceptance on @black, then rollout to all TESTING accounts | COMPLETED | [REV-0031-public-intro-poster-acceptance.md](reviews/REV-0031-public-intro-poster-acceptance.md) |

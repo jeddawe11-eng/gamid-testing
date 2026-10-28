@@ -178,7 +178,14 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-28, public Intro poster ACCEPTED; ISS-0020 FIXED, §145):**
+**Latest continuation (2026-10-28, public Intro poster rolled out to all TESTING accounts, §146):**
+- **Poster:** Truth `public-intro-poster` ACCEPTED and active for every account (switch `private.intro_poster_rollout.all_accounts`, migration `20261028120000`, product `ef1eef2`).
+- **Coverage:** all 4 active Intros have posters (@nmk and @zshot backfilled); 0 failures.
+- **Rollback (Mazen's decision):** turn the switch off; see §146.
+- **Product Memory:** ISS-0020 VERIFIED; REV-0031 saved.
+- **Next pending priority:** the remaining PENDING_ACCEPTANCE capabilities in Truth: `wall-editor-mobile-v2`, `public-wall-mobile-v2`, `custom-wall-fonts`, `public-media-route-protection`.
+
+**Previous continuation (2026-10-28, public Intro poster ACCEPTED; ISS-0020 FIXED, §145):**
 - **Poster:** Truth `public-intro-poster` ACCEPTED, gated to GM-TEST-01 and @black.
 - **ISS-0020:** the share-copy fix is deployed, and @black's share copy is regenerated on the correct frame.
 - **Fixture:** GM-TEST-01 is DRAFT.
