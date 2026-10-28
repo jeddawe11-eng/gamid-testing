@@ -61,10 +61,10 @@ export function posterPlan(probe, times, posterMs, intro = {}) {
   const duration = Number(probe?.format?.duration || 0);
   const at = Math.max(0, Number(posterMs) || 0) / 1000;
   if (at > 0 && !(at < duration)) return { ok: false, code: "THUMBNAIL_OUTSIDE_INTRO" };
-  // the frame a paused player shows at `at`: the last one presented at or before it (times are relative to the first frame) - the share copy's rule
-  const start = times[0];
+  // the frame a paused Chrome player shows at currentTime `at`: the last one whose presentation time is at or before it, on the media's own timeline
+  // (NOT relative to the first frame: measured on @black's Intro, whose first frame is at 0.007 s); before the first frame, the first frame
   let frame = 0;
-  for (let i = 0; i < times.length && times[i] - start <= at + 1e-6; i += 1) frame = i;
+  for (let i = 0; i < times.length && times[i] <= at + 1e-6; i += 1) frame = i;
   return { ok: true, frame, width: video.width, height: video.height, ...color };
 }
 

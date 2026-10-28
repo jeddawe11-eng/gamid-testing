@@ -23,7 +23,14 @@ test("poster frame: the last frame presented at or before the time (the share co
   assert.equal(posterPlan(d3(), times30, 0).frame, 0);
   assert.equal(posterPlan(d3(), times30, 2000).frame, 60);
   assert.equal(posterPlan(d3(), times30, 2010).frame, 60, "between two frames: the earlier one, as a paused browser shows");
-  assert.equal(posterPlan(d3(), times30.map(t => t + 0.007), 2000).frame, 60, "times are relative to the first frame");
+  // Chrome uses the media timeline itself (measured 2026-10-28 on @black's Intro, first frame at 0.007 s: currentTime 4.402 shows the frame at 4.374)
+  const late = times30.map(t => +(t + 0.007).toFixed(3));
+  assert.equal(posterPlan(d3(), late, 2000).frame, 59, "the frame at 1.974, not the one at 2.007");
+  assert.equal(posterPlan(d3(), late, 2007).frame, 60, "a frame presented exactly at the time is shown");
+  assert.equal(posterPlan(d3(), late, 0).frame, 0);
+  assert.equal(posterPlan(d3(), late, 4).frame, 0, "before the first frame: the first frame");
+  const black = [4.307, 4.34, 4.374, 4.407, 4.44];
+  assert.equal(black[posterPlan({ ...d3(), format: { duration: "11.04" } }, black, 4402).frame], 4.374);
   assert.deepEqual(posterPlan(d3(), times30, 3000), { ok: false, code: "THUMBNAIL_OUTSIDE_INTRO" });
 });
 
@@ -141,6 +148,17 @@ test("acceptance gate: posters only for activated profiles, seeded with the GM-T
   assert.equal((gate.match(/insert into private\.intro_poster_activation/g) || []).length, 1, "no other profile is activated");
   assert.match(gate, /revoke all on table private\.intro_poster_activation from public, anon, authenticated;/);
   assert.doesNotMatch(gate, /grant /i, "no new privilege");
+});
+
+test("acceptance gate: @black is added for Mazen's review only (one row, posters queued for that profile alone, nothing of the Intro changed)", () => {
+  const black = read("supabase/migrations/20261028100000_intro_poster_gate_black_review.sql").replace(/^--.*$/gm, "");
+  assert.match(black, /where e\.gamid_handle = 'black' and e\.entity_type = 'SOLO';\s+if found_count <> 1 then raise exception 'INTRO_POSTER_GATE_BLACK_NOT_FOUND'/);
+  assert.equal((black.match(/insert into /g) || []).length, 1);
+  assert.match(black, /perform private\.enqueue_intro_posters\(black\);/);
+  assert.doesNotMatch(black, /update |delete |profile_intro_settings|intro_processing_jobs|intro_share_copies|wall_/i);
+  const rollback = read("worker/cloud-run/intro-poster-gate-black-rollback.sql").replace(/^--.*$/gm, "");
+  assert.match(rollback, /delete from private\.intro_poster_activation a using black b where a\.profile_id = b\.profile_id;/);
+  assert.doesNotMatch(rollback, /profile_intro_settings|intro_processing_jobs|intro_share_copies|gm_test_01/);
 });
 
 test("acceptance gate: enforced at queueing, claiming, completing and serving", () => {
