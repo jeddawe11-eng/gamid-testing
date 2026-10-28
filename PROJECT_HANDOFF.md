@@ -5797,6 +5797,7 @@ Mazen's task "Roll Out Public Intro Poster to All TESTING Accounts" authorized t
   - R2 is still not enabled (`wrangler r2 bucket list`: code 10042);
   - TESTING Storage holds 99 MB.
 - **Not authorized:** implementation, R2 activation, credentials, IAM, deployment, DNS or Cloudflare settings, moving media, and Production. Nothing was changed.
-- **GamID Truth is unchanged.** It records only capabilities implemented on TESTING; contract amendments come with implementation and acceptance.- **Follow-up (same day).** Mazen approved:
+- **GamID Truth is unchanged.** It records only capabilities implemented on TESTING; contract amendments come with implementation and acceptance.
+- **Follow-up (same day).** Mazen approved:
   - saving the decision as Product Memory DEC-0013 (APPROVED, authorization NONE);
   - the quota rule for the future implementation: internal R2 replicas will not count toward the user's 200 MB quota. Current enforcement is unchanged.
