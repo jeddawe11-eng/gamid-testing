@@ -6,7 +6,7 @@ created: 2026-10-28
 updated: 2026-10-28
 scope: Storage and delivery of every visitor-facing media type on TESTING (Supabase Storage, public-media leases, Cloudflare Worker, Cloud Run worker): R2 hybrid variants vs direct R2 migration, modelled monthly cost at 100k-100M visits, security model, migration and rollback; design only
 summary: PASS (design) - Architecture F recommended and approved by Mazen as a design decision on 2026-10-28. Supabase stays authoritative; every visitor-facing video is replicated asynchronously to a private R2 bucket when READY and delivered by a Worker from the verified replica, with Supabase fallback. Modelled typical cost is 58-65% below today ($2,892 -> $999 at 10M visits/month). NOT implemented and NOT authorized.
-related: [REV-0030, REV-0028, REV-0031, ISS-0019, ISS-0009, DEC-0007]
+related: [REV-0030, REV-0028, REV-0031, ISS-0019, ISS-0009, DEC-0007, DEC-0013]
 save_approval: Mazen 2026-10-28
 review_type: DESIGN
 outcome: PASS
@@ -187,7 +187,7 @@ None of them is a prerequisite.
   Each needs a separate explicit authorization.
 - **Smallest pilot (proposed, not authorized).** The Intro and Discord share copy of the GM-TEST-01 fixture only, on TESTING (workers.dev), behind the switch, with Supabase fallback.
 - **Not recorded in GamID Truth.** Truth records only capabilities implemented on TESTING, so this approved but unbuilt design is not there. Contract amendments are made only when the capability is implemented and accepted.
-- **Possible decision record.** A DEC record of the decision may be proposed separately.
+- **Decision record.** The decision is recorded as DEC-0013 (2026-10-28, approved by Mazen). That record also holds his approved quota rule: internal R2 replicas will not count toward the 200 MB quota.
 
 ## History
 

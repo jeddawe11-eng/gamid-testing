@@ -179,7 +179,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 ## 7. Current continuation point
 
 **Latest continuation (2026-10-28, media delivery Architecture F approved as a design, §147):**
-- **Standing decision:** Mazen approved Architecture F (REV-0032). Supabase stays authoritative; visitor-facing video is replicated to private R2 when READY; a Worker delivers the verified replica, with Supabase fallback.
+- **Standing decision:** Mazen approved Architecture F (DEC-0013, evidence REV-0032). Internal R2 replicas will not count toward the 200 MB quota (approved rule for the implementation). Supabase stays authoritative; visitor-facing video is replicated to private R2 when READY; a Worker delivers the verified replica, with Supabase fallback.
 - **Status:** NOT implemented and NOT authorized. R2 is not enabled.
 - **Next, only with separate authorization:** the smallest TESTING pilot, on GM-TEST-01's Intro and share copy. Its prerequisites are in REV-0032 and §147.
 

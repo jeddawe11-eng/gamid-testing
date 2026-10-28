@@ -204,7 +204,9 @@ Scenario inputs are assumptions; list prices are official. A = current architect
 
 ## 6. Media delivery Architecture F (approved design, NOT implemented)
 
-Approved by Mazen as a design decision on 2026-10-28. The full comparison, costs, risks and security model are in Product Memory REV-0032.
+Approved by Mazen as a design decision on 2026-10-28, recorded as DEC-0013. The full comparison, costs, risks and security model are in Product Memory REV-0032.
+
+- **Quota rule (approved 2026-10-28, DEC-0013).** Internal R2 replicas are system-managed copies. They will not count toward the user's 200 MB storage quota and will not appear in Usage; the original keeps counting as today, as with renditions and share copies. This is a rule for the future implementation: current quota enforcement is unchanged.
 
 - **Supabase stays authoritative.** Upload, quota, Usage, delete and visibility rules are unchanged.
 - **Replication.** Every visitor-facing video is replicated asynchronously, when READY, to a private R2 bucket through the existing trigger, dispatcher and Cloud Run Job, then verified by size and SHA-256. The videos covered are:

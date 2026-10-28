@@ -76,12 +76,16 @@ Rules:
 | Prefix | Category | Folder | Last issued |
 |---|---|---|---|
 | DIS | Discussions | discussions/ | DIS-0003 |
-| DEC | Decisions | decisions/ | DEC-0012 |
+| DEC | Decisions | decisions/ | DEC-0013 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0020 |
 | REV | Reviews | reviews/ | REV-0032 |
 
 ## Register
+
+2026-10-28 (DEC-0013 and the quota rule for R2 replicas): Mazen approved both.
+- New DEC-0013 (APPROVED, authorization NONE): Architecture F as the approved design for visitor video delivery (evidence in REV-0032).
+- Approved rule for the future R2 implementation: internal R2 replicas will not count toward the user's 200 MB storage quota. Current quota enforcement is unchanged.
 
 2026-10-28 (Media Infrastructure Architecture & Cost Optimization Review): Mazen approved saving the review.
 - New REV-0032 (DESIGN, PASS): Architecture F, approved by Mazen as a design decision.
@@ -286,4 +290,5 @@ Status stays DISCUSSION; there is no implementation authorization.
 | ISS-0019 | Public Intro video routes had no rate limit, Range validation or HEAD short-cut (egress amplification) | FIXED | [ISS-0019-public-intro-route-abuse-rate-limits.md](issues/ISS-0019-public-intro-route-abuse-rate-limits.md) |
 | ISS-0020 | Intro share copy (and poster) used the frame after the chosen one when an Intro's first frame is not at 0 | VERIFIED | [ISS-0020-share-copy-frame-after-chosen-frame.md](issues/ISS-0020-share-copy-frame-after-chosen-frame.md) |
 | REV-0031 | Public Intro poster - real-Intro visual acceptance on @black, then rollout to all TESTING accounts | COMPLETED | [REV-0031-public-intro-poster-acceptance.md](reviews/REV-0031-public-intro-poster-acceptance.md) |
+| DEC-0013 | Media delivery Architecture F - Supabase authoritative, visitor video replicated to private R2 when READY, Worker delivery with Supabase fallback | APPROVED | [DEC-0013-media-delivery-architecture-f-r2-replication.md](decisions/DEC-0013-media-delivery-architecture-f-r2-replication.md) |
 | REV-0032 | Media delivery architecture review - Supabase authoritative, visitor video replicated to private R2 when READY (Architecture F) | COMPLETED | [REV-0032-media-delivery-architecture-r2-replication.md](reviews/REV-0032-media-delivery-architecture-r2-replication.md) |
