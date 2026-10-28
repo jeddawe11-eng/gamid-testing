@@ -51,10 +51,10 @@ export function sharePlan(probe, times, thumbnailMs) {
   if (!(fps > 0 && fps <= 240) || !(duration > 0) || !times?.length || !(video.width > 0 && video.height > 0)) return { ok: false, code: "INTRO_TIMING_UNREADABLE" };
   const at = Number(thumbnailMs) / 1000;
   if (!(at > 0) || at >= duration) return { ok: false, code: "THUMBNAIL_OUTSIDE_INTRO" };
-  // the frame a paused player shows at `at`: the last one presented at or before it (times are relative to the first frame)
-  const start = times[0];
+  // the frame a paused Chrome player shows at currentTime `at`: the last one whose presentation time is at or before it, on the media's own timeline
+  // (NOT relative to the first frame: ISS-0020, @black's first frame is at 0.007 s); before the first frame, the first frame - the same rule as intro-poster.mjs
   let frame = 0;
-  for (let i = 0; i < times.length && times[i] - start <= at + 1e-6; i += 1) frame = i;
+  for (let i = 0; i < times.length && times[i] <= at + 1e-6; i += 1) frame = i;
   const prefixSeconds = SHARE.prefixFrames / fps;
   const sampleRate = Number(audio?.sample_rate) || 48000;
   const sar = /^[1-9]\d*:[1-9]\d*$/.test(String(video.sample_aspect_ratio || "")) ? video.sample_aspect_ratio.replace(":", "/") : "1";

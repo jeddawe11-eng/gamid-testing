@@ -37,8 +37,15 @@ test("plan: the chosen time selects the LAST frame presented at or before it (as
   assert.equal(ntsc.frame, 59);
   assert.equal(ntsc.delaySamples, 1602);
   assert.equal(sharePlan(d3Probe({ fps: "60/1" }), frames(480, 60), 2000).delaySamples, 800);
-  // timestamps that do not start at zero are read relative to the first frame
-  assert.equal(sharePlan(d3Probe(), frames(240, 30, 0.007), 5000).frame, 150);
+  // ISS-0020: timestamps that do not start at zero are read on the media's own timeline, as Chrome shows a paused video (measured on @black's Intro,
+  // first frame at 0.007 s: currentTime 4.402 shows the frame at 4.374, not the one at 4.407)
+  const late = frames(240, 30, 0.007);
+  assert.equal(late[sharePlan(d3Probe(), late, 5000).frame], 4.974, "the frame still on screen at 5.000, not the one at 5.007");
+  assert.equal(sharePlan(d3Probe(), late, 5007).frame, 150, "a frame presented exactly at the chosen time is shown");
+  assert.equal(sharePlan(d3Probe(), late, 5006).frame, 149, "one millisecond before it, the previous frame");
+  assert.equal(sharePlan(d3Probe(), late, 5).frame, 0, "before the first frame: the first frame");
+  const black = [4.307, 4.34, 4.374, 4.407, 4.44];
+  assert.equal(black[sharePlan(d3Probe({ duration: 11.04 }), black, 4402).frame], 4.374);
   assert.equal(sharePlan(d3Probe({ sar: "4:3" }), frames(240, 30), 5000).sar, "4/3", "an anamorphic Intro keeps its sample aspect ratio");
 });
 
