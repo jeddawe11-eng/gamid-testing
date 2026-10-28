@@ -161,6 +161,15 @@ test("acceptance gate: @black is added for Mazen's review only (one row, posters
   assert.doesNotMatch(rollback, /profile_intro_settings|intro_processing_jobs|intro_share_copies|gm_test_01/);
 });
 
+test("rollout: one reversible switch activates every profile (new accounts and Intros included); nothing is queued by the migration itself", () => {
+  const rollout = read("supabase/migrations/20261028120000_intro_poster_rollout_all.sql").replace(/^--.*$/gm, "");
+  assert.match(rollout, /singleton boolean primary key default true check \(singleton\)/);
+  assert.match(rollout, /revoke all on table private\.intro_poster_rollout from public, anon, authenticated;/);
+  assert.match(rollout, /select coalesce\(\(select r\.all_accounts from private\.intro_poster_rollout r where r\.singleton\), false\)\s+or exists \(select 1 from private\.intro_poster_activation a where a\.profile_id = candidate_profile_id\);/);
+  assert.doesNotMatch(rollout, /enqueue_intro_posters|insert into public\.|update public\.|delete |grant /i, "no backfill, no data change, no new privilege");
+  assert.match(read("worker/cloud-run/intro-poster-backfill.sql"), /from public\.profile_intro_settings s\s+where s\.active_job_id is not null/);
+});
+
 test("acceptance gate: enforced at queueing, claiming, completing and serving", () => {
   assert.match(body("private.enqueue_intro_posters"), /if not private\.intro_poster_activated\(candidate_profile_id\) then return 0; end if;\s+select \* into settings/);
   const claim = body("private.worker_claim_intro_poster_impl");
