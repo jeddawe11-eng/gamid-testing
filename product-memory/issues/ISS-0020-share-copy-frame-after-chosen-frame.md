@@ -1,11 +1,11 @@
 ---
 id: ISS-0020
 title: Intro share copy (and poster) used the frame after the chosen one when an Intro's first frame is not at 0
-status: AUTHORIZED
+status: FIXED
 created: 2026-10-28
 updated: 2026-10-28
 scope: Intro worker frame selection - worker/intro-share.mjs (Discord share copy, Truth intro-discord-thumbnail) and worker/intro-poster.mjs (public Intro poster, Truth public-intro-poster)
-summary: Both picked the thumbnail frame on a timeline relative to the first frame, but Chrome shows a paused video on the media's own timeline; when the Intro's first video frame is not at 0 (@black: 0.007 s) they used the next frame, 33 ms late. Fixed in the code (poster 8895ed0, deployed and verified; share copy e52de5a, needs the worker redeployed); existing real-account share copies are not replaced without Mazen's separate approval.
+summary: Both picked the thumbnail frame on a timeline relative to the first frame, but Chrome shows a paused video on the media's own timeline; when the Intro's first video frame is not at 0 (@black: 0.007 s) they used the next frame, 33 ms late. Fixed and deployed on TESTING (poster 8895ed0, share copy e52de5a; worker redeployed from 75df33e); @black's share copy regenerated with Mazen's authorization now starts on the correct frame.
 related: [REV-0029, DEC-0012, REV-0030]
 save_approval: Mazen 2026-10-28
 kind: BUG
@@ -50,10 +50,16 @@ sources: [PROJECT_HANDOFF.md, docs/INFRA-OPTIMIZATION-V1.md]
   - the same media-timeline rule in `sharePlan`;
   - regression tests for a non-zero first frame, an exact frame boundary, one millisecond before it, before the first frame, and @black's real timestamps;
   - generated locally from @black's derivative (not uploaded): the first frame is frame 131 (46.8 dB), the worker's own validation passes, and the rest of the Intro matches the accepted copy (44.47 vs 44.52 dB, 332 frames each).
-- **Not yet active for share copies:** the TESTING worker must be redeployed from `e52de5a` or later.
-- **Existing copies not replaced:** existing share copies, @black's included, stay as they are until Mazen separately approves replacing them.
+- **Deployed (2026-10-28):** Mazen redeployed the TESTING worker from `75df33e`, which contains `e52de5a`.
+- **@black's share copy, regenerated with Mazen's authorization by the deployed worker (103 s, 1 attempt):**
+  - the first frame is frame 131: 46.8 dB, identical to the locally tested output; 19.1 dB against frame 132;
+  - the rest of the Intro is intact: 44.52 dB against the derivative, 332 frames, 11.049 s;
+  - the audio is offset by exactly one frame (1,600 samples = 33.33 ms, correlation 0.986), matching the one-frame lead-in, so sync is preserved.
+- **Discord card:** `/@black/intro-discord.webm` serves the new copy byte for byte, and the card's version tag changed (`?v=03ec022c`).
+- **Nothing else changed:** @black's Intro, chosen frame, settings and Wall are unchanged; no other account's share copy changed.
 
 ## History
 
 - 2026-10-28 OPEN — found during Mazen's real-Intro poster review on @black (PROJECT_HANDOFF.md §143).
 - 2026-10-28 AUTHORIZED — Mazen approved saving this record and authorized the TESTING fix. The poster fix was deployed and verified; the share-copy fix is committed and tested locally, and awaits the worker redeployment.
+- 2026-10-28 FIXED — worker redeployed by Mazen (`75df33e`); @black's share copy regenerated with his authorization and verified (frame 131, full Intro, audio sync, Discord route). PROJECT_HANDOFF.md §145. VERIFIED awaits Mazen's confirmation.

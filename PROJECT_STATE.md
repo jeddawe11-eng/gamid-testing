@@ -178,7 +178,18 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-28, @black poster ready for review; ISS-0020, §144):**
+**Latest continuation (2026-10-28, public Intro poster ACCEPTED; ISS-0020 FIXED, §145):**
+- **Poster:** Truth `public-intro-poster` ACCEPTED, gated to GM-TEST-01 and @black.
+- **ISS-0020:** the share-copy fix is deployed, and @black's share copy is regenerated on the correct frame.
+- **Fixture:** GM-TEST-01 is DRAFT.
+- **Open decisions for Mazen:**
+  - lifting the gate (all accounts) and the backfill;
+  - his acceptance of `public-media-route-protection`;
+  - ISS-0020 VERIFIED;
+  - proposed REV-0031.
+- **Next pending priority:** the remaining PENDING_ACCEPTANCE capabilities in Truth: `wall-editor-mobile-v2`, `public-wall-mobile-v2`, `custom-wall-fonts`, `public-media-route-protection`.
+
+**Previous continuation (2026-10-28, @black poster ready for review; ISS-0020, §144):**
 - **Poster:** the corrected worker is deployed (from `1449bbc`). @black's poster is regenerated and correct, ready for Mazen's visual review. `public-intro-poster` stays PENDING_ACCEPTANCE.
 - **ISS-0020:** saved, AUTHORIZED. The share-copy fix `e52de5a` is committed and tested; the worker must be redeployed from `e52de5a` or later.
 - **Next:**

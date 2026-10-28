@@ -5692,3 +5692,29 @@ Mazen's task: "Finish Intro Poster Validation & Discord Frame Bug". TESTING only
 - **Tests:** `npm test` 2,285 tests, 0 failures; Product Memory validation passed (68 records).
 - **GamID Truth:** `public-intro-poster` notes record the redeployment; the bug sentence added in §143 was removed (bugs belong to Product Memory). It stays PENDING_ACCEPTANCE, checkpoint `8895ed0`. `intro-discord-thumbnail` unchanged until the share-copy fix is deployed.
 - **Review state:** @black and GM-TEST-01 are activated and PUBLIC for Mazen's review. GM-TEST-01 stays PUBLIC until he closes that review.
+
+## 145. ISS-0020 deployed and verified; public Intro poster ACCEPTED (2026-10-28)
+
+- **Deployment:** Mazen redeployed the TESTING worker image and dispatcher from `75df33e`, which contains share fix `e52de5a`. He reported DEPLOYED, the rendition smoke passed and a successful execution.
+- **@black's Discord share copy, replaced with Mazen's explicit authorization:**
+  - **How:** the same supersede-and-insert that `set_my_intro_thumbnail` performs, for the same active job and frame (4402 ms). @black's Intro settings were not written.
+  - **Run:** dispatcher 202; the Cloud Run worker had it ready in 103 s, on 1 attempt (6,261,331 bytes, 1920×1080, 11.049 s).
+  - **First frame:** frame 131 (presentation time 4.374 s), 46.8 dB; 22.6 dB against frame 130 and 19.1 dB against frame 132. This is the corrected logic: the deployed worker produces the frame that was verified locally.
+  - **Rest of the copy:** the whole Intro follows, at 44.52 dB against the derivative (332 frames = 331 + 1). The audio is offset by exactly one frame (1,600 samples = 33.33 ms, correlation 0.986), matching the one-frame lead-in, so sound stays in sync.
+  - **Discord route:** Discordbot's page head references `/@black/intro-discord.webm?v=03ec022c` (new version tag), which serves the new copy byte for byte. `og:video` for other platforms stays the derivative (`/@black/intro.webm`, 6,965,053 bytes, Range 206) as designed.
+  - During the ~2 minutes of regeneration, the card and the waiting frame fell back as designed (the derivative; the first-frame poster).
+- **@black unchanged:** visibility, Intro settings, chosen frame, active job, Wall publication and Intro media objects are identical to the pre-review snapshot. The share copy changed only by this authorized replacement.
+- **Other accounts:** no other share copy changed in the last 2 hours. Poster rows exist only for GM-TEST-01 and @black. @zshot's card and page are unchanged.
+- **@black visitor E2E after the replacement (desktop):**
+  - 208.5 KB poster and 0 video bytes before Play; same frame 44.0 dB;
+  - Play from 0:00, unmuted, audio decoded;
+  - Wall routing, immediate Replay; Skip 0 video bytes; repeat visit 0 bytes.
+- **Tests:** `npm test` 2,285 tests, 0 failures; Truth and Product Memory validation pass.
+- **Acceptance:** Mazen approved the @black Intro Poster visual experience. Truth `public-intro-poster` is ACCEPTED, covering the capability as gated: GM-TEST-01 and @black only. Lifting the gate and any backfill each need his separate approval.
+  - `public-intro-manual-play-poster` amended as the poster contract stated: the waiting frame is the paused derivative, or that frame's ready poster.
+  - `intro-discord-thumbnail` share-copy contract clarified (the media's own timeline), checkpoint `e52de5a`; still ACCEPTED.
+- **Product Memory:**
+  - ISS-0020 FIXED (VERIFIED awaits Mazen);
+  - a REV-0031 record of the poster acceptance is proposed, not saved.
+- **Fixture:** GM-TEST-01 restored to DRAFT; Mazen's review is finished.
+- **Still pending in Truth:** `public-media-route-protection`, `wall-editor-mobile-v2`, `custom-wall-fonts`, `public-wall-mobile-v2`.
