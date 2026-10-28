@@ -178,7 +178,16 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-27, Intro poster acceptance gate):** product `5ddb18c`, migration `20261027140000` APPLIED on TESTING (§141). Posters are generated and served only for GM-TEST-01 until Mazen's visual acceptance; every other account keeps today's Intro behavior.
+**Latest continuation (2026-10-28, real-Intro poster review on @black, §143):**
+- **State:** @black added to the gate (migration `20261028100000` applied).
+- **Defect:** a one-frame-late poster frame (Intro first frame not at 0) was fixed in `8895ed0`, but is not deployed. @black's wrong poster is retired, so its page behaves as before.
+- **Next:**
+  1. Mazen redeploys the worker from `8895ed0` or later.
+  2. Re-queue and verify @black's poster.
+  3. Mazen's visual review.
+- **Rollback:** `worker/cloud-run/intro-poster-gate-black-rollback.sql`.
+
+**Previous continuation (2026-10-27, Intro poster acceptance gate):** product `5ddb18c`, migration `20261027140000` APPLIED on TESTING (§141). Posters are generated and served only for GM-TEST-01 until Mazen's visual acceptance; every other account keeps today's Intro behavior.
 - **2026-10-28:** Mazen deployed the worker from `7c9b891`. The real dispatcher and Cloud Run worker generate GM-TEST-01's posters automatically; E2E passed (§142). The fixture is DRAFT again.
 - **Next (Mazen):**
   1. Visual acceptance on GM-TEST-01: the fixture is made PUBLIC for his review window and restored afterwards.

@@ -5625,3 +5625,33 @@ Mazen's request: before the Intro Poster Worker is deployed, restrict automatic 
 - **Final fixture state:** DRAFT, frame 2000 ms, two ready posters (0 and 2000 ms).
 - **GamID Truth:** the `public-intro-poster` notes record the deployment. It stays PENDING_ACCEPTANCE; checkpoint `5ddb18c` is unchanged.
 - **Not done:** backfill, lifting the gate, Production, acceptance.
+
+## 143. Real Intro poster review on @black: gate extended, frame-rule fix (2026-10-28)
+
+Mazen's authorization: a controlled visual test on his real TESTING profile @black, because the synthetic fixture cannot show visual quality. TESTING only.
+
+- **Gate:** migration `20261028100000_intro_poster_gate_black_review`, rehearsed in a rolled-back transaction, then APPLIED.
+  - It adds @black (exactly one profile, or the migration aborts) and queues posters for @black's current Intro only.
+  - Activated profiles: GM-TEST-01 and @black. Other accounts: 0 poster rows and 0 poster objects.
+- **The deployed worker (`7c9b891`) generated both posters automatically:** dispatcher 202 twice; ready in 15–16 s at 1920×1080. First frame: 548,564 bytes. Chosen frame (4402 ms): 161,386 bytes.
+- **Defect found: the poster frame was one frame late.**
+  - The 4402 ms poster showed frame 132 (presentation time 4.407 s); Chrome's paused video shows frame 131 (4.374 s). Screen PSNR was about 20 dB.
+  - @black's derivative starts its video at 0.007 s (Opus pre-skip), and the worker counted time from the first frame.
+  - A Chrome lab on the same file shows Chrome uses the media timeline itself: the last frame with presentation time ≤ currentTime (4.373 → 4.340, 4.374 → 4.374, 4.406 → 4.374, 4.407 → 4.407), and the first frame before it. The synthetic fixture's first frame is at 0, which is why the earlier E2E could not show this.
+- **Fix:** `posterPlan` in `worker/intro-poster.mjs` (product `8895ed0`), with unit tests.
+  - Checked on @black's real derivative against Chrome's paused frame at native 1920×1080: 0 ms 40.9 dB, 1000 ms 44.6 dB, 4402 ms 41.0 dB (frame 131), 7777 ms 42.1 dB; at most 0.017% of pixels off by more than 12.
+  - **Not active** until the worker image is redeployed from `8895ed0` or later (Mazen, Cloud Shell).
+- **Interim, @black stays in the gate:** its wrong 4402 ms poster was superseded (`POSTER_WRONG_FRAME_PRE_FIX`), so the page waits on the paused video exactly as before. Its first-frame poster (correct) stays ready but is not shown, because the page uses the chosen frame.
+- **Behaviour checks on @black, desktop and mobile, with the wrong-frame poster:**
+  - 161 KB poster and 0 video bytes before Play (seek mode: 1.79 MB);
+  - Play from 0:00, unmuted, audio decoded;
+  - Replay immediate; Skip 0 video bytes;
+  - the Intro ends on the published Wall;
+  - a repeat visit downloads 0 bytes before Play.
+- **@black untouched:** before/after snapshot identical for visibility, Intro settings, active job, share copies, Wall publication and Intro media objects. Only poster rows were added.
+- **Rollback:** `worker/cloud-run/intro-poster-gate-black-rollback.sql`, rehearsed in a rolled-back transaction. @black leaves the gate, its posters are superseded, the lookup returns frame 4402 with no poster, and its settings hash is unchanged.
+- **Related finding, not changed:** the accepted Discord share copy uses the same relative frame rule (`worker/intro-share.mjs`). @black's share copy starts on frame 132 (50.4 dB match), one frame (33 ms) after the frame Chrome shows. A Product Memory issue was proposed to Mazen.
+- **GamID Truth:** `public-intro-poster` stays PENDING_ACCEPTANCE: `activatedProfilesDuringAcceptance` 2, the frame-rule wording, checkpoint `8895ed0`, notes.
+- **Next:**
+  1. Mazen redeploys the worker from `8895ed0` or later.
+  2. Re-queue @black's chosen-frame poster (`private.enqueue_intro_posters`), verify, then Mazen's visual review.
