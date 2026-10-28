@@ -5781,3 +5781,20 @@ Mazen's task "Roll Out Public Intro Poster to All TESTING Accounts" authorized t
   - It uses the same Cloud Run Job, dispatcher and private bucket.
   - The posters total 1.0 MB of storage.
   - Each new Intro or frame choice costs one short worker run.
+
+## 147. Media delivery Architecture F approved as a design (2026-10-28)
+
+- **Review.** Mazen's research-only task "Media Infrastructure Architecture & Cost Optimization Review" was delivered. It compared:
+  - the current setup;
+  - R2 read-through;
+  - popularity-based replication;
+  - R2 primary for video;
+  - full R2;
+  - asynchronous replicate-on-READY (F);
+  - Stream, bunny.net and B2.
+- **Decision.** Mazen approved Architecture F as a design decision. He also approved saving the review as Product Memory REV-0032, which holds the costs, risks, security model and migration plan. `docs/INFRA-OPTIMIZATION-V1.md` §6 summarises it.
+- **Verified read-only on 2026-10-28:**
+  - R2 is still not enabled (`wrangler r2 bucket list`: code 10042);
+  - TESTING Storage holds 99 MB.
+- **Not authorized:** implementation, R2 activation, credentials, IAM, deployment, DNS or Cloudflare settings, moving media, and Production. Nothing was changed.
+- **GamID Truth is unchanged.** It records only capabilities implemented on TESTING; contract amendments come with implementation and acceptance.

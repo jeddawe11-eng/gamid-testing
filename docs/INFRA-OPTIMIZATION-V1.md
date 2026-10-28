@@ -201,3 +201,23 @@ Scenario inputs are assumptions; list prices are official. A = current architect
 - **The poster.** It saves 0.12–0.18 MB per visit, from about 0.4 to 0.03 MB of Intro egress before Play: 1–17% of the total.
 - **The dominant cost.** Uncached Wall video and Intro egress from Supabase.
 - **R2 break-even.** Around 1M visits/month in the typical scenario, as in the study. Not implemented, not authorized.
+
+## 6. Media delivery Architecture F (approved design, NOT implemented)
+
+Approved by Mazen as a design decision on 2026-10-28. The full comparison, costs, risks and security model are in Product Memory REV-0032.
+
+- **Supabase stays authoritative.** Upload, quota, Usage, delete and visibility rules are unchanged.
+- **Replication.** Every visitor-facing video is replicated asynchronously, when READY, to a private R2 bucket through the existing trigger, dispatcher and Cloud Run Job, then verified by size and SHA-256. The videos covered are:
+  - the Intro derivative;
+  - the Discord share copy;
+  - Wall video originals;
+  - renditions;
+  - HEVC-derived copies.
+- **Delivery.**
+  - `public-media` keeps its predicate and its lifetimes (120 s / 6 h).
+  - With a ready replica, it issues an HMAC-signed Worker URL, and the Worker serves the replica from an R2 binding with Range support.
+  - Otherwise it issues today's Supabase lease, and the Supabase lease is also the fallback.
+- **Images and fonts stay on Supabase.**
+- **Rollback.** A per-bucket switch with a pilot allowlist; turning it off returns all delivery to Supabase.
+- **Modelled typical cost:** current → F is $307 → $128 at 1M visits/month, $2,892 → $999 at 10M and $30,952 → $12,033 at 100M. Break-even is about 144k visits/month.
+- **Status:** design only. Nothing is implemented, activated or deployed: R2 is still not enabled (code 10042). Implementation, R2 activation, credentials, deployment and Production each need a separate authorization. GamID Truth is unchanged until a capability is implemented.

@@ -178,7 +178,12 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-28, public Intro poster rolled out to all TESTING accounts, §146):**
+**Latest continuation (2026-10-28, media delivery Architecture F approved as a design, §147):**
+- **Standing decision:** Mazen approved Architecture F (REV-0032). Supabase stays authoritative; visitor-facing video is replicated to private R2 when READY; a Worker delivers the verified replica, with Supabase fallback.
+- **Status:** NOT implemented and NOT authorized. R2 is not enabled.
+- **Next, only with separate authorization:** the smallest TESTING pilot, on GM-TEST-01's Intro and share copy. Its prerequisites are in REV-0032 and §147.
+
+**Previous continuation (2026-10-28, public Intro poster rolled out to all TESTING accounts, §146):**
 - **Poster:** Truth `public-intro-poster` ACCEPTED and active for every account (switch `private.intro_poster_rollout.all_accounts`, migration `20261028120000`, product `ef1eef2`).
 - **Coverage:** all 4 active Intros have posters (@nmk and @zshot backfilled); 0 failures.
 - **Rollback (Mazen's decision):** turn the switch off; see §146.

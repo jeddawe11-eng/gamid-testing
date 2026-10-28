@@ -79,9 +79,16 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0012 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0020 |
-| REV | Reviews | reviews/ | REV-0031 |
+| REV | Reviews | reviews/ | REV-0032 |
 
 ## Register
+
+2026-10-28 (Media Infrastructure Architecture & Cost Optimization Review): Mazen approved saving the review.
+- New REV-0032 (DESIGN, PASS): Architecture F, approved by Mazen as a design decision.
+  - Supabase stays authoritative.
+  - Every visitor-facing video is replicated asynchronously to private R2 when READY.
+  - A Cloudflare Worker delivers the verified replica, with Supabase fallback.
+- Not implemented and not authorized; not in GamID Truth.
 
 2026-10-28 (Roll Out Public Intro Poster to All TESTING Accounts): Mazen approved both changes.
 - ISS-0020 is VERIFIED.
@@ -279,3 +286,4 @@ Status stays DISCUSSION; there is no implementation authorization.
 | ISS-0019 | Public Intro video routes had no rate limit, Range validation or HEAD short-cut (egress amplification) | FIXED | [ISS-0019-public-intro-route-abuse-rate-limits.md](issues/ISS-0019-public-intro-route-abuse-rate-limits.md) |
 | ISS-0020 | Intro share copy (and poster) used the frame after the chosen one when an Intro's first frame is not at 0 | VERIFIED | [ISS-0020-share-copy-frame-after-chosen-frame.md](issues/ISS-0020-share-copy-frame-after-chosen-frame.md) |
 | REV-0031 | Public Intro poster - real-Intro visual acceptance on @black, then rollout to all TESTING accounts | COMPLETED | [REV-0031-public-intro-poster-acceptance.md](reviews/REV-0031-public-intro-poster-acceptance.md) |
+| REV-0032 | Media delivery architecture review - Supabase authoritative, visitor video replicated to private R2 when READY (Architecture F) | COMPLETED | [REV-0032-media-delivery-architecture-r2-replication.md](reviews/REV-0032-media-delivery-architecture-r2-replication.md) |
