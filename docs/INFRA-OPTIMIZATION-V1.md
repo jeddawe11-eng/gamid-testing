@@ -109,7 +109,14 @@ Requested by Mazen before the worker deployment: until his visual acceptance, no
   - 0 poster rows and 0 poster objects for real accounts.
 - **Lifting it:** a later migration making `private.intro_poster_activated` true for every profile. Adding a profile is one insert. Both need Mazen's approval.
 
-### Activation (Mazen; not done)
+### Worker deployment (done 2026-10-28, `PROJECT_HANDOFF.md` §142)
+
+- **Deployment:** Mazen deployed from `7c9b891`.
+- **Automatic generation:** for GM-TEST-01, the real dispatcher (202) and Cloud Run worker produced its posters 10–17 s after each frame change, on the first attempt.
+- **Visitor E2E:** desktop and mobile pass, with the same results as the table above.
+- **Other accounts:** none has a poster.
+
+### Activation (Mazen; step 1 done)
 
 1. In Cloud Shell, run:
 

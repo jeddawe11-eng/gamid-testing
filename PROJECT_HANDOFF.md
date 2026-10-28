@@ -5594,3 +5594,34 @@ Mazen's request: before the Intro Poster Worker is deployed, restrict automatic 
   1. Deploy the worker with `worker/cloud-run/deploy-intro-poster-testing.sh` at this checkpoint or later.
   2. Do the visual acceptance on GM-TEST-01.
   3. Lifting the gate (a later migration) and the backfill each need his separate approval.
+
+## 142. Intro poster worker deployed to TESTING; post-deployment E2E on GM-TEST-01 (2026-10-28)
+
+- **Deployment (Mazen, Cloud Shell, 2026-10-28):**
+  - `worker/cloud-run/deploy-intro-poster-testing.sh` from `7c9b891ad2434139f200cdcf56a7fa753bb902df`;
+  - he reported `INTRO_POSTER_TESTING_WORKER_AND_DISPATCHER_DEPLOYED`, the rendition smoke `ok=true` and a successful Job execution.
+  - The agent has no Cloud Logging access. The worker's success is shown by the database and storage results below and by the dispatcher's HTTP responses (`net._http_response`).
+- **Automatic generation by the real dispatcher and Cloud Run worker (no local worker):**
+  - Fixture frame 2000 → 1000 ms: the dispatcher answered 202 `{"accepted":true}`. The poster was ready 17 s after queueing, on 1 attempt with no failure (32,664 bytes, the same bytes as the local run in §141).
+  - Restored to 2000 ms: dispatcher 202; ready after 10 s, on 1 attempt (33,804 bytes, the same as before).
+  - The worker's storage sweep had already deleted the older superseded poster objects. Queue empty afterwards.
+- **Visitor E2E (fixture PUBLIC temporarily, restored to DRAFT):**
+
+  | Check | Desktop | Mobile |
+  |---|---|---|
+  | Bytes before Play | 33.8 KB poster, 0 video bytes | 33.8 KB poster, 0 video bytes |
+  | Earlier seek mode, for comparison | 1.18 MB of video | 1.16 MB of video |
+  | Same frame | 46.8 dB | 32.9 dB (as in §140) |
+  | Play | starts at 0.009 s, unmuted, audio decoded | starts at 0.013 s, the same |
+  | Replay | immediate, no poster | the same |
+  | Skip | 0 video bytes | the same |
+  | Intro ends on | the profile | the same |
+  | Repeat visit, before Play | 0 bytes | 0 bytes |
+
+- **Real accounts (anonymous, read-only):**
+  - @black: lookup frame 4402 ms, no poster; `og:video` and the card metadata present;
+  - @zshot: no poster; page metadata present;
+  - 0 poster rows and 0 poster objects outside the fixture; the gate still lists only GM-TEST-01.
+- **Final fixture state:** DRAFT, frame 2000 ms, two ready posters (0 and 2000 ms).
+- **GamID Truth:** the `public-intro-poster` notes record the deployment. It stays PENDING_ACCEPTANCE; checkpoint `5ddb18c` is unchanged.
+- **Not done:** backfill, lifting the gate, Production, acceptance.
