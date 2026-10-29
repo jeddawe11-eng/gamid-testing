@@ -7,6 +7,7 @@ import { processOneWallVideoJob, transcodeWallBackground } from "./wall-video.mj
 import { processOneWallVideoRendition } from "./wall-rendition.mjs";
 import { processOneIntroShare, sweepIntroShares } from "./intro-share.mjs";
 import { processOneIntroPoster } from "./intro-poster.mjs";
+import { processOneMediaR2Replica } from "./media-r2-replica.mjs";
 import { uploadGatewayFile, deleteGatewayObject } from './usage-upload.mjs';
 
 const run = promisify(execFile);
@@ -134,7 +135,11 @@ export async function processOneRemoteJob() {
     if (wall.processed) return { processed:true, kind:"wall-video", ...wall };
     // F8-B1: no conversion waiting either: one queued internal visitor rendition (see wall-rendition.mjs); the original always stays the owner's video
     const rendition = await processOneWallVideoRendition({ url, headers:contentType => backendRequestHeaders(key, contentType ? "" : undefined, contentType) });
-    return rendition.processed ? { processed:true, kind:"wall-video-rendition", ...rendition } : { processed:false };
+    if (rendition.processed) return { processed:true, kind:"wall-video-rendition", ...rendition };
+    // Architecture F pilot (DEC-0013): nothing else waiting: one queued R2 replica of a pilot visitor video (see media-r2-replica.mjs; inert without its env)
+    let replica = { processed:false };
+    try { replica = await processOneMediaR2Replica({ url, headers:contentType => backendRequestHeaders(key, contentType ? "" : undefined, contentType) }); } catch { replica = { processed:false }; }
+    return replica.processed ? { processed:true, kind:"media-r2-replica", ...replica } : { processed:false };
   }
   const dir = await mkdtemp(join(tmpdir(),"gamid-intro-")); const input=join(dir,"source"); const output=join(dir,"intro-d3.webm");
   try {

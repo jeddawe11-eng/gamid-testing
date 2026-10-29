@@ -21,6 +21,7 @@ COPY worker/wall-video.mjs ./wall-video.mjs
 COPY worker/wall-rendition.mjs ./wall-rendition.mjs
 COPY worker/intro-share.mjs ./intro-share.mjs
 COPY worker/intro-poster.mjs ./intro-poster.mjs
+COPY worker/media-r2-replica.mjs ./media-r2-replica.mjs
 COPY worker/usage-upload.mjs ./usage-upload.mjs
 COPY worker/usage-smoke.mjs ./usage-smoke.mjs
 COPY worker/intro-dispatcher.mjs ./intro-dispatcher.mjs

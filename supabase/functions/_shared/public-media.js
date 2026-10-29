@@ -20,8 +20,9 @@ const HANDLE = /^[a-z0-9_]{3,24}$/;
 const safePath = path => typeof path === "string" && path.length <= 400 && PATH.test(path) && !path.split("/").some(part => /^\.+$/.test(part));
 const SIGNED_PREFIX = bucket => `/object/sign/${bucket}/`;
 
+// MEDIA_R2_SIGNING_KEY (Architecture F TESTING pilot, DEC-0013): optional. Unset = the R2 pilot is invisible here and every lease is the unchanged Supabase one.
 export function readPublicMediaEnv(get) {
-  return { supabaseUrl: get("SUPABASE_URL"), serviceKey: get("SUPABASE_SERVICE_ROLE_KEY") };
+  return { supabaseUrl: get("SUPABASE_URL"), serviceKey: get("SUPABASE_SERVICE_ROLE_KEY"), mediaR2SigningKey: get("MEDIA_R2_SIGNING_KEY") || "" };
 }
 const configured = env => typeof env?.supabaseUrl === "string" && /^https:\/\/[a-z0-9]+\.supabase\.co$/.test(env.supabaseUrl.replace(/\/+$/, "")) && Boolean(env.serviceKey);
 const base = env => env.supabaseUrl.replace(/\/+$/, "");
@@ -58,6 +59,30 @@ async function serviceRpc(fetchImpl, env, name, args) {
 const withinLimit = async (fetchImpl, env, key, limit) => (await serviceRpc(fetchImpl, env, "public_media_hit", { candidate_key: key, candidate_limit: limit })) === true;
 
 // ---------------------------------------------------------------------------------------------------------------
+// Architecture F pilot: the R2 replica lease (verified by cf-worker/media-r2.mjs verifyDelivery; the two signers are kept identical by the tests)
+// ---------------------------------------------------------------------------------------------------------------
+export const MEDIA_R2_ORIGIN = SITE_ORIGINS[0];
+export const MEDIA_R2_ROUTE = "/media/v1/";
+const MEDIA_R2_KEY = /^(intro-media|intro-share-copies)\/(?:[A-Za-z0-9_-][A-Za-z0-9._-]{0,127}\/){1,6}[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export async function signMediaR2Url(origin, key, exp, secret) {
+  const cryptoKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = [...new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, new TextEncoder().encode(`v1\n${key}\n${exp}`)))].map(b => b.toString(16).padStart(2, "0")).join("");
+  return `${origin}${MEDIA_R2_ROUTE}${encodePath(key)}?exp=${exp}&sig=${sig}`;
+}
+// -> {mode, r2_key} or null (an RPC failure keeps the unchanged Supabase lease)
+async function mediaR2Delivery(fetchImpl, env, bucket, path, log) {
+  try {
+    const rows = await serviceRpc(fetchImpl, env, "public_media_delivery", { candidate_bucket: bucket, candidate_path: path });
+    const row = Array.isArray(rows) ? rows[0] : null;
+    if (row?.mode === "r2" && !(typeof row.r2_key === "string" && MEDIA_R2_KEY.test(row.r2_key) && !row.r2_key.includes(".."))) { log("public-media", "unexpected_r2_key"); return null; }
+    return row && ["none", "supabase", "r2", "unavailable"].includes(row.mode) ? row : null;
+  } catch {
+    log("public-media", "delivery_error");
+    return null;
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // public-media
 // ---------------------------------------------------------------------------------------------------------------
 export async function handlePublicMedia({ request, env, fetchImpl = fetch, log = () => {} }) {
@@ -76,6 +101,17 @@ export async function handlePublicMedia({ request, env, fetchImpl = fetch, log =
   try {
     if (!(await withinLimit(fetchImpl, env, `media:${await clientKey(request, env)}`, LIMITS.mediaPerClient))) { log("public-media", "rate_limited"); return tooMany(cors); }
     if ((await serviceRpc(fetchImpl, env, "public_media_lease_allowed", { candidate_bucket: bucket, candidate_path: path })) !== true) return notFound(cors);
+    // Architecture F pilot (Intro only): after the unchanged authorization above, the delivery decision. "r2" = a verified replica, leased as a signed Worker URL
+    // with the same lifetime; "unavailable" = a pilot Intro with no replica and the fallback budget spent (temporarily unavailable, never uncontrolled egress);
+    // anything else, or no signing key, = the unchanged Supabase lease below.
+    if (bucket === "intro-media" && env.mediaR2SigningKey) {
+      const delivery = await mediaR2Delivery(fetchImpl, env, bucket, path, log);
+      if (delivery?.mode === "unavailable" || delivery?.mode === "none") return notFound(cors);
+      if (delivery?.mode === "r2") {
+        const exp = Math.floor(Date.now() / 1000) + LEASE_SECONDS[bucket];
+        return json({ url: await signMediaR2Url(MEDIA_R2_ORIGIN, delivery.r2_key, exp, env.mediaR2SigningKey), expiresIn: LEASE_SECONDS[bucket] }, 200, cors);
+      }
+    }
     const signed = await fetchImpl(`${base(env)}/storage/v1/object/sign/${bucket}/${encodePath(path)}`, {
       method: "POST",
       headers: { apikey: env.serviceKey, Authorization: `Bearer ${env.serviceKey}`, "Content-Type": "application/json" },

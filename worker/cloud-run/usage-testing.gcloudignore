@@ -10,6 +10,7 @@
 !worker/wall-rendition.mjs
 !worker/intro-share.mjs
 !worker/intro-poster.mjs
+!worker/media-r2-replica.mjs
 !worker/usage-upload.mjs
 !worker/usage-smoke.mjs
 !worker/cloud-run/

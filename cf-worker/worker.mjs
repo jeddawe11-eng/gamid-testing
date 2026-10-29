@@ -50,6 +50,7 @@
 
 import { normalizeHandle, validateHandle } from "../dist/account/domain.js";
 import { DIVIDER_IMAGE_PATH, INTRO_SHARE_ROUTE, componentEmbedScript, fetchPublicExtras, fetchPublicIntroShare, introShareUrl } from "./discord-card.mjs";
+import { MEDIA_INGEST_PREFIX, MEDIA_ROUTE_PREFIX, deliveryEnabled, fetchMediaDelivery, handleMediaDelivery, handleMediaIngest, serveR2Object } from "./media-r2.mjs";
 
 const SUPABASE_URL = "https://upvtrczefcvigxdyuylw.supabase.co";
 // The browser's own public ("anon") key, copied verbatim from dist/account/supabase-client.js. Not a secret: it ships in every page load already and is
@@ -220,9 +221,17 @@ export async function withinRateLimit(env, request, route, handle = "") {
   } catch { return true; }
 }
 
-export async function handleIntroRequest(request, check, identity, share = null) {
+export async function handleIntroRequest(request, check, identity, share = null, env = null, fetchImpl = fetch) {
   const media = !check.valid ? null : share?.path ? { bucket: "intro-share-copies", path: share.path } : identity?.intro_derivative_path ? { bucket: "intro-media", path: identity.intro_derivative_path } : null;
   if (!media) return new Response("Not Found", { status: 404 });   // invalid handle, unknown handle, unpublished identity, or no Intro: identical response
+
+  // Architecture F pilot (cf-worker/media-r2.mjs; inert unless MEDIA_R2_DELIVERY is "on"): a verified R2 replica is served instead of the Supabase passthrough;
+  // a pilot video with no replica and no fallback budget left is temporarily unavailable (the same 404). Any other answer, or a failed lookup, = unchanged.
+  if (deliveryEnabled(env)) {
+    const delivery = await fetchMediaDelivery(media.bucket, media.path, { supabaseUrl: SUPABASE_URL, publishableKey: PUBLISHABLE_KEY, fetchImpl });
+    if (delivery?.mode === "r2") return serveR2Object(request, env.MEDIA_R2, delivery.r2_key, "public, max-age=60");
+    if (delivery?.mode === "unavailable" || delivery?.mode === "none") return new Response("Not Found", { status: 404 });
+  }
 
   const upstream = await fetchIntroVideo(media.path, request.headers.get("range"), fetch, media.bucket);
   if (!upstream || !PASSTHROUGH_VIDEO_STATUSES.has(upstream.status)) { try { await upstream?.body?.cancel(); } catch { /* nothing to release */ } return new Response("Not Found", { status: 404 }); }
@@ -294,6 +303,13 @@ function parseHandleFromRequest(rawSegment) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    // Architecture F pilot: the worker Job's signed replica writes, and visitors' signed replica reads (both a plain 404 while the pilot is not configured)
+    if (url.pathname.startsWith(MEDIA_INGEST_PREFIX)) return handleMediaIngest(request, env);
+    if (url.pathname.startsWith(MEDIA_ROUTE_PREFIX)) {
+      if (request.method !== "GET" && request.method !== "HEAD") return new Response("Method Not Allowed", { status: 405, headers: { allow: "GET, HEAD", "cache-control": "no-store" } });
+      if (!acceptableRange(request.headers.get("range"))) return new Response("Range Not Satisfiable", { status: 416, headers: { "cache-control": "no-store" } });
+      return handleMediaDelivery(request, env, { withinLimit: key => withinRateLimit(env, request, "r2", key) });
+    }
     if (request.method !== "GET" && request.method !== "HEAD") return env.ASSETS.fetch(request);
 
     const introSegment = parseIntroPath(url.pathname);
@@ -305,14 +321,14 @@ export default {
     if (introSegment !== null) {
       const check = parseHandleFromRequest(introSegment);
       const identity = check.valid ? await fetchPublicIdentity(check.handle, fetch) : null;
-      return handleIntroRequest(request, check, identity);
+      return handleIntroRequest(request, check, identity, null, env);
     }
     // the Discord card's Intro: the share copy when one is ready, else the unchanged derivative (the identity is looked up only then)
     if (shareSegment !== null) {
       const check = parseHandleFromRequest(shareSegment);
       const share = check.valid ? await fetchPublicIntroShare(check.handle, { supabaseUrl: SUPABASE_URL, publishableKey: PUBLISHABLE_KEY }) : null;
       const identity = check.valid && !share ? await fetchPublicIdentity(check.handle, fetch) : null;
-      return handleIntroRequest(request, check, identity, share);
+      return handleIntroRequest(request, check, identity, share, env);
     }
 
     const rawSegment = parseHandlePath(url.pathname);

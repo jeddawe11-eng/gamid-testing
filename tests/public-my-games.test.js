@@ -546,6 +546,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261027140000_intro_poster_activation_gate.sql",
       "20261028100000_intro_poster_gate_black_review.sql",
       "20261028120000_intro_poster_rollout_all.sql",   // Intro Thumbnail for Discord: two Intro-settings columns, own share-copy bucket / table / RPCs, usage gains one bucket; public identity / My Games untouched
+      "20261029100000_media_r2_pilot.sql",   // Architecture F R2 pilot (DEC-0013): own settings / pilot / replica tables and RPCs; public identity / My Games untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

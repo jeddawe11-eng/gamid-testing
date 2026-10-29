@@ -22,6 +22,14 @@
     "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/@*"]
+    "run_worker_first": ["/@*", "/media/*"]
+  },
+  // Media delivery Architecture F, TESTING pilot (DEC-0013; cf-worker/media-r2.mjs): the PRIVATE bucket (no public access, no r2.dev, no custom domain), read and
+  // written only by this Worker. Delivery stays OFF until MEDIA_R2_DELIVERY is "on" (Mazen's approval); the signing / ingest keys are Worker secrets, never here.
+  "r2_buckets": [
+    { "binding": "MEDIA_R2", "bucket_name": "gamid-media-testing" }
+  ],
+  "vars": {
+    "MEDIA_R2_DELIVERY": "off"
   }
 }

@@ -178,7 +178,20 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-28, media delivery Architecture F approved as a design, §147):**
+**Latest continuation (2026-10-29, Architecture F TESTING pilot code prepared, §148):**
+- **Status:** Mazen authorized the GM-TEST-01 pilot (Intro + Discord share copy) on TESTING. He activated R2 and created the private bucket `gamid-media-testing`. The code is on `feature/discord-share-card-v2`: migration `20261029100000_media_r2_pilot.sql`, `cf-worker/media-r2.mjs`, `worker/media-r2-replica.mjs`. It is NOT applied, deployed or enabled; both switches ship OFF.
+- **Next, each step only with Mazen's approval:**
+  1. secrets `MEDIA_R2_SIGNING_KEY` (Worker + Edge Function) and `MEDIA_R2_INGEST_KEY` (Worker + Secret Manager `gamid-media-r2-ingest-key-testing`);
+  2. the migration;
+  3. the `public-media` deploy;
+  4. the Worker deploy;
+  5. `worker/cloud-run/deploy-media-r2-pilot-testing.sh`;
+  6. `media-r2-pilot-enable.sql` step 1;
+  7. GM-TEST-01 temporarily PUBLIC for E2E;
+  8. enable step 2.
+- **Rollback:** `worker/cloud-run/media-r2-rollback.sql`.
+
+**Previous continuation (2026-10-28, media delivery Architecture F approved as a design, §147):**
 - **Standing decision:** Mazen approved Architecture F (DEC-0013, evidence REV-0032). Internal R2 replicas will not count toward the 200 MB quota (approved rule for the implementation). Supabase stays authoritative; visitor-facing video is replicated to private R2 when READY; a Worker delivers the verified replica, with Supabase fallback.
 - **Status:** NOT implemented and NOT authorized. R2 is not enabled.
 - **Next, only with separate authorization:** the smallest TESTING pilot, on GM-TEST-01's Intro and share copy. Its prerequisites are in REV-0032 and §147.

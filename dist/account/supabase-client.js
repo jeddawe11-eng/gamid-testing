@@ -877,12 +877,16 @@ export async function loadPublicWallPicture(path) {
 // Visitors cannot sign Storage objects (only owners can: 20261010140000_visitor_storage_signing.sql). A visitor's streaming lease for a published Wall video or
 // a public Intro comes from the public-media Edge Function, which decides with the accepted public predicates and signs with a SERVER-chosen lifetime
 // (Wall video 6 h, Intro 120 s) - the page never chooses one. Null (the layer shows its placeholder / the Intro is skipped) when it is not public.
+const MEDIA_R2_LEASE_ORIGIN = "https://gamid-testing-static.gamid.workers.dev";
 async function publicMediaLease(bucket, path) {
   const response = await fetch(`${SUPABASE_URL}/functions/v1/public-media`, {
     method: "POST", headers: { apikey: PUBLISHABLE_KEY, "Content-Type": "application/json" }, body: JSON.stringify({ bucket, path }),
   });
   if (!response.ok) return null;
-  const relative = (await response.json().catch(() => null))?.signedURL;
+  const lease = await response.json().catch(() => null);
+  // Architecture F pilot (DEC-0013): an Intro with a verified R2 replica is leased as this site's own signed /media/v1/ URL (intro-source.js checks it further)
+  if (bucket === "intro-media" && typeof lease?.url === "string" && lease.url.startsWith(`${MEDIA_R2_LEASE_ORIGIN}/media/v1/${bucket}/`)) return lease.url;
+  const relative = lease?.signedURL;
   if (typeof relative !== "string" || !relative.startsWith(`/object/sign/${bucket}/`)) return null;
   return `${SUPABASE_URL}/storage/v1${relative}`;
 }

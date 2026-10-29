@@ -5801,3 +5801,47 @@ Mazen's task "Roll Out Public Intro Poster to All TESTING Accounts" authorized t
 - **Follow-up (same day).** Mazen approved:
   - saving the decision as Product Memory DEC-0013 (APPROVED, authorization NONE);
   - the quota rule for the future implementation: internal R2 replicas will not count toward the user's 200 MB quota. Current enforcement is unchanged.
+
+## 148. Architecture F TESTING pilot: code prepared, nothing applied or deployed (2026-10-29)
+
+- **Task.** Mazen: "GamID - Implement Architecture F on TESTING Only". The pilot is GM-TEST-01 only, covering Intro videos and Discord share copies. Mazen activated R2 and created the private bucket `gamid-media-testing` (APAC, Standard, public access and r2.dev disabled, no custom domain).
+- **Prepared on `feature/discord-share-card-v2` (not merged), each part inert until enabled:**
+  - migration `20261029100000_media_r2_pilot.sql`:
+    - switches `private.media_r2_settings`, both OFF;
+    - the pilot list (GM-TEST-01, abort unless exactly one row);
+    - the replica queue `public.media_r2_replicas`, with verified size and SHA-256 before READY;
+    - the delivery decision `none` / `supabase` / `r2` / `unavailable`;
+    - the Supabase fallback budget: 100 MiB a day, 1 GiB a month, then the video is temporarily unavailable;
+    - 50 new copies a day and at most 2 attempts;
+    - a sweep with delete confirmation.
+  - Worker `cf-worker/media-r2.mjs`:
+    - `/media/v1/<key>?exp&sig` is a visitor lease, HMAC `MEDIA_R2_SIGNING_KEY`, with the same 120 s;
+    - `/media/v1-ingest/<key>` is the Job's signed PUT/DELETE, HMAC `MEDIA_R2_INGEST_KEY`, and R2 verifies the SHA-256;
+    - the crawler routes serve the replica when the decision is `r2`;
+    - `wrangler.jsonc`: binding `MEDIA_R2`, var `MEDIA_R2_DELIVERY` = `"off"`, `run_worker_first` gains `/media/*`.
+  - `public-media`: the pilot branch runs only with `MEDIA_R2_SIGNING_KEY`, after the unchanged authorization. The client (`supabase-client.js`, `intro-source.js`) accepts the signed Worker URL of the same Intro only.
+  - worker Job:
+    - `worker/media-r2-replica.mjs`, the last step of `processOneRemoteJob`, inert without `GAMID_MEDIA_R2_INGEST_URL` / `_KEY`;
+    - the dispatcher accepts `media_r2_replicas`;
+    - `worker/cloud-run/deploy-media-r2-pilot-testing.sh`, `media-r2-pilot-enable.sql` and `media-r2-rollback.sql`.
+  - Quota: replicas live in R2, not `storage.objects`, so `usage_stored_bytes` and `get_my_usage` never count them (DEC-0013). No quota code changed.
+- **Tested.**
+  - `tests/media-r2-pilot.test.js` (12 tests, mock R2); `npm test` 2298 tests, 0 failures.
+  - The migration was rehearsed on TESTING inside `begin; ... rollback;`, with the dispatch trigger disabled in the transaction. Nothing persisted. Results:
+    - the pilot row was seeded;
+    - nothing was queued while OFF;
+    - one Intro replica was queued (1,525,630 bytes), claimed with the right key and completed READY;
+    - delivery for the DRAFT fixture is `none`;
+    - anon cannot claim or read the table.
+- **Observed (not changed).** GM-TEST-01's READY share copy row has no Storage object, so the migration does not queue it. A new thumbnail choice regenerates it.
+- **Remaining (each needs Mazen's approval):** see the pilot report. In order:
+  1. secrets;
+  2. migration;
+  3. `public-media` deploy;
+  4. Worker deploy;
+  5. worker image + dispatcher;
+  6. enable replication;
+  7. GM-TEST-01 temporarily PUBLIC for E2E;
+  8. enable delivery.
+- **Rollback.** `update private.media_r2_settings set delivery_enabled = false, replication_enabled = false` is immediate. Supabase was never changed.
+- **GamID Truth unchanged:** nothing is deployed.

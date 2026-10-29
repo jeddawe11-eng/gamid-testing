@@ -101,7 +101,7 @@ test("route: the Crew Wall lives at /crew/?c=<id> (never under /@); member links
   assert.match(read("dist/crew/crew.js"), /cardHref: handle => memberHref\(new URL\(`\.\.\/@\$\{handle\}`, location\.href\)\.pathname, model\.crewId, from\),/);
   assert.equal(SCROLL_KEY(ID), `gamid.crewWall.scroll.${ID}`);
   const wrangler = read("wrangler.jsonc");
-  assert.match(wrangler, /"run_worker_first": \["\/@\*"\]/, "only /@* is dynamic - /crew/ is a static page, no collision");
+  assert.match(wrangler, /"run_worker_first": \["\/@\*", "\/media\/\*"\]/, "only /@* (and the R2 pilot's /media/*) is dynamic - /crew/ is a static page, no collision");
 });
 
 test("navigation: on a member's GamID opened from the Crew Wall - Back to <Crew> + Skip Intro (the accepted My Duo pattern); Back returns to the same Crew Wall", async () => {

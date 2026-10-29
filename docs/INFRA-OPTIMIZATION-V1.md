@@ -223,3 +223,27 @@ Approved by Mazen as a design decision on 2026-10-28, recorded as DEC-0013. The 
 - **Rollback.** A per-bucket switch with a pilot allowlist; turning it off returns all delivery to Supabase.
 - **Modelled typical cost:** current → F is $307 → $128 at 1M visits/month, $2,892 → $999 at 10M and $30,952 → $12,033 at 100M. Break-even is about 144k visits/month.
 - **Status:** design only. Nothing is implemented, activated or deployed: R2 is still not enabled (code 10042). Implementation, R2 activation, credentials, deployment and Production each need a separate authorization. GamID Truth is unchanged until a capability is implemented.
+
+## 7. Architecture F TESTING pilot (prepared 2026-10-29; NOT applied or deployed)
+
+The code for the GM-TEST-01 pilot (Intro + Discord share copy) is on `feature/discord-share-card-v2`; `PROJECT_HANDOFF.md` §148 records it.
+
+**Off by default, two levels:**
+- database: `private.media_r2_settings.replication_enabled` and `delivery_enabled`, both false;
+- Worker: var `MEDIA_R2_DELIVERY` = `"off"`.
+
+With either off, every account is served exactly as before.
+
+**Cost bounds:**
+- replications: 50 a day, 2 attempts each, 15 MiB per source;
+- Supabase fallback for pilot media without a ready replica: 100 MiB a day and 1 GiB a month. Beyond that the video is temporarily unavailable, while the poster stays;
+- R2 reads: the existing per-IP+key `MEDIA_LIMITER` (120/min);
+- the Workers Free 100k/day request cap still applies.
+
+**Security:**
+- the bucket stays private;
+- reads need an HMAC lease from `public-media`, issued after the unchanged public predicate;
+- writes need the Job's HMAC ingest signature, and R2 verifies the SHA-256;
+- keys are secrets: Worker, Edge Function and Secret Manager.
+
+**Quota:** replicas are outside `storage.objects`, so they never count toward the 200 MB.

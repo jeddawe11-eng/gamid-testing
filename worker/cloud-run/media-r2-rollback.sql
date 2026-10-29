@@ -1,0 +1,26 @@
+-- Media delivery Architecture F - TESTING pilot (DEC-0013): rollback.
+--
+-- 1. IMMEDIATE (one statement, takes effect on the next lease / crawler request; Supabase was never changed, so every video is served exactly as before):
+update private.media_r2_settings set delivery_enabled = false, replication_enabled = false, reason = 'Pilot rolled back', updated_at = now() where singleton;
+-- Leases already handed out (at most 120 s) and crawler responses (max-age 60 s) expire on their own. With delivery off the Worker's crawler routes still ask the
+-- delivery decision while MEDIA_R2_DELIVERY is "on", and get 'supabase' = unchanged; setting that var back to "off" (wrangler.jsonc, a Worker deploy) removes
+-- even that lookup.
+--
+-- 2. OPTIONAL clean-up of the R2 copies (deletes are free): mark every replica superseded; the worker Job's sweep deletes their objects from R2 on its next
+--    runs (10-minute grace), recording r2_deleted_at. Or empty the bucket in the Cloudflare dashboard.
+-- update public.media_r2_replicas set state = 'superseded', claim_token = null, completed_at = coalesce(completed_at, now()), updated_at = now()
+-- where state in ('pending', 'processing', 'ready');
+--
+-- 3. FULL removal of the pilot's database objects (only after the Worker, public-media and the worker image no longer call them; with Mazen's approval):
+-- drop trigger if exists dispatch_media_r2_replica on public.media_r2_replicas;
+-- drop trigger if exists queue_media_r2_replicas on public.profile_intro_settings;
+-- drop trigger if exists queue_media_r2_replicas_share on public.intro_share_copies;
+-- drop function if exists public.get_public_media_delivery(text, text), public.public_media_delivery(text, text), public.worker_claim_media_r2_replica(),
+--   public.worker_complete_media_r2_replica(uuid, uuid, text, bigint, text), public.worker_fail_media_r2_replica(uuid, uuid, text),
+--   public.worker_media_r2_sweep(integer), public.worker_confirm_media_r2_deleted(uuid, text),
+--   private.dispatch_media_r2_replica(), private.queue_media_r2_on_intro_settings(), private.queue_media_r2_on_share(), private.media_r2_backfill_pilot(),
+--   private.media_r2_delivery_impl(text, text, boolean), private.worker_claim_media_r2_replica_impl(),
+--   private.worker_complete_media_r2_replica_impl(uuid, uuid, text, bigint, text), private.worker_fail_media_r2_replica_impl(uuid, uuid, text),
+--   private.worker_media_r2_sweep_impl(integer), private.worker_confirm_media_r2_deleted_impl(uuid, text), private.enqueue_media_r2_replicas(uuid),
+--   private.media_r2_replica_is_current(uuid), private.media_r2_source_profile(text, text);
+-- drop table if exists public.media_r2_replicas, private.media_r2_fallback_usage, private.media_r2_pilot, private.media_r2_settings;
