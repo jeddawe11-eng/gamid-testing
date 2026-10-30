@@ -76,12 +76,17 @@ Rules:
 | Prefix | Category | Folder | Last issued |
 |---|---|---|---|
 | DIS | Discussions | discussions/ | DIS-0003 |
-| DEC | Decisions | decisions/ | DEC-0013 |
+| DEC | Decisions | decisions/ | DEC-0014 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0020 |
 | REV | Reviews | reviews/ | REV-0033 |
 
 ## Register
+
+2026-10-30 (DEC-0014, R2 Primary for video): Mazen approved the design direction and saving the record.
+- New DEC-0014 (APPROVED): R2 is the primary store for permanent video files; the Supabase database owns metadata and quota. It replaces only DEC-0013's video-store part. DEC-0013 stays APPROVED and is not superseded by this save.
+- Authorization: implementation and tests on TESTING only, limited pilot scope. They are NOT complete: phase 1 only (`ac4a2be`, handoff §150, `docs/R2-PRIMARY-MIGRATION.md`). Production is NOT authorized; nothing is accepted.
+- GamID Truth unchanged.
 
 2026-10-30 (Architecture F pilot and R2 lifecycle review): Mazen approved documenting the review in Product Memory only.
 - New REV-0033 (AUDIT, PARTIAL). The GM-TEST-01 pilot passed replication, verification and delivery on TESTING. Replication and delivery are OFF, the Worker's `MEDIA_R2_DELIVERY` is off, and nothing is on Production.
@@ -301,5 +306,6 @@ Status stays DISCUSSION; there is no implementation authorization.
 | ISS-0020 | Intro share copy (and poster) used the frame after the chosen one when an Intro's first frame is not at 0 | VERIFIED | [ISS-0020-share-copy-frame-after-chosen-frame.md](issues/ISS-0020-share-copy-frame-after-chosen-frame.md) |
 | REV-0031 | Public Intro poster - real-Intro visual acceptance on @black, then rollout to all TESTING accounts | COMPLETED | [REV-0031-public-intro-poster-acceptance.md](reviews/REV-0031-public-intro-poster-acceptance.md) |
 | DEC-0013 | Media delivery Architecture F - Supabase authoritative, visitor video replicated to private R2 when READY, Worker delivery with Supabase fallback | APPROVED | [DEC-0013-media-delivery-architecture-f-r2-replication.md](decisions/DEC-0013-media-delivery-architecture-f-r2-replication.md) |
+| DEC-0014 | R2 Primary for permanent video files - private R2 is the video store, the Supabase database owns metadata and quota (replaces DEC-0013's video-store part) | APPROVED | [DEC-0014-r2-primary-for-video.md](decisions/DEC-0014-r2-primary-for-video.md) |
 | REV-0032 | Media delivery architecture review - Supabase authoritative, visitor video replicated to private R2 when READY (Architecture F) | COMPLETED | [REV-0032-media-delivery-architecture-r2-replication.md](reviews/REV-0032-media-delivery-architecture-r2-replication.md) |
 | REV-0033 | Architecture F TESTING pilot (GM-TEST-01) and the Supabase / R2 file-lifecycle review | COMPLETED | [REV-0033-architecture-f-pilot-and-r2-lifecycle-review.md](reviews/REV-0033-architecture-f-pilot-and-r2-lifecycle-review.md) |
