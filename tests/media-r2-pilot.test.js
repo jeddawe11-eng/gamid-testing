@@ -138,7 +138,7 @@ test("Worker routing: /media/v1 is GET/HEAD only with the single-range rule; wit
   const wrangler = JSON.parse(read("wrangler.jsonc").replace(/^\s*\/\/.*$/gm, ""));
   assert.deepEqual(wrangler.assets.run_worker_first, ["/@*", "/media/*"]);
   assert.deepEqual(wrangler.r2_buckets, [{ binding: "MEDIA_R2", bucket_name: "gamid-media-testing" }]);
-  assert.equal(wrangler.vars.MEDIA_R2_DELIVERY, "on", "TEMPORARY: Mazen-approved TESTING E2E (2026-10-30), reverted after the tests");
+  assert.equal(wrangler.vars.MEDIA_R2_DELIVERY, "off", "delivery ships OFF");
   assert.doesNotMatch(read("wrangler.jsonc"), /SIGNING_KEY"\s*:|INGEST_KEY"\s*:/, "keys are Worker secrets, never config");
 });
 

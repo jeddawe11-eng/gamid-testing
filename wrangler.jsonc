@@ -30,6 +30,6 @@
     { "binding": "MEDIA_R2", "bucket_name": "gamid-media-testing" }
   ],
   "vars": {
-    "MEDIA_R2_DELIVERY": "on"
+    "MEDIA_R2_DELIVERY": "off"
   }
 }
