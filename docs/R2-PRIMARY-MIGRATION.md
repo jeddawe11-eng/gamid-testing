@@ -102,8 +102,12 @@ The landing object is temporary by construction:
 - **Registry** `private.media_objects`, a new table: `id`, `owner_id`, `logical_bucket`, `logical_path`, `r2_key` (unique), `bytes` (from R2's verified `put` result), `sha256`, `counted`, `category`, `state` (`stored` / `deleting` / `deleted` / `failed`), `source_upload_id`, timestamps, `delete_attempts`, `last_error`.
   - Writable only by security-definer functions; no client role and no direct table grant.
 - **Stored bytes** = `storage.objects` sizes (as today, landing zone included) + counted registry rows in `stored` or `deleting`.
-  - Each logical file is counted once: a landing object whose promoted row is `stored` is excluded.
-  - A file is freed only when its physical R2 delete is confirmed, the same as today, where space frees when the object disappears.
+  - Each logical file is counted once: a landing object whose promoted row reached `stored` is excluded.
+  - **As implemented (step 1, §151):** a deleted or replaced file stops counting at the commit of its delete, the same moment it stops being served.
+    - Only `stored` rows count; this replaces the earlier draft rule "freed when the physical delete is confirmed".
+    - Why: a replace counts the old and the new Intro only until the replace commits, and the user sees the space freed when the file is gone for them.
+    - Physical removal is a guaranteed, retried queue (section 5); an exhausted one is listed for the operator.
+    - Bound: R2 can briefly hold more than the user's counted bytes until the queue runs.
 - **Reservations, parallel uploads and oversize** are unchanged: `reserve_usage_upload` still decides under its lock with stored + reserved + n <= quota, so parallel uploads are serialized. Per-file caps still come from `storage.buckets` for the landing buckets.
   - Promotion and derivative writes never exceed the reservation, because the registry bytes are the verified size of an object whose landing copy had already passed `complete`, or a derivative capped by its own bucket constant in the ingest route.
 - **Failed or partial uploads:** exactly as today, through the receipts and their 900 s grace. A failed promotion keeps the landing object counted until it is cleaned, so space never disappears.
@@ -150,6 +154,37 @@ The landing object is temporary by construction:
 - Architecture F (`media_r2_replicas`, the delivery decision, the fallback budget) stays untouched and OFF; it is removed only after R2 Primary is accepted.
 
 ## 8. Phase 2 work list (implementation, TESTING only)
+
+**Step 1 done locally (§151), NOT applied to TESTING:** `supabase/migrations/20261030140000_media_r2_primary_registry.sql`, tested by `tests/media-r2-primary-registry-db.test.js` (10 PGlite tests).
+
+**Tables:**
+- `private.media_objects`, the registry;
+- `private.media_r2_primary_settings` (`enabled` false);
+- `private.media_r2_primary_owners` (empty).
+
+**State machine:** `pending → stored | failed`, `stored → deleting | missing`, `missing → deleting`, `failed | deleting → deleted`. A trigger enforces the transitions and the immutable fields, and rows are never deleted.
+
+**Quota:**
+- A derived counted object reserves through the existing `reserve_usage_upload` (same lock, quota, caps and MIME). Its receipt is bound to `r2:<key>`, so gateway actions on it are refused (`UPLOAD_R2_MANAGED`).
+- A promotion adds nothing: its landing object stops counting at `stored`.
+- `usage_stored_bytes`, `get_my_usage_impl`, `reserve_usage_upload` and `usage_upload_action` are the live TESTING definitions plus registry additions only. The baseline is snapshotted in `tests/fixtures/usage-functions-before-r2-primary.sql`.
+
+**Delivery:** `media_r2_servable_key` answers for `stored` only.
+
+**Deletes:**
+- a claim queue with attempts, a retry interval and recorded errors;
+- an abandoned `pending` expires after 30 minutes;
+- an operator list after the maximum attempts;
+- landing-object cleanup candidates.
+
+**Worker:** `public.worker_media_r2_*` wrappers, service role only.
+
+**Not yet:**
+- wiring into `remove_my_intro` / replace / Wall delete, `public-media` and the Worker;
+- the dispatch trigger and the pg_cron safety net (with the Job step: the dispatcher must learn the table first);
+- the live concurrency test on TESTING.
+
+**Original phase 2 list (remaining items continue from here):**
 
 1. Migration:
    - the registry, settings and allow-list;

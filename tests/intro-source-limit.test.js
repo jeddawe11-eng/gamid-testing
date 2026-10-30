@@ -97,8 +97,15 @@ test("no other migration redefines the Intro source limit after this one, and th
     "20261029100000_media_r2_pilot.sql",
     // its fallback-accounting fix (2026-10-30) re-reads the active ready job to repair a READY share copy with no object
     "20261030120000_media_r2_fallback_accounting.sql"]);
+  // the R2 Primary registry (2026-10-30) restates private.reserve_usage_upload with its bucket list (intro-sources included) unchanged; caps still come from storage.buckets
+  const restatesReservation = new Set(["20261030140000_media_r2_primary_registry.sql"]);
   for (const name of later) {
     const sql = stripSql(read(`supabase/migrations/${name}`));
+    if (restatesReservation.has(name)) {
+      assert.doesNotMatch(sql, /intro_processing_jobs|queue_my_intro|source_size_bytes|52428800|157286400|alter\s+table\s+storage\.buckets|update\s+storage\.buckets/i, `${name} leaves the Intro source limit alone`);
+      assert.match(sql, /b not in \('avatars','intro-sources','intro-media','wall-media','wall-video','wall-video-derived'\)/, `${name} keeps the reservation's bucket list`);
+      continue;
+    }
     assert.doesNotMatch(sql, readsIntroJobs.has(name) ? /intro-sources|queue_my_intro|source_size_bytes|52428800|157286400|alter\s+table\s+public\.intro_processing_jobs|update\s+public\.intro_processing_jobs/i
       : /intro-sources|intro_processing_jobs|queue_my_intro|source_size_bytes|52428800|157286400/i, `${name} leaves the Intro source limit alone`);
   }

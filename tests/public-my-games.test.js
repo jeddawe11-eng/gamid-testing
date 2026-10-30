@@ -548,6 +548,7 @@ test("migration: additive, two NOT NULL DEFAULT false switches, no backfill, no 
       "20261028120000_intro_poster_rollout_all.sql",   // Intro Thumbnail for Discord: two Intro-settings columns, own share-copy bucket / table / RPCs, usage gains one bucket; public identity / My Games untouched
       "20261029100000_media_r2_pilot.sql",   // Architecture F R2 pilot (DEC-0013): own settings / pilot / replica tables and RPCs; public identity / My Games untouched
       "20261030120000_media_r2_fallback_accounting.sql",   // its fallback accounting + the share sweep's READY invariant; public identity / My Games untouched
+      "20261030140000_media_r2_primary_registry.sql",   // R2 Primary object registry (DEC-0014), inert: own tables / RPCs, the usage functions become registry-aware; public identity / My Games untouched
     ],
     "later additive features may sit between Public My Games and the migration that makes the stats gate global",
   );

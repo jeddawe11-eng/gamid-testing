@@ -180,9 +180,15 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 **Latest continuation (2026-10-30, R2 Primary for video, phase 1, §150):**
 - **Standing decision:** Mazen approved R2 Primary as the direction for permanent video files and authorized implementation and tests on TESTING only (not acceptance, not Production). Plan: `docs/R2-PRIMARY-MIGRATION.md`.
-- **Status:** phase 1 done (dependency inventory, empirical Worker/R2 size probe, design). Nothing implemented or deployed. Architecture F stays OFF and untouched.
-- **Next:** phase 2 per the plan's section 8, starting with the registry migration (PGlite-tested), on `feature/discord-share-card-v2`. Pilot scope is the GM-TEST-01 owner only. Mazen's separate approvals are needed for the Job/dispatcher redeploys, the allow-list enable, GM-TEST-01 PUBLIC for E2E, and Workers Paid if needed.
-- **Pending Mazen:** the DEC proposal superseding DEC-0013's video-store part (prepared, not saved).
+- **Status:**
+  - Phase 1 done (§150).
+  - Phase 2 step 1 done **locally** (§151): migration `20261030140000_media_r2_primary_registry.sql`, inert (switch OFF, allow-list empty), PGlite-tested. **NOT applied to TESTING**, nothing deployed.
+  - Architecture F stays OFF and untouched.
+  - DEC-0014 saved (APPROVED).
+- **Next, each step only with Mazen's approval:**
+  1. apply the migration to TESTING (rehearse in `begin; … rollback;`, then apply plus `migration repair`) and run a live two-session quota race on fake owners;
+  2. wire it into the delete and replace flows, `public-media` and the Worker, then the Job's promote and delete steps plus dispatch / pg_cron.
+  - Pilot scope: the GM-TEST-01 owner only.
 
 **Previous continuation (2026-10-29, Architecture F TESTING pilot code prepared, §148):**
 - **Status:** Mazen authorized the GM-TEST-01 pilot (Intro + Discord share copy) on TESTING. He activated R2 and created the private bucket `gamid-media-testing`. The code is on `feature/discord-share-card-v2`: migration `20261029100000_media_r2_pilot.sql`, `cf-worker/media-r2.mjs`, `worker/media-r2-replica.mjs`. As of 2026-10-30: secrets set, migration APPLIED (both switches OFF), `public-media` v5 deployed. The Worker is deployed with delivery "off", and the worker image and dispatcher are deployed. Replication is ENABLED for GM-TEST-01: the Intro replica is READY and verified by SHA-256. The E2E and rollback tests PASSED on 2026-10-30 (§148). Everything is restored: GM-TEST-01 DRAFT, replication and delivery OFF, Worker `MEDIA_R2_DELIVERY` "off" (`a704da0`). On 2026-10-30, §149 fixed three pilot problems at `11dec49` (migration `20261030120000_media_r2_fallback_accounting.sql` APPLIED, Worker run 40997359215): fallback accounting (a missing source is `none`; requests are counted by their range) and the missing Discord share copy (old test data; the sweep now supersedes a stale READY copy; GM-TEST-01's copy was regenerated). The budget limits and the safe state are unchanged. NOT accepted and NOT released. Next: Mazen's decision, including the separate review of the budget limits.

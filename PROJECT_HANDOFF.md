@@ -5956,3 +5956,44 @@ Mazen's task "Roll Out Public Intro Poster to All TESTING Accounts" authorized t
 - **Not measured yet:** Worker CPU and duration for a 50 MiB PUT, and multipart through the binding (phase 2, which needs the new route).
 - **Unchanged state:** GM-TEST-01 DRAFT; `replication_enabled`/`delivery_enabled` false; Worker `MEDIA_R2_DELIVERY` "off"; Production untouched (none exists).
 - **GamID Truth unchanged.** No capability, status, limit or contract changed yet; R2 Primary contract amendments come with the implementation. A DEC proposal superseding DEC-0013's video-store part was prepared for Mazen, not saved.
+## 151. R2 Primary phase 2 step 1: the R2 object registry (local only, NOT applied, 2026-10-30)
+
+- **Task.** Mazen: "GamID R2 Primary / Phase 2 — Step 1". Implement the R2 object registry and its database operations, with PGlite tests. Not applied to TESTING; nothing deployed; R2 Primary not enabled for anyone; Production untouched; no merge.
+- **Code:**
+  - migration `supabase/migrations/20261030140000_media_r2_primary_registry.sql`;
+  - test `tests/media-r2-primary-registry-db.test.js`;
+  - baseline `tests/fixtures/usage-functions-before-r2-primary.sql`: the four TESTING usage functions, read only, verbatim;
+  - pinned lists in `tests/intro-source-limit.test.js` and `tests/public-my-games.test.js`.
+- **Inert.**
+  - `private.media_r2_primary_settings.enabled` is false and `private.media_r2_primary_owners` is empty, so registration refuses `R2_PRIMARY_DISABLED`.
+  - With an empty registry every quota, Usage and receipt answer equals the snapshot's (test 9).
+- **Registry** `private.media_objects`:
+  - **Columns:** owner, logical bucket and path (the product's own path), source (`promoted` from a Supabase landing object, or `derived` by the worker), R2 key `primary/<bucket>/<path>/<object_id>`, expected and verified bytes, SHA-256, `counted`, category, state, claim token, delete attempts, last error, timestamps.
+  - **States:** `pending → stored | failed`, `stored → deleting | missing`, `missing → deleting`, `failed | deleting → deleted`.
+  - **Guards:**
+    - a trigger enforces the transitions and the immutable fields;
+    - rows are never deleted;
+    - a unique live index allows one live object per logical file;
+    - there is no foreign key to the account, so a removed account can't cascade away R2 keys.
+  - **Access:** no table grant for any role. The worker gets `public.worker_media_r2_*` (service role only); the delete, servable and stuck helpers are internal.
+- **Quota (reuse, not a parallel system):**
+  - A derived counted object (`intro-media`, `wall-video-derived`) reserves through the existing `private.reserve_usage_upload`: the same `usage:<owner>` advisory lock, quota check and `storage.buckets` caps / MIME. The receipt is bound to `r2:<key>`, and the gateway's bind, complete, cancel and release are refused with `UPLOAD_R2_MANAGED`.
+  - Completion requires R2's verified size and digest. It marks the receipt COMPLETE, the same ownership proof as a Supabase upload. A failure or an abandoned upload (30 min) cancels it.
+  - A promotion adds nothing. Its landing object counts until the row is `stored`, then stops counting (cleanup candidates are listed).
+  - `usage_stored_bytes` and `get_my_usage_impl` add counted `stored` rows; uncounted internal copies (renditions, share copies) never count.
+  - A deleted or replaced file stops counting at the commit of its delete, the same moment it stops being served. This replaces the plan's draft "freed at physical delete" and is recorded in `docs/R2-PRIMARY-MIGRATION.md` §4.
+- **Deletes:**
+  - `media_r2_request_delete_impl` turns `stored` / `missing` into `deleting`, and fails an in-flight `pending`.
+  - The queue claims with an attempt counter, a 10 min retry interval, a 10 min grace for failed attempts (the ingest signature window) and at most 5 attempts.
+  - A failed delete records its error. An exhausted one stays (never served) and is listed by `media_r2_delete_stuck_impl`.
+- **No automatic restore:** `missing` is not served and not counted. The same path can't be registered again.
+- **Tests:**
+  - New file, 10/10 PASS: creation, transitions, the landing → R2 move counted once, two uploads against the quota, failed / mismatched / abandoned transfers, delete with retries, replace, logical access and grants, existing records unchanged, and Architecture F byte-identical (every pilot and share-copy function definition and grant, the switches, the tables and the delivery answer).
+  - `npm test`: 2315 tests, 0 failures (3 skipped).
+  - A word diff confirms the four redefined usage functions are the live definitions plus registry additions only.
+- **Not done / next:**
+  - applying the migration to TESTING (Mazen's approval) and a live two-session concurrency test (PGlite has one connection);
+  - wiring into `remove_my_intro`, the Intro replace, the Wall delete, `public-media` and the Worker;
+  - the dispatch trigger and the pg_cron safety net (with the Job step);
+  - the Job promote and delete steps.
+- **GamID Truth unchanged.** Nothing changes product behaviour (inert, not applied); no capability, status, limit or contract changed.
