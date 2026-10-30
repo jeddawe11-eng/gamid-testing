@@ -5934,3 +5934,25 @@ Mazen's task "Roll Out Public Intro Poster to All TESTING Accounts" authorized t
   - Anyone can still call the anonymous lookup directly and spend budget; that grants no access (unchanged).
   - A share object deleted outside the sweep (manually) would still leave a READY row; no such path exists in the product.
 - **GamID Truth unchanged.** These are fixes inside the pilot. No capability, status, limit or approved contract changed.
+## 150. R2 Primary for video: phase 1 (dependency analysis + empirical Worker/R2 probe), TESTING only (2026-10-30)
+
+- **Task.** Mazen: "Claude Code — GamID R2 Primary Migration". He approved R2 Primary as the new direction for permanent video files and authorized implementation and tests on TESTING only. This is not acceptance and not Production. Larger than one session, so phase 1 is delivered here with a clear continuation point.
+- **Delivered:** `docs/R2-PRIMARY-MIGRATION.md`, containing:
+  - the dependency inventory;
+  - the probe results;
+  - the upload, quota, delete, read, pilot and rollback design;
+  - the phase 2 work list.
+- **Nothing implemented, applied or deployed.** No migration, no code, no Worker/Edge/Job deploy, no setting or secret changed.
+- **Empirical probe** (the deployed TESTING Worker's existing ingest route; synthetic keys `intro-media/r2-primary-probe/<GM-TEST-01 owner>/<uuid>`; all deleted and verified absent with `wrangler r2 object get`; the pilot replica untouched):
+  - The Worker's `content-length` equals the bytes `request.body` delivers: a declared 512 KiB with a 1 MiB body stored exactly 524,288 bytes; a declared 2 MiB with a 1 MiB body stored nothing (timeout); a chunked upload reached the Worker with the real length.
+  - R2 refused a wrong SHA-256; the handler cap refused 16 MiB + 1 from the header; a 101 MB body got Cloudflare 413 before the Worker (the 100 MB request limit).
+- **Chosen design:**
+  - Owner uploads keep today's gateway TUS, quota reservation and caps into Supabase as a *temporary landing zone*. The Job then promotes each file to R2: signed PUT with SHA-256, multipart over 95 MB, a registry row `stored`, then the landing object is deleted.
+  - Worker-produced derivatives go to R2 directly.
+  - Quota = `storage.objects` + counted registry rows, each logical file counted once.
+  - Deletion is a registry `deleting` state that every delivery predicate refuses at commit, with a dispatch trigger plus a pg_cron safety net (pg_cron already used on TESTING), attempt counting and no silent drop.
+  - No new secret or credential: the Job keeps the ingest key only, and presigned URLs are not used.
+- **Pilot scope:** a new allow-list (GM-TEST-01 owner only) and a separate Worker var `MEDIA_R2_PRIMARY`. Architecture F stays OFF and untouched until R2 Primary is proven.
+- **Not measured yet:** Worker CPU and duration for a 50 MiB PUT, and multipart through the binding (phase 2, which needs the new route).
+- **Unchanged state:** GM-TEST-01 DRAFT; `replication_enabled`/`delivery_enabled` false; Worker `MEDIA_R2_DELIVERY` "off"; Production untouched (none exists).
+- **GamID Truth unchanged.** No capability, status, limit or contract changed yet; R2 Primary contract amendments come with the implementation. A DEC proposal superseding DEC-0013's video-store part was prepared for Mazen, not saved.
