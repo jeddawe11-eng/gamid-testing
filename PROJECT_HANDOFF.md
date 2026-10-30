@@ -5857,4 +5857,17 @@ Mazen's task "Roll Out Public Intro Poster to All TESTING Accounts" authorized t
   - Replication was enabled for GM-TEST-01 only. The stale pending row was superseded and the Intro re-queued. It was READY on attempt 1: 1,525,630 bytes, SHA-256 `2da9c7da8f96932760ba890d2c705fa7f6b15df7fcda770b1880255ec07ebc74`. The Supabase source and the R2 object were downloaded independently and are byte-identical.
   - The owner's counted bytes are unchanged (1,525,630, the original only).
   - Delivery is still OFF, waiting for Mazen's explicit approval.
-- **GamID Truth unchanged:** nothing is enabled for visitors.
+- **E2E, 2026-10-30 (Mazen approved a TEST only, not a release):**
+  - Setup: temporary commit `a53db01` (`MEDIA_R2_DELIVERY` "on"; run 40993798746), GM-TEST-01 temporarily PUBLIC, `delivery_enabled` true.
+  - PASS:
+    - the `public-media` lease is a signed `/media/v1` URL, 120 s;
+    - full GET is byte-identical (SHA-256); Range, suffix range and past-end clamp give 206; unsatisfiable and multi-range give 416; HEAD works; cache is `private, max-age<=120`;
+    - a tampered sig, exp or key, or an unsigned request, is 404; POST is 405; a foreign origin gets 403; an expired lease is 404;
+    - the crawler routes are served from R2 (`public, max-age=60`), and the Discord page meta is present;
+    - the non-pilot @nmk is unchanged;
+    - browser: the poster shows with 0 video bytes before Play; Play streams from R2 (206) with no Supabase video request; Skip and Replay work;
+    - fallback budget, tested in a rolled-back transaction: the right answer in each case (r2 / supabase / unavailable daily or monthly / supabase when off);
+    - rollback (`delivery_enabled` false): leases and crawler back on Supabase within 3 s; a lease already issued stays valid until its expiry (at most 120 s), by design.
+  - Known: the Discord share route is 404 because its source file is missing. That one request was counted as 15 MiB of fallback budget (the upper bound applied when the source object is missing).
+  - **Restored:** GM-TEST-01 DRAFT; `delivery_enabled` and `replication_enabled` false; the temporary commit reverted (`a704da0`) and redeployed (run 40994338014, `MEDIA_R2_DELIVERY` "off" verified on the active version). The original stays in Supabase; quota counted bytes are unchanged (1,525,630). The verified R2 replica is kept (inert).
+- **GamID Truth unchanged:** test only; nothing is enabled or accepted.
