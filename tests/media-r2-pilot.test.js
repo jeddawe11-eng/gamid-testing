@@ -304,10 +304,15 @@ test("crawler routes: with delivery off no extra call is made; on: r2 -> served 
     const env = workerEnv();
     r = await handleIntroRequest(new Request(`${SITE}/@gm_test_01/intro.webm`, { headers: { range: "bytes=0-9" } }), check, identity, null, env, rpc([{ mode: "r2", r2_key: KEY, bytes: 1000 }]));
     assert.equal(r.status, 206); assert.equal(r.headers.get("cache-control"), "public, max-age=60"); assert.equal(r.headers.get("content-range"), "bytes 0-9/1000");
-    assert.deepEqual(rpcs.at(-1), { candidate_bucket: "intro-media", candidate_path: INTRO }); assert.equal(passthrough, 1);
+    // the request about to be served goes with the lookup, so the database counts a fallback by its range (HEAD = nothing transferred)
+    assert.deepEqual(rpcs.at(-1), { candidate_bucket: "intro-media", candidate_path: INTRO, candidate_range: "bytes=0-9", candidate_head: false }); assert.equal(passthrough, 1);
     const share = { path: SHARE_KEY.slice("intro-share-copies/".length, -(TOKEN.length + 1)) };
     r = await handleIntroRequest(new Request(`${SITE}/@gm_test_01/intro-discord.webm`), check, null, share, env, rpc([{ mode: "unavailable" }]));
-    assert.equal(r.status, 404); assert.deepEqual(rpcs.at(-1), { candidate_bucket: "intro-share-copies", candidate_path: share.path }); assert.equal(passthrough, 1);
+    assert.equal(r.status, 404); assert.deepEqual(rpcs.at(-1), { candidate_bucket: "intro-share-copies", candidate_path: share.path, candidate_range: null, candidate_head: false });
+    assert.equal(passthrough, 1);
+    r = await handleIntroRequest(new Request(`${SITE}/@gm_test_01/intro-discord.webm`, { method: "HEAD", headers: { range: "bytes=-500" } }), check, null, share, env, rpc([{ mode: "none" }]));
+    assert.equal(r.status, 404, "a missing or non-public source is the same 404"); assert.equal(passthrough, 1);
+    assert.deepEqual(rpcs.at(-1), { candidate_bucket: "intro-share-copies", candidate_path: share.path, candidate_range: "bytes=-500", candidate_head: true });
     for (const answer of [[{ mode: "supabase" }], new Error("down"), [{ mode: "r2", r2_key: "avatars/x" }]]) {
       r = await handleIntroRequest(new Request(`${SITE}/@gm_test_01/intro.webm`), check, identity, null, env, rpc(answer));
       assert.equal(r.status, 200);
@@ -340,4 +345,33 @@ test("migration: inert by default, GM-TEST-01 only, bounded, service-only worker
   assert.equal((code.match(/security definer/g) || []).length, (code.match(/security definer\nset search_path = '';?\n/g) || []).length, "every definer pins search_path");
   const rollback = read("worker/cloud-run/media-r2-rollback.sql");
   assert.match(rollback, /^update private\.media_r2_settings set delivery_enabled = false, replication_enabled = false/m, "the immediate rollback is one live statement");
+});
+
+test("fallback accounting migration: a missing source is 'none' and uncounted; a request is counted by its clamped range under the same lock; limits untouched", () => {
+  const sql = read("supabase/migrations/20261030120000_media_r2_fallback_accounting.sql");
+  const code = sql.replace(/--.*$/gm, "");
+  // 1. the existing storage.objects size lookup decides; a missing object never reaches the budget
+  assert.match(code, /into size from storage\.objects o where o\.bucket_id = candidate_bucket and o\.name = candidate_path;\s+if size is null then\s+return query select 'none'::text, null::text, null::bigint; return;\s+end if;\s+if not private\.media_r2_fallback_charge\(/);
+  assert.doesNotMatch(code, /15728640\)/, "no upper-bound guess for a missing object");
+  // 2. range semantics: whole object without a Range, nothing for HEAD or an unsatisfiable range, the clamped length otherwise, a malformed Range = whole object
+  assert.match(code, /if coalesce\(candidate_head, false\) then return 0; end if;\s+if candidate_range is null then return object_size; end if;/);
+  assert.match(code, /if first_byte >= object_size then return 0; end if;\s+return last_byte - first_byte \+ 1;/);
+  assert.match(code, /least\(parts\[2\]::bigint, object_size - 1\)/); assert.match(code, /return least\(parts\[1\]::bigint, object_size\)/);
+  assert.match(code, /end if;\s+return object_size;\s+end;/);
+  // the check and the record happen under one transaction lock; an exhausted budget refuses even a zero-byte request; public-media's lease = the whole object
+  assert.match(code, /perform pg_advisory_xact_lock\(hashtext\('media_r2_fallback_budget'\)\);[\s\S]+spent_day >= cfg\.fallback_daily_bytes or spent_month >= cfg\.fallback_monthly_bytes/);
+  assert.match(code, /public_media_delivery\(candidate_bucket text, candidate_path text\)[\s\S]+?media_r2_delivery_impl\(candidate_bucket, candidate_path, true, null, false\)/);
+  // the limits and switches are not changed here, and the 200 MB quota is not touched
+  assert.doesNotMatch(code, /update private\.media_r2_settings|insert into private\.media_r2_settings|104857600|1073741824/);
+  assert.doesNotMatch(code, /usage_stored_bytes|get_my_usage|storage\.buckets/);
+  // privileges: anon reaches only the decision; the helpers are definer-internal; the sweep stays service-only
+  const anonGrant = /grant execute on function ([^;]+) to anon, authenticated;/.exec(code)[1];
+  assert.doesNotMatch(anonGrant, /worker_|fallback_charge|range_bytes/);
+  assert.match(code, /revoke all on function\s+private\.media_r2_range_bytes\(bigint, text, boolean\), private\.media_r2_fallback_charge\(date, bigint\),/);
+  assert.equal((code.match(/security definer/g) || []).length, (code.match(/security definer\nset search_path = '';?\n/g) || []).length, "every definer pins search_path");
+  // 3. the share sweep supersedes a READY copy that is no longer current BEFORE listing its object, and a READY copy with no object is repaired once
+  assert.match(code, /worker_intro_share_sweep_impl[\s\S]+?language plpgsql volatile[\s\S]+?update public\.intro_share_copies r set state = 'superseded'[^;]+where r\.state = 'ready' and not private\.intro_share_is_current\(r\.share_id\);\s+return query\s+select o\.name/);
+  assert.match(code, /public\.worker_intro_share_sweep\(candidate_limit integer default 20\)\s+returns table \(object_path text\) language sql volatile/);
+  assert.match(code, /where r\.state = 'ready'\s+and not exists \(select 1 from storage\.objects o where o\.bucket_id = 'intro-share-copies' and o\.name = r\.share_path\)/);
+  assert.doesNotMatch(code, /\b(black|zshot|gm_test_01)\b/, "the repair is generic: no account is named");
 });

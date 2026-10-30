@@ -172,15 +172,16 @@ export async function handleMediaIngest(request, env, { nowSeconds = Math.floor(
   return json({ size: stored.size, sha256: storedSha });
 }
 
-// The anonymous delivery decision (public.get_public_media_delivery) for the crawler routes; any failure is null = today's Supabase passthrough
-export async function fetchMediaDelivery(bucket, path, { supabaseUrl, publishableKey, fetchImpl = fetch }) {
+// The anonymous delivery decision (public.get_public_media_delivery) for the crawler routes; any failure is null = today's Supabase passthrough.
+// `range` / `head`: the request about to be served, so a fallback is counted by the bytes it can transfer (the database clamps them to the real object).
+export async function fetchMediaDelivery(bucket, path, { supabaseUrl, publishableKey, fetchImpl = fetch, range = null, head = false }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 4000);
   try {
     const res = await fetchImpl(`${supabaseUrl}/rest/v1/rpc/get_public_media_delivery`, {
       method: "POST",
       headers: { apikey: publishableKey, "content-type": "application/json" },
-      body: JSON.stringify({ candidate_bucket: bucket, candidate_path: path }),
+      body: JSON.stringify({ candidate_bucket: bucket, candidate_path: path, candidate_range: range ?? null, candidate_head: head === true }),
       signal: controller.signal,
     });
     if (!res.ok) return null;

@@ -228,7 +228,8 @@ export async function handleIntroRequest(request, check, identity, share = null,
   // Architecture F pilot (cf-worker/media-r2.mjs; inert unless MEDIA_R2_DELIVERY is "on"): a verified R2 replica is served instead of the Supabase passthrough;
   // a pilot video with no replica and no fallback budget left is temporarily unavailable (the same 404). Any other answer, or a failed lookup, = unchanged.
   if (deliveryEnabled(env)) {
-    const delivery = await fetchMediaDelivery(media.bucket, media.path, { supabaseUrl: SUPABASE_URL, publishableKey: PUBLISHABLE_KEY, fetchImpl });
+    const delivery = await fetchMediaDelivery(media.bucket, media.path, { supabaseUrl: SUPABASE_URL, publishableKey: PUBLISHABLE_KEY, fetchImpl,
+      range: request.headers.get("range"), head: request.method === "HEAD" });
     if (delivery?.mode === "r2") return serveR2Object(request, env.MEDIA_R2, delivery.r2_key, "public, max-age=60");
     if (delivery?.mode === "unavailable" || delivery?.mode === "none") return new Response("Not Found", { status: 404 });
   }
