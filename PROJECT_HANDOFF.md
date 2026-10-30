@@ -5844,4 +5844,11 @@ Mazen's task "Roll Out Public Intro Poster to All TESTING Accounts" authorized t
   7. GM-TEST-01 temporarily PUBLIC for E2E;
   8. enable delivery.
 - **Rollback.** `update private.media_r2_settings set delivery_enabled = false, replication_enabled = false` is immediate. Supabase was never changed.
-- **GamID Truth unchanged:** nothing is deployed.
+- **Deployment, 2026-10-30 (Mazen's approval to deploy the pilot on TESTING):**
+  - Done:
+    - bucket verified (empty, APAC, r2.dev disabled, no custom domain);
+    - Worker secrets `MEDIA_R2_SIGNING_KEY` and `MEDIA_R2_INGEST_KEY` set, plus the Supabase secret `MEDIA_R2_SIGNING_KEY`, values never shown;
+    - the migration was rehearsed again (rolled back), then applied in one transaction plus `migration repair`; both switches OFF;
+    - `public-media` v5 deployed. A smoke test confirms the unchanged 120 s Supabase lease for a public Intro and a 404 for the DRAFT fixture.
+  - **Stopped:** the Worker deploy (run 40988421368) failed before any version went live. The GitHub Actions Cloudflare token lacks R2 permission (`/r2/buckets/gamid-media-testing`: Authentication error 10000). The live Worker is unchanged. Needed from Mazen: Workers R2 Storage permission on that token. The Cloud Run step also needs Mazen in Cloud Shell: the Secret Manager secret, a secret-level IAM grant, then `deploy-media-r2-pilot-testing.sh`.
+- **GamID Truth unchanged:** nothing is enabled.

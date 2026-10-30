@@ -179,7 +179,7 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 ## 7. Current continuation point
 
 **Latest continuation (2026-10-29, Architecture F TESTING pilot code prepared, §148):**
-- **Status:** Mazen authorized the GM-TEST-01 pilot (Intro + Discord share copy) on TESTING. He activated R2 and created the private bucket `gamid-media-testing`. The code is on `feature/discord-share-card-v2`: migration `20261029100000_media_r2_pilot.sql`, `cf-worker/media-r2.mjs`, `worker/media-r2-replica.mjs`. It is NOT applied, deployed or enabled; both switches ship OFF.
+- **Status:** Mazen authorized the GM-TEST-01 pilot (Intro + Discord share copy) on TESTING. He activated R2 and created the private bucket `gamid-media-testing`. The code is on `feature/discord-share-card-v2`: migration `20261029100000_media_r2_pilot.sql`, `cf-worker/media-r2.mjs`, `worker/media-r2-replica.mjs`. As of 2026-10-30: secrets set, migration APPLIED (both switches OFF), `public-media` v5 deployed. The Worker deploy is BLOCKED (the GitHub token lacks R2 permission) and the Cloud Run step is pending with Mazen; nothing is enabled.
 - **Next, each step only with Mazen's approval:**
   1. secrets `MEDIA_R2_SIGNING_KEY` (Worker + Edge Function) and `MEDIA_R2_INGEST_KEY` (Worker + Secret Manager `gamid-media-r2-ingest-key-testing`);
   2. the migration;
