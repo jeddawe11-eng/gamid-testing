@@ -247,3 +247,14 @@ With either off, every account is served exactly as before.
 - keys are secrets: Worker, Edge Function and Secret Manager.
 
 **Quota:** replicas are outside `storage.objects`, so they never count toward the 200 MB.
+
+**Fallback accounting (fixed 2026-10-30, migration `20261030120000_media_r2_fallback_accounting.sql`, `PROJECT_HANDOFF.md` §149; the limits are unchanged):**
+- a source whose object is missing is `none` (the same 404) and is never counted;
+- a crawler request (`/@h/intro.webm`, `/@h/intro-discord.webm`) is counted by what it can transfer from the real object:
+  - no Range: the whole object;
+  - one Range: its clamped length; a suffix Range: `min(n, size)`;
+  - HEAD, or an unsatisfiable Range: 0;
+  - a malformed Range, which the server ignores: the whole object;
+- a `public-media` lease is still counted as the whole object, because a lease can download all of it;
+- the check and the record run in `private.media_r2_fallback_charge` under one transaction-scoped advisory lock, so concurrent requests can't overshoot the day or the month. Once either is spent, even a zero-byte request is refused, so HEAD agrees with GET.
+- The Worker passes the request's Range and method to `get_public_media_delivery`, and the database clamps them itself. A failed lookup is still today's uncounted Supabase passthrough, as before.

@@ -45,6 +45,7 @@ The Intro section of the Profile Editor gains **Discord thumbnail**. Desktop and
   - The copy does **not** count toward the owner's 200 MB quota. The Intro derivative still does.
 - **Visitors:** `get_public_intro_share(handle)` returns the current ready copy of a PUBLIC GamID, or nothing.
 - **Cleanup:** a storage-driven sweep (`worker_intro_share_sweep`) deletes every share object that is not the current ready copy or an in-flight attempt, once it is older than 10 minutes.
+  - Since 2026-10-30 (migration `20261030120000_media_r2_fallback_accounting.sql`, `PROJECT_HANDOFF.md` §149), the same call first supersedes every READY copy that is no longer current. A READY row therefore never outlives its object, even if its selection later matches again: the owner's next choice of that frame queues a fresh copy.
 - **Dispatch:** a new row calls the existing dispatcher, with the same Vault secrets.
 
 ## Worker: `worker/intro-share.mjs` (same image and Job, redeployed on TESTING)

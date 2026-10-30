@@ -5871,3 +5871,66 @@ Mazen's task "Roll Out Public Intro Poster to All TESTING Accounts" authorized t
   - Known: the Discord share route is 404 because its source file is missing. That one request was counted as 15 MiB of fallback budget (the upper bound applied when the source object is missing).
   - **Restored:** GM-TEST-01 DRAFT; `delivery_enabled` and `replication_enabled` false; the temporary commit reverted (`a704da0`) and redeployed (run 40994338014, `MEDIA_R2_DELIVERY` "off" verified on the active version). The original stays in Supabase; quota counted bytes are unchanged (1,525,630). The verified R2 replica is kept (inert).
 - **GamID Truth unchanged:** test only; nothing is enabled or accepted.
+
+## 149. Architecture F pilot: fallback accounting + the missing Discord share copy fixed (TESTING only, 2026-10-30)
+
+- **Task.** Mazen: "GAMID — Architecture F | إصلاح Fallback وDiscord — TESTING ONLY". Fix three problems, test them, and document them. Budget limits unchanged, no release, no merge, Production untouched.
+- **Code.** Commit `11dec49`, on `feature/discord-share-card-v2`:
+  - migration `20261030120000_media_r2_fallback_accounting.sql`;
+  - `cf-worker/media-r2.mjs` and `cf-worker/worker.mjs`;
+  - new test `tests/media-r2-fallback-accounting-db.test.js` (PGlite, the real migrations);
+  - `tests/media-r2-pilot.test.js`, and the pinned lists in `tests/intro-source-limit.test.js` and `tests/public-my-games.test.js`.
+- **1. Missing source (PASS).** `media_r2_delivery_impl` already reads the object's size from `storage.objects`. When no object exists it now returns `none` (the same 404 as any non-public source) before the budget, so nothing is counted. No extra HTTP or Storage request was added. An existing source is served and counted as before.
+- **2. Range accounting (PASS).**
+  - New `private.media_r2_range_bytes(size, range, head)` gives the bytes a request can transfer from the real object:
+    - no Range: the whole object;
+    - one Range: its clamped length; a suffix Range: `min(n, size)`;
+    - HEAD, an unsatisfiable Range or `-0`: 0;
+    - a malformed Range, which the server ignores: the whole object.
+  - New `private.media_r2_fallback_charge(day, bytes)` checks and records the day and its month under the existing advisory lock. Once either is spent it refuses even a zero-byte request.
+  - `public.get_public_media_delivery` gains `candidate_range` / `candidate_head` (defaults keep the old two-argument call working). The Worker sends the request's Range and method.
+  - `public.public_media_delivery` (the lease) is still counted as the whole object.
+  - Both helpers are callable only through the security-definer impl: no client role, and not service_role either. The 100 MiB/day and 1 GiB/month limits are unchanged.
+- **3. Discord share copy (PASS).**
+  - **Root cause: old test data.** The broken row was GM-TEST-01's synthetic fixture copy `725ae0a4`, inserted by SQL on 2026-10-27 for the poster E2E.
+    1. Later poster tests changed `profile_intro_settings.thumbnail_ms` directly (2000 → 1000 → 2000, twice), bypassing `set_my_intro_thumbnail`. Settings `updated_at` never moved, which confirms the direct updates.
+    2. The READY row became not-current without being superseded, and the next worker run's share sweep deleted its object.
+    3. When the selection was restored, the row was READY and current again, with no file.
+    - No product path does this. The owner RPC supersedes on every change, and a replaced or removed Intro never becomes active again.
+  - **The latent weakness this exposed:** the sweep deleted the object of a not-current READY row without changing the row.
+  - **Fix:**
+    - `worker_intro_share_sweep` (now volatile) first supersedes every READY copy that is no longer current, in the same call that lists its object. A READY row therefore never outlives its file.
+    - One-time repair in the migration: a READY copy whose object is gone is superseded, and its current frame is queued again. On TESTING this was only GM-TEST-01; @black's healthy copy was untouched.
+    - No approved contract changed. Discord still gets the copy when it is READY, and otherwise the unchanged Intro.
+  - **Regenerated** through the real pipeline: row `7c3de531`, READY on attempt 1 in 26 s.
+    - The object exists: 1,371,705 bytes, VP9 1280×720 plus Opus, 6.057 s, decoded with 0 errors.
+    - Its first frame matches the chosen frame at 2000 ms (SSIM 0.988, against 0.917 for frame 0).
+- **Tests.**
+  - `npm test`: 2305 tests, 0 failures (3 skipped). `tests/gamid-truth.test.js` and the Product Memory validator pass.
+  - PGlite: missing source; every range form; the budget day and month; HEAD when spent; privileges; the sweep regression (the exact fixture sequence); the repair.
+  - Rehearsed on TESTING in `begin; … rollback;`, with the real 1,525,630-byte Intro. The four counted requests (full, `0-9`, `-500`, `1000-`) totalled 3,050,770 bytes; HEAD and 416 added nothing; the lease added the full size. A missing source gave `none` with usage unchanged. At the limit a 100-byte range fit and a full GET was refused.
+  - Applied in one transaction plus `migration repair` (`20261030120000`).
+  - Concurrency, live on TESTING with fake days in 2000, all cleaned up:
+    - 8 parallel 30 MiB charges, each holding the lock 1.5 s: exactly 3 succeeded, 90 MiB, serialized;
+    - with 10 MiB left in the month, 4 parallel 5 MiB charges: exactly 2 succeeded, landing exactly on the 1 GiB month.
+  - Worker deployed: run 40997359215 at `11dec49` (full validation), `MEDIA_R2_DELIVERY` still `"off"`.
+  - E2E with GM-TEST-01 temporarily PUBLIC, then DRAFT:
+    - `/@gm_test_01/intro-discord.webm`: 200 (the new copy, 1,371,705 bytes); `0-9` and `-500` gave 206 with the right Content-Range; HEAD 200; 416;
+    - `/@gm_test_01/intro.webm`: 200 (1,525,630 bytes);
+    - the Discord card references `intro-discord.webm`; the og:image social card is 200;
+    - posters 0 and 2000 are READY with their objects;
+    - @black's Discord copy: HEAD 200 (read only);
+    - after DRAFT: both routes 404.
+- **Safe state verified after the task:**
+  - GM-TEST-01 DRAFT;
+  - `delivery_enabled` and `replication_enabled` false; limits 104857600 / 1073741824;
+  - Worker var `"off"`;
+  - quota counted bytes unchanged (1,525,630);
+  - fallback usage unchanged (the 2026-10-30 row from §148);
+  - the R2 Intro replica is kept but inert; the new share copy has no replica (replication off).
+- **Remaining / risks:**
+  - HEAD is counted as 0, but the Worker still issues an upstream GET and cancels its body at once, so a few buffered KB may leave Supabase uncounted.
+  - A failed delivery lookup is still the uncounted Supabase passthrough (unchanged).
+  - Anyone can still call the anonymous lookup directly and spend budget; that grants no access (unchanged).
+  - A share object deleted outside the sweep (manually) would still leave a READY row; no such path exists in the product.
+- **GamID Truth unchanged.** These are fixes inside the pilot. No capability, status, limit or approved contract changed.
