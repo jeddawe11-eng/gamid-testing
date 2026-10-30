@@ -5851,4 +5851,10 @@ Mazen's task "Roll Out Public Intro Poster to All TESTING Accounts" authorized t
     - the migration was rehearsed again (rolled back), then applied in one transaction plus `migration repair`; both switches OFF;
     - `public-media` v5 deployed. A smoke test confirms the unchanged 120 s Supabase lease for a public Intro and a 404 for the DRAFT fixture.
   - **Stopped:** the Worker deploy (run 40988421368) failed before any version went live. The GitHub Actions Cloudflare token lacks R2 permission (`/r2/buckets/gamid-media-testing`: Authentication error 10000). The live Worker is unchanged. Needed from Mazen: Workers R2 Storage permission on that token. The Cloud Run step also needs Mazen in Cloud Shell: the Secret Manager secret, a secret-level IAM grant, then `deploy-media-r2-pilot-testing.sh`.
-- **GamID Truth unchanged:** nothing is enabled.
+- **Continued, 2026-10-30:**
+  - Worker deployed: run 40989843901 at `70da35e`, the same code as `4b325d6`, with `MEDIA_R2_DELIVERY="off"`. Existing pages, Range, HEAD, 416 and the Discord route are unchanged. The signed ingest round trip passed, and R2 refused a wrong digest.
+  - Mazen deployed the worker image and the dispatcher (revision `00011-jtr`). The Job's `GAMID_MEDIA_R2_INGEST_URL` was first set to a wrong host; Mazen corrected it to `https://gamid-testing-static.gamid.workers.dev`.
+  - Replication was enabled for GM-TEST-01 only. The stale pending row was superseded and the Intro re-queued. It was READY on attempt 1: 1,525,630 bytes, SHA-256 `2da9c7da8f96932760ba890d2c705fa7f6b15df7fcda770b1880255ec07ebc74`. The Supabase source and the R2 object were downloaded independently and are byte-identical.
+  - The owner's counted bytes are unchanged (1,525,630, the original only).
+  - Delivery is still OFF, waiting for Mazen's explicit approval.
+- **GamID Truth unchanged:** nothing is enabled for visitors.
