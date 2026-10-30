@@ -79,9 +79,19 @@ Rules:
 | DEC | Decisions | decisions/ | DEC-0013 |
 | IDEA | Ideas | ideas/ | IDEA-0003 |
 | ISS | Issues | issues/ | ISS-0020 |
-| REV | Reviews | reviews/ | REV-0032 |
+| REV | Reviews | reviews/ | REV-0033 |
 
 ## Register
+
+2026-10-30 (Architecture F pilot and R2 lifecycle review): Mazen approved documenting the review in Product Memory only.
+- New REV-0033 (AUDIT, PARTIAL). The GM-TEST-01 pilot passed replication, verification and delivery on TESTING. Replication and delivery are OFF, the Worker's `MEDIA_R2_DELIVERY` is off, and nothing is on Production.
+- Lifecycle findings:
+  - removal and replacement void the old replica in the database at once;
+  - physical R2 deletion has no guaranteed run;
+  - orphans and silent delete failures are possible;
+  - the full upload → replace → remove cycle is untested end to end;
+  - there is no restore in either direction.
+- Proposals only: no decision, no fix authorized. DEC-0013 and GamID Truth are unchanged.
 
 2026-10-28 (DEC-0013 and the quota rule for R2 replicas): Mazen approved both.
 - New DEC-0013 (APPROVED, authorization NONE): Architecture F as the approved design for visitor video delivery (evidence in REV-0032).
@@ -292,3 +302,4 @@ Status stays DISCUSSION; there is no implementation authorization.
 | REV-0031 | Public Intro poster - real-Intro visual acceptance on @black, then rollout to all TESTING accounts | COMPLETED | [REV-0031-public-intro-poster-acceptance.md](reviews/REV-0031-public-intro-poster-acceptance.md) |
 | DEC-0013 | Media delivery Architecture F - Supabase authoritative, visitor video replicated to private R2 when READY, Worker delivery with Supabase fallback | APPROVED | [DEC-0013-media-delivery-architecture-f-r2-replication.md](decisions/DEC-0013-media-delivery-architecture-f-r2-replication.md) |
 | REV-0032 | Media delivery architecture review - Supabase authoritative, visitor video replicated to private R2 when READY (Architecture F) | COMPLETED | [REV-0032-media-delivery-architecture-r2-replication.md](reviews/REV-0032-media-delivery-architecture-r2-replication.md) |
+| REV-0033 | Architecture F TESTING pilot (GM-TEST-01) and the Supabase / R2 file-lifecycle review | COMPLETED | [REV-0033-architecture-f-pilot-and-r2-lifecycle-review.md](reviews/REV-0033-architecture-f-pilot-and-r2-lifecycle-review.md) |
