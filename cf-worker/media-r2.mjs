@@ -136,15 +136,9 @@ export async function serveR2Object(request, bucket, key, cacheControl) {
 
 // R2 Primary revocation: is this exact key still a 'stored' registry object? (public.media_r2_object_servable, anonymous, called only after a verified
 // signature). 'stored' | 'gone' | 'unknown'. Only a confirmed true serves; a false is 'gone' (404); a timeout, an error or an unexpected answer is 'unknown'
-// (503) - never content for an unconfirmed file. A confirmed answer is remembered for MEDIA_STATE_CACHE_MS per isolate (positive answers only), so the many
-// Range requests of one playback cost about one check, and a deleted file stops being served at most that long after its delete commits.
-export const MEDIA_STATE_CACHE_MS = 10000;
-const MEDIA_STATE_CACHE_MAX = 1000;
-const mediaStateCache = new Map();
-export async function checkMediaObjectState(key, { supabaseUrl, publishableKey, fetchImpl = fetch, nowMs = Date.now(), cache = mediaStateCache, timeoutMs = 2000 }) {
-  const cached = cache.get(key);
-  if (cached !== undefined && cached > nowMs) return "stored";
-  cache.delete(key);
+// (503) - never content for an unconfirmed file. Nothing is cached or shared between requests (§154): each request's check starts after that request arrived,
+// so once a delete has committed, every later request - the next Range request of a playback included - is refused, in every isolate.
+export async function checkMediaObjectState(key, { supabaseUrl, publishableKey, fetchImpl = fetch, timeoutMs = 2000 }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -157,10 +151,7 @@ export async function checkMediaObjectState(key, { supabaseUrl, publishableKey, 
     if (!res.ok) return "unknown";
     const answer = await res.json();
     if (answer === false) return "gone";
-    if (answer !== true) return "unknown";
-    if (cache.size >= MEDIA_STATE_CACHE_MAX) cache.delete(cache.keys().next().value);
-    cache.set(key, nowMs + MEDIA_STATE_CACHE_MS);
-    return "stored";
+    return answer === true ? "stored" : "unknown";
   } catch {
     return "unknown";
   } finally {
@@ -171,6 +162,8 @@ export async function checkMediaObjectState(key, { supabaseUrl, publishableKey, 
 // GET/HEAD /media/v1/<key>: a verified, unexpired lease only; cached privately for no longer than the lease itself. An R2 Primary key is also re-checked
 // against the registry on every request (checkState; none given = never served): a logically deleted, replaced, failed or missing file is a 404 even while its
 // lease is valid and its object still exists in R2. A pilot (Architecture F) key is served exactly as before, with no extra call.
+// The check and the R2 read run side by side, so the check adds only the time it takes beyond R2's own; the response (and its body) is released only after
+// the check confirmed 'stored' - a refused request's R2 body is cancelled unread.
 export async function handleMediaDelivery(request, env, { nowSeconds = Math.floor(Date.now() / 1000), withinLimit = async () => true, checkState = async () => "unknown" } = {}) {
   if (!deliveryEnabled(env) || !env.MEDIA_R2_SIGNING_KEY) return notFound();
   const url = new URL(request.url);
@@ -178,13 +171,13 @@ export async function handleMediaDelivery(request, env, { nowSeconds = Math.floo
   const exp = url.searchParams.get("exp");
   if (!(await verifyDelivery(key, exp, url.searchParams.get("sig"), env.MEDIA_R2_SIGNING_KEY, nowSeconds))) return notFound();
   if (!(await withinLimit(key))) return new Response("Too Many Requests", { status: 429, headers: { "retry-after": "60", "cache-control": "no-store" } });
-  if (isPrimaryKey(key)) {
-    let state = "unknown";
-    try { state = await checkState(key); } catch { state = "unknown"; }
-    if (state === "gone") return notFound();
-    if (state !== "stored") return new Response("Service Unavailable", { status: 503, headers: { "retry-after": "5", "cache-control": "no-store" } });
-  }
-  return serveR2Object(request, env.MEDIA_R2, key, `private, max-age=${Math.max(Number(exp) - nowSeconds, 0)}`);
+  const serve = () => serveR2Object(request, env.MEDIA_R2, key, `private, max-age=${Math.max(Number(exp) - nowSeconds, 0)}`);
+  if (!isPrimaryKey(key)) return serve();
+  const [state, response] = await Promise.all([Promise.resolve().then(() => checkState(key)).catch(() => "unknown"), serve()]);
+  if (state === "stored") return response;
+  try { await response.body?.cancel(); } catch { /* released */ }
+  if (state === "gone") return notFound();
+  return new Response("Service Unavailable", { status: 503, headers: { "retry-after": "5", "cache-control": "no-store" } });
 }
 
 // PUT/DELETE /media/v1-ingest/<key>: the worker Job only. PUT streams the body into R2 with the signed SHA-256 (R2 refuses a body whose digest differs) and

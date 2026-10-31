@@ -185,9 +185,9 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
   - Phase 2 step 1 (§151): migration `20261030140000_media_r2_primary_registry.sql`, **APPLIED to TESTING on 2026-10-31 and validated (§152)**. It is inert: switch OFF, allow-list empty, 0 rows. Nothing deployed.
   - Architecture F stays OFF and untouched.
   - DEC-0014 saved (APPROVED). Mazen approved the logical quota release at delete or replace, provided the physical delete continues and is monitored.
-  - Ownership fix + lease revocation (§153), **local only, NOT applied, NOT deployed:** migration `20261101100000_media_r2_primary_ownership_and_serving.sql` (a promotion accepts a COMPLETE receipt OR `storage.objects.owner_id`; `media_r2_object_servable`) and the Worker's per-request registry check for `primary/` keys (fail closed).
+  - Ownership fix + lease revocation (§153-§154): migration `20261101100000_media_r2_primary_ownership_and_serving.sql` (a promotion accepts a COMPLETE receipt OR `storage.objects.owner_id`; `media_r2_object_servable`) **APPLIED to TESTING on 2026-11-01 (§154)**, still inert. The Worker's per-request registry check for `primary/` keys (fail closed, no cache since §154) is **local only, NOT deployed**.
 - **Next, each step only with Mazen's approval:**
-  1. apply `20261101100000` to TESTING and deploy the Worker check;
+  1. deploy the Worker check;
   2. wire it into the delete and replace flows, `public-media` and the Worker, then the Job's promote and delete steps plus dispatch / pg_cron. A prompt physical delete stays required to free space, but no longer to stop service (§153).
   - On activation, GamID Truth `visitor-media-leases` must be amended for `primary/` keys (revocable at the logical delete).
   - Pilot scope: the GM-TEST-01 owner only.

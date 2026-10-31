@@ -6068,3 +6068,47 @@ Mazen's task "Roll Out Public Intro Poster to All TESTING Accounts" authorized t
 - **Cost / latency:** one small RPC per uncached request. The read-only proxy (the existing anonymous `get_public_media_delivery`, client to TESTING) measured warm 50–110 ms, cold about 300 ms. Worker CPU is unchanged (I/O wait); Supabase bills compute, not requests.
 - **Truth:** unchanged (inert, not applied, not deployed). On activation of R2 Primary leases, `visitor-media-leases` ("an issued lease stays valid until it expires") must be amended for `primary/` keys.
 - **Next (needs Mazen):** applying `20261101100000` to TESTING; deploying the Worker; then the wiring steps in `docs/R2-PRIMARY-MIGRATION.md` §8.
+## 154. R2 Primary ownership migration applied to TESTING (inert) + Worker revocation without a cache (local only, NOT deployed, 2026-11-01)
+
+- **Task.** Mazen: "GamID R2 Primary / Phase 2 - Ownership Migration on TESTING". Authorized: applying `20261101100000_media_r2_primary_ownership_and_serving.sql` to TESTING only; the Worker change local only. R2 Primary stays OFF; no deploy; Production untouched; no merge.
+- **Preflight (read-only):**
+  - `migration list`: TESTING current through `20261030140000`; only `20261101100000` pending. The older history mismatches are pre-existing and unrelated.
+  - Drift: the live `private.media_r2_register_impl` body is byte-identical (md5 of `prosrc`) to `20261030140000`; `media_r2_object_servable` did not exist; switch OFF, allow-list 0, registry 0 rows, Architecture F false/false.
+  - Baselines: all 23 owners' stored and reserved bytes (one fingerprint), 606 public/private function definitions with their grants (one fingerprint), 47 objects, 147 receipts, 2 Architecture F replicas.
+  - The migration contains only the `create or replace` of `media_r2_register_impl` (same signature; `create or replace` keeps its grants) and the new `media_r2_object_servable` with its grants.
+- **Rehearsal** (one transaction: migration, regression checks, then the functional tests, ending in an exception, so a guaranteed rollback): **PASS 27/27**.
+  - Regression: new `register_impl` body; its grants unchanged (postgres + service_role only); every other function byte-identical with the same grants; every owner's usage identical; counts, switches and Architecture F unchanged.
+  - After it: the old definition, no new function, 0 rows (rolled back).
+- **Applied** in one transaction (`db query -f`, `begin … commit`). `migration repair --status applied 20261101100000` was then run: `migration list` showed no remote row, because `db query` doesn't write the history, and a later `db push` would re-run the migration. Repair only records the version. History now matches.
+- **Post-apply:** the same snapshot shows only the intended change (607 functions; the other-functions and usage fingerprints unchanged). The functional tests ran again in a rolled-back transaction: **PASS 27/27**.
+  - **Ownership (A1-A19)**, on synthetic GM-TEST-01 paths plus a synthetic non-account "other owner", never committed:
+    - accepted: a legacy object proven by `owner_id` only; a receipt only; both agreeing;
+    - counted once, pending and stored;
+    - refused: no proof (`NOT_OWNED`); another `owner_id`; receipt vs `owner_id` disagreeing; another owner's receipt; ACTIVE, CANCELLED or other-size receipts (`CONFLICT`); a size mismatch or absent object (`MISMATCH`); impersonating another folder (`INVALID`); a planted file (`CONFLICT`);
+    - uncounted share copy: no proof OK, a contradiction refused;
+    - the refusals left no row, receipt or usage change.
+  - **Serving (B1-B8):** false for pending, deleting (at the delete commit), deleted, failed, missing, other, pilot, malformed and oversized keys; true only for stored. Grants: anon / authenticated may execute it; nobody can select the registry; anon can't reach register or its impl.
+- **Live PostgREST (anon key):**
+  - `media_r2_object_servable` answers `200 false` for an unknown key and for null;
+  - `worker_media_r2_register` gives `401` permission denied;
+  - the `private` schema is not exposed (`406 PGRST106`);
+  - the real RPC's latency is 40–146 ms, median 57 ms warm (15 calls from a client).
+- **Final TESTING state:**
+  - R2 Primary `enabled` false, allow-list 0, registry 0 rows, no user migrated;
+  - 0 synthetic objects or receipts;
+  - Architecture F false/false, Worker `MEDIA_R2_DELIVERY` "off" (not deployed), GM-TEST-01 DRAFT.
+- **Worker (local only, NOT deployed):**
+  - §153's positive 10 s cache is removed: it could serve a deleted file for up to 10 s on an isolate that had just served it.
+  - `checkMediaObjectState` now has no cache, and `handleMediaDelivery` runs it beside the R2 read (`Promise.all`). The response is released only after `stored`; a refused request's R2 body is cancelled unread; `gone` → 404, anything else → 503 `no-store`. Pilot / Architecture F keys are unchanged, with no call.
+  - **Proven by tests:** the very next request after the delete commit (same isolate, no delay) is refused for GET, HEAD and Range; parallel requests each ask; failures are never remembered; the check and the R2 read are concurrent (a deterministic overlap test).
+  - **Not claimed:** a response already streaming at the commit is not cut, and a request whose check reached the database before the commit is served. Browser-cached bytes stay (F6-A).
+  - **Trade-off:** latency is about max(0, RPC − R2) per `primary/` request instead of about one RPC per 10 s; every `primary/` request needs Supabase to answer within 2 s (otherwise 503); one indexed lookup per request.
+- **Tests:**
+  - `tests/media-r2-primary-serving.test.js` 6/6 (rewritten);
+  - registry DB 13/13; pilot 13/13;
+  - `npm test`: 2324 tests, 2321 pass, 0 fail, 3 pre-existing FFmpeg skips.
+  - A wall-clock latency assertion failed once under the parallel full-suite load. It was replaced by the deterministic overlap test.
+- **Truth / decision notes.**
+  - GamID Truth is unchanged: inert, and nothing issues `primary/` leases.
+  - On activation, `visitor-media-leases` ("an issued lease stays valid until it expires") must be amended for `primary/` keys.
+  - The revocation is stricter than DEC-0014 point 6 ("except for a lease already issued"), following Mazen's stated preference of 2026-11-01. A Product Memory update is proposed, not saved.

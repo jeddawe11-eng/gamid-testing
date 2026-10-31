@@ -143,7 +143,12 @@ The landing object is temporary by construction:
     - `true` → served, with the browser cache header unchanged (`private, max-age=<lease remainder>`, F6-A).
     - `false` → 404 for GET, HEAD and Range.
     - A failure, a timeout (2 s) or an unexpected answer → 503 `no-store`, `retry-after: 5`. It fails closed: never content for an unconfirmed file. No checker wired also means 503.
-  - Positive answers only are cached per isolate for 10 s (at most 1,000 keys), so one playback's Range requests cost about one check. A delete therefore stops service within at most 10 s on an isolate that just served the file, and at once everywhere else.
+  - ~~Positive answers only are cached per isolate for 10 s~~ (§153; removed in §154, because it left up to 10 s of stale service after a delete on an isolate that had just served the file).
+  - **Since §154: no cache at all.** Every request asks the registry, and the check runs beside the R2 read (`Promise.all`); the response and its body are released only after `stored` is confirmed, and a refused request's R2 body is cancelled unread.
+    - Tested: after the delete commits, the very next request (same isolate, no delay) is 404 for GET, HEAD and Range; parallel requests each ask; a failure is never remembered.
+    - Not covered by "the next request": a response already streaming when the delete commits is not cut, and a request whose check reached the database before the commit is still served (the same as any read racing a write).
+    - Latency: the slower of the R2 read and the RPC instead of their sum. The real RPC on TESTING (applied 2026-11-01) measured 40–146 ms from a client, median 57 ms warm, so the added time is about max(0, RPC − R2) per request, for `primary/` keys only.
+    - Availability: every `primary/` request depends on Supabase answering within 2 s; otherwise 503 (no cache masks a short outage any more). Load: one indexed (`r2_key` unique) lookup per request.
   - Architecture F / pilot keys (`intro-media/…`, `intro-share-copies/…`) are served exactly as before, with no extra call.
   - Compared with the alternatives:
     - a shorter Wall lease still leaves a window, and loses the F6-A reuse that the 6 h lease exists for;
@@ -206,7 +211,7 @@ The landing object is temporary by construction:
 - Proposed fix, before migrating existing files: accept `owner_id = owner OR` a COMPLETE receipt, the product's existing convention since the gateway.
 - New uploads always have receipts and are unaffected.
 
-**Ownership fix + revocation check, done locally (§153), NOT applied to TESTING:** `supabase/migrations/20261101100000_media_r2_primary_ownership_and_serving.sql` (additive; the applied migration is not edited), tests 11-13 in `tests/media-r2-primary-registry-db.test.js` and `tests/media-r2-primary-serving.test.js`.
+**Ownership fix + revocation check (§153); migration APPLIED to TESTING on 2026-11-01 (§154), inert (switch OFF, allow-list empty, 0 rows); the Worker change is NOT deployed:** `supabase/migrations/20261101100000_media_r2_primary_ownership_and_serving.sql` (additive; the applied migration is not edited), tests 11-13 in `tests/media-r2-primary-registry-db.test.js` and `tests/media-r2-primary-serving.test.js`.
 - A promotion's ownership is proven by a COMPLETE receipt of the same owner and exact size, OR by `storage.objects.owner_id` = the owner. The folder must be the owner's and the object must exist with exactly that size (unchanged).
 - Anything contradicting is `LANDING_OWNERSHIP_CONFLICT`, whichever proof exists: a receipt of another owner, a receipt not COMPLETE (in progress or cancelled), a COMPLETE receipt of another size, or an `owner_id` of another user.
 - A counted object with neither proof is `LANDING_OBJECT_NOT_OWNED`. Uncounted internal copies need no proof, but contradictions are still refused.
@@ -214,7 +219,7 @@ The landing object is temporary by construction:
 - `public.media_r2_object_servable(text)` and the Worker check: see §5.
 
 **Not yet:**
-- applying 20261101100000 to TESTING and deploying the Worker check (needs Mazen);
+- deploying the Worker check (needs Mazen; 20261101100000 is applied, §154);
 - wiring into `remove_my_intro` / replace / Wall delete, `public-media` (issuing `primary/` leases) and the Worker ingest/upload paths;
 - the dispatch trigger and the pg_cron safety net (with the Job step: the dispatcher must learn the table first);
 - the live concurrency test on TESTING.
