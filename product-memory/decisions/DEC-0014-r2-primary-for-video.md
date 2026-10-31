@@ -3,15 +3,15 @@ id: DEC-0014
 title: R2 Primary for permanent video files - private R2 is the video store, the Supabase database owns metadata and quota (replaces DEC-0013's video-store part)
 status: APPROVED
 created: 2026-10-30
-updated: 2026-10-30
+updated: 2026-11-01
 scope: Storage of permanent user video (Intro derivative, Discord share copy, Wall video originals, HEVC-derived copies, renditions) on TESTING and later Production - upload, Global Usage quota, delete / replace, leases, Cloudflare Worker, Cloud Run worker
 summary: Mazen approved R2 Primary as the design direction for permanent video files, replacing the video-store part of DEC-0013 (Supabase authoritative + R2 replicas); implementation and tests are authorized on TESTING only and are NOT complete; Production is NOT authorized; nothing is accepted.
 related: [DEC-0013, REV-0033, REV-0032, DEC-0007]
-save_approval: Mazen 2026-10-30
+save_approval: Mazen 2026-11-01
 authorization: Mazen 2026-10-30 - task "Claude Code - GamID R2 Primary Migration" - implementation and tests on TESTING only, limited pilot scope; Production NOT authorized
 supersedes: []
 truth_refs: [visitor-media-access, intro-streaming-f5, intro-discord-thumbnail, discord-share-card, wall-video-url-reuse, wall-video-faststart, wall-video-renditions, public-media-route-protection, global-usage]
-checkpoints: [ac4a2bed43093c3e0189da1c819ebb64173fc7fc]
+checkpoints: [ac4a2bed43093c3e0189da1c819ebb64173fc7fc, 10f777334d90afd98beb56210e48b61066b234ee]
 sources: [docs/R2-PRIMARY-MIGRATION.md, PROJECT_HANDOFF.md, product-memory/decisions/DEC-0013-media-delivery-architecture-f-r2-replication.md, product-memory/reviews/REV-0033-architecture-f-pilot-and-r2-lifecycle-review.md]
 ---
 
@@ -36,7 +36,13 @@ sources: [docs/R2-PRIMARY-MIGRATION.md, PROJECT_HANDOFF.md, product-memory/decis
 5. **Quota.** The 200,000,000-byte quota is enforced from trustworthy database data, so it can't be bypassed by parallel, oversize or failed partial uploads. Each logical file is counted once. The DEC-0013 / DEC-0007 rule is kept: internal system copies (renditions, Discord share copies) do not count.
 6. **Delete and replace.**
    - A user-initiated delete or replace reaches the real file and its dependent records.
-   - A deleted or replaced file stops being served at once, except for a lease already issued (its unchanged lifetime) or a short crawler cache.
+   - A deleted or replaced file stops being served at once. A signed R2 Primary lease does not allow serving the video on any new request after its logical delete, even while the lease has not expired. The serving check doesn't depend on the physical R2 delete succeeding.
+   - What can't be revoked:
+     - a response that started before the delete may complete;
+     - bytes the browser already downloaded stay in its cache (F6-A);
+     - a short crawler cache.
+   - Lease lifetimes are unchanged (Intro 120 s, Wall video 6 h; item 8). Architecture F's existing contracts are unchanged.
+   - *Amended 2026-11-01 (Mazen; `PROJECT_HANDOFF.md` §153-§154).* Previously an issued lease kept its unchanged lifetime. The basis is the per-request registry check (`public.media_r2_object_servable`): migration `20261101100000` is applied to TESTING and inert, and the Worker check is local only and NOT deployed (`10f7773`). This is a documentation update only, with no deploy or activation authorized. It's recorded here and in the Register rather than as a History line, because History logs status changes and the status stays APPROVED.
    - Its physical deletion has a guaranteed run, and a failed deletion is never silently dropped.
 7. **No automatic restore** between R2 and Supabase when a file is lost outside GamID.
 8. **Leases and privacy are kept.** `public-media` stays the only visitor lease issuer, with the same visibility predicates and lifetimes (Intro 120 s, Wall video 6 h), signed as a Worker URL. Owners get an equivalent owner-checked lease.

@@ -83,6 +83,12 @@ Rules:
 
 ## Register
 
+2026-11-01 (DEC-0014 item 6, revocation at the logical delete): Mazen approved updating the record.
+- DEC-0014 updated (still APPROVED), not a new record: a signed R2 Primary lease no longer allows serving on any new request after the logical delete, even before it expires. A response already started may complete, and browser-cached bytes can't be revoked.
+- Lease lifetimes (Intro 120 s, Wall 6 h) and Architecture F's contracts are unchanged. Basis: `PROJECT_HANDOFF.md` §153-§154.
+- Documentation only: the Worker check is NOT deployed, and R2 Primary is NOT active. GamID Truth unchanged.
+- The amendment is dated inside item 6, not as a History line: the validator accepts only status transitions there, and APPROVED → APPROVED is not one.
+
 2026-10-30 (DEC-0014, R2 Primary for video): Mazen approved the design direction and saving the record.
 - New DEC-0014 (APPROVED): R2 is the primary store for permanent video files; the Supabase database owns metadata and quota. It replaces only DEC-0013's video-store part. DEC-0013 stays APPROVED and is not superseded by this save.
 - Authorization: implementation and tests on TESTING only, limited pilot scope. They are NOT complete: phase 1 only (`ac4a2be`, handoff §150, `docs/R2-PRIMARY-MIGRATION.md`). Production is NOT authorized; nothing is accepted.
