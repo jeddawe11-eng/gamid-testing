@@ -5997,3 +5997,43 @@ Mazen's task "Roll Out Public Intro Poster to All TESTING Accounts" authorized t
   - the dispatch trigger and the pg_cron safety net (with the Job step);
   - the Job promote and delete steps.
 - **GamID Truth unchanged.** Nothing changes product behaviour (inert, not applied); no capability, status, limit or contract changed.
+## 152. R2 Primary registry applied to TESTING and validated (inert, 2026-10-31)
+
+- **Task.** Mazen: "R2 Primary / Phase 2 — TESTING Database Validation". TESTING only; R2 Primary stays OFF for everyone; no Worker, Edge or Cloud Run deploy; Production untouched; no merge.
+- **Approved rule.** Mazen approved releasing a user's quota logically at the delete or replace commit, provided the physical R2 delete continues and its failures are monitored.
+- **Before applying:**
+  - `migration list`: TESTING current through `20261030120000`; only `20261030140000` pending. The older history mismatches from September and October are pre-existing and unrelated.
+  - Drift check: the four live usage functions were byte-identical to `tests/fixtures/usage-functions-before-r2-primary.sql`, and no registry object existed.
+- **Rehearsal** (`begin`, migration, checks, an exception, so a guaranteed rollback): PASS.
+  - **Created:** 3 tables and 7 worker functions.
+  - **State:** OFF, allow-list empty, 0 rows; the Architecture F switches unchanged.
+  - **Privileges:** no client or service role privilege on the registry.
+  - **Usage:** stored and reserved bytes unchanged for all 23 owners.
+  - Afterwards, 0 registry tables existed (rolled back).
+- **Applied** in one transaction (`db query -f`, `begin … commit`).
+  - `migration repair --status applied 20261030140000` was then run because `migration list` showed the version without a remote row. `db query` doesn't write the migration history, and a later `db push` would re-run the migration. Repair only records the version.
+- **Two-connection quota race** (GM-TEST-01, synthetic paths, `pg_temp` session functions, cleaned):
+  - **Race 1, PASS:** two parallel reservations of 120,000,000 with 198,474,370 free. A reserved and held its transaction 15 s. B started 3.4 s later, waited on the shared per-owner lock until A's commit, then got `ACCOUNT_STORAGE_QUOTA_EXCEEDED` (8 ms after it).
+  - **Race 2, PASS:** a registration in a never-committed transaction against a parallel reservation. The reservation waited until the registration's rollback (12 s), then succeeded, which proves the registration takes the same lock.
+  - The in-transaction enable was visible to no one and rolled back.
+- **Functional tests on TESTING, 19/19 PASS** (one rolled-back transaction):
+  - registration, its reservation and duplicates;
+  - a digest mismatch fails and releases;
+  - a late completion is refused; a retry gets a new key; completion is counted;
+  - the gateway can't touch an R2 receipt; an invalid transition is refused;
+  - delete effective at commit; claim, a failure recorded, no early re-claim, a confirmed delete;
+  - a promotion of GM-TEST-01's real Intro counted once while pending and stored;
+  - missing is not served, not counted and never re-created; rows are never deleted; grants.
+  - The first run's 4 FAILs were a test artifact: each check ran in the same statement as its action, so it read the pre-action snapshot. Corrected by separate statements.
+- **Live PostgREST:** anon is refused 401 `permission denied` (register, delete claim); the internal servable helper is not exposed (404); the service role reaches the function and gets `R2_PRIMARY_DISABLED`.
+- **Signed links issued before a delete:**
+  - **Supabase signed URL:** a synthetic GM-TEST-01 object, signed for 120 s: 200, then REVALIDATED, then a 206 Range. From the delete on, 400 at +0 s, +5 s, +15 s, +30 s and +65 s, with no stale CDN copy. Object removed.
+  - **Worker HMAC lease** (the real `handleMediaDelivery` code, an in-memory bucket, since live delivery stays OFF): it plays after the logical delete until whichever comes first, its expiry (Intro 120 s, Wall 6 h; above the cap refused) or the physical R2 delete (then 404 at once).
+  - So for Wall the physical delete must be prompt (the dispatch on `deleting`, Job step) before Wall moves. Recorded in `docs/R2-PRIMARY-MIGRATION.md` §5.
+- **Finding:** most existing TESTING video objects have no COMPLETE receipt (intro-media 5 of 6, wall-video 10 of 12). A *promotion* accepts only a receipt, so existing files can't be promoted until it also accepts `storage.objects.owner_id` (the product's convention). New uploads are unaffected. Not fixed in this task.
+- **Final state:**
+  - R2 Primary `enabled` false, 0 owners, 0 rows;
+  - Architecture F false/false, Worker `MEDIA_R2_DELIVERY` "off", GM-TEST-01 DRAFT;
+  - GM-TEST-01 stored 1,525,630, reserved 0;
+  - 0 test receipts and 0 test objects.
+- **GamID Truth unchanged** (inert; no capability, status, limit or contract changed).

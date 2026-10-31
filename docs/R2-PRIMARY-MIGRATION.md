@@ -131,6 +131,13 @@ The landing object is temporary by construction:
   - registry keys survive a profile-row delete, because the registry references the owner with no cascade;
   - a reclaimed attempt writes a new key and supersedes the old attempt's row, which keeps its key and is deleted;
   - a periodic R2 `list()` reconcile through the Worker (prefix by owner) finds keys with no row. It reports them and deletes them only after a grace period.
+- **Leases issued before a delete (measured 2026-10-31, §152):**
+  - **Supabase signed URL** (today's path, and landing objects): refused with 400 from the moment the object is deleted, with no stale CDN copy (checked at +0 s, +5 s, +15 s, +30 s, +65 s).
+  - **Worker HMAC lease** (the R2 path): the Worker checks only the signature and expiry, never the database. A lease issued before a delete therefore keeps working, Range included, until whichever comes first:
+    - its expiry: Intro 120 s, Wall 6 h;
+    - the physical R2 delete, after which it is 404 at once.
+  - Bytes the browser has already downloaded stay in its private cache for the remaining lifetime.
+  - So for Wall the physical delete must be prompt. The dispatch on `deleting` (Job step) is required before Wall is moved. If prompt deletion can't be guaranteed, the options are a registry check in the Worker for long leases, or a shorter Wall lease.
 - **Out-of-band loss: no automatic restore.**
   - A promoted file missing in R2 is a 404 to the visitor (no Supabase copy exists by design), and the reconcile reports it.
   - A missing landing object behaves exactly as today.
@@ -178,6 +185,13 @@ The landing object is temporary by construction:
 - landing-object cleanup candidates.
 
 **Worker:** `public.worker_media_r2_*` wrappers, service role only.
+
+**Applied to TESTING on 2026-10-31 (§152)**, inert: switch OFF, allow-list empty, 0 rows.
+
+**Finding on TESTING:** most existing video objects have no COMPLETE usage receipt (intro-media 5 of 6, wall-video 10 of 12). They predate the gateway or are fixtures, and their ownership proof is `storage.objects.owner_id`.
+- Registration of a *promoted* counted object accepts only a receipt, so these existing files can't be promoted yet.
+- Proposed fix, before migrating existing files: accept `owner_id = owner OR` a COMPLETE receipt, the product's existing convention since the gateway.
+- New uploads always have receipts and are unaffected.
 
 **Not yet:**
 - wiring into `remove_my_intro` / replace / Wall delete, `public-media` and the Worker;

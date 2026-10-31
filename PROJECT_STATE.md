@@ -182,12 +182,12 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 - **Standing decision:** Mazen approved R2 Primary as the direction for permanent video files and authorized implementation and tests on TESTING only (not acceptance, not Production). Plan: `docs/R2-PRIMARY-MIGRATION.md`.
 - **Status:**
   - Phase 1 done (§150).
-  - Phase 2 step 1 done **locally** (§151): migration `20261030140000_media_r2_primary_registry.sql`, inert (switch OFF, allow-list empty), PGlite-tested. **NOT applied to TESTING**, nothing deployed.
+  - Phase 2 step 1 (§151): migration `20261030140000_media_r2_primary_registry.sql`, **APPLIED to TESTING on 2026-10-31 and validated (§152)**. It is inert: switch OFF, allow-list empty, 0 rows. Nothing deployed.
   - Architecture F stays OFF and untouched.
-  - DEC-0014 saved (APPROVED).
+  - DEC-0014 saved (APPROVED). Mazen approved the logical quota release at delete or replace, provided the physical delete continues and is monitored.
 - **Next, each step only with Mazen's approval:**
-  1. apply the migration to TESTING (rehearse in `begin; … rollback;`, then apply plus `migration repair`) and run a live two-session quota race on fake owners;
-  2. wire it into the delete and replace flows, `public-media` and the Worker, then the Job's promote and delete steps plus dispatch / pg_cron.
+  1. a promotion should also accept `storage.objects.owner_id` (a finding in §152; needed only to migrate existing files);
+  2. wire it into the delete and replace flows, `public-media` and the Worker, then the Job's promote and delete steps plus dispatch / pg_cron. A prompt physical delete is required before Wall moves (6 h leases, §152).
   - Pilot scope: the GM-TEST-01 owner only.
 
 **Previous continuation (2026-10-29, Architecture F TESTING pilot code prepared, §148):**
