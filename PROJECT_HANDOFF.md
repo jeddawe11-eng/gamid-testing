@@ -6037,3 +6037,34 @@ Mazen's task "Roll Out Public Intro Poster to All TESTING Accounts" authorized t
   - GM-TEST-01 stored 1,525,630, reserved 0;
   - 0 test receipts and 0 test objects.
 - **GamID Truth unchanged** (inert; no capability, status, limit or contract changed).
+## 153. R2 Primary: ownership proof for existing files + revocation of Wall/Intro R2 leases at the logical delete (local only, NOT applied, NOT deployed, 2026-11-01)
+
+- **Task.** Mazen: "GamID R2 Primary / Phase 2 - Ownership Fix & Wall Lease Security". Local code, a new migration, tests and docs on this branch only. Nothing applied to TESTING, nothing deployed, R2 Primary OFF, allow-list empty, Production untouched, no merge.
+- **A. Ownership fix** (the §152 finding), in the new additive migration `20261101100000_media_r2_primary_ownership_and_serving.sql` (`20261030140000` is applied and unchanged):
+  - `private.media_r2_register_impl` is redefined with the same signature. A *promotion* is proven by a COMPLETE receipt of the same owner and exact size, OR by `storage.objects.owner_id` = the owner.
+  - Contradicting evidence is `LANDING_OWNERSHIP_CONFLICT` whichever proof exists: a receipt of another owner, an ACTIVE or CANCELLED receipt, a COMPLETE receipt of another size, an `owner_id` of another user (including the owner's file planted in someone else's folder).
+  - Neither proof on a counted object is `LANDING_OBJECT_NOT_OWNED`. The folder rule, the size check and counting are unchanged; derived registrations are unchanged.
+- **B. Revocation.** Measured in §152: a Worker HMAC lease served after the logical delete until its expiry (Wall 6 h) or the physical delete. Compared:
+  - a per-request registry check: revokes at the delete commit, independent of R2;
+  - a shorter Wall lease: still a window, and breaks the F6-A reuse benefit;
+  - a fast physical delete with retry: depends on the queue succeeding, up to the full window on failure.
+  - **Chosen:** the per-request check, with the fast delete kept as the complement that frees the space.
+  - `public.media_r2_object_servable(text)` (anon, boolean, true only for `stored`).
+  - `cf-worker/media-r2.mjs`:
+    - `isPrimaryKey` / `isDeliveryKey` (`primary/<video bucket>/<owner uuid>/<path>/<object uuid>`); ingest still accepts pilot keys only.
+    - `checkMediaObjectState`: RPC, 2 s timeout, positive-only cache 10 s / 1,000 keys.
+    - `handleMediaDelivery`: for a `primary/` key after signature, expiry and rate limit, `gone` → 404 and anything unconfirmed → 503 `no-store` (fail closed; no checker = 503).
+    - Pilot / Architecture F keys are unchanged, with no extra call. The cache header is unchanged (F6-A).
+  - `cf-worker/worker.mjs` wires the checker with the existing `SUPABASE_URL` / `PUBLISHABLE_KEY`.
+- **Tests:**
+  - `tests/media-r2-primary-registry-db.test.js` 13/13. New tests 11-13 cover the ownership matrix, no double counting, unchanged derived registration, and the servable answers for every state and replacement, plus grants; test 10 now applies both migrations (Architecture F byte-identical).
+  - `tests/media-r2-primary-serving.test.js` 5/5:
+    - the same lease served before the delete, then 404 for GET, HEAD and Range for deleting, deleted, missing, failed and pending, with R2 never read and the object still present;
+    - a down, 500, odd or hanging RPC gives 503;
+    - the cache bounds;
+    - forged, expired and rate-limited requests never reach the check;
+    - pilot keys are untouched.
+  - `tests/media-r2-pilot.test.js` 13/13 unchanged. `npm test`: 2323 tests, 2320 pass, 0 fail, 3 pre-existing FFmpeg skips.
+- **Cost / latency:** one small RPC per uncached request. The read-only proxy (the existing anonymous `get_public_media_delivery`, client to TESTING) measured warm 50–110 ms, cold about 300 ms. Worker CPU is unchanged (I/O wait); Supabase bills compute, not requests.
+- **Truth:** unchanged (inert, not applied, not deployed). On activation of R2 Primary leases, `visitor-media-leases` ("an issued lease stays valid until it expires") must be amended for `primary/` keys.
+- **Next (needs Mazen):** applying `20261101100000` to TESTING; deploying the Worker; then the wiring steps in `docs/R2-PRIMARY-MIGRATION.md` §8.

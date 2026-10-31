@@ -178,16 +178,18 @@ Verify in `../gamid-monitor` (`git status -sb`; `git rev-parse v2-freeze`).
 
 ## 7. Current continuation point
 
-**Latest continuation (2026-10-30, R2 Primary for video, phase 1, §150):**
+**Latest continuation (2026-11-01, R2 Primary for video, phase 2; started 2026-10-30, §150-§153):**
 - **Standing decision:** Mazen approved R2 Primary as the direction for permanent video files and authorized implementation and tests on TESTING only (not acceptance, not Production). Plan: `docs/R2-PRIMARY-MIGRATION.md`.
 - **Status:**
   - Phase 1 done (§150).
   - Phase 2 step 1 (§151): migration `20261030140000_media_r2_primary_registry.sql`, **APPLIED to TESTING on 2026-10-31 and validated (§152)**. It is inert: switch OFF, allow-list empty, 0 rows. Nothing deployed.
   - Architecture F stays OFF and untouched.
   - DEC-0014 saved (APPROVED). Mazen approved the logical quota release at delete or replace, provided the physical delete continues and is monitored.
+  - Ownership fix + lease revocation (§153), **local only, NOT applied, NOT deployed:** migration `20261101100000_media_r2_primary_ownership_and_serving.sql` (a promotion accepts a COMPLETE receipt OR `storage.objects.owner_id`; `media_r2_object_servable`) and the Worker's per-request registry check for `primary/` keys (fail closed).
 - **Next, each step only with Mazen's approval:**
-  1. a promotion should also accept `storage.objects.owner_id` (a finding in §152; needed only to migrate existing files);
-  2. wire it into the delete and replace flows, `public-media` and the Worker, then the Job's promote and delete steps plus dispatch / pg_cron. A prompt physical delete is required before Wall moves (6 h leases, §152).
+  1. apply `20261101100000` to TESTING and deploy the Worker check;
+  2. wire it into the delete and replace flows, `public-media` and the Worker, then the Job's promote and delete steps plus dispatch / pg_cron. A prompt physical delete stays required to free space, but no longer to stop service (§153).
+  - On activation, GamID Truth `visitor-media-leases` must be amended for `primary/` keys (revocable at the logical delete).
   - Pilot scope: the GM-TEST-01 owner only.
 
 **Previous continuation (2026-10-29, Architecture F TESTING pilot code prepared, §148):**

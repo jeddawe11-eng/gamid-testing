@@ -138,6 +138,19 @@ The landing object is temporary by construction:
     - the physical R2 delete, after which it is 404 at once.
   - Bytes the browser has already downloaded stay in its private cache for the remaining lifetime.
   - So for Wall the physical delete must be prompt. The dispatch on `deleting` (Job step) is required before Wall is moved. If prompt deletion can't be guaranteed, the options are a registry check in the Worker for long leases, or a shorter Wall lease.
+- **Chosen and implemented locally (§153, not deployed): a registry check in the Worker for every `primary/` key.** Mazen's preference: a logically deleted video must stop being served at once, even with a valid lease, without relying on the physical R2 delete.
+  - After the signature, expiry and rate-limit checks, `handleMediaDelivery` asks `public.media_r2_object_servable(r2_key)` (anonymous, boolean, true only for `state = 'stored'`).
+    - `true` → served, with the browser cache header unchanged (`private, max-age=<lease remainder>`, F6-A).
+    - `false` → 404 for GET, HEAD and Range.
+    - A failure, a timeout (2 s) or an unexpected answer → 503 `no-store`, `retry-after: 5`. It fails closed: never content for an unconfirmed file. No checker wired also means 503.
+  - Positive answers only are cached per isolate for 10 s (at most 1,000 keys), so one playback's Range requests cost about one check. A delete therefore stops service within at most 10 s on an isolate that just served the file, and at once everywhere else.
+  - Architecture F / pilot keys (`intro-media/…`, `intro-share-copies/…`) are served exactly as before, with no extra call.
+  - Compared with the alternatives:
+    - a shorter Wall lease still leaves a window, and loses the F6-A reuse that the 6 h lease exists for;
+    - a fast physical delete depends on the queue succeeding; a failed attempt leaves the full lease window (retries every 10 min, up to 5 attempts). It stays as the complement that frees the space, not the revocation.
+  - Cost: one small Supabase RPC per uncached request; measured warm 50–110 ms from a client to TESTING (cold about 300 ms) with the existing anonymous `get_public_media_delivery` as the proxy, so the first request of a playback is that much slower; Worker CPU is unchanged (the wait is I/O). Supabase bills compute, not requests.
+  - Bytes already in the visitor's browser cache are not revocable (F6-A, unchanged).
+  - **Truth note:** `visitor-media-leases` says an issued lease stays valid until it expires. That stays true for every lease issued today. When R2 Primary leases are wired and activated, the contract must be amended for R2 Primary keys (revocable at the logical delete).
 - **Out-of-band loss: no automatic restore.**
   - A promoted file missing in R2 is a 404 to the visitor (no Supabase copy exists by design), and the reconcile reports it.
   - A missing landing object behaves exactly as today.
@@ -193,8 +206,16 @@ The landing object is temporary by construction:
 - Proposed fix, before migrating existing files: accept `owner_id = owner OR` a COMPLETE receipt, the product's existing convention since the gateway.
 - New uploads always have receipts and are unaffected.
 
+**Ownership fix + revocation check, done locally (§153), NOT applied to TESTING:** `supabase/migrations/20261101100000_media_r2_primary_ownership_and_serving.sql` (additive; the applied migration is not edited), tests 11-13 in `tests/media-r2-primary-registry-db.test.js` and `tests/media-r2-primary-serving.test.js`.
+- A promotion's ownership is proven by a COMPLETE receipt of the same owner and exact size, OR by `storage.objects.owner_id` = the owner. The folder must be the owner's and the object must exist with exactly that size (unchanged).
+- Anything contradicting is `LANDING_OWNERSHIP_CONFLICT`, whichever proof exists: a receipt of another owner, a receipt not COMPLETE (in progress or cancelled), a COMPLETE receipt of another size, or an `owner_id` of another user.
+- A counted object with neither proof is `LANDING_OBJECT_NOT_OWNED`. Uncounted internal copies need no proof, but contradictions are still refused.
+- Counting is unchanged: a promotion adds nothing, whichever proof it used.
+- `public.media_r2_object_servable(text)` and the Worker check: see §5.
+
 **Not yet:**
-- wiring into `remove_my_intro` / replace / Wall delete, `public-media` and the Worker;
+- applying 20261101100000 to TESTING and deploying the Worker check (needs Mazen);
+- wiring into `remove_my_intro` / replace / Wall delete, `public-media` (issuing `primary/` leases) and the Worker ingest/upload paths;
 - the dispatch trigger and the pg_cron safety net (with the Job step: the dispatcher must learn the table first);
 - the live concurrency test on TESTING.
 

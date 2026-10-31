@@ -21,6 +21,11 @@ const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const MEDIA_KEY_RE = new RegExp(`^(intro-media|intro-share-copies)/(?:[A-Za-z0-9_-][A-Za-z0-9._-]{0,127}/){1,6}${UUID}$`);
 
 export const isMediaKey = key => typeof key === "string" && key.length <= 600 && MEDIA_KEY_RE.test(key) && !key.includes("..");
+// R2 Primary (DEC-0014): primary/<logical bucket>/<owner uuid>/<path>/<registry object id>, exactly as private.media_r2_register_impl builds it. Delivery only:
+// ingest still accepts the pilot's keys alone. Such a lease is served only while its registry row is 'stored' (checked per request, below).
+const MEDIA_PRIMARY_KEY_RE = new RegExp(`^primary/(intro-media|intro-share-copies|wall-video|wall-video-derived|wall-video-renditions)/${UUID}/(?:[A-Za-z0-9_-][A-Za-z0-9._-]{0,127}/){0,5}[A-Za-z0-9_-][A-Za-z0-9._-]{0,127}/${UUID}$`);
+export const isPrimaryKey = key => typeof key === "string" && key.length <= 600 && MEDIA_PRIMARY_KEY_RE.test(key) && !key.includes("..");
+export const isDeliveryKey = key => isMediaKey(key) || isPrimaryKey(key);
 export const deliveryEnabled = env => env?.MEDIA_R2_DELIVERY === "on" && typeof env?.MEDIA_R2?.get === "function";
 
 const encoder = new TextEncoder();
@@ -49,7 +54,7 @@ export async function signDeliveryUrl(origin, key, exp, secret) {
 }
 
 export async function verifyDelivery(key, expRaw, sig, secret, nowSeconds) {
-  if (!secret || !isMediaKey(key) || !/^\d{1,12}$/.test(String(expRaw ?? "")) || !/^[0-9a-f]{64}$/.test(String(sig ?? ""))) return false;
+  if (!secret || !isDeliveryKey(key) || !/^\d{1,12}$/.test(String(expRaw ?? "")) || !/^[0-9a-f]{64}$/.test(String(sig ?? ""))) return false;
   const exp = Number(expRaw);
   if (exp <= nowSeconds || exp > nowSeconds + MEDIA_LEASE_MAX_SECONDS) return false;
   return sameHex(await hmacHex(secret, deliveryMessage(key, exp)), sig);
@@ -129,14 +134,56 @@ export async function serveR2Object(request, bucket, key, cacheControl) {
   return new Response(object.body, { status: 206, headers });
 }
 
-// GET/HEAD /media/v1/<key>: a verified, unexpired lease only; cached privately for no longer than the lease itself
-export async function handleMediaDelivery(request, env, { nowSeconds = Math.floor(Date.now() / 1000), withinLimit = async () => true } = {}) {
+// R2 Primary revocation: is this exact key still a 'stored' registry object? (public.media_r2_object_servable, anonymous, called only after a verified
+// signature). 'stored' | 'gone' | 'unknown'. Only a confirmed true serves; a false is 'gone' (404); a timeout, an error or an unexpected answer is 'unknown'
+// (503) - never content for an unconfirmed file. A confirmed answer is remembered for MEDIA_STATE_CACHE_MS per isolate (positive answers only), so the many
+// Range requests of one playback cost about one check, and a deleted file stops being served at most that long after its delete commits.
+export const MEDIA_STATE_CACHE_MS = 10000;
+const MEDIA_STATE_CACHE_MAX = 1000;
+const mediaStateCache = new Map();
+export async function checkMediaObjectState(key, { supabaseUrl, publishableKey, fetchImpl = fetch, nowMs = Date.now(), cache = mediaStateCache, timeoutMs = 2000 }) {
+  const cached = cache.get(key);
+  if (cached !== undefined && cached > nowMs) return "stored";
+  cache.delete(key);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetchImpl(`${supabaseUrl}/rest/v1/rpc/media_r2_object_servable`, {
+      method: "POST",
+      headers: { apikey: publishableKey, "content-type": "application/json" },
+      body: JSON.stringify({ candidate_r2_key: key }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return "unknown";
+    const answer = await res.json();
+    if (answer === false) return "gone";
+    if (answer !== true) return "unknown";
+    if (cache.size >= MEDIA_STATE_CACHE_MAX) cache.delete(cache.keys().next().value);
+    cache.set(key, nowMs + MEDIA_STATE_CACHE_MS);
+    return "stored";
+  } catch {
+    return "unknown";
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// GET/HEAD /media/v1/<key>: a verified, unexpired lease only; cached privately for no longer than the lease itself. An R2 Primary key is also re-checked
+// against the registry on every request (checkState; none given = never served): a logically deleted, replaced, failed or missing file is a 404 even while its
+// lease is valid and its object still exists in R2. A pilot (Architecture F) key is served exactly as before, with no extra call.
+export async function handleMediaDelivery(request, env, { nowSeconds = Math.floor(Date.now() / 1000), withinLimit = async () => true, checkState = async () => "unknown" } = {}) {
   if (!deliveryEnabled(env) || !env.MEDIA_R2_SIGNING_KEY) return notFound();
   const url = new URL(request.url);
   const key = keyFromPath(url.pathname, MEDIA_ROUTE_PREFIX);
   const exp = url.searchParams.get("exp");
   if (!(await verifyDelivery(key, exp, url.searchParams.get("sig"), env.MEDIA_R2_SIGNING_KEY, nowSeconds))) return notFound();
   if (!(await withinLimit(key))) return new Response("Too Many Requests", { status: 429, headers: { "retry-after": "60", "cache-control": "no-store" } });
+  if (isPrimaryKey(key)) {
+    let state = "unknown";
+    try { state = await checkState(key); } catch { state = "unknown"; }
+    if (state === "gone") return notFound();
+    if (state !== "stored") return new Response("Service Unavailable", { status: 503, headers: { "retry-after": "5", "cache-control": "no-store" } });
+  }
   return serveR2Object(request, env.MEDIA_R2, key, `private, max-age=${Math.max(Number(exp) - nowSeconds, 0)}`);
 }
 

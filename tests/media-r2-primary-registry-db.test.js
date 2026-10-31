@@ -9,11 +9,13 @@ import { PGlite } from "@electric-sql/pglite";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const REGISTRY = read("supabase/migrations/20261030140000_media_r2_primary_registry.sql");
+// §153: ownership proof for existing files + the Worker's revocation check (applied after REGISTRY; tests 11-13)
+const OWNERSHIP = read("supabase/migrations/20261101100000_media_r2_primary_ownership_and_serving.sql");
 const OWNER = "11111111-1111-4111-8111-111111111111", OTHER = "22222222-2222-4222-8222-222222222222";
 const SHA = "a".repeat(64), SHA2 = "b".repeat(64);
 const MB = 1_000_000;
 
-async function usageFixture({ apply = true } = {}) {
+async function usageFixture({ apply = true, ownership = false } = {}) {
   const db = new PGlite();
   await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
     create schema private; create schema storage; create schema auth; create schema realtime;
@@ -46,8 +48,10 @@ async function usageFixture({ apply = true } = {}) {
   // the live TESTING definitions this migration starts from (patched in place over time by F8-B1, share copies, posters, ISS-0011, fonts, crews)
   await db.exec(read("tests/fixtures/usage-functions-before-r2-primary.sql"));
   if (apply) await db.exec(REGISTRY);
+  if (ownership) await db.exec(OWNERSHIP);
   const one = async (sql, params = []) => (await db.query(sql, params)).rows[0];
-  const object = (bucket, path, n, owner = OWNER) => db.query("insert into storage.objects values ($1, $2, $3, $4)", [bucket, `${owner}/${path}`, owner, { size: n }]);
+  // storageOwner: what storage.objects.owner_id records (the uploader), independent of the folder; null = not recorded
+  const object = (bucket, path, n, owner = OWNER, storageOwner = owner) => db.query("insert into storage.objects values ($1, $2, $3, $4)", [bucket, `${owner}/${path}`, storageOwner, { size: n }]);
   const receipt = (bucket, path, n, mime, state = "COMPLETE", owner = OWNER) =>
     one(`insert into private.usage_uploads (owner_id, bucket, path, expected_bytes, content_type, state) values ($1, $2, $3, $4, $5, $6) returning upload_id`, [owner, bucket, `${owner}/${path}`, n, mime, state]);
   const enable = async (owner = OWNER) => {
@@ -377,14 +381,130 @@ test("10. Architecture F is untouched: its tables, switches, functions and deliv
   const modeBefore = (await db.query("select mode from public.get_public_media_delivery('intro-media', $1)", [derivative])).rows[0].mode;
   await db.exec("reset role");
   await db.exec(REGISTRY);
+  await db.exec(OWNERSHIP);   // both R2 Primary migrations, as TESTING will have them
   const after = await snapshot();
   const existing = new Set(before.functions.map(f => f.sig));
   assert.deepEqual(after.functions.filter(f => existing.has(f.sig)), before.functions, "every Architecture F / share-copy function is byte-identical, with the same grants");
-  assert.ok(after.functions.filter(f => !existing.has(f.sig)).every(f => /media_r2_(primary|register|complete|fail_row|fail_impl|fail\(|mark_missing|delete_claim|delete_confirm|delete_stuck|landing|servable|request_delete|bucket_rule)/.test(f.sig)),
+  assert.ok(after.functions.filter(f => !existing.has(f.sig)).every(f => /media_r2_(primary|register|complete|fail_row|fail_impl|fail\(|mark_missing|delete_claim|delete_confirm|delete_stuck|landing|servable|object_servable|request_delete|bucket_rule)/.test(f.sig)),
     "the only additions are the registry's own functions");
   assert.deepEqual([after.settings, after.tables, after.replicas], [before.settings, before.tables, before.replicas]);
   await db.exec("set role anon");
   assert.equal((await db.query("select mode from public.get_public_media_delivery('intro-media', $1)", [derivative])).rows[0].mode, modeBefore);
   await db.exec("reset role");
   assert.equal(modeBefore, "supabase");
+});
+
+// --------------------------------------------------------------------------------------------- §153: 20261101100000 (ownership proof + revocation check)
+test("11. promotion ownership: a COMPLETE receipt OR storage.objects.owner_id proves it; anything contradicting either is a conflict; no proof is refused", async () => {
+  const f = await usageFixture({ ownership: true });
+  await f.enable();
+  const reject = (path, n, code, msg) => f.rejects(f.register("promoted", "wall-video", path, n), code).then(() => {}, e => { throw new Error(`${msg}: ${e.message}`); });
+  // accepted: a legacy object with no receipt but the recorded uploader (most TESTING videos, §152); a new upload's receipt with no owner_id; both agreeing
+  await f.object("wall-video", "legacy.mp4", 10 * MB);
+  await f.object("wall-video", "receipt-only.mp4", 11 * MB, OWNER, null); await f.receipt("wall-video", "receipt-only.mp4", 11 * MB, "video/mp4");
+  await f.object("wall-video", "both.mp4", 12 * MB); await f.receipt("wall-video", "both.mp4", 12 * MB, "video/mp4");
+  const before = await f.stored();
+  assert.equal(before, 33 * MB);
+  const legacy = await f.register("promoted", "wall-video", "legacy.mp4", 10 * MB);
+  const receiptOnly = await f.register("promoted", "wall-video", "receipt-only.mp4", 11 * MB);
+  const both = await f.register("promoted", "wall-video", "both.mp4", 12 * MB);
+  const source = id => f.one("select source_upload_id from private.media_objects where object_id = $1", [id]).then(r => r.source_upload_id);
+  assert.equal(await source(legacy.object_id), null, "no receipt: proven by owner_id");
+  assert.ok(await source(receiptOnly.object_id)); assert.ok(await source(both.object_id));
+  assert.deepEqual([await f.stored(), await f.reserved()], [33 * MB, 0], "pending promotions reserve and add nothing");
+  for (const [r, n] of [[legacy, 10 * MB], [receiptOnly, 11 * MB], [both, 12 * MB]]) assert.equal(await f.complete(r, n), "stored");
+  assert.deepEqual([await f.stored(), await f.reserved()], [33 * MB, 0], "stored: each file counted once, never twice");
+  await f.db.query("delete from storage.objects where name = any($1)", [[`${OWNER}/legacy.mp4`, `${OWNER}/receipt-only.mp4`, `${OWNER}/both.mp4`]]);
+  assert.equal(await f.stored(), 33 * MB, "after the landing cleanup: still once");
+  // refused: no proof at all
+  await f.object("wall-video", "nobody.mp4", 5 * MB, OWNER, null);
+  await reject("nobody.mp4", 5 * MB, /LANDING_OBJECT_NOT_OWNED/, "owner_id null, no receipt");
+  // refused: another uploader recorded in the owner's folder, with or without the owner's receipt
+  await f.object("wall-video", "foreign.mp4", 5 * MB, OWNER, OTHER);
+  await reject("foreign.mp4", 5 * MB, /LANDING_OWNERSHIP_CONFLICT/, "owner_id of another user");
+  await f.object("wall-video", "foreign-receipt.mp4", 5 * MB, OWNER, OTHER); await f.receipt("wall-video", "foreign-receipt.mp4", 5 * MB, "video/mp4");
+  await reject("foreign-receipt.mp4", 5 * MB, /LANDING_OWNERSHIP_CONFLICT/, "receipt vs owner_id disagree");
+  // refused: a receipt of another owner on this path, even with the right owner_id
+  await f.object("wall-video", "other-receipt.mp4", 5 * MB);
+  await f.db.query(`insert into private.usage_uploads (owner_id, bucket, path, expected_bytes, content_type, state) values ($1, 'wall-video', $2, $3, 'video/mp4', 'COMPLETE')`, [OTHER, `${OWNER}/other-receipt.mp4`, 5 * MB]);
+  await reject("other-receipt.mp4", 5 * MB, /LANDING_OWNERSHIP_CONFLICT/, "receipt of another owner");
+  // refused: an upload in progress or cancelled, a COMPLETE receipt of another size - owner_id does not override them
+  await f.object("wall-video", "active.mp4", 5 * MB); await f.receipt("wall-video", "active.mp4", 5 * MB, "video/mp4", "ACTIVE");
+  await reject("active.mp4", 5 * MB, /LANDING_OWNERSHIP_CONFLICT/, "ACTIVE receipt");
+  await f.object("wall-video", "cancelled.mp4", 5 * MB); await f.receipt("wall-video", "cancelled.mp4", 5 * MB, "video/mp4", "CANCELLED");
+  await reject("cancelled.mp4", 5 * MB, /LANDING_OWNERSHIP_CONFLICT/, "CANCELLED receipt");
+  await f.object("wall-video", "resized.mp4", 5 * MB); await f.receipt("wall-video", "resized.mp4", 6 * MB, "video/mp4");
+  await reject("resized.mp4", 5 * MB, /LANDING_OWNERSHIP_CONFLICT/, "COMPLETE receipt of another size");
+  // unchanged: size and existence are checked first, the folder must be the owner's, and another owner can never claim it
+  await reject("legacy2.mp4", 5 * MB, /LANDING_OBJECT_MISMATCH/, "no object");
+  await f.object("wall-video", "sized.mp4", 5 * MB);
+  await reject("sized.mp4", 5 * MB - 1, /LANDING_OBJECT_MISMATCH/, "another size");
+  await f.enable(OTHER);
+  await f.rejects(f.one(`select * from public.worker_media_r2_register('promoted', $1, 'wall-video', $2, $3, $4)`, [OTHER, `${OWNER}/sized.mp4`, 5 * MB, SHA]), /INVALID_MEDIA_OBJECT/, "another owner, the owner's folder");
+  await f.object("wall-video", "planted.mp4", 5 * MB, OTHER, OWNER);   // OWNER's upload placed in OTHER's folder
+  await f.rejects(f.register("promoted", "wall-video", "planted.mp4", 5 * MB, SHA, OTHER), /LANDING_OWNERSHIP_CONFLICT/, "the folder owner is not the recorded uploader");
+  // uncounted internal copies need no proof, but a contradiction is still refused
+  await f.object("intro-share-copies", "j/share.webm", 2 * MB, OWNER, null);
+  assert.ok((await f.register("promoted", "intro-share-copies", "j/share.webm", 2 * MB)).object_id);
+  await f.object("intro-share-copies", "j/foreign.webm", 2 * MB, OWNER, OTHER);
+  await f.rejects(f.register("promoted", "intro-share-copies", "j/foreign.webm", 2 * MB), /LANDING_OWNERSHIP_CONFLICT/);
+  // nothing refused left a row, a reservation or a changed total
+  assert.equal((await f.one("select count(*)::int n from private.media_objects")).n, 4);
+  assert.deepEqual([await f.stored(), await f.reserved()], [33 * MB + 8 * 5 * MB, 0], "the 3 R2 files once + the 8 refused landing objects in the folder, as before");
+});
+
+test("12. derived objects and the rest of registration are exactly as before the ownership migration", async () => {
+  for (const ownership of [false, true]) {
+    const f = await usageFixture({ ownership });
+    await f.enable();
+    const r = await f.register("derived", "intro-media", "job1/intro-d3.webm", 10 * MB);
+    assert.equal(r.r2_key, `primary/intro-media/${OWNER}/job1/intro-d3.webm/${r.object_id}`);
+    assert.deepEqual([await f.stored(), await f.reserved()], [0, 10 * MB], `ownership=${ownership}`);
+    await f.object("intro-media", "job2/intro-d3.webm", MB);
+    await f.rejects(f.register("derived", "intro-media", "job2/intro-d3.webm", MB), /MEDIA_OBJECT_EXISTS/);
+    await f.rejects(f.register("derived", "intro-media", "job1/intro-d3.webm", 10 * MB), /MEDIA_OBJECT_EXISTS/);
+    await f.db.query("update private.media_r2_primary_settings set enabled = false");
+    await f.rejects(f.register("derived", "intro-media", "job3/intro-d3.webm", MB), /R2_PRIMARY_DISABLED/);
+  }
+});
+
+test("13. media_r2_object_servable: true only while the exact key is 'stored'; pending, failed, deleting, deleted, missing, pilot and unknown keys are false; anon may ask", async () => {
+  const f = await usageFixture({ ownership: true });
+  await f.enable();
+  const ask = async (key, role = "anon") => {
+    await f.db.exec(`set role ${role}`);
+    try { return (await f.one("select public.media_r2_object_servable($1) ok", [key])).ok; } finally { await f.db.exec("reset role"); }
+  };
+  const a = await f.register("derived", "wall-video-derived", "a.h264.mp4", MB);
+  assert.equal(await ask(a.r2_key), false, "pending");
+  await f.complete(a, MB);
+  for (const role of ["anon", "authenticated", "service_role"]) assert.equal(await ask(a.r2_key, role), true, `stored, ${role}`);
+  assert.equal(await ask(a.r2_key.replace(/.$/, c => (c === "0" ? "1" : "0"))), false, "another object id");
+  assert.equal(await ask(a.r2_key + "x"), false);
+  // the logical delete revokes at commit, before any physical delete
+  assert.equal(await f.requestDelete("wall-video-derived", "a.h264.mp4"), 1);
+  assert.equal(await ask(a.r2_key), false, "deleting");
+  const [claim] = await f.claimDeletes();
+  assert.equal(await f.confirm(claim, true), "deleted");
+  assert.equal(await ask(a.r2_key), false, "deleted");
+  const b = await f.register("derived", "wall-video-derived", "b.h264.mp4", MB);
+  await f.fail(b);
+  assert.equal(await ask(b.r2_key), false, "failed");
+  const c = await f.register("derived", "wall-video-derived", "c.h264.mp4", MB);
+  await f.complete(c, MB);
+  await f.one("select public.worker_media_r2_mark_missing($1) s", [c.object_id]);
+  assert.equal(await ask(c.r2_key), false, "missing");
+  // a replacement (a new path, as an Intro re-render): the old key is revoked at once, the new one served
+  const d1 = await f.register("derived", "wall-video-derived", "d1.h264.mp4", MB); await f.complete(d1, MB);
+  const d2 = await f.register("derived", "wall-video-derived", "d2.h264.mp4", MB); await f.complete(d2, MB);
+  await f.requestDelete("wall-video-derived", "d1.h264.mp4", "REPLACED");
+  assert.deepEqual([await ask(d1.r2_key), await ask(d2.r2_key)], [false, true]);
+  for (const key of [null, "", `intro-media/${OWNER}/j/intro-d3.webm/${a.object_id}`, `wall-video-derived/${OWNER}/a.h264.mp4`, "primary/" + "x".repeat(700)])
+    assert.equal(await ask(key), false, String(key).slice(0, 40));
+  // it reveals a boolean only: no registry table becomes readable, and nothing else became callable
+  assert.equal((await f.one("select pg_get_function_result('public.media_r2_object_servable(text)'::regprocedure) t")).t, "boolean");
+  for (const role of ["anon", "authenticated"]) {
+    assert.equal((await f.one("select has_table_privilege($1, 'private.media_objects', 'select') ok", [role])).ok, false);
+    assert.equal((await f.one("select has_function_privilege($1, 'public.worker_media_r2_register(text, uuid, text, text, bigint, text, text)', 'execute') ok", [role])).ok, false);
+  }
 });

@@ -50,7 +50,7 @@
 
 import { normalizeHandle, validateHandle } from "../dist/account/domain.js";
 import { DIVIDER_IMAGE_PATH, INTRO_SHARE_ROUTE, componentEmbedScript, fetchPublicExtras, fetchPublicIntroShare, introShareUrl } from "./discord-card.mjs";
-import { MEDIA_INGEST_PREFIX, MEDIA_ROUTE_PREFIX, deliveryEnabled, fetchMediaDelivery, handleMediaDelivery, handleMediaIngest, serveR2Object } from "./media-r2.mjs";
+import { MEDIA_INGEST_PREFIX, MEDIA_ROUTE_PREFIX, checkMediaObjectState, deliveryEnabled, fetchMediaDelivery, handleMediaDelivery, handleMediaIngest, serveR2Object } from "./media-r2.mjs";
 
 const SUPABASE_URL = "https://upvtrczefcvigxdyuylw.supabase.co";
 // The browser's own public ("anon") key, copied verbatim from dist/account/supabase-client.js. Not a secret: it ships in every page load already and is
@@ -309,7 +309,8 @@ export default {
     if (url.pathname.startsWith(MEDIA_ROUTE_PREFIX)) {
       if (request.method !== "GET" && request.method !== "HEAD") return new Response("Method Not Allowed", { status: 405, headers: { allow: "GET, HEAD", "cache-control": "no-store" } });
       if (!acceptableRange(request.headers.get("range"))) return new Response("Range Not Satisfiable", { status: 416, headers: { "cache-control": "no-store" } });
-      return handleMediaDelivery(request, env, { withinLimit: key => withinRateLimit(env, request, "r2", key) });
+      return handleMediaDelivery(request, env, { withinLimit: key => withinRateLimit(env, request, "r2", key),
+        checkState: key => checkMediaObjectState(key, { supabaseUrl: SUPABASE_URL, publishableKey: PUBLISHABLE_KEY }) });
     }
     if (request.method !== "GET" && request.method !== "HEAD") return env.ASSETS.fetch(request);
 
